@@ -1,0 +1,8 @@
+apiVersion: blockade.config/v1alpha1
+engines:
+  - id: local-yolo-sam
+    kind: local-ultralytics
+    command: [python3, deploy/blockade/worker.py]
+    workers: 1
+    yoloModel: /models/yolo11n.pt
+    samModel: /models/sam2_b.pt

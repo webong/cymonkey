@@ -56,6 +56,7 @@ type Service struct {
 	sessions       map[string]*runningSession
 	store          *sessionStore
 	blockadeClient *blockade.Client
+	blockadePool   *blockade.WorkerPool
 }
 
 type ServiceOption func(*Service)
@@ -72,6 +73,15 @@ func WithTargetResolver(resolver targetconn.Resolver) ServiceOption {
 // Grimlock sessions. The worker remains external to Jangolova.
 func WithBlockadeClient(client blockade.Client) ServiceOption {
 	return func(service *Service) { service.blockadeClient = &client }
+}
+
+func WithBlockadeWorkerPool(pool *blockade.WorkerPool) ServiceOption {
+	return func(service *Service) {
+		if pool != nil {
+			service.blockadePool = pool
+			service.blockadeClient = &blockade.Client{WorkerPool: pool}
+		}
+	}
 }
 
 // WithStoreDirectory enables persistent session storage in the given
@@ -794,6 +804,9 @@ func (s *Service) closeSession(ctx context.Context, record *runningSession) erro
 			problems = append(problems, err)
 		}
 	}
+	if s.blockadePool != nil {
+		problems = append(problems, s.blockadePool.Close())
+	}
 	return errors.Join(problems...)
 }
 
@@ -810,6 +823,9 @@ func (s *Service) Close(ctx context.Context) error {
 		if err := s.closeSession(ctx, record); err != nil {
 			problems = append(problems, err)
 		}
+	}
+	if s.blockadePool != nil {
+		problems = append(problems, s.blockadePool.Close())
 	}
 	return errors.Join(problems...)
 }

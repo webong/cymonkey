@@ -15,6 +15,7 @@ import (
 type Client struct {
 	BaseURL    string
 	HTTPClient *http.Client
+	WorkerPool *WorkerPool
 }
 
 func (c Client) client() (*http.Client, error) {
@@ -28,6 +29,9 @@ func (c Client) client() (*http.Client, error) {
 }
 
 func (c Client) Observe(ctx context.Context, request ObserveRequest) (ObserveResponse, error) {
+	if c.WorkerPool != nil {
+		return c.WorkerPool.Observe(ctx, request)
+	}
 	hc, err := c.client()
 	if err != nil {
 		return ObserveResponse{}, err

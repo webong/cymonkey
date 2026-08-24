@@ -21,6 +21,8 @@ func main() {
 		err = modelsCommand(os.Args[2:])
 	case "connect-model":
 		err = connectModelCommand(os.Args[2:])
+	case "blockade":
+		err = blockadeCommand(os.Args[2:])
 	case "serve-engine-provider":
 		err = serveEngineProviderCommand(os.Args[2:])
 	case "serve-grimlock":
@@ -53,6 +55,7 @@ Commands:
   connect-engine          Attach one engine to a caller-owned target
   models                  Discover registered Grimlock model connector protocols
   connect-model           Test connection to a caller-supplied model provider
+  blockade                Validate Blockade config or run one observation
   serve-engine-provider   Serve the authenticated interaction-engine API
   serve-grimlock           Serve the authenticated Grimlock agent API
   serve-grimlock-mcp       Serve Grimlock through MCP (stdio or HTTP)

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -106,8 +107,44 @@ func newGrimlockService(options ...grimlock.ServiceOption) (*grimlock.Service, e
 	}
 	serviceOptions := []grimlock.ServiceOption{grimlock.WithTargetResolver(resolver)}
 	serviceOptions = append(serviceOptions, options...)
+	if configPath := strings.TrimSpace(os.Getenv("JANGOLOVA_BLOCKADE_CONFIG")); configPath != "" {
+		config, configErr := blockade.LoadConfig(configPath)
+		if configErr != nil {
+			return nil, fmt.Errorf("load Blockade config: %w", configErr)
+		}
+		engineID := strings.TrimSpace(os.Getenv("JANGOLOVA_BLOCKADE_ENGINE"))
+		if engineID == "" {
+			engineID = config.Engines[0].ID
+		}
+		engine, ok := config.Engine(engineID)
+		if !ok {
+			return nil, fmt.Errorf("Blockade engine %q is not configured", engineID)
+		}
+		if engine.Kind == "local-ultralytics" {
+			pool, poolErr := blockade.StartConfiguredLocalEngine(context.Background(), engine)
+			if poolErr != nil {
+				return nil, fmt.Errorf("start configured Blockade engine: %w", poolErr)
+			}
+			serviceOptions = append(serviceOptions, grimlock.WithBlockadeWorkerPool(pool))
+		}
+	}
 	if endpoint := strings.TrimSpace(os.Getenv("JANGOLOVA_BLOCKADE_ENDPOINT")); endpoint != "" {
 		serviceOptions = append(serviceOptions, grimlock.WithBlockadeClient(blockade.Client{BaseURL: endpoint}))
+	}
+	if strings.TrimSpace(os.Getenv("JANGOLOVA_BLOCKADE_CONFIG")) == "" {
+		if command := strings.TrimSpace(os.Getenv("JANGOLOVA_BLOCKADE_WORKER_COMMAND")); command != "" {
+			workers := 1
+			if value := strings.TrimSpace(os.Getenv("JANGOLOVA_BLOCKADE_WORKERS")); value != "" {
+				if parsed, parseErr := strconv.Atoi(value); parseErr == nil {
+					workers = parsed
+				}
+			}
+			pool, poolErr := blockade.NewWorkerPool(context.Background(), blockade.WorkerConfig{Command: strings.Fields(command), Workers: workers, Stderr: os.Stderr})
+			if poolErr != nil {
+				return nil, fmt.Errorf("configure Blockade workers: %w", poolErr)
+			}
+			serviceOptions = append(serviceOptions, grimlock.WithBlockadeWorkerPool(pool))
+		}
 	}
 	return grimlock.NewService(runtime, registry, token, serviceOptions...)
 }

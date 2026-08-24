@@ -94,8 +94,12 @@ func allowedDeploymentFixture(relative string) bool {
 	switch relative {
 	case "deploy/engine-runtime/Containerfile",
 		"deploy/godot-pacman-fixture/Containerfile",
+		"deploy/godot-pacman-gpu/Containerfile",
 		"deploy/unity-pacman-fixture/Containerfile",
-		"deploy/unreal-pacman-fixture/Containerfile":
+		"deploy/unity-pacman-gpu/Containerfile",
+		"deploy/unreal-pacman-fixture/Containerfile",
+		"deploy/unreal-pacman-gpu/Containerfile",
+		"deploy/blockade/Containerfile":
 		return true
 	default:
 		return false

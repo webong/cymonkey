@@ -5,12 +5,30 @@ returns normalized detections and segmentation masks. Blockade owns pixel
 observation; Jangolova and Grimlock remain responsible for interaction and
 agent orchestration.
 
+Local engine attachments can be declared in
+[blockade.example.yaml](blockade.example.yaml). Use `local-ultralytics` for
+managed subprocess workers and `onnx` for native ONNX Runtime integration.
+Cloud providers are registered by Grimlock and are deliberately not named by
+Blockade configuration.
+
 Build and run it from the repository root:
 
 ```sh
 docker build -f deploy/blockade/Containerfile -t jangolova/blockade:yolo-sam .
 docker run --rm -p 127.0.0.1:8091:8091 jangolova/blockade:yolo-sam
 ```
+
+For a reproducible local fixture with read-only model mounts:
+
+```sh
+mkdir -p .cache/blockade/models
+# Place yolo11n.pt and sam2_b.pt in .cache/blockade/models.
+BLOCKADE_MODEL_CACHE="$PWD/.cache/blockade/models" \
+  deploy/blockade/run-fixture.sh
+```
+
+The launcher fails before starting Docker when either weight file is missing.
+See [models/README.md](models/README.md) for the cache contract.
 
 The first startup downloads the configured model weights unless they are
 provided through a mounted cache. Override `BLOCKADE_YOLO_MODEL` and
@@ -21,3 +39,39 @@ provided through a mounted cache. Override `BLOCKADE_YOLO_MODEL` and
 `internal/blockade`. Set `JANGOLOVA_BLOCKADE_ENDPOINT=http://blockade:8091`
 when starting Grimlock to advertise the read-only `blockade_observe` tool in
 new sessions.
+
+For an embedded local worker instead of HTTP, configure Grimlock with:
+
+```sh
+export JANGOLOVA_BLOCKADE_WORKER_COMMAND="python3 deploy/blockade/worker.py"
+export JANGOLOVA_BLOCKADE_WORKERS=1
+```
+
+Grimlock starts and stops the Blockade worker pool with its own lifecycle.
+
+To select an engine from YAML:
+
+```sh
+export JANGOLOVA_BLOCKADE_CONFIG=deploy/blockade/blockade.example.yaml
+export JANGOLOVA_BLOCKADE_ENGINE=local-yolo-sam
+```
+
+If `JANGOLOVA_BLOCKADE_ENGINE` is omitted, the first configured engine is used.
+
+## Managed subprocess mode
+
+Blockade can own the Python process through stdin/stdout framed JSON IPC,
+avoiding a local HTTP hop while preserving process isolation:
+
+```go
+pool, err := blockade.NewWorkerPool(ctx, blockade.WorkerConfig{
+    Command: []string{"python3", "deploy/blockade/worker.py"},
+    Workers: 1,
+})
+defer pool.Close()
+client := blockade.Client{WorkerPool: pool}
+```
+
+The worker loads YOLO and SAM once, processes one request at a time, and emits
+one JSON response per input line. Increase `Workers` only when the hardware
+can hold multiple model copies.

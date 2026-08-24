@@ -143,6 +143,25 @@
 - [ ] Verify native-host and Xallet-provided display contracts with the same
   adapter conformance suite.
 
+## Phase 4b: Blockade observation
+
+- [x] Define the provider-neutral Blockade observation contract.
+- [x] Add managed Python Ultralytics workers for local YOLO/SAM inference.
+- [x] Add worker-pool lifecycle, framed stdin/stdout IPC, and shutdown.
+- [x] Add YAML engine configuration and local model-file validation.
+- [x] Add `blockade validate` and `blockade observe` CLI flows.
+- [x] Expose Blockade observation as a read-only Grimlock tool.
+- [x] Add Grimlock model roles for reasoning, vision, and multimodal models.
+- [x] Define a Grimlock-owned vision-provider registry boundary.
+- [x] Add reproducible model-cache mounts and a real YOLO/SAM fixture launcher.
+- [ ] Run the fixture with pinned weights and add a real inference smoke test.
+- [ ] Add native ONNX Runtime inference.
+- [ ] Add a selected cloud-provider adapter in Grimlock with credential
+  resolution.
+- [ ] Normalize fal.ai model-specific detection and segmentation responses.
+- [ ] Capture screenshots from Cymonkey, Pacman, and display targets for Blockade.
+- [ ] Add the full screenshot → observation → Grimlock → approved-action test.
+
 ## Phase 5: Hardening
 
 - [x] Add renewable credential leases for HTTP and long-lived CDP/BiDi

@@ -8,6 +8,16 @@ The repository does not select, download, or redistribute Unity Editor
 binaries. Supply an approved private image whose Editor executable is at
 `/opt/unity/Editor/Unity`, or override `UNITY_EDITOR_PATH` at runtime:
 
+To build that private base image directly from a Linux Editor installed at
+`/opt/unity` on the VPS:
+
+```sh
+cd /opt/unity
+docker build \
+  -f /path/to/jangolova/deploy/unity-pacman-fixture/UnityBase.Containerfile \
+  -t private/unity-editor:2022.3 .
+```
+
 ```sh
 docker build \
   --build-arg UNITY_EDITOR_IMAGE=registry.example/unity-editor:2022.3 \

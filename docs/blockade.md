@@ -4,6 +4,29 @@ Blockade is Jangolova's observation subsystem. It runs pixel-oriented models
 locally or through caller-owned model services and returns normalized visual
 observations. It does not perform interaction or presentation.
 
+## Ownership boundary
+
+Blockade owns engines and observations. Grimlock owns provider registration,
+credentials, provider-specific request mapping, and provider switching.
+
+```text
+Grimlock
+  ├─ registers vision and multimodal providers
+  ├─ resolves credentials and TLS
+  ├─ maps provider-native requests and responses
+  └─ selects or switches providers
+          ↓ provider-neutral Blockade contract
+Blockade
+  ├─ runs local inference engines
+  ├─ manages local workers
+  └─ returns normalized observations
+```
+
+Blockade must not contain hardcoded cloud-provider integrations. A provider
+such as fal.ai, another hosted service, or a caller-owned VLM is implemented
+behind Grimlock's provider interface. Switching providers must not require a
+change to Blockade's observation contract or local engine implementations.
+
 ```text
 pixels → Blockade engine → observations → Grimlock → approved action
                                       ↘ Cymonkey / Pacman
@@ -35,3 +58,10 @@ Grimlock model registry
 The first implementation uses an external Ultralytics YOLO/SAM worker. Future
 Blockade backends can use ONNX Runtime, OpenVINO, TensorRT, or a VLM gateway
 without changing Grimlock's observation tool.
+
+Blockade must not contain provider-specific cloud code. A cloud service such as
+fal.ai is a Grimlock-registered `VisionProvider`; Grimlock resolves its
+credentials and maps its native request/response format to Blockade's types.
+
+For the maintained implementation status and resumable task list, see
+[Blockade work handoff](blockade-handoff.md).
