@@ -1,9 +1,7 @@
 package blockade
 
 import (
-	"bytes"
 	"context"
-	"encoding/base64"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -113,25 +111,11 @@ func TestOnnxEngineFixtureSmoke(t *testing.T) {
 
 func assertValidObservationResponse(t *testing.T, result ObserveResponse, requestID string) {
 	t.Helper()
-	if result.APIVersion != APIVersion {
-		t.Fatalf("apiVersion = %q, want %q", result.APIVersion, APIVersion)
-	}
 	if result.RequestID != requestID {
 		t.Fatalf("requestId = %q, want %q", result.RequestID, requestID)
 	}
-	for _, observation := range result.Observations {
-		if observation.Label == "" || observation.Kind == "" {
-			t.Fatalf("observation missing kind or label: %#v", observation)
-		}
-		if observation.Confidence < 0 || observation.Confidence > 1 {
-			t.Fatalf("confidence out of range: %#v", observation)
-		}
-		if observation.Region.Width < 0 || observation.Region.Height < 0 {
-			t.Fatalf("negative region dimensions: %#v", observation)
-		}
-		if observation.Mask != "" && !isPNG(observation.Mask) {
-			t.Fatalf("mask is not a PNG: %#v", observation)
-		}
+	if err := ValidateObserveResponse(result); err != nil {
+		t.Fatalf("invalid observation response: %v", err)
 	}
 }
 
@@ -140,12 +124,4 @@ func envDefault(key, fallback string) string {
 		return value
 	}
 	return fallback
-}
-
-func isPNG(encoded string) bool {
-	data, err := base64.StdEncoding.DecodeString(encoded)
-	if err != nil {
-		return false
-	}
-	return bytes.HasPrefix(data, []byte("\x89PNG\r\n\x1a\n"))
 }

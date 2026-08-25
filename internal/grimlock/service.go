@@ -47,17 +47,18 @@ var (
 // should call Routes or the service methods rather than implementing their own
 // model, policy, approval, or session lifecycle logic.
 type Service struct {
-	mu             sync.Mutex
-	runtime        *Runtime
-	registry       *orchestrator.Registry
-	token          string
-	resolver       targetconn.Resolver
-	sessionService session.Service
-	sessions       map[string]*runningSession
-	store          *sessionStore
-	blockadeClient *blockade.Client
-	blockadePool   *blockade.WorkerPool
-	blockadeEngine blockade.Engine
+	mu              sync.Mutex
+	runtime         *Runtime
+	registry        *orchestrator.Registry
+	token           string
+	resolver        targetconn.Resolver
+	sessionService  session.Service
+	sessions        map[string]*runningSession
+	store           *sessionStore
+	blockadeClient  *blockade.Client
+	blockadePool    *blockade.WorkerPool
+	blockadeEngine  blockade.Engine
+	visionProviders *VisionProviderRegistry
 }
 
 type ServiceOption func(*Service)
@@ -94,6 +95,26 @@ func WithBlockadeEngine(engine blockade.Engine) ServiceOption {
 			service.blockadeClient = &blockade.Client{Engine: engine}
 		}
 	}
+}
+
+// WithVisionProviderRegistry attaches community-owned vision providers.
+// Providers implement the Grimlock-owned VisionProvider boundary and keep
+// their credentials, endpoints, and payload mapping on their side of it.
+func WithVisionProviderRegistry(registry *VisionProviderRegistry) ServiceOption {
+	return func(service *Service) {
+		if registry != nil {
+			service.visionProviders = registry
+		}
+	}
+}
+
+// VisionProtocols lists the registered community vision-provider protocols in
+// deterministic order. It is safe to call on a nil receiver.
+func (s *Service) VisionProtocols() []string {
+	if s == nil {
+		return nil
+	}
+	return s.visionProviders.Protocols()
 }
 
 // WithStoreDirectory enables persistent session storage in the given

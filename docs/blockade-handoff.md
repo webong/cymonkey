@@ -47,6 +47,11 @@ Implemented:
   `JANGOLOVA_BLOCKADE_ONNXRUNTIME_LIB`. Verified against an exported
   `yolo11n.onnx` (bus.jpg: bus + four persons). ONNX engines do not support
   `samModel` yet.
+- Community cloud-provider path: the Grimlock-owned `VisionProvider`
+  boundary, `WithVisionProviderRegistry` service hook, exported contract
+  validators (`blockade.ValidateObservations`, `blockade.ValidateObserveResponse`),
+  and the `skills/jangolova-blockade-cloud-provider` agent skill so external
+  coding agents implement cloud adapters themselves.
 - Role-aware Grimlock profiles: `reasoning`, `vision`, and `multimodal`.
 - Provider-neutral Grimlock vision-provider registry seam. Cloud adapters such
   as fal.ai belong in Grimlock, not in Blockade.
@@ -88,20 +93,19 @@ those files or replace the paths before using `--check-files` or `observe`.
 
 ## Next tasks
 
-1. Add the first Grimlock-owned cloud adapter (fal.ai or another selected
-   provider) using credential and TLS resolution.
-2. Add configurable cloud queue/submit behavior and request timeouts.
-3. Add model-specific response mappers so cloud segmentation/detection output
-   becomes `Observation`, `Region`, and mask data rather than raw evidence.
-4. Register vision and multimodal providers explicitly in Grimlock discovery,
-   alongside reasoning connectors, without exposing credentials.
-5. Add screenshot capture adapters for Cymonkey/Pacman/display targets and pass
+1. Add screenshot capture adapters for Cymonkey/Pacman/display targets and pass
    those pixels to Blockade.
-6. Add a Grimlock end-to-end test proving:
+2. Add a Grimlock end-to-end test proving:
 
    ```text
    target screenshot → Blockade → observation → Grimlock context → approved action
    ```
+
+Cloud adapters (fal.ai and similar hosted providers) are deliberately left to
+community development. Point contributors at the `VisionProvider` boundary,
+the exported contract validators, and
+`skills/jangolova-blockade-cloud-provider`; do not add first-party cloud
+adapters or their queue/timeout configuration to this repository.
 
 ## Architecture decisions
 
