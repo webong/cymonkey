@@ -7,18 +7,29 @@ import (
 	"jangolova/internal/orchestrator"
 )
 
-func TestRegistryIncludesProviderVisiblePacman(t *testing.T) {
+func TestRegistryRetiresStandalonePacman(t *testing.T) {
 	registry, err := EngineRegistry()
 	if err != nil {
 		t.Fatal(err)
 	}
-	adapter, ok := registry.Engine("pacman")
-	if !ok {
-		t.Fatal("Pacman adapter is not registered")
+	if _, ok := registry.Engine("pacman"); ok {
+		t.Fatal("standalone Pacman adapter must not be registered; engine targets go through the Cymonkey control plane")
 	}
-	inspection := adapter.(orchestrator.EngineInspector).InspectEngine(context.Background())
-	if !inspection.Available || !hasCapability(inspection.Capabilities, "target.pacman-ws") {
-		t.Fatalf("Pacman inspection = %#v", inspection)
+}
+
+func TestRegistryPinsBrowserAutomationToCymonkeyDrivers(t *testing.T) {
+	registry, err := EngineRegistry()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"playwright", "puppeteer"} {
+		adapter, ok := registry.Engine(name)
+		if !ok {
+			t.Fatalf("%s control plane is not registered", name)
+		}
+		if _, ok := adapter.(orchestrator.EngineInspector); !ok {
+			t.Fatalf("%s adapter does not support inspection", name)
+		}
 	}
 }
 

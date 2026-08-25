@@ -113,12 +113,15 @@ func ValidateManifest(value Manifest) error {
 	return nil
 }
 
-func ValidProfile(value Profile) bool { return value == ProfileWeb || value == ProfileMacOS }
+func ValidProfile(value Profile) bool {
+	return value == ProfileWeb || value == ProfileMacOS || value == ProfileEngine
+}
 
 func ValidBackend(value Backend) bool {
 	switch value {
 	case BackendCDP, BackendBiDi, BackendSafariMCP, BackendWebExtension,
-		BackendMacOSAppleEvents, BackendMacOSAccessibility, BackendMacOSCooperative:
+		BackendMacOSAppleEvents, BackendMacOSAccessibility, BackendMacOSCooperative,
+		BackendEngineGodot, BackendEngineUnity, BackendEngineUnreal, BackendEngineThreejs, BackendEnginePacman:
 		return true
 	default:
 		return false
@@ -132,7 +135,13 @@ func backendSupportsProfile(backend Backend, profile Profile) bool {
 	if profile == ProfileWeb {
 		return backend == BackendCDP || backend == BackendBiDi || backend == BackendSafariMCP || backend == BackendWebExtension
 	}
-	return backend == BackendMacOSAppleEvents || backend == BackendMacOSAccessibility || backend == BackendMacOSCooperative
+	if profile == ProfileMacOS {
+		return backend == BackendMacOSAppleEvents || backend == BackendMacOSAccessibility || backend == BackendMacOSCooperative
+	}
+	if profile == ProfileEngine {
+		return backend == BackendEngineGodot || backend == BackendEngineUnity || backend == BackendEngineUnreal || backend == BackendEngineThreejs || backend == BackendEnginePacman
+	}
+	return false
 }
 
 func validateTarget(target Target) error {

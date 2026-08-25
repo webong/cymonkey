@@ -10,10 +10,16 @@ const scene = await readFile(new URL("godot-pacman-fixture/fixture.tscn", import
 const scenePlan = JSON.parse(await readFile(new URL("godot-pacman-fixture/house.scene-plan.json", import.meta.url), "utf8"));
 const project = await readFile(new URL("godot-pacman-fixture/project.godot", import.meta.url), "utf8");
 const container = await readFile(new URL("../deploy/godot-pacman-fixture/Containerfile", import.meta.url), "utf8");
-const goProtocol = await readFile(new URL("../internal/pacman/protocol.go", import.meta.url), "utf8");
+const goProtocol = await readFile(new URL("../internal/cymonkey/protocol.go", import.meta.url), "utf8");
 
+assert.match(protocol, /jangolova\.cymonkey\/v1alpha2/);
 assert.match(protocol, /jangolova\.pacman\/v1alpha1/);
-assert.equal(protocol.match(/VERSION := "([^"]+)"/)?.[1], goProtocol.match(/ProtocolVersion = "([^"]+)"/)?.[1]);
+assert.equal(protocol.match(/VERSION := "([^"]+)"/)?.[1], goProtocol.match(/ProtocolVersion   = "([^"]+)"/)?.[1]);
+assert.match(protocol, /COMPATIBLE_PROTOCOLS := \["jangolova\.pacman\/v1alpha1"\]/);
+assert.match(registry, /"compatibleProtocols": PacmanProtocol\.COMPATIBLE_PROTOCOLS/);
+assert.match(registry, /"profiles": \[PacmanProtocol\.PROFILE_ENGINE\]/);
+assert.match(registry, /"backends": \[PacmanProtocol\.BACKEND_GODOT\]/);
+assert.match(registry, /stale_revision/);
 for (const method of ["hello", "capabilities", "describe", "act", "events", "health"]) assert.match(protocol, new RegExp(`METHOD_[A-Z]+ := "${method}"`));
 for (const kind of ["scene", "object", "ui", "camera", "material", "animation", "timeline", "artifact", "event"]) assert.match(protocol, new RegExp(`"${kind}"`));
 assert.match(registry, /registrations/);

@@ -27,6 +27,7 @@ var configuredBackends = []Backend{
 	processBackend{name: BackendBiDi, endpointProtocol: "webdriver-bidi"},
 	safariMCPBackend{},
 	macOSCooperativeBackend{},
+	enginePresentationBackend{},
 }
 
 func (Adapter) Connect(ctx context.Context, spec manifest.EngineSpec, target orchestrator.EngineTarget) (orchestrator.EngineInstance, error) {
@@ -71,6 +72,9 @@ func selectBackendForProfile(requested string, profile contract.Profile, target 
 		if profile == contract.ProfileMacOS {
 			return nil, errors.New("Cymonkey macOS profile requires a caller-owned native helper; Apple Events and Accessibility are not invoked directly by the provider")
 		}
+		if profile == contract.ProfileEngine {
+			return nil, errors.New("Cymonkey engine profile requires a caller-owned websocket or pacman-ws presentation endpoint")
+		}
 		return nil, errors.New("Cymonkey web profile requires a caller-owned CDP, WebDriver BiDi, or Safari MCP endpoint")
 	}
 	return nil, fmt.Errorf("Cymonkey backend %s has no compatible caller-owned %s target", requested, profile)
@@ -83,6 +87,8 @@ func resolveProfile(requested contract.Profile, target orchestrator.EngineTarget
 			return contract.ProfileWeb, nil
 		case "macos-application":
 			return contract.ProfileMacOS, nil
+		case "native-presentation", "unity", "unreal", "godot":
+			return contract.ProfileEngine, nil
 		default:
 			return "", fmt.Errorf("Cymonkey cannot infer a profile from target.kind %q", target.Kind)
 		}
@@ -95,6 +101,9 @@ func resolveProfile(requested contract.Profile, target orchestrator.EngineTarget
 	}
 	if requested == contract.ProfileMacOS && target.Kind != "macos-application" {
 		return "", errors.New("Cymonkey macOS profile requires target.kind macos-application")
+	}
+	if requested == contract.ProfileEngine && target.Kind != "native-presentation" && target.Kind != "unity" && target.Kind != "unreal" && target.Kind != "godot" {
+		return "", errors.New("Cymonkey engine profile requires target.kind native-presentation, unity, unreal, or godot")
 	}
 	return requested, nil
 }

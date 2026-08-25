@@ -5,10 +5,8 @@ package builtin
 import (
 	"fmt"
 
-	"jangolova/adapters/browserautomation"
 	"jangolova/adapters/cymonkey"
 	"jangolova/adapters/displayinteraction"
-	"jangolova/adapters/pacman"
 	"jangolova/adapters/safarimcp"
 	"jangolova/adapters/webdriverclassic"
 	"jangolova/adapters/webpresentation"
@@ -17,11 +15,19 @@ import (
 
 func EngineRegistry() (*orchestrator.Registry, error) {
 	registry := orchestrator.NewRegistry()
-	if err := registry.RegisterEngine("playwright", browserautomation.Playwright()); err != nil {
-		return nil, fmt.Errorf("register Playwright interaction engine: %w", err)
+	playwright, err := cymonkey.WithDriver("playwright")
+	if err != nil {
+		return nil, fmt.Errorf("configure Cymonkey Playwright control plane: %w", err)
 	}
-	if err := registry.RegisterEngine("puppeteer", browserautomation.Puppeteer()); err != nil {
-		return nil, fmt.Errorf("register Puppeteer interaction engine: %w", err)
+	if err := registry.RegisterEngine("playwright", playwright); err != nil {
+		return nil, fmt.Errorf("register Playwright control-plane engine: %w", err)
+	}
+	puppeteer, err := cymonkey.WithDriver("puppeteer")
+	if err != nil {
+		return nil, fmt.Errorf("configure Cymonkey Puppeteer control plane: %w", err)
+	}
+	if err := registry.RegisterEngine("puppeteer", puppeteer); err != nil {
+		return nil, fmt.Errorf("register Puppeteer control-plane engine: %w", err)
 	}
 	if err := registry.RegisterEngine("cymonkey", cymonkey.Adapter{}); err != nil {
 		return nil, fmt.Errorf("register Cymonkey augmented-browsing engine: %w", err)
@@ -37,9 +43,6 @@ func EngineRegistry() (*orchestrator.Registry, error) {
 	}
 	if err := registry.RegisterEngine("web-presentation", webpresentation.Adapter{}); err != nil {
 		return nil, fmt.Errorf("register web presentation interaction engine: %w", err)
-	}
-	if err := registry.RegisterEngine("pacman", pacman.Adapter{}); err != nil {
-		return nil, fmt.Errorf("register Pacman interaction engine: %w", err)
 	}
 	if err := registry.RegisterEngine("display-interaction", displayinteraction.Adapter{}); err != nil {
 		return nil, fmt.Errorf("register display interaction engine: %w", err)

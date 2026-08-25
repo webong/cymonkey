@@ -1,8 +1,12 @@
 class_name PacmanProtocol
 extends RefCounted
 
-const VERSION := "jangolova.pacman/v1alpha1"
+const VERSION := "jangolova.cymonkey/v1alpha2"
+const COMPATIBLE_PROTOCOLS := ["jangolova.pacman/v1alpha1"]
 const MAXIMUM_MESSAGE_BYTES := 4 * 1024 * 1024
+
+const PROFILE_ENGINE := "engine"
+const BACKEND_GODOT := "engine-godot"
 
 const METHOD_HELLO := "hello"
 const METHOD_CAPABILITIES := "capabilities"

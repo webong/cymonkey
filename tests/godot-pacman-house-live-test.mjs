@@ -44,17 +44,19 @@ function call(method, params = {}) {
 }
 
 function act(name, targetId, input) {
-  return call("act", { name, targetId, input });
+  return call("act", { name, input: { targetId, ...input } });
 }
 
 const hello = await call("hello");
-assert.equal(hello.implementation.engine, "godot");
+assert.equal(hello.protocolVersion, "jangolova.cymonkey/v1alpha2");
+assert.ok(hello.profiles.includes("engine"));
+assert.ok(hello.backends.includes("engine-godot"));
 const capabilities = await call("capabilities");
 assert.ok(capabilities.some((capability) => capability.name === "camera.transform.set"));
 assert.ok(capabilities.some((capability) => capability.name === "ui.text.set"));
 
 const description = await call("describe");
-const resourceIds = description.resources.map((resource) => resource.id);
+const resourceIds = description.surfaces.map((surface) => surface.id);
 for (const id of ["object:house", "object:door", "object:hero", "material:interior-light", "camera:main", "ui:status"]) {
   assert.ok(resourceIds.includes(id), `missing explicit house resource ${id}`);
 }

@@ -52,39 +52,62 @@ func _build_allowlist() -> void:
 func _hello() -> Dictionary:
 	return {
 		"protocolVersion": PacmanProtocol.VERSION,
-		"implementation": {"engine": "godot", "name": "jangolova-godot-pacman", "version": "0.1.0"},
+		"compatibleProtocols": PacmanProtocol.COMPATIBLE_PROTOCOLS,
+		"implementation": {"name": "jangolova-godot-cymonkey", "version": "0.2.0"},
+		"profiles": [PacmanProtocol.PROFILE_ENGINE],
+		"backends": [PacmanProtocol.BACKEND_GODOT],
 		"features": ["events.cursor", "resources.explicit-allowlist"]
 	}
 
 func _capabilities() -> Array:
 	return [
-		{"name": "resource.describe", "effect": "read", "targetKinds": PacmanProtocol.RESOURCE_KINDS,
+		{"name": "resource.describe", "profile": PacmanProtocol.PROFILE_ENGINE, "backend": PacmanProtocol.BACKEND_GODOT,
+			"support": "native", "lifetime": "attachment", "persistence": "session",
+			"effect": "read", "targetKinds": PacmanProtocol.RESOURCE_KINDS,
 			"inputSchema": {"type": "object", "additionalProperties": false}},
-		{"name": "object.visible.set", "effect": "write", "targetKinds": ["object", "ui", "camera"],
+		{"name": "object.visible.set", "profile": PacmanProtocol.PROFILE_ENGINE, "backend": PacmanProtocol.BACKEND_GODOT,
+			"support": "native", "lifetime": "attachment", "persistence": "session",
+			"effect": "write", "targetKinds": ["object", "ui", "camera"],
 			"inputSchema": {"type": "object", "properties": {"visible": {"type": "boolean"}}, "required": ["visible"], "additionalProperties": false}},
-		{"name": "object.transform.set", "effect": "write", "targetKinds": ["scene", "object", "ui", "camera"],
+		{"name": "object.transform.set", "profile": PacmanProtocol.PROFILE_ENGINE, "backend": PacmanProtocol.BACKEND_GODOT,
+			"support": "native", "lifetime": "attachment", "persistence": "session",
+			"effect": "write", "targetKinds": ["scene", "object", "ui", "camera"],
 			"inputSchema": {"type": "object", "properties": {"position": {"type": "object"}, "rotationDegrees": {"type": "number"}, "scale": {"type": "object"}}, "additionalProperties": false}},
-		{"name": "material.color.set", "effect": "write", "targetKinds": ["object", "ui", "material"],
+		{"name": "material.color.set", "profile": PacmanProtocol.PROFILE_ENGINE, "backend": PacmanProtocol.BACKEND_GODOT,
+			"support": "native", "lifetime": "attachment", "persistence": "session",
+			"effect": "write", "targetKinds": ["object", "ui", "material"],
 			"inputSchema": {"type": "object", "properties": {"color": {"type": "string"}}, "required": ["color"], "additionalProperties": false}},
-		{"name": "camera.transform.set", "effect": "write", "targetKinds": ["camera"],
+		{"name": "camera.transform.set", "profile": PacmanProtocol.PROFILE_ENGINE, "backend": PacmanProtocol.BACKEND_GODOT,
+			"support": "native", "lifetime": "attachment", "persistence": "session",
+			"effect": "write", "targetKinds": ["camera"],
 			"inputSchema": {"type": "object", "properties": {"position": {"type": "object"}, "zoom": {"type": "object"}, "rotationDegrees": {"type": "number"}}, "additionalProperties": false}},
-		{"name": "ui.text.set", "effect": "write", "targetKinds": ["ui"],
+		{"name": "ui.text.set", "profile": PacmanProtocol.PROFILE_ENGINE, "backend": PacmanProtocol.BACKEND_GODOT,
+			"support": "native", "lifetime": "attachment", "persistence": "session",
+			"effect": "write", "targetKinds": ["ui"],
 			"inputSchema": {"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"], "additionalProperties": false}}
 	]
 
 func _describe() -> Dictionary:
-	var resources: Array = []
+	var surfaces: Array = []
 	var ids := _allowlist.keys()
 	ids.sort()
 	for stable_id in ids:
-		resources.append(_describe_resource(_allowlist[stable_id]))
-	return {"revision": str(_revision), "resources": resources}
+		surfaces.append(_describe_resource(_allowlist[stable_id]))
+	return {"revision": str(_revision), "surfaces": surfaces, "augmentations": []}
 
 func _act(params: Dictionary) -> Dictionary:
 	var name := str(params.get("name", ""))
-	var target_id := str(params.get("targetId", ""))
+	var input: Dictionary = params.get("input", {})
+	if not input is Dictionary:
+		input = {}
+	var target_id := str(input.get("targetId", params.get("targetId", "")))
+	if target_id.is_empty():
+		return _error("invalid_input", "Cymonkey action requires input.targetId.")
 	if not _allowlist.has(target_id):
 		return _error("target_not_allowlisted", "Pacman target is not allowlisted.")
+	var expected_revision := str(input.get("expectedRevision", ""))
+	if not expected_revision.is_empty() and expected_revision != str(_revision):
+		return _error("stale_revision", "Revision %s is stale; current revision is %d." % [expected_revision, _revision])
 	var registration: Dictionary = _allowlist[target_id]
 	var actions: Array = registration.get("actions", [])
 	if name not in actions:
@@ -92,7 +115,6 @@ func _act(params: Dictionary) -> Dictionary:
 	if name == "resource.describe":
 		return _describe_resource(registration)
 	if name == "object.visible.set":
-		var input: Dictionary = params.get("input", {})
 		if not input.has("visible") or not (input["visible"] is bool):
 			return _error("invalid_input", "visible is required.")
 		var target: Node = registration["target"] as Node
@@ -103,13 +125,13 @@ func _act(params: Dictionary) -> Dictionary:
 		_publish("event:resource-changed", target_id, {"visible": target.visible})
 		return {"ok": true, "revision": str(_revision)}
 	if name == "object.transform.set":
-		return _set_transform(registration, target_id, params.get("input", {}))
+		return _set_transform(registration, target_id, input)
 	if name == "material.color.set":
-		return _set_color(registration, target_id, params.get("input", {}))
+		return _set_color(registration, target_id, input)
 	if name == "camera.transform.set":
-		return _set_camera_transform(registration, target_id, params.get("input", {}))
+		return _set_camera_transform(registration, target_id, input)
 	if name == "ui.text.set":
-		return _set_text(registration, target_id, params.get("input", {}))
+		return _set_text(registration, target_id, input)
 	return _error("action_not_implemented", "Allowlisted action has no Godot handler.")
 
 func _set_transform(registration: Dictionary, target_id: String, input: Dictionary) -> Dictionary:
@@ -210,8 +232,8 @@ func _health() -> Dictionary:
 
 func _describe_resource(registration: Dictionary) -> Dictionary:
 	var target: Node = registration["target"] as Node
-	return {"id": registration["id"], "kind": registration["kind"], "label": registration.get("label", ""),
-		"properties": _properties_for(target)}
+	return {"id": registration["id"], "profile": PacmanProtocol.PROFILE_ENGINE, "kind": registration["kind"],
+		"label": registration.get("label", ""), "properties": _properties_for(target)}
 
 func _properties_for(target: Node) -> Dictionary:
 	var properties: Dictionary = {}
