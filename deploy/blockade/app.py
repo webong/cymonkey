@@ -1,6 +1,8 @@
 import base64
 import binascii
+import contextlib
 import os
+import sys
 import uuid
 from contextlib import asynccontextmanager
 
@@ -8,7 +10,11 @@ import cv2
 import numpy as np
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from ultralytics import SAM, YOLO
+
+os.environ.setdefault("YOLO_VERBOSE", "False")
+
+with contextlib.redirect_stdout(sys.stderr):
+    from ultralytics import SAM, YOLO
 
 
 class ObserveRequest(BaseModel):
@@ -20,14 +26,16 @@ class ObserveRequest(BaseModel):
 
 class Worker:
     def __init__(self):
-        self.yolo = YOLO(os.getenv("BLOCKADE_YOLO_MODEL", "yolo11n.pt"))
-        self.sam = SAM(os.getenv("BLOCKADE_SAM_MODEL", "sam2_b.pt"))
+        with contextlib.redirect_stdout(sys.stderr):
+            self.yolo = YOLO(os.getenv("BLOCKADE_YOLO_MODEL", "yolo11n.pt"))
+            self.sam = SAM(os.getenv("BLOCKADE_SAM_MODEL", "sam2_b.pt"))
 
     def observe(self, image: bytes, request_id: str):
         array = cv2.imdecode(np.frombuffer(image, np.uint8), cv2.IMREAD_COLOR)
         if array is None:
             raise ValueError("image is not a supported encoded image")
-        detections = self.yolo(array, verbose=False)[0]
+        with contextlib.redirect_stdout(sys.stderr):
+            detections = self.yolo(array, verbose=False)[0]
         observations = []
         for index, box in enumerate(detections.boxes):
             x1, y1, x2, y2 = [float(value) for value in box.xyxy[0].cpu().tolist()]
@@ -46,7 +54,8 @@ class Worker:
                  item["region"]["y"] + item["region"]["height"]]
                 for item in observations
             ]
-            masks = self.sam(array, bboxes=boxes, verbose=False)[0].masks
+            with contextlib.redirect_stdout(sys.stderr):
+                masks = self.sam(array, bboxes=boxes, verbose=False)[0].masks
             if masks is not None:
                 for item, mask in zip(observations, masks.data):
                     png = (mask.cpu().numpy() * 255).astype(np.uint8)

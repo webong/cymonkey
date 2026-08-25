@@ -62,7 +62,7 @@ func TestRepositoryOwnsEngineCodeOnly(t *testing.T) {
 			return err
 		}
 		if entry.IsDir() {
-			if relative == ".git" || relative == "tests" || entry.Name() == "node_modules" || entry.Name() == ".output" || entry.Name() == ".wxt" {
+			if relative == ".git" || relative == "tests" || relative == ".cache" || entry.Name() == "node_modules" || entry.Name() == ".output" || entry.Name() == ".wxt" {
 				return filepath.SkipDir
 			}
 			return nil

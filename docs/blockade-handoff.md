@@ -31,6 +31,13 @@ Implemented:
 - Model-file validation through `Config.ValidateModelFiles`.
 - Reproducible model-cache fixture launcher with read-only weight mounts.
 - `jangolova blockade validate` and `jangolova blockade observe` commands.
+- Ultralytics inference adapter `deploy/blockade/app.py`: library chatter is
+  now kept off stdout (fresh-environment settings banners broke NDJSON
+  framing), and worker stderr is surfaced for diagnosis.
+- Gated real-inference smoke test `TestLocalUltralyticsFixtureSmoke`
+  (env `JANGOLOVA_BLOCKADE_SMOKE=1`) over the checked-in
+  `internal/blockade/testdata/smoke.png`, verified against pinned
+  `yolo11n.pt` and `sam2_b.pt` weights in `.cache/blockade/models`.
 - Grimlock read-only `blockade_observe` tool.
 - Role-aware Grimlock profiles: `reasoning`, `vision`, and `multimodal`.
 - Provider-neutral Grimlock vision-provider registry seam. Cloud adapters such
@@ -51,10 +58,17 @@ Important files:
 go test ./internal/blockade ./internal/grimlock
 go run ./cmd/jangolova blockade validate \
   --config deploy/blockade/blockade.example.yaml
-go run ./cmd/jangolova blockade observe \
-  --config deploy/blockade/blockade.example.yaml \
-  --engine local-yolo-sam \
-  --image ./test.jpg
+JANGOLOVA_BLOCKADE_SMOKE=1 \
+JANGOLOVA_BLOCKADE_PYTHON="$PWD/.cache/blockade/venv/bin/python3" \
+  go test ./internal/blockade -run TestLocalUltralyticsFixtureSmoke -v
+```
+
+The smoke test skips unless weights, a Python interpreter, and
+`JANGOLOVA_BLOCKADE_SMOKE=1` are present. The venv is created with:
+
+```sh
+python3 -m venv .cache/blockade/venv
+.cache/blockade/venv/bin/pip install -r deploy/blockade/requirements.txt
 ```
 
 For the real local fixture, place `yolo11n.pt` and `sam2_b.pt` under
@@ -66,19 +80,17 @@ those files or replace the paths before using `--check-files` or `observe`.
 
 ## Next tasks
 
-1. Run the real local fixture with pinned YOLO/SAM weights and add an inference
-   smoke test using a checked-in small input image.
-2. Add a native ONNX Runtime engine behind the same Blockade engine interface.
-3. Add the first Grimlock-owned cloud adapter (fal.ai or another selected
+1. Add a native ONNX Runtime engine behind the same Blockade engine interface.
+2. Add the first Grimlock-owned cloud adapter (fal.ai or another selected
    provider) using credential and TLS resolution.
-4. Add configurable cloud queue/submit behavior and request timeouts.
-5. Add model-specific response mappers so cloud segmentation/detection output
+3. Add configurable cloud queue/submit behavior and request timeouts.
+4. Add model-specific response mappers so cloud segmentation/detection output
    becomes `Observation`, `Region`, and mask data rather than raw evidence.
-6. Register vision and multimodal providers explicitly in Grimlock discovery,
+5. Register vision and multimodal providers explicitly in Grimlock discovery,
    alongside reasoning connectors, without exposing credentials.
-7. Add screenshot capture adapters for Cymonkey/Pacman/display targets and pass
+6. Add screenshot capture adapters for Cymonkey/Pacman/display targets and pass
    those pixels to Blockade.
-8. Add a Grimlock end-to-end test proving:
+7. Add a Grimlock end-to-end test proving:
 
    ```text
    target screenshot → Blockade → observation → Grimlock context → approved action

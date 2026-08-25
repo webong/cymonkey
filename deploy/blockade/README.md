@@ -30,6 +30,23 @@ BLOCKADE_MODEL_CACHE="$PWD/.cache/blockade/models" \
 The launcher fails before starting Docker when either weight file is missing.
 See [models/README.md](models/README.md) for the cache contract.
 
+## Inference smoke test
+
+A gated Go test runs real inference through the managed worker pool using a
+checked-in input image (`internal/blockade/testdata/smoke.png`). It skips
+unless weights, a Python interpreter, and `JANGOLOVA_BLOCKADE_SMOKE=1` are
+available:
+
+```sh
+JANGOLOVA_BLOCKADE_SMOKE=1 \
+JANGOLOVA_BLOCKADE_PYTHON="$PWD/.cache/blockade/venv/bin/python3" \
+  go test ./internal/blockade -run TestLocalUltralyticsFixtureSmoke -v
+```
+
+Override `BLOCKADE_YOLO_MODEL_FILE` or `BLOCKADE_SAM_MODEL_FILE` when testing
+alternative weights. The test asserts contract-valid observations and verifies
+that undecodable images fail cleanly instead of crashing the worker.
+
 The first startup downloads the configured model weights unless they are
 provided through a mounted cache. Override `BLOCKADE_YOLO_MODEL` and
 `BLOCKADE_SAM_MODEL` when selecting different compatible Ultralytics weights.

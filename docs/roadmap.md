@@ -154,7 +154,7 @@
 - [x] Add Grimlock model roles for reasoning, vision, and multimodal models.
 - [x] Define a Grimlock-owned vision-provider registry boundary.
 - [x] Add reproducible model-cache mounts and a real YOLO/SAM fixture launcher.
-- [ ] Run the fixture with pinned weights and add a real inference smoke test.
+- [x] Run the fixture with pinned weights and add a real inference smoke test.
 - [ ] Add native ONNX Runtime inference.
 - [ ] Add a selected cloud-provider adapter in Grimlock with credential
   resolution.

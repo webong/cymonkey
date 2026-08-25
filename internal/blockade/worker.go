@@ -78,7 +78,11 @@ func (w *localWorker) startLocked(ctx context.Context) error {
 	}
 	w.cmd = exec.CommandContext(ctx, w.config.Command[0], w.config.Command[1:]...)
 	w.cmd.Env = append(os.Environ(), w.config.Env...)
-	w.cmd.Stderr = w.config.Stderr
+	if w.config.Stderr == nil {
+		w.cmd.Stderr = os.Stderr
+	} else {
+		w.cmd.Stderr = w.config.Stderr
+	}
 	stdin, err := w.cmd.StdinPipe()
 	if err != nil {
 		return err
