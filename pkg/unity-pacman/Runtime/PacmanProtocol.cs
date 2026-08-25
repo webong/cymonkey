@@ -6,7 +6,10 @@ namespace Jangolova.Pacman
 {
     public static class PacmanProtocol
     {
-        public const string Version = "jangolova.pacman/v1alpha1";
+        public const string Version = "jangolova.cymonkey/v1alpha2";
+        public static readonly string[] CompatibleProtocols = { "jangolova.pacman/v1alpha1" };
+        public const string ProfileEngine = "engine";
+        public const string BackendUnity = "engine-unity";
         public const string PrefixEnvironmentVariable = "JANGOLOVA_PACMAN_PREFIX";
         public const string TokenEnvironmentVariable = "JANGOLOVA_PACMAN_TOKEN";
         public const int MaximumMessageBytes = 4 * 1024 * 1024;

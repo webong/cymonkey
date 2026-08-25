@@ -5,7 +5,10 @@
 
 namespace Jangolova::Pacman
 {
-    inline constexpr TCHAR ProtocolVersion[] = TEXT("jangolova.pacman/v1alpha1");
+    inline constexpr TCHAR ProtocolVersion[] = TEXT("jangolova.cymonkey/v1alpha2");
+    inline constexpr TCHAR CompatibleProtocol[] = TEXT("jangolova.pacman/v1alpha1");
+    inline constexpr TCHAR ProfileEngine[] = TEXT("engine");
+    inline constexpr TCHAR BackendUnreal[] = TEXT("engine-unreal");
     inline constexpr TCHAR MethodHello[] = TEXT("hello");
     inline constexpr TCHAR MethodCapabilities[] = TEXT("capabilities");
     inline constexpr TCHAR MethodDescribe[] = TEXT("describe");

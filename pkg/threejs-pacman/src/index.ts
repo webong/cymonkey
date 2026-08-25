@@ -1,8 +1,17 @@
-export const PACMAN_PROTOCOL_VERSION = 'jangolova.pacman/v1alpha1';
-export const PACMAN_RUNTIME_SYMBOL = Symbol.for('jangolova.pacman.runtime');
+export const CYMONKEY_PROTOCOL_VERSION = 'jangolova.cymonkey/v1alpha2';
+export const CYMONKEY_COMPATIBLE_PROTOCOLS = ['jangolova.pacman/v1alpha1'];
+export const CYMONKEY_ENGINE_BACKEND = 'engine-threejs';
+export const CYMONKEY_RUNTIME_SYMBOL = Symbol.for('jangolova.cymonkey.runtime');
+
+/** @deprecated Use CYMONKEY_PROTOCOL_VERSION. */
+export const PACMAN_PROTOCOL_VERSION = CYMONKEY_PROTOCOL_VERSION;
+/** @deprecated Use CYMONKEY_RUNTIME_SYMBOL. */
+export const PACMAN_RUNTIME_SYMBOL = CYMONKEY_RUNTIME_SYMBOL;
 
 export type ResourceKind = 'scene' | 'object' | 'ui' | 'camera' | 'material' | 'animation' | 'timeline' | 'artifact' | 'event';
-export type PacmanRequest = { id?: unknown; method: string; params?: Record<string, unknown> };
+export type CymonkeyRequest = { id?: unknown; method: string; params?: Record<string, unknown> };
+/** @deprecated Use CymonkeyRequest. */
+export type PacmanRequest = CymonkeyRequest;
 export type Registration = {
   id: string;
   kind: ResourceKind;
@@ -12,7 +21,7 @@ export type Registration = {
   describe?: (target: unknown) => Record<string, unknown>;
 };
 
-type PacmanEvent = { id: string; type: string; sourceId?: string; occurredAt: string; data?: unknown };
+type CymonkeyEvent = { id: string; type: string; sourceId?: string; occurredAt: string; data?: unknown };
 
 const capabilities = [
   capability('resource.describe', 'read', ['scene', 'object', 'ui', 'camera', 'material', 'animation', 'timeline', 'artifact']),
@@ -24,16 +33,30 @@ const capabilities = [
   capability('animation.stop', 'write', ['animation']),
 ];
 
-export class ThreeJSPacman {
-  readonly protocolVersion = PACMAN_PROTOCOL_VERSION;
+function capability(name: string, effect: 'read' | 'write', targetKinds: ResourceKind[]) {
+  return {
+    name,
+    profile: 'engine',
+    backend: CYMONKEY_ENGINE_BACKEND,
+    support: 'native',
+    lifetime: 'attachment',
+    persistence: 'session',
+    effect,
+    targetKinds,
+    inputSchema: { type: 'object', additionalProperties: true },
+  };
+}
+
+export class ThreeJSCymonkey {
+  readonly protocolVersion = CYMONKEY_PROTOCOL_VERSION;
   #registrations = new Map<string, Registration>();
-  #events: PacmanEvent[] = [];
+  #events: CymonkeyEvent[] = [];
   #revision = 0;
   #eventSequence = 0;
 
   register(registration: Registration) {
     validateRegistration(registration);
-    if (this.#registrations.has(registration.id)) throw new Error(`duplicate Pacman resource ${JSON.stringify(registration.id)}`);
+    if (this.#registrations.has(registration.id)) throw new Error(`duplicate Cymonkey resource ${JSON.stringify(registration.id)}`);
     this.#registrations.set(registration.id, { ...registration, actions: [...new Set(registration.actions)].sort() });
     this.#revision += 1;
     this.publish('resource.registered', registration.id, { kind: registration.kind });
@@ -41,20 +64,20 @@ export class ThreeJSPacman {
   }
 
   unregister(id: string) {
-    if (!this.#registrations.delete(id)) throw new Error(`Pacman resource ${JSON.stringify(id)} is not registered`);
+    if (!this.#registrations.delete(id)) throw new Error(`Cymonkey resource ${JSON.stringify(id)} is not registered`);
     this.#revision += 1;
     this.publish('resource.unregistered', id);
   }
 
   installGlobal(target: Record<PropertyKey, unknown> = globalThis as Record<PropertyKey, unknown>) {
-    if (target[PACMAN_RUNTIME_SYMBOL] && target[PACMAN_RUNTIME_SYMBOL] !== this) {
-      throw new Error('another Pacman runtime is already installed');
+    if (target[CYMONKEY_RUNTIME_SYMBOL] && target[CYMONKEY_RUNTIME_SYMBOL] !== this) {
+      throw new Error('another Cymonkey runtime is already installed');
     }
-    Object.defineProperty(target, PACMAN_RUNTIME_SYMBOL, { configurable: true, value: this });
-    return () => { if (target[PACMAN_RUNTIME_SYMBOL] === this) delete target[PACMAN_RUNTIME_SYMBOL]; };
+    Object.defineProperty(target, CYMONKEY_RUNTIME_SYMBOL, { configurable: true, value: this });
+    return () => { if (target[CYMONKEY_RUNTIME_SYMBOL] === this) delete target[CYMONKEY_RUNTIME_SYMBOL]; };
   }
 
-  async dispatch(request: PacmanRequest) {
+  async dispatch(request: CymonkeyRequest) {
     try {
       const params = isRecord(request.params) ? request.params : {};
       let result: unknown;
@@ -64,18 +87,21 @@ export class ThreeJSPacman {
       else if (request.method === 'act') result = await this.act(params);
       else if (request.method === 'events') result = this.events(params);
       else if (request.method === 'health') result = { status: 'ready', observedAt: new Date().toISOString() };
-      else throw pacmanError('method_not_found', `unsupported Pacman method ${JSON.stringify(request.method)}`);
+      else throw cymonkeyError('method_not_found', `unsupported Cymonkey method ${JSON.stringify(request.method)}`);
       return { id: request.id ?? null, result };
     } catch (error) {
-      const value = error instanceof PacmanRuntimeError ? error : pacmanError('internal_error', error instanceof Error ? error.message : String(error));
+      const value = error instanceof CymonkeyRuntimeError ? error : cymonkeyError('internal_error', error instanceof Error ? error.message : String(error));
       return { id: request.id ?? null, error: { code: value.code, message: value.message } };
     }
   }
 
   hello() {
     return {
-      protocolVersion: PACMAN_PROTOCOL_VERSION,
-      implementation: { engine: 'threejs', name: 'jangolova-threejs-pacman', version: '0.1.0' },
+      protocolVersion: CYMONKEY_PROTOCOL_VERSION,
+      compatibleProtocols: CYMONKEY_COMPATIBLE_PROTOCOLS,
+      implementation: { name: 'jangolova-threejs-cymonkey', version: '0.2.0' },
+      profiles: ['engine'],
+      backends: [CYMONKEY_ENGINE_BACKEND],
       features: ['explicit-registration', 'stable-ids', 'events.cursor'],
     };
   }
@@ -83,23 +109,30 @@ export class ThreeJSPacman {
   describe() {
     return {
       revision: String(this.#revision),
-      resources: [...this.#registrations.values()].map((entry) => ({
+      surfaces: [...this.#registrations.values()].map((entry) => ({
         id: entry.id,
+        profile: 'engine',
         kind: entry.kind,
         label: entry.label,
         properties: entry.describe ? entry.describe(entry.target) : describeTarget(entry.kind, entry.target),
         actions: entry.actions,
       })).sort((left, right) => left.id.localeCompare(right.id)),
+      augmentations: [],
     };
   }
 
   async act(params: Record<string, unknown>) {
     const name = requireString(params.name, 'action name');
-    const targetId = requireString(params.targetId, 'targetId');
-    const registration = this.#registrations.get(targetId);
-    if (!registration) throw pacmanError('target_not_allowlisted', 'Pacman target is not registered');
-    if (!registration.actions.includes(name)) throw pacmanError('action_not_allowlisted', 'Pacman action is not allowed for this target');
     const input = isRecord(params.input) ? params.input : {};
+    const targetId = typeof input.targetId === 'string' && input.targetId
+      ? input.targetId
+      : requireString(params.targetId, 'input.targetId');
+    const registration = this.#registrations.get(targetId);
+    if (!registration) throw cymonkeyError('target_not_allowlisted', 'Cymonkey target is not registered');
+    if (!registration.actions.includes(name)) throw cymonkeyError('action_not_allowlisted', 'Cymonkey action is not allowed for this target');
+    if (typeof input.expectedRevision === 'string' && input.expectedRevision !== '' && input.expectedRevision !== String(this.#revision)) {
+      throw cymonkeyError('stale_revision', `expected revision ${input.expectedRevision} is stale; current revision is ${this.#revision}`);
+    }
     const result = applyAction(name, registration.target, input);
     this.#revision += 1;
     this.publish('resource.changed', targetId, { action: name });
@@ -108,7 +141,7 @@ export class ThreeJSPacman {
 
   events(params: Record<string, unknown> = {}) {
     const after = Number.parseInt(String(params.after || '0'), 10);
-    if (!Number.isSafeInteger(after) || after < 0) throw pacmanError('invalid_input', 'events.after must be a non-negative cursor');
+    if (!Number.isSafeInteger(after) || after < 0) throw cymonkeyError('invalid_input', 'events.after must be a non-negative cursor');
     const types = new Set(Array.isArray(params.types) ? params.types.filter((value): value is string => typeof value === 'string') : []);
     const limit = Math.min(Math.max(Number(params.limit) || 100, 1), 256);
     return {
@@ -125,9 +158,12 @@ export class ThreeJSPacman {
   }
 }
 
+/** @deprecated Use ThreeJSCymonkey. */
+export const ThreeJSPacman = ThreeJSCymonkey;
+
 function applyAction(name: string, target: unknown, input: Record<string, unknown>) {
   const value = target as Record<string, any>;
-  if (!value || (typeof value !== 'object' && typeof value !== 'function')) throw pacmanError('target_unavailable', 'registered target is unavailable');
+  if (!value || (typeof value !== 'object' && typeof value !== 'function')) throw cymonkeyError('target_unavailable', 'registered target is unavailable');
   if (name === 'resource.describe') return describeTarget('object', target);
   if (name === 'object.visibility.set') { value.visible = requireBoolean(input.visible, 'visible'); return { ok: true }; }
   if (name === 'object.transform.set') {
@@ -146,18 +182,18 @@ function applyAction(name: string, target: unknown, input: Record<string, unknow
   }
   if (name === 'material.property.set') {
     const property = requireString(input.property, 'property');
-    if (property === '__proto__' || property === 'constructor' || !(property in value)) throw pacmanError('invalid_input', 'material property is not writable');
+    if (property === '__proto__' || property === 'constructor' || !(property in value)) throw cymonkeyError('invalid_input', 'material property is not writable');
     value[property] = input.value; value.needsUpdate = true;
     return { ok: true };
   }
   if (name === 'animation.play') { value.reset?.(); value.play?.(); return { ok: true }; }
   if (name === 'animation.stop') { value.stop?.(); return { ok: true }; }
-  throw pacmanError('unsupported_action', `unsupported Three.js Pacman action ${JSON.stringify(name)}`);
+  throw cymonkeyError('unsupported_action', `unsupported Three.js Cymonkey action ${JSON.stringify(name)}`);
 }
 
 function applyVector(target: any, value: unknown) {
   if (value === undefined) return;
-  if (!target || !isRecord(value)) throw pacmanError('invalid_input', 'transform component is invalid');
+  if (!target || !isRecord(value)) throw cymonkeyError('invalid_input', 'transform component is invalid');
   const x = value.x === undefined ? target.x : requireNumber(value.x, 'x');
   const y = value.y === undefined ? target.y : requireNumber(value.y, 'y');
   const z = value.z === undefined ? target.z : requireNumber(value.z, 'z');
@@ -182,20 +218,16 @@ function vector(value: any) {
     : undefined;
 }
 
-function capability(name: string, effect: 'read' | 'write', targetKinds: ResourceKind[]) {
-  return { name, effect, targetKinds, inputSchema: { type: 'object', additionalProperties: true } };
-}
-
 function validateRegistration(value: Registration) {
-  if (!value || !value.target) throw new Error('Pacman registration requires a target');
-  if (!value.id.match(/^[a-z][a-z0-9-]{0,31}:[A-Za-z0-9][A-Za-z0-9._/-]{0,127}$/)) throw new Error('invalid stable Pacman resource ID');
-  if (!value.id.startsWith(`${value.kind}:`)) throw new Error('Pacman resource ID prefix must match kind');
-  if (!Array.isArray(value.actions) || value.actions.some((action) => typeof action !== 'string')) throw new Error('Pacman actions must be an array');
+  if (!value || !value.target) throw new Error('Cymonkey registration requires a target');
+  if (!value.id.match(/^[a-z][a-z0-9-]{0,31}:[A-Za-z0-9][A-Za-z0-9._/-]{0,127}$/)) throw new Error('invalid stable Cymonkey resource ID');
+  if (!value.id.startsWith(`${value.kind}:`)) throw new Error('Cymonkey resource ID prefix must match kind');
+  if (!Array.isArray(value.actions) || value.actions.some((action) => typeof action !== 'string')) throw new Error('Cymonkey actions must be an array');
 }
 
-class PacmanRuntimeError extends Error { constructor(readonly code: string, message: string) { super(message); } }
-function pacmanError(code: string, message: string) { return new PacmanRuntimeError(code, message); }
-function requireString(value: unknown, name: string) { if (typeof value !== 'string' || !value) throw pacmanError('invalid_input', `${name} is required`); return value; }
-function requireNumber(value: unknown, name: string) { if (typeof value !== 'number' || !Number.isFinite(value)) throw pacmanError('invalid_input', `${name} must be finite`); return value; }
-function requireBoolean(value: unknown, name: string) { if (typeof value !== 'boolean') throw pacmanError('invalid_input', `${name} must be boolean`); return value; }
+class CymonkeyRuntimeError extends Error { constructor(readonly code: string, message: string) { super(message); } }
+function cymonkeyError(code: string, message: string) { return new CymonkeyRuntimeError(code, message); }
+function requireString(value: unknown, name: string) { if (typeof value !== 'string' || !value) throw cymonkeyError('invalid_input', `${name} is required`); return value; }
+function requireNumber(value: unknown, name: string) { if (typeof value !== 'number' || !Number.isFinite(value)) throw cymonkeyError('invalid_input', `${name} must be finite`); return value; }
+function requireBoolean(value: unknown, name: string) { if (typeof value !== 'boolean' || value === null) throw cymonkeyError('invalid_input', `${name} must be boolean`); return value; }
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value); }

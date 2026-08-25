@@ -69,7 +69,10 @@ namespace Jangolova.Pacman
         {
             return new JObject {
                 ["protocolVersion"] = PacmanProtocol.Version,
-                ["implementation"] = new JObject { ["engine"] = "unity", ["name"] = "jangolova-unity-pacman", ["version"] = "0.1.0" },
+                ["compatibleProtocols"] = new JArray(PacmanProtocol.CompatibleProtocols),
+                ["implementation"] = new JObject { ["name"] = "jangolova-unity-cymonkey", ["version"] = "0.2.0" },
+                ["profiles"] = new JArray(PacmanProtocol.ProfileEngine),
+                ["backends"] = new JArray(PacmanProtocol.BackendUnity),
                 ["features"] = new JArray("events.cursor", "resources.explicit-allowlist")
             };
         }
@@ -89,24 +92,29 @@ namespace Jangolova.Pacman
         {
             return new JObject {
                 ["revision"] = revision.ToString(CultureInfo.InvariantCulture),
-                ["resources"] = new JArray(allowlist.Values.OrderBy(item => item.id, StringComparer.Ordinal).Select(DescribeResource))
+                ["surfaces"] = new JArray(allowlist.Values.OrderBy(item => item.id, StringComparer.Ordinal).Select(DescribeResource)),
+                ["augmentations"] = new JArray()
             };
         }
 
         private JToken Act(JObject parameters)
         {
             string name = parameters.Value<string>("name");
-            string targetId = parameters.Value<string>("targetId");
+            JObject input = parameters["input"] as JObject ?? new JObject();
+            string targetId = input.Value<string>("targetId") ?? parameters.Value<string>("targetId");
             PacmanRegistration item;
             if (string.IsNullOrWhiteSpace(targetId) || !allowlist.TryGetValue(targetId, out item))
-                throw new PacmanCallException("target_not_allowlisted", "Pacman target is not allowlisted.");
+                throw new PacmanCallException("target_not_allowlisted", "Cymonkey target is not allowlisted.");
             if (!item.actions.Contains(name, StringComparer.Ordinal))
-                throw new PacmanCallException("action_not_allowlisted", "Pacman action is not allowlisted for this target.");
+                throw new PacmanCallException("action_not_allowlisted", "Cymonkey action is not allowlisted for this target.");
+            string expectedRevision = input.Value<string>("expectedRevision");
+            if (!string.IsNullOrEmpty(expectedRevision) && expectedRevision != revision.ToString(CultureInfo.InvariantCulture))
+                throw new PacmanCallException("stale_revision", $"Revision {expectedRevision} is stale; current revision is {revision}.");
             if (name == "resource.describe") return DescribeResource(item);
             if (name == "object.active.set")
             {
                 GameObject value = AsGameObject(item.target);
-                bool active = (parameters["input"] as JObject ?? new JObject()).Value<bool?>("active")
+                bool active = input.Value<bool?>("active")
                     ?? throw new PacmanCallException("invalid_input", "active is required.");
                 value.SetActive(active);
                 revision++;
@@ -142,10 +150,23 @@ namespace Jangolova.Pacman
             GameObject gameObject = item.target as GameObject;
             Component component = item.target as Component;
             if (gameObject == null && component != null) gameObject = component.gameObject;
-            return new JObject { ["id"] = item.id, ["kind"] = WireKind(item.kind), ["label"] = item.label, ["properties"] = new JObject { ["active"] = gameObject == null ? (JToken)JValue.CreateNull() : gameObject.activeSelf } };
+            return new JObject { ["id"] = item.id, ["profile"] = PacmanProtocol.ProfileEngine, ["kind"] = WireKind(item.kind), ["label"] = item.label, ["properties"] = new JObject { ["active"] = gameObject == null ? (JToken)JValue.CreateNull() : gameObject.activeSelf } };
         }
 
-        private static JObject Capability(string name, string effect, JArray kinds, JObject schema) { return new JObject { ["name"] = name, ["effect"] = effect, ["targetKinds"] = kinds, ["inputSchema"] = schema }; }
+        private static JObject Capability(string name, string effect, JArray kinds, JObject schema)
+        {
+            return new JObject {
+                ["name"] = name,
+                ["profile"] = PacmanProtocol.ProfileEngine,
+                ["backend"] = PacmanProtocol.BackendUnity,
+                ["support"] = "native",
+                ["lifetime"] = "attachment",
+                ["persistence"] = "session",
+                ["effect"] = effect,
+                ["targetKinds"] = kinds,
+                ["inputSchema"] = schema
+            };
+        }
         private static JArray EnumKinds() { return new JArray(Enum.GetValues(typeof(PacmanResourceKind)).Cast<PacmanResourceKind>().Select(WireKind)); }
         private static string WireKind(PacmanResourceKind kind) { return kind == PacmanResourceKind.@object ? "object" : kind == PacmanResourceKind.@event ? "event" : kind.ToString(); }
         private static GameObject AsGameObject(UnityEngine.Object value) { GameObject result = value as GameObject; Component component = value as Component; if (result == null && component != null) result = component.gameObject; if (result == null) throw new PacmanCallException("invalid_target", "Action requires a GameObject or Component."); return result; }

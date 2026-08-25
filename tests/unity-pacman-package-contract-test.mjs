@@ -8,13 +8,13 @@ const bridge = await readFile(new URL("Runtime/PacmanBridge.cs", root), "utf8");
 const server = await readFile(new URL("Runtime/PacmanWebSocketServer.cs", root), "utf8");
 const host = await readFile(new URL("Runtime/PacmanWebSocketHost.cs", root), "utf8");
 const transport = await readFile(new URL("Runtime/IPacmanTransportHost.cs", root), "utf8");
-const goProtocol = await readFile(new URL("../internal/pacman/protocol.go", import.meta.url), "utf8");
+const goProtocol = await readFile(new URL("../internal/cymonkey/protocol.go", import.meta.url), "utf8");
 
 assert.equal(manifest.name, "com.jangolova.pacman");
 assert.equal(manifest.unity, "2022.3");
 const unityVersion = protocol.match(/Version = "([^"]+)"/)?.[1];
-const goVersion = goProtocol.match(/ProtocolVersion = "([^"]+)"/)?.[1];
-assert.equal(unityVersion, "jangolova.pacman/v1alpha1");
+const goVersion = goProtocol.match(/ProtocolVersion   = "([^"]+)"/)?.[1];
+assert.equal(unityVersion, "jangolova.cymonkey/v1alpha2");
 assert.equal(unityVersion, goVersion);
 for (const method of ["hello", "capabilities", "describe", "act", "events", "health"]) assert.ok(bridge.includes(`"${method}"`));
 for (const kind of ["scene", "object", "ui", "camera", "material", "animation", "timeline", "artifact", "event"]) assert.ok(protocol.includes(kind));

@@ -51,6 +51,11 @@ namespace
     {
         TSharedPtr<FJsonObject> Value = MakeShared<FJsonObject>();
         Value->SetStringField(TEXT("name"), Name);
+        Value->SetStringField(TEXT("profile"), Jangolova::Pacman::ProfileEngine);
+        Value->SetStringField(TEXT("backend"), Jangolova::Pacman::BackendUnreal);
+        Value->SetStringField(TEXT("support"), TEXT("native"));
+        Value->SetStringField(TEXT("lifetime"), TEXT("attachment"));
+        Value->SetStringField(TEXT("persistence"), TEXT("session"));
         Value->SetStringField(TEXT("effect"), Effect);
         TArray<TSharedPtr<FJsonValue>> TargetKinds;
         for (const FString& Kind : Kinds)
@@ -131,13 +136,17 @@ bool UPacmanRegistryComponent::Dispatch(
 TSharedPtr<FJsonValue> UPacmanRegistryComponent::Hello() const
 {
     TSharedPtr<FJsonObject> Implementation = MakeShared<FJsonObject>();
-    Implementation->SetStringField(TEXT("engine"), TEXT("unreal"));
-    Implementation->SetStringField(TEXT("name"), TEXT("jangolova-unreal-pacman"));
-    Implementation->SetStringField(TEXT("version"), TEXT("0.1.0"));
+    Implementation->SetStringField(TEXT("name"), TEXT("jangolova-unreal-cymonkey"));
+    Implementation->SetStringField(TEXT("version"), TEXT("0.2.0"));
 
     TSharedPtr<FJsonObject> Value = MakeShared<FJsonObject>();
     Value->SetStringField(TEXT("protocolVersion"), Jangolova::Pacman::ProtocolVersion);
-    Value->SetObjectField(TEXT("implementation"), Implementation);
+    Value->SetArrayField(TEXT("compatibleProtocols"), {
+        MakeShared<FJsonValueString>(Jangolova::Pacman::CompatibleProtocol)
+    });
+    Value->SetField(TEXT("implementation"), MakeShared<FJsonValueObject>(Implementation));
+    Value->SetArrayField(TEXT("profiles"), { MakeShared<FJsonValueString>(Jangolova::Pacman::ProfileEngine) });
+    Value->SetArrayField(TEXT("backends"), { MakeShared<FJsonValueString>(Jangolova::Pacman::BackendUnreal) });
     Value->SetArrayField(TEXT("features"), {
         MakeShared<FJsonValueString>(TEXT("events.cursor")),
         MakeShared<FJsonValueString>(TEXT("resources.explicit-allowlist"))
@@ -177,7 +186,8 @@ TSharedPtr<FJsonValue> UPacmanRegistryComponent::Describe() const
     }
     TSharedPtr<FJsonObject> Value = MakeShared<FJsonObject>();
     Value->SetStringField(TEXT("revision"), LexToString(Revision));
-    Value->SetArrayField(TEXT("resources"), Resources);
+    Value->SetArrayField(TEXT("surfaces"), Resources);
+    Value->SetArrayField(TEXT("augmentations"), {});
     return ObjectValue(Value);
 }
 
@@ -190,20 +200,47 @@ bool UPacmanRegistryComponent::Act(
     FString Name;
     FString TargetId;
     Params->TryGetStringField(TEXT("name"), Name);
-    Params->TryGetStringField(TEXT("targetId"), TargetId);
+    const TSharedPtr<FJsonObject>* InputObject = nullptr;
+    Params->TryGetObjectField(TEXT("input"), InputObject);
+    if (InputObject == nullptr)
+    {
+        TargetId.Empty();
+    }
+    else
+    {
+        (*InputObject)->TryGetStringField(TEXT("targetId"), TargetId);
+    }
+    if (TargetId.IsEmpty())
+    {
+        Params->TryGetStringField(TEXT("targetId"), TargetId);
+    }
     const FPacmanRegistration* const* Found = Allowlist.Find(TargetId);
     if (Found == nullptr)
     {
         OutErrorCode = TEXT("target_not_allowlisted");
-        OutErrorMessage = TEXT("Pacman target is not allowlisted");
+        OutErrorMessage = TEXT("Cymonkey target is not allowlisted");
         return false;
     }
     const FPacmanRegistration& Registration = **Found;
     if (!Registration.Actions.Contains(Name))
     {
         OutErrorCode = TEXT("action_not_allowlisted");
-        OutErrorMessage = TEXT("Pacman action is not allowlisted for this target");
+        OutErrorMessage = TEXT("Cymonkey action is not allowlisted for this target");
         return false;
+    }
+    if (InputObject != nullptr)
+    {
+        FString ExpectedRevision;
+        if ((*InputObject)->TryGetStringField(TEXT("expectedRevision"), ExpectedRevision) && !ExpectedRevision.IsEmpty())
+        {
+            const FString CurrentRevision = LexToString(Revision);
+            if (ExpectedRevision != CurrentRevision)
+            {
+                OutErrorCode = TEXT("stale_revision");
+                OutErrorMessage = FString::Printf(TEXT("Revision %s is stale; current revision is %s"), *ExpectedRevision, *CurrentRevision);
+                return false;
+            }
+        }
     }
     if (Name == TEXT("resource.describe"))
     {
@@ -212,9 +249,9 @@ bool UPacmanRegistryComponent::Act(
     }
     if (Name == TEXT("object.visibility.set"))
     {
-        const TSharedPtr<FJsonObject>* Input = nullptr;
+        const TSharedPtr<FJsonObject>* Input = InputObject;
         bool Visible = false;
-        if (!Params->TryGetObjectField(TEXT("input"), Input) || Input == nullptr || !(*Input)->TryGetBoolField(TEXT("visible"), Visible))
+        if (Input == nullptr || !(*Input)->TryGetBoolField(TEXT("visible"), Visible))
         {
             OutErrorCode = TEXT("invalid_input");
             OutErrorMessage = TEXT("visible is required");
@@ -295,6 +332,7 @@ TSharedPtr<FJsonObject> UPacmanRegistryComponent::DescribeResource(const FPacman
     }
     TSharedPtr<FJsonObject> Value = MakeShared<FJsonObject>();
     Value->SetStringField(TEXT("id"), Registration.StableId);
+    Value->SetStringField(TEXT("profile"), Jangolova::Pacman::ProfileEngine);
     Value->SetStringField(TEXT("kind"), WireKind(Registration.Kind));
     if (!Registration.Label.IsEmpty()) Value->SetStringField(TEXT("label"), Registration.Label);
     Value->SetObjectField(TEXT("properties"), Properties);

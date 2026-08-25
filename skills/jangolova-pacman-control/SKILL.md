@@ -16,10 +16,12 @@ Use this skill only after the endpoint and bearer token are supplied through pro
 5. Invoke only actions advertised and explicitly registered for the target.
 6. Poll `events` with a cursor after mutations and close the socket cleanly.
 
-The protocol version is `jangolova.pacman/v1alpha1`. After authentication, requests use `{id, method, params}`:
+The protocol version is `jangolova.cymonkey/v1alpha2` (engines advertise
+`jangolova.pacman/v1alpha1` as a compatible legacy protocol). After
+authentication, requests use `{id, method, params}`:
 
 ```json
-{"id":1,"method":"act","params":{"name":"object.visibility.set","targetId":"object:fixture","input":{"visible":false}}}
+{"id":1,"method":"act","params":{"name":"object.visibility.set","input":{"targetId":"object:fixture","visible":false}}}
 ```
 
 Godot's fixture accepts an authentication frame:

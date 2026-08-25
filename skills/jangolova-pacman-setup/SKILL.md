@@ -39,7 +39,7 @@ For real GPU rendering add `--gpus all` and configure the engine display path. X
 
 - The image tag and port are correct.
 - Logs show no missing executable, token, display, or Vulkan error.
-- `hello` reports `jangolova.pacman/v1alpha1`.
+- `hello` reports `jangolova.cymonkey/v1alpha2` with the `engine` profile.
 - `describe` contains only explicitly registered resources.
 - An intentionally unallowlisted action is rejected.
 - Logs and artifacts are written to the mounted directory.

@@ -1,4 +1,4 @@
-# Pacman protocol playbook
+# Cymonkey engine-profile protocol playbook
 
 Shared methods:
 
@@ -15,11 +15,15 @@ After authentication, requests use `{id, method, params}` and replies correlate 
 {"id":4,"method":"health","params":{}}
 ```
 
-An action request uses `name`, `targetId`, and an engine-defined `input` object:
+An action request uses `name` and an engine-defined `input` object carrying
+`targetId` and an optional `expectedRevision` guard:
 
 ```json
-{"id":5,"method":"act","params":{"name":"object.visibility.set","targetId":"object:fixture","input":{"visible":true}}}
+{"id":5,"method":"act","params":{"name":"object.visibility.set","input":{"targetId":"object:fixture","visible":true}}}
 ```
+
+A stale or missing revision guard on mutating actions returns a
+`stale_revision` error once the engine exposes revisions.
 
 For event polling, retain the returned cursor and pass it as `after`:
 

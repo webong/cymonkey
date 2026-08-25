@@ -10,13 +10,13 @@ const transport = await readFile(new URL("Source/JangolovaPacman/Public/IPacmanT
 const router = await readFile(new URL("Source/JangolovaPacman/Private/PacmanRequestRouter.cpp", root), "utf8");
 const host = await readFile(new URL("Source/JangolovaPacman/Private/PacmanWebSocketHost.cpp", root), "utf8");
 const hostHeader = await readFile(new URL("Source/JangolovaPacman/Public/PacmanWebSocketHost.h", root), "utf8");
-const goProtocol = await readFile(new URL("../internal/pacman/protocol.go", import.meta.url), "utf8");
+const goProtocol = await readFile(new URL("../internal/cymonkey/protocol.go", import.meta.url), "utf8");
 
 assert.equal(plugin.Modules[0].Name, "JangolovaPacman");
 assert.equal(plugin.Modules[0].Type, "Runtime");
 const unrealVersion = protocol.match(/ProtocolVersion\[\].*TEXT\("([^"]+)"\)/)?.[1];
-const goVersion = goProtocol.match(/ProtocolVersion = "([^"]+)"/)?.[1];
-assert.equal(unrealVersion, "jangolova.pacman/v1alpha1");
+const goVersion = goProtocol.match(/ProtocolVersion   = "([^"]+)"/)?.[1];
+assert.equal(unrealVersion, "jangolova.cymonkey/v1alpha2");
 assert.equal(unrealVersion, goVersion);
 for (const method of ["hello", "capabilities", "describe", "act", "events", "health"]) {
   assert.ok(protocol.includes(`TEXT("${method}")`));
