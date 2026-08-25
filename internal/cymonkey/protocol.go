@@ -13,8 +13,9 @@ const (
 type Profile string
 
 const (
-	ProfileWeb   Profile = "web"
-	ProfileMacOS Profile = "macos"
+	ProfileWeb    Profile = "web"
+	ProfileMacOS  Profile = "macos"
+	ProfileEngine Profile = "engine"
 )
 
 type Backend string
@@ -27,6 +28,11 @@ const (
 	BackendMacOSAppleEvents   Backend = "macos-apple-events"
 	BackendMacOSAccessibility Backend = "macos-accessibility"
 	BackendMacOSCooperative   Backend = "macos-cooperative"
+	BackendEngineGodot        Backend = "engine-godot"
+	BackendEngineUnity        Backend = "engine-unity"
+	BackendEngineUnreal       Backend = "engine-unreal"
+	BackendEngineThreejs      Backend = "engine-threejs"
+	BackendEnginePacman       Backend = "engine-pacman"
 )
 
 type Support string
@@ -77,6 +83,7 @@ type Capability struct {
 	Lifetime     Lifetime        `json:"lifetime"`
 	Persistence  Persistence     `json:"persistence"`
 	Effect       string          `json:"effect"`
+	TargetKinds  []string        `json:"targetKinds,omitempty"`
 	InputSchema  json.RawMessage `json:"inputSchema"`
 	Alternatives []Backend       `json:"alternatives,omitempty"`
 }

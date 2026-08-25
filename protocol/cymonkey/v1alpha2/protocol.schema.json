@@ -10,11 +10,12 @@
     {"$ref": "#/$defs/eventBatch"}
   ],
   "$defs": {
-    "profile": {"enum": ["web", "macos"]},
+    "profile": {"enum": ["web", "macos", "engine"]},
     "backend": {
       "enum": [
         "cdp", "bidi", "safari-mcp", "webextension",
-        "macos-apple-events", "macos-accessibility", "macos-cooperative"
+        "macos-apple-events", "macos-accessibility", "macos-cooperative",
+        "engine-godot", "engine-unity", "engine-unreal", "engine-threejs", "engine-pacman"
       ]
     },
     "hello": {
@@ -24,7 +25,7 @@
         "protocolVersion": {"const": "jangolova.cymonkey/v1alpha2"},
         "compatibleProtocols": {
           "type": "array",
-          "items": {"enum": ["jangolova.cymonkey/v1alpha1"]},
+          "items": {"enum": ["jangolova.cymonkey/v1alpha1", "jangolova.pacman/v1alpha1"]},
           "uniqueItems": true
         },
         "implementation": {
@@ -54,6 +55,7 @@
         "lifetime": {"enum": ["call", "surface", "attachment", "installation"]},
         "persistence": {"enum": ["ephemeral", "session", "persistent"]},
         "effect": {"enum": ["read", "write", "external"]},
+        "targetKinds": {"type": "array", "items": {"enum": ["scene", "object", "ui", "camera", "material", "animation", "timeline", "artifact", "event"]}, "uniqueItems": true},
         "inputSchema": {"type": "object"},
         "alternatives": {"type": "array", "items": {"$ref": "#/$defs/backend"}, "uniqueItems": true}
       },

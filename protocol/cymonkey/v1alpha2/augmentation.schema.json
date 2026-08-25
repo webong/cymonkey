@@ -30,6 +30,7 @@
         "enabled": {"type": "boolean", "default": true},
         "web": {"$ref": "#/$defs/webPayload"},
         "macos": {"$ref": "#/$defs/macosPayload"},
+        "engine": {"$ref": "#/$defs/enginePayload"},
         "overlays": {"type": "array", "items": {"$ref": "#/$defs/overlay"}}
       },
       "additionalProperties": false
@@ -39,7 +40,8 @@
     "target": {
       "oneOf": [
         {"$ref": "#/$defs/webTarget"},
-        {"$ref": "#/$defs/macosTarget"}
+        {"$ref": "#/$defs/macosTarget"},
+        {"$ref": "#/$defs/engineTarget"}
       ]
     },
     "webTarget": {
@@ -100,6 +102,40 @@
               "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"}
             },
             "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "engineTarget": {
+      "type": "object",
+      "required": ["profile", "match"],
+      "properties": {
+        "profile": {"const": "engine"},
+        "match": {
+          "type": "object",
+          "required": ["engine"],
+          "properties": {
+            "engine": {"enum": ["godot", "unity", "unreal", "threejs"]},
+            "name": {"type": "string", "minLength": 1}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "enginePayload": {
+      "type": "object",
+      "properties": {
+        "resources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "kind"],
+            "properties": {
+              "id": {"type": "string"},
+              "kind": {"enum": ["scene", "object", "ui", "camera", "material", "animation", "timeline", "artifact", "event"]}
+            }
           }
         }
       },

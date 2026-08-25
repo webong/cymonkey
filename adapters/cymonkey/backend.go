@@ -45,6 +45,7 @@ type policyOptions struct {
 type options struct {
 	Profile    contract.Profile `json:"profile,omitempty"`
 	Backend    string           `json:"backend,omitempty"`
+	Driver     string           `json:"driver,omitempty"`
 	NodePath   string           `json:"nodePath,omitempty"`
 	WorkerPath string           `json:"workerPath,omitempty"`
 	Extension  extensionOptions `json:"extension,omitempty"`

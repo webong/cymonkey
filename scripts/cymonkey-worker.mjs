@@ -53,18 +53,21 @@ async function dispatch(method, params) {
   throw new Error(`unsupported Cymonkey method ${method}`);
 }
 
+let driver = "auto";
+
 async function connect(params) {
   if (typeof params.endpoint !== "string" || !params.endpoint) throw new Error("caller-owned browser endpoint is required");
   targetProtocol = params.protocol === "webdriver-bidi" ? "webdriver-bidi" : "cdp";
+  driver = typeof params.driver === "string" && params.driver ? params.driver : "auto";
   extensionConfig = normalizeExtension(params.extension);
   policy = normalizePolicy(params.policy);
-  browser = await openBrowser(params.endpoint, targetProtocol, params.headers);
+  browser = await openBrowser(params.endpoint, targetProtocol, params.headers, driver);
   disconnected = false;
   observeBrowser(browser);
   await initializePages();
   await probeExtension();
   negotiated = await negotiateCapabilities();
-  appendEvent("cymonkey.connected", { backends: activeBackends() });
+  appendEvent("cymonkey.connected", { backends: activeBackends(), driver });
   return { capabilities: negotiated.map((item) => item.name), descriptors: negotiated, backends: activeBackends() };
 }
 
@@ -74,9 +77,10 @@ async function reconnect(params) {
   const previousControl = extensionControl;
   const previousCreated = extensionControlCreated;
   targetProtocol = params.protocol === "webdriver-bidi" ? "webdriver-bidi" : "cdp";
+  driver = typeof params.driver === "string" && params.driver ? params.driver : driver;
   extensionConfig = normalizeExtension(params.extension);
   policy = normalizePolicy(params.policy);
-  const replacement = await openBrowser(params.endpoint, targetProtocol, params.headers);
+  const replacement = await openBrowser(params.endpoint, targetProtocol, params.headers, driver);
   browser = replacement;
   disconnected = false;
   extensionControl = null;
@@ -87,21 +91,27 @@ async function reconnect(params) {
     await probeExtension();
     negotiated = await negotiateCapabilities();
   } catch (error) {
-    await disableInterception(await replacement.pages().catch(() => []));
+    await disableInterception(await getPages().catch(() => []));
     browser = previous;
     extensionControl = previousControl;
     extensionControlCreated = previousCreated;
     replacement.disconnect();
     throw error;
   }
-  await disableInterception(await previous.pages().catch(() => []));
+  await disableInterception(await getPages().catch(() => []));
   if (previousCreated && previousControl && !previousControl.isClosed()) await previousControl.close().catch(() => {});
-  previous.disconnect();
-  appendEvent("cymonkey.connection.renewed", { backends: activeBackends() });
+  if (typeof previous.disconnect === "function") previous.disconnect();
+  else if (typeof previous.close === "function") await previous.close().catch(() => {});
+  appendEvent("cymonkey.connection.renewed", { backends: activeBackends(), driver });
   return { reconnected: true, backends: activeBackends() };
 }
 
-async function openBrowser(endpoint, protocol, headers) {
+async function openBrowser(endpoint, protocol, headers, driver = "auto") {
+  if (driver === "playwright") {
+    if (protocol !== "cdp") throw new Error("Playwright driver requires CDP protocol");
+    const { chromium } = await import("playwright-core");
+    return chromium.connectOverCDP(endpoint, { headers: safeHeaders(headers) });
+  }
   const { default: puppeteer } = await import("puppeteer-core");
   const connectionEndpoint = protocol === "cdp" ? await resolveCDPEndpoint(endpoint, headers) : endpoint;
   return puppeteer.connect({
@@ -123,8 +133,15 @@ function observeBrowser(candidate) {
   });
 }
 
+async function getPages() {
+  if (!browser) return [];
+  if (typeof browser.pages === "function") return browser.pages();
+  if (typeof browser.contexts === "function") return browser.contexts().flatMap((context) => context.pages());
+  return [];
+}
+
 async function initializePages() {
-  for (const page of await browser.pages()) await initializePage(page);
+  for (const page of await getPages()) await initializePage(page);
 }
 
 async function initializePage(page) {
@@ -172,7 +189,7 @@ async function probeExtension() {
 async function openExtensionControl(candidate, extensionId) {
   if (!/^[a-p]{32}$/.test(extensionId)) throw new Error("CDP WebExtension probing requires a 32-character Chrome extension ID");
   const url = `chrome-extension://${extensionId}/control.html`;
-  const existing = (await candidate.pages()).find((page) => page.url() === url);
+  const existing = (await getPages()).find((page) => page.url() === url);
   const page = existing || await candidate.newPage();
   try {
     if (!existing) await page.goto(url, { waitUntil: "domcontentloaded" });
@@ -207,7 +224,7 @@ function hello() {
 }
 
 async function describe() {
-  const pages = (await browser.pages()).filter((page) => !isExtensionPage(page));
+  const pages = (await getPages()).filter((page) => !isExtensionPage(page));
   return {
     backends: activeBackends(),
     extension: extensionControl ? { detected: true, id: extensionConfig.id } : { detected: false },
@@ -237,6 +254,61 @@ async function actBase(name, input) {
   if (name === "augmentation.disable") return setAugmentationEnabled(requireString(input.augmentationId, "augmentationId"), false);
   if (name === "augmentation.list") return { augmentations: [...augmentations.values()].map(publicAugmentation) };
   if (name === "augmentation.describe") return publicAugmentation(requireAugmentation(input.augmentationId));
+  if (name === "browser.navigate") {
+    const page = await targetPage(input);
+    requireString(input.url, "url");
+    const response = await page.goto(input.url, { waitUntil: "domcontentloaded" });
+    return { url: page.url(), status: response?.status?.() ?? null };
+  }
+  if (name === "browser.click") {
+    const page = await targetPage(input);
+    requireString(input.selector, "selector");
+    if (typeof page.locator === "function") {
+      await page.locator(input.selector).click();
+    } else {
+      await page.click(input.selector);
+    }
+    return { clicked: true };
+  }
+  if (name === "browser.fill") {
+    const page = await targetPage(input);
+    requireString(input.selector, "selector");
+    requireString(input.value, "value");
+    if (typeof page.locator === "function" && typeof page.locator(input.selector).fill === "function") {
+      await page.locator(input.selector).fill(input.value);
+    } else if (typeof page.type === "function") {
+      await page.click(input.selector, { clickCount: 3 }).catch(() => {});
+      await page.type(input.selector, input.value);
+    } else {
+      await page.click(input.selector).catch(() => {});
+      await page.evaluate(({ selector, value }) => {
+        const el = document.querySelector(selector);
+        if (el) { el.value = value; el.dispatchEvent(new Event("input", { bubbles: true })); }
+      }, { selector: input.selector, value: input.value });
+    }
+    return { filled: true };
+  }
+  if (name === "browser.press") {
+    const page = await targetPage(input);
+    requireString(input.selector, "selector");
+    requireString(input.key, "key");
+    if (typeof page.locator === "function") {
+      await page.locator(input.selector).press(input.key);
+    } else {
+      await page.focus(input.selector);
+      await page.keyboard.press(input.key);
+    }
+    return { pressed: input.key };
+  }
+  if (name === "browser.evaluate") {
+    const page = await targetPage(input);
+    requireString(input.expression, "expression");
+    return { value: await page.evaluate(input.expression) };
+  }
+  if (name === "browser.screenshot") {
+    const page = await targetPage(input);
+    return { pngBase64: await page.screenshot({ encoding: "base64", fullPage: Boolean(input.fullPage) }) };
+  }
   if (name === "script.execute") return executeScript(input);
   if (name === "script.register") return registerScript(input);
   if (name === "script.unregister") return unregisterScript(input);
@@ -505,7 +577,7 @@ async function ensureEventBinding(page) {
 }
 
 async function targetPage(target) {
-  const pages = (await browser.pages()).filter((page) => !isExtensionPage(page));
+  const pages = (await getPages()).filter((page) => !isExtensionPage(page));
   const index = Number(target?.pageIndex);
   const page = Number.isInteger(index) ? pages[index] : pages[pages.length - 1];
   if (!page) throw new Error("Cymonkey has no target page");
@@ -528,6 +600,12 @@ function baseCapabilities(protocol) {
     cap("augmentation.disable", backend, "mapped", "browser-session", "session", "write", ["augmentationId"]),
     cap("augmentation.list", backend, "mapped", "call", "ephemeral", "read", []),
     cap("augmentation.describe", backend, "mapped", "call", "ephemeral", "read", ["augmentationId"]),
+    cap("browser.navigate", backend, "native", "call", "ephemeral", "write", ["url"]),
+    cap("browser.click", backend, "native", "call", "ephemeral", "write", ["selector"]),
+    cap("browser.fill", backend, "native", "call", "ephemeral", "write", ["selector", "value"]),
+    cap("browser.press", backend, "native", "call", "ephemeral", "write", ["selector", "key"]),
+    cap("browser.evaluate", backend, "native", "call", "ephemeral", "external", ["expression"]),
+    cap("browser.screenshot", backend, "native", "call", "ephemeral", "read", []),
     cap("script.execute", backend, "native", "call", "ephemeral", "external", ["source"]),
     cap("script.register", backend, "native", "browser-session", "session", "external", ["augmentationId", "script"]),
     cap("script.unregister", backend, "native", "browser-session", "session", "external", ["augmentationId", "id"]),
@@ -553,12 +631,12 @@ function baseCapabilities(protocol) {
 async function probeBaseCapabilities() {
   const candidates = baseCapabilities(targetProtocol);
   const supported = new Set(["storage.get", "storage.set", "network.observe"]);
-  const pages = (await browser.pages()).filter((item) => !isExtensionPage(item) && originAllowed(item.url()));
+  const pages = (await getPages()).filter((item) => !isExtensionPage(item) && originAllowed(item.url()));
   const page = pages[pages.length - 1];
   if (!page) return candidates.filter((item) => supported.has(item.name));
   try {
     await page.evaluate(() => true);
-    for (const name of ["script.execute", "dom.query", "dom.observe", "dom.patch", "overlay.mount", "overlay.patch", "overlay.unmount"]) supported.add(name);
+    for (const name of ["script.execute", "dom.query", "dom.observe", "dom.patch", "overlay.mount", "overlay.patch", "overlay.unmount", "browser.navigate", "browser.click", "browser.fill", "browser.press", "browser.evaluate", "browser.screenshot"]) supported.add(name);
   } catch {}
   if (targetProtocol === "cdp" && typeof page.setRequestInterception === "function") {
     supported.add("network.rules.install");

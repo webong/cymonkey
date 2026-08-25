@@ -1,9 +1,6 @@
-# Cymonkey runtime-agnostic augmentation contract
+# Cymonkey runtime-agnostic control plane contract
 
-Cymonkey is Jangolova's runtime-agnostic augmentation engine. It describes how
-an augmentation is installed, negotiated, applied, observed, updated, disabled,
-and removed from a caller-owned target. Browser scripting is the first
-Cymonkey profile; it is not the definition of Cymonkey.
+Cymonkey is Jangolova's runtime-agnostic control plane engine. It serves as the single master control plane governing **automation**, **interaction**, and **presentation** across caller-owned targets. Direct browser automation tools (Playwright, Puppeteer, raw CDP, WebDriver BiDi) operate as driver backends under the Cymonkey control plane lane rather than isolated top-level engines.
 
 The runtime-agnostic protocol is `jangolova.cymonkey/v1alpha2`. The existing
 browser-shaped `v1alpha1` contract remains a compatibility profile while web
@@ -13,18 +10,20 @@ and macOS implementations adopt `v1alpha2`.
 
 Cymonkey owns:
 
+- the unified interaction, automation, and presentation control plane;
+- driver backends management (Playwright driver, Puppeteer driver, CDP, WebDriver BiDi, WebExtension, Safari MCP, macOS Accessibility, Pacman presentation drivers);
 - augmentation manifests and lifecycle;
-- semantic surface discovery and mutation requests;
+- semantic surface discovery, automation primitives, and surface mutation requests;
 - profile capability names and schemas;
-- per-augmentation resource ownership;
+- per-augmentation and per-driver resource ownership;
 - portable descriptions and events.
 
 Jangolova owns:
 
-- target attachment and backend selection;
+- target attachment and driver backend selection;
 - authentication, authorization, consent, and policy;
 - transport, event buffering, storage, networking, and script execution;
-- WebExtension, CDP, BiDi, Safari MCP, Apple Events, and Accessibility clients;
+- Playwright, Puppeteer, WebExtension, CDP, BiDi, Safari MCP, Apple Events, and Accessibility driver clients;
 - reconnect and credential-renewal behavior.
 
 The target owner or provider owns the application/runtime process, profile,
@@ -32,11 +31,7 @@ documents, windows, display, GPU, credentials, installation, and lifecycle.
 Disconnecting Cymonkey detaches Jangolova; it never quits the target, closes its
 documents, or revokes user-granted operating-system permissions.
 
-Pacman remains a separate semantic presentation contract. Cymonkey augments an
-interface or application surface. Pacman controls explicitly registered scene,
-camera, object, material, animation, timeline, UI, and artifact resources. A
-Cymonkey augmentation may install a Pacman-enabled experience, but it does not
-absorb Pacman's registry or action vocabulary.
+Pacman operates as Cymonkey's explicit presentation driver subsystem. Cymonkey controls interface augmentations, direct automation operations, and explicit Pacman scene, camera, object, material, animation, timeline, UI, and artifact resources through its single semantic protocol (`hello`, `capabilities`, `describe`, `act`, `events`).
 
 ## Protocol shape
 

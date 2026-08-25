@@ -58,6 +58,7 @@ func connectEngineCommand(args []string) error {
 	adapterName := flags.String("adapter", "auto", "interaction-engine adapter name or auto")
 	targetKind := flags.String("target-kind", "", "caller-owned target kind")
 	source := flags.String("source", "", "optional resource to present after connecting")
+	driverName := flags.String("driver", "", "driver backend for cymonkey control plane (auto, playwright, puppeteer, cdp, bidi)")
 	optionsText := flags.String("options", "{}", "engine-specific options as a JSON object")
 	disconnectTimeout := flags.Duration("disconnect-timeout", 15*time.Second, "maximum disconnect duration")
 	var endpoints endpointFlags
@@ -82,7 +83,16 @@ func connectEngineCommand(args []string) error {
 	if *disconnectTimeout <= 0 {
 		return errors.New("--disconnect-timeout must be positive")
 	}
-	options, err := decodeEngineOptions(*optionsText)
+	optionsMap := map[string]any{}
+	if strings.TrimSpace(*optionsText) != "" && strings.TrimSpace(*optionsText) != "{}" {
+		if err := json.Unmarshal([]byte(*optionsText), &optionsMap); err != nil {
+			return fmt.Errorf("decode --options JSON: %w", err)
+		}
+	}
+	if strings.TrimSpace(*driverName) != "" {
+		optionsMap["driver"] = strings.TrimSpace(*driverName)
+	}
+	options, err := json.Marshal(optionsMap)
 	if err != nil {
 		return err
 	}

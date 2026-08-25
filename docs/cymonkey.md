@@ -42,40 +42,43 @@ negotiated capability set. It is an error only when extension mode is
 ```text
 application or agent
         |
-        | jangolova.cymonkey/v1alpha1
+        | jangolova.cymonkey/v1alpha1 & v1alpha2
         | hello / capabilities / describe / act / events
         v
-Jangolova browser runtime
+Cymonkey Control Plane Engine
         |
-        +-- selection policy: auto | cdp | bidi | safari-mcp
+        +-- driver selection policy: auto | playwright | puppeteer | cdp | bidi | safari-mcp
         +-- capability/origin policy
         +-- capability merger and event cursor
         |
-        +-- CDP backend ---------------- Runtime / Page / DOM / CSS / Network / Fetch
-        +-- BiDi backend --------------- script / browsingContext / network
-        +-- Safari MCP mapper ---------- dynamically discovered safe tool mappings
-        +-- optional Jangolova Extension - platform services and persistent state
+        +-- Playwright driver ---------- Playwright Core CDP automation primitives
+        +-- Puppeteer driver ----------- Puppeteer Core CDP / BiDi automation primitives
+        +-- Native CDP driver ---------- Runtime / Page / DOM / CSS / Network / Fetch
+        +-- BiDi driver ---------------- script / browsingContext / network
+        +-- Safari MCP driver ---------- dynamically discovered safe tool mappings
+        +-- optional Jangolova Extension - platform services, overlays, and persistent state
                                                     |
                                                     +-- isolated content script
                                                     +-- page bootstrap bridge
 ```
 
-Hybrid operation merges capabilities from a base transport and the optional
-extension. Capability names remain stable; `capabilities` reports which backend
-will handle each capability and whether another backend is available as a
+Hybrid operation merges capabilities from a base automation/interaction transport and the optional
+extension. Capability names remain stable; `capabilities` reports which backend driver
+will handle each capability and whether another backend driver is available as a
 fallback.
 
-## Backend selection policy
+## Backend driver selection policy
 
-The default backend is `auto`:
+The default driver is `auto`:
 
-1. Prefer a supplied CDP endpoint as the no-install baseline.
-2. Otherwise use a supplied WebDriver BiDi endpoint as a first-class backend.
-3. Otherwise use a supplied Safari MCP Streamable HTTP endpoint and negotiate
+1. Prefer a Playwright or Puppeteer automation driver when direct automation capabilities are required.
+2. Fallback to native CDP endpoint as the no-install baseline.
+3. Otherwise use a supplied WebDriver BiDi endpoint as a first-class driver backend.
+4. Otherwise use a supplied Safari MCP Streamable HTTP endpoint and negotiate
    the safely mapped subset from its discovered tools.
-4. If extension mode is `auto` or `required`, probe the optional extension on a
+5. If extension mode is `auto` or `required`, probe the optional extension on a
    compatible base transport and merge its persistent/privileged capabilities.
-5. Reject the connection when required capabilities cannot be satisfied after
+6. Reject the connection when required capabilities cannot be satisfied after
    probing and policy filtering.
 
 An explicit backend option restricts selection rather than changing the

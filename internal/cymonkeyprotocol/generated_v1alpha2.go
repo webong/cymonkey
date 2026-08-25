@@ -1,5 +1,5 @@
 // Code generated from protocol/cymonkey/v1alpha2/protocol.schema.json; DO NOT EDIT.
-// Schema SHA-256: 6b23d603303e54562fa45afb24a2f40727b2934aa28dfa05f5729c3a0c22e598
+// Schema SHA-256: a8a7de8efe27ae8cd7f89c963973b33ae5c347428e55e7941669ab540769a5a7
 
 package cymonkeyprotocol
 
@@ -16,6 +16,7 @@ type ProfileName string
 const (
 	ProfileWeb    ProfileName = "web"
 	ProfileMacOS  ProfileName = "macos"
+	ProfileEngine ProfileName = "engine"
 )
 
 type BackendName string
@@ -28,6 +29,11 @@ const (
 	BackendMacOSAppleEvents   BackendName = "macos-apple-events"
 	BackendMacOSAccessibility BackendName = "macos-accessibility"
 	BackendMacOSCooperative   BackendName = "macos-cooperative"
+	BackendEngineGodot        BackendName = "engine-godot"
+	BackendEngineUnity        BackendName = "engine-unity"
+	BackendEngineUnreal       BackendName = "engine-unreal"
+	BackendEngineThreejs      BackendName = "engine-threejs"
+	BackendEnginePacman       BackendName = "engine-pacman"
 )
 
 type SupportMode string
@@ -86,6 +92,7 @@ type Capability struct {
 	Lifetime     Lifetime        `json:"lifetime"`
 	Persistence  Persistence     `json:"persistence"`
 	Effect       Effect          `json:"effect"`
+	TargetKinds  []string        `json:"targetKinds,omitempty"`
 	InputSchema  json.RawMessage `json:"inputSchema"`
 	Alternatives []BackendName   `json:"alternatives,omitempty"`
 }

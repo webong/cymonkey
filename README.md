@@ -21,36 +21,14 @@ same target endpoints and handles without Xallet.
 
 ## Included interaction engines
 
-- Playwright attachment to a caller-owned Chromium-compatible CDP target.
-- Puppeteer attachment over CDP or WebDriver BiDi, including Firefox.
-- Jangolova Browser Extension System with Cymonkey augmented browsing and
-  explicit-registration Pacman/Three.js control. CDP, WebDriver BiDi, Safari
-  MCP, and WebExtension are Jangolova-owned browser backends.
-- Runtime-agnostic Cymonkey augmentation profiles: web today, plus a bounded
-  macOS contract for allowlisted application commands and Accessibility UI
-  operations through caller-owned native helpers.
-- A Jangolova macOS menu-bar host that can run the bounded Cymonkey runtime,
-  embeds the Safari WebExtension, and displays a source-free userscript catalog.
-- Cymonkey userscript capabilities using the shared
-  `jangolova.cymonkey.userscript/v1alpha1` manifest, backed by the extension's
-  approval, persistence, and native registration manager.
-- WebDriver Classic attachment to an existing caller-owned session, including
-  Safari's `safaridriver`.
+- **Cymonkey Master Control Plane (`jangolova.cymonkey/v1alpha2`)**: Runtime-agnostic control plane engine governing automation, interaction, and 2D/3D presentation across caller-owned targets.
+  - **Automation Drivers**: Integrated Playwright and Puppeteer CDP/WebDriver BiDi drivers for browser automation primitives (`browser.navigate`, `browser.click`, `browser.fill`, `browser.press`, `browser.evaluate`, `browser.screenshot`).
+  - **Web & Extension Drivers**: Jangolova WebExtension control plane, Cymonkey augmented browsing, userscripts runtime (`jangolova.cymonkey.userscript/v1alpha1`), and Safari MCP relay.
+  - **macOS Native Driver**: Bounded macOS profile mapping allowlisted Apple Events and Accessibility UI operations via native helper.
+  - **Engine & Presentation Drivers**: Unified 2D/3D presentation engine profile spanning Godot, Unity, Unreal, and Three.js explicit-registration drivers (formerly Pacman).
+- WebDriver Classic attachment to an existing caller-owned session, including Safari's `safaridriver`.
 - Named WebKit WebDriver attachment for WebKitGTK, WPE WebKit, and Safari.
-- Safari MCP attachment through a caller-owned Streamable HTTP relay.
-- Agent-facing `hello`, `capabilities`, `describe`, `act`, and `events` calls.
-- Blockade pixel observation contract and an external YOLO/SAM worker.
-- Blockade can also manage local vision workers over framed stdin/stdout IPC.
-- Three.js dynamic presentation example.
-- `web-presentation` declarative presentation adapter for caller-owned CDP browsers.
-- Authenticated cooperative bridge and Unity Package Manager integration.
-- Pacman semantic presentation attachment and an explicitly allowlisted Unity
-  package; Unity/Unreal rendering and display transport remain external.
-- Godot, Unity, and Unreal Pacman runtime matrix and published artifacts:
-  [engine runtime manifest](protocol/pacman/v1/engine-runtimes.json),
-  [Godot package](pkg/godot-pacman/README.md),
-  [Unity package](pkg/unity-pacman/README.md), and
-  [Unreal package/release](pkg/unreal-pacman/README.md).
+- Blockade pixel observation contract and external/managed YOLO/SAM vision workers.
 - Target-preserving disconnect, active health, and lifecycle events.
 
 ## Commands

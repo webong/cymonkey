@@ -64,25 +64,25 @@ User, agent, IDE, or application
         |                                             |
         +-- HTTP / MCP / ACP --> Grimlock ------------+
                                       model + policy  |
-                                                    v
-                                      Jangolova interaction core
-        |
-        +-- Playwright ------------------ CDP -------+
-        +-- Puppeteer ---------------- CDP / BiDi ---+
-        +-- Jangolova browser runtime ----------------+
-        |       +-- CDP / BiDi / Safari MCP ----------+
-        |       +-- optional Jangolova WebExtension --+
-        |               +-- Cymonkey subsystem -------+
-        |               +-- Pacman / Three.js --------+
-        +-- Cymonkey macOS profile -------------------+
-        |       +-- allowlisted Apple Events ---------+
-        |       +-- bounded Accessibility operations +
-        +-- WebDriver Classic ------ existing session+--> caller-owned targets
-        +-- Safari MCP -------- Streamable HTTP relay+
-        +-- Godot / Unity / Unreal bridge WS --------+
-        +-- Three.js presentation ------- web -------+
-                                                      |
-                                    Xallet or native host owns lifecycle
+                                                     v
+                                CYMONKEY UNIFIED CONTROL PLANE
+                                (jangolova.cymonkey/v1alpha2)
+                                 hello / capabilities / describe / act / events
+                                                     |
+        +────────────────────────────────────────────┼────────────────────────────────────────────+
+        │                                            │                                            │
+        ▼                                            ▼                                            ▼
+AUTOMATION DRIVERS                           INTERACTION DRIVERS                          PRESENTATION DRIVERS
+• Playwright Driver (CDP)                    • WebExtension (WXT)                         • Three.js Pacman Driver
+• Puppeteer Driver (CDP/BiDi)                • Userscripts Engine                         • Declarative Web Presentation
+• Native CDP Driver                          • macOS Accessibility / Apple Events         • Unity / Unreal Bridge WS
+• WebDriver BiDi Driver                      • Safari MCP Relay                           • Display Pixel / YOLO (Blockade)
+        │                                            │                                            │
+        └────────────────────────────────────────────┴────────────────────────────────────────────┘
+                                                     │
+                                                     v
+                                           caller-owned targets
+                                 (Xallet or native host owns lifecycle)
 ```
 
 Endpoint and handle flow is inward: the operator creates a target and gives
@@ -93,9 +93,10 @@ Chromium endpoint because it does not create Chromium.
 
 Jangolova owns:
 
-- Playwright, Puppeteer, and future browser-interaction libraries;
+- Cymonkey control plane and driver matrix (Playwright, Puppeteer, CDP, WebDriver BiDi, WebExtension, Safari MCP, macOS Accessibility);
+- Playwright, Puppeteer, and browser automation drivers integrated into the Cymonkey control plane;
 - WebDriver and MCP clients that attach to caller-owned WebKit/Safari targets;
-- Three.js presentation logic and cooperative web experiences;
+- Three.js presentation logic, Pacman presentation drivers, and cooperative web experiences;
 - Unity and Unreal interaction plugins and bridge protocol;
 - semantic capability discovery, description, actions, observations, events,
   and interaction-session health;

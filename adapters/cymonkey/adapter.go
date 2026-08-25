@@ -33,6 +33,7 @@ type instance struct {
 	nodePath       string
 	workerPath     string
 	targetProtocol string
+	driver         string
 	extension      extensionOptions
 	policy         policyOptions
 	endpoint       orchestrator.TargetEndpoint
@@ -99,7 +100,7 @@ func (backend processBackend) Connect(ctx context.Context, spec manifest.EngineS
 		return nil, err
 	}
 	running := &instance{
-		nodePath: nodePath, workerPath: workerPath, targetProtocol: backend.endpointProtocol,
+		nodePath: nodePath, workerPath: workerPath, targetProtocol: backend.endpointProtocol, driver: config.Driver,
 		extension: config.Extension, policy: config.Policy,
 		endpoint: endpoint, events: make(chan orchestrator.EngineEvent, 8), renewalStop: make(chan struct{}),
 	}
@@ -227,7 +228,7 @@ func (i *instance) startWorker(ctx context.Context) (*nodeworker.Process, []stri
 	}
 	snapshot := i.endpoint.Connection.Snapshot()
 	params, _ := json.Marshal(map[string]any{
-		"endpoint": i.endpoint.URL, "protocol": i.targetProtocol, "extension": i.extension,
+		"endpoint": i.endpoint.URL, "protocol": i.targetProtocol, "driver": i.driver, "extension": i.extension,
 		"headers": snapshot.Headers, "policy": i.policy,
 	})
 	result, err := worker.Call(ctx, "connect", params)
@@ -413,6 +414,7 @@ func capabilityNames() []string {
 	return []string{
 		"act", "augmentation", "augmentation.install", "augmentation.update", "augmentation.uninstall",
 		"augmentation.enable", "augmentation.disable", "augmentation.list", "augmentation.describe",
+		"browser.click", "browser.evaluate", "browser.fill", "browser.navigate", "browser.press", "browser.screenshot",
 		"capabilities", "describe", "events", "dom.observe", "dom.patch", "dom.query", "network.observe",
 		"network.rules.install", "network.rules.remove",
 		"overlay.mount", "overlay.patch", "overlay.unmount", "script.execute", "script.register",

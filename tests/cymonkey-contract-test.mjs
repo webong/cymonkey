@@ -12,12 +12,19 @@ async function source(path) {
   return readFile(new URL(path, root), "utf8");
 }
 
-test("Cymonkey worker provides CDP and BiDi baselines with an optional extension", async () => {
+test("Cymonkey worker provides CDP, BiDi, and Playwright drivers with integrated browser automation", async () => {
   const worker = await source("scripts/cymonkey-worker.mjs");
   const syntax = spawnSync(process.execPath, ["--check", fileURLToPath(new URL("scripts/cymonkey-worker.mjs", root))], { encoding: "utf8" });
   assert.equal(syntax.status, 0, syntax.stderr);
   assert.match(worker, /puppeteer\.connect/);
+  assert.match(worker, /playwright-core/);
   assert.match(worker, /webDriverBiDi/);
+  assert.match(worker, /browser\.navigate/);
+  assert.match(worker, /browser\.click/);
+  assert.match(worker, /browser\.fill/);
+  assert.match(worker, /browser\.press/);
+  assert.match(worker, /browser\.evaluate/);
+  assert.match(worker, /browser\.screenshot/);
   assert.match(worker, /jangolova\.cymonkey\/v1alpha1/);
   assert.match(worker, /extensionConfig\.mode === "required"/);
   assert.match(worker, /baseCapabilities\(targetProtocol\)/);
@@ -53,14 +60,15 @@ test("versioned Cymonkey schemas define capability provenance and one augmentati
   assert.deepEqual(augmentation.$defs.script.oneOf, [{ required: ["source"] }, { required: ["files"] }]);
 });
 
-test("v1alpha2 defines runtime-agnostic web and macOS profiles", async () => {
+test("v1alpha2 defines runtime-agnostic web, macOS, and engine profiles", async () => {
   const protocol = JSON.parse(await source("protocol/cymonkey/v1alpha2/protocol.schema.json"));
   const augmentation = JSON.parse(await source("protocol/cymonkey/v1alpha2/augmentation.schema.json"));
   assert.equal(protocol.$defs.hello.properties.protocolVersion.const, "jangolova.cymonkey/v1alpha2");
-  assert.deepEqual(protocol.$defs.profile.enum, ["web", "macos"]);
+  assert.deepEqual(protocol.$defs.profile.enum, ["web", "macos", "engine"]);
   assert.ok(protocol.$defs.capability.required.includes("profile"));
   assert.ok(protocol.$defs.backend.enum.includes("macos-apple-events"));
   assert.ok(protocol.$defs.backend.enum.includes("macos-accessibility"));
+  assert.ok(protocol.$defs.backend.enum.includes("engine-godot"));
   assert.equal(augmentation.properties.apiVersion.const, "jangolova.cymonkey/v1alpha2");
   assert.equal(augmentation.$defs.webTarget.properties.profile.const, "web");
   assert.equal(augmentation.$defs.macosTarget.properties.profile.const, "macos");

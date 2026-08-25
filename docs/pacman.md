@@ -1,5 +1,8 @@
 # Pacman semantic presentation bridge
 
+> [!IMPORTANT]
+> Deprecation Notice: `jangolova.pacman/v1alpha1` is merging into the unified Cymonkey control plane as `jangolova.cymonkey/v1alpha2` (engine profile). See [Cymonkey display plane merge plan](cymonkey-display-plane-merge.md) for details. Existing `pacman` wire calls continue to work via compatibility translation during migration.
+
 Pacman is Jangolova's embedded semantic control plane for Godot, Unity, and Unreal.
 It is not a renderer, game runtime, display server, streamer, launcher, or
 target supervisor. Godot, Unity, and Unreal render their own applications. Xallet or
