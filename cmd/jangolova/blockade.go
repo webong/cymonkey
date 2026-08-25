@@ -82,19 +82,16 @@ func blockadeObserveCommand(args []string) error {
 	if !ok {
 		return fmt.Errorf("Blockade engine %q is not configured", id)
 	}
-	if engine.Kind != "local-ultralytics" {
-		return fmt.Errorf("Blockade observe currently supports local-ultralytics, got %q", engine.Kind)
-	}
-	pool, err := blockade.StartConfiguredLocalEngine(context.Background(), engine)
+	started, err := blockade.StartConfiguredEngine(context.Background(), engine)
 	if err != nil {
 		return err
 	}
-	defer pool.Close()
+	defer started.Close()
 	image, err := os.ReadFile(*imagePath)
 	if err != nil {
 		return err
 	}
-	result, err := (blockade.Client{WorkerPool: pool}).Observe(context.Background(), blockade.ObserveRequest{Image: image, Prompt: *prompt})
+	result, err := (blockade.Client{Engine: started}).Observe(context.Background(), blockade.ObserveRequest{Image: image, Prompt: *prompt})
 	if err != nil {
 		return err
 	}

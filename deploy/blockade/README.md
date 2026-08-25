@@ -47,6 +47,29 @@ Override `BLOCKADE_YOLO_MODEL_FILE` or `BLOCKADE_SAM_MODEL_FILE` when testing
 alternative weights. The test asserts contract-valid observations and verifies
 that undecodable images fail cleanly instead of crashing the worker.
 
+## Native ONNX Runtime engine
+
+Engines with `kind: onnx` run YOLO detection in-process through ONNX Runtime
+(cgo) instead of managed Python workers. Export a model with Ultralytics and
+point the runtime at the shared library:
+
+```sh
+python3 -m venv .cache/blockade/venv
+.cache/blockade/venv/bin/pip install ultralytics onnx onnxslim
+.cache/blockade/venv/bin/yolo export \
+  model=.cache/blockade/models/yolo11n.pt format=onnx imgsz=640 opset=17
+
+JANGOLOVA_BLOCKADE_ONNXRUNTIME_LIB="$PWD/.cache/blockade/libonnxruntime.dylib" \
+JANGOLOVA_BLOCKADE_SMOKE=1 \
+JANGOLOVA_BLOCKADE_ONNX_MODEL="$PWD/.cache/blockade/models/yolo11n.onnx" \
+  go test ./internal/blockade -run TestOnnxEngineFixtureSmoke -v
+```
+
+The engine reads input and output names plus tensor layouts from the model,
+letterboxes to the configured input size, runs thresholding and NMS, and maps
+boxes back to original pixel coordinates. Segmentation (`samModel`) stays with
+local workers for now; ONNX engines require `yoloModel` only.
+
 The first startup downloads the configured model weights unless they are
 provided through a mounted cache. Override `BLOCKADE_YOLO_MODEL` and
 `BLOCKADE_SAM_MODEL` when selecting different compatible Ultralytics weights.

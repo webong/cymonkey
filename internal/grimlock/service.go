@@ -57,6 +57,7 @@ type Service struct {
 	store          *sessionStore
 	blockadeClient *blockade.Client
 	blockadePool   *blockade.WorkerPool
+	blockadeEngine blockade.Engine
 }
 
 type ServiceOption func(*Service)
@@ -80,6 +81,17 @@ func WithBlockadeWorkerPool(pool *blockade.WorkerPool) ServiceOption {
 		if pool != nil {
 			service.blockadePool = pool
 			service.blockadeClient = &blockade.Client{WorkerPool: pool}
+		}
+	}
+}
+
+// WithBlockadeEngine enables the Blockade observation tool backed by any
+// configured engine kind, including in-process native engines.
+func WithBlockadeEngine(engine blockade.Engine) ServiceOption {
+	return func(service *Service) {
+		if engine != nil {
+			service.blockadeEngine = engine
+			service.blockadeClient = &blockade.Client{Engine: engine}
 		}
 	}
 }
@@ -807,6 +819,9 @@ func (s *Service) closeSession(ctx context.Context, record *runningSession) erro
 	if s.blockadePool != nil {
 		problems = append(problems, s.blockadePool.Close())
 	}
+	if s.blockadeEngine != nil {
+		problems = append(problems, s.blockadeEngine.Close())
+	}
 	return errors.Join(problems...)
 }
 
@@ -826,6 +841,9 @@ func (s *Service) Close(ctx context.Context) error {
 	}
 	if s.blockadePool != nil {
 		problems = append(problems, s.blockadePool.Close())
+	}
+	if s.blockadeEngine != nil {
+		problems = append(problems, s.blockadeEngine.Close())
 	}
 	return errors.Join(problems...)
 }

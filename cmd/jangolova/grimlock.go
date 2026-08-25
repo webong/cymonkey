@@ -120,13 +120,11 @@ func newGrimlockService(options ...grimlock.ServiceOption) (*grimlock.Service, e
 		if !ok {
 			return nil, fmt.Errorf("Blockade engine %q is not configured", engineID)
 		}
-		if engine.Kind == "local-ultralytics" {
-			pool, poolErr := blockade.StartConfiguredLocalEngine(context.Background(), engine)
-			if poolErr != nil {
-				return nil, fmt.Errorf("start configured Blockade engine: %w", poolErr)
-			}
-			serviceOptions = append(serviceOptions, grimlock.WithBlockadeWorkerPool(pool))
+		started, startErr := blockade.StartConfiguredEngine(context.Background(), engine)
+		if startErr != nil {
+			return nil, fmt.Errorf("start configured Blockade engine: %w", startErr)
 		}
+		serviceOptions = append(serviceOptions, grimlock.WithBlockadeEngine(started))
 	}
 	if endpoint := strings.TrimSpace(os.Getenv("JANGOLOVA_BLOCKADE_ENDPOINT")); endpoint != "" {
 		serviceOptions = append(serviceOptions, grimlock.WithBlockadeClient(blockade.Client{BaseURL: endpoint}))

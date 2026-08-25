@@ -74,25 +74,41 @@ func (c Config) Validate() error {
 	return nil
 }
 
-// ValidateModelFiles verifies local model attachments without starting a
-// worker. Cloud and ONNX engine entries are intentionally not checked here.
+// ValidateModelFiles verifies local model attachments without starting an
+// engine. Cloud engine entries are intentionally not checked here.
 func (c Config) ValidateModelFiles() error {
 	if err := c.Validate(); err != nil {
 		return err
 	}
 	for _, engine := range c.Engines {
-		if engine.Kind != "local-ultralytics" {
-			continue
-		}
-		for name, path := range map[string]string{"yoloModel": engine.YOLOModel, "samModel": engine.SAMModel} {
-			info, err := os.Stat(path)
-			if err != nil {
-				return fmt.Errorf("Blockade engine %q %s %q: %w", engine.ID, name, path, err)
+		switch engine.Kind {
+		case "local-ultralytics":
+			for name, path := range map[string]string{"yoloModel": engine.YOLOModel, "samModel": engine.SAMModel} {
+				if err := checkModelFile(engine.ID, name, path); err != nil {
+					return err
+				}
 			}
-			if info.IsDir() {
-				return fmt.Errorf("Blockade engine %q %s %q is a directory", engine.ID, name, path)
+		case "onnx":
+			for name, path := range map[string]string{"yoloModel": engine.YOLOModel, "samModel": engine.SAMModel} {
+				if path == "" {
+					continue
+				}
+				if err := checkModelFile(engine.ID, name, path); err != nil {
+					return err
+				}
 			}
 		}
+	}
+	return nil
+}
+
+func checkModelFile(engineID, name, path string) error {
+	info, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("Blockade engine %q %s %q: %w", engineID, name, path, err)
+	}
+	if info.IsDir() {
+		return fmt.Errorf("Blockade engine %q %s %q is a directory", engineID, name, path)
 	}
 	return nil
 }

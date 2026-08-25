@@ -155,7 +155,7 @@
 - [x] Define a Grimlock-owned vision-provider registry boundary.
 - [x] Add reproducible model-cache mounts and a real YOLO/SAM fixture launcher.
 - [x] Run the fixture with pinned weights and add a real inference smoke test.
-- [ ] Add native ONNX Runtime inference.
+- [x] Add native ONNX Runtime inference.
 - [ ] Add a selected cloud-provider adapter in Grimlock with credential
   resolution.
 - [ ] Normalize fal.ai model-specific detection and segmentation responses.

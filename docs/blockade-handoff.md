@@ -39,6 +39,14 @@ Implemented:
   `internal/blockade/testdata/smoke.png`, verified against pinned
   `yolo11n.pt` and `sam2_b.pt` weights in `.cache/blockade/models`.
 - Grimlock read-only `blockade_observe` tool.
+- Native ONNX Runtime engine (`internal/blockade/onnx.go`) behind the shared
+  `Engine` interface: letterbox preprocessing, threshold plus NMS
+  postprocessing, and coordinate mapping back to source pixels. Gated smoke
+  test via `JANGOLOVA_BLOCKADE_SMOKE=1`,
+  `JANGOLOVA_BLOCKADE_ONNX_MODEL`, and
+  `JANGOLOVA_BLOCKADE_ONNXRUNTIME_LIB`. Verified against an exported
+  `yolo11n.onnx` (bus.jpg: bus + four persons). ONNX engines do not support
+  `samModel` yet.
 - Role-aware Grimlock profiles: `reasoning`, `vision`, and `multimodal`.
 - Provider-neutral Grimlock vision-provider registry seam. Cloud adapters such
   as fal.ai belong in Grimlock, not in Blockade.
@@ -80,17 +88,16 @@ those files or replace the paths before using `--check-files` or `observe`.
 
 ## Next tasks
 
-1. Add a native ONNX Runtime engine behind the same Blockade engine interface.
-2. Add the first Grimlock-owned cloud adapter (fal.ai or another selected
+1. Add the first Grimlock-owned cloud adapter (fal.ai or another selected
    provider) using credential and TLS resolution.
-3. Add configurable cloud queue/submit behavior and request timeouts.
-4. Add model-specific response mappers so cloud segmentation/detection output
+2. Add configurable cloud queue/submit behavior and request timeouts.
+3. Add model-specific response mappers so cloud segmentation/detection output
    becomes `Observation`, `Region`, and mask data rather than raw evidence.
-5. Register vision and multimodal providers explicitly in Grimlock discovery,
+4. Register vision and multimodal providers explicitly in Grimlock discovery,
    alongside reasoning connectors, without exposing credentials.
-6. Add screenshot capture adapters for Cymonkey/Pacman/display targets and pass
+5. Add screenshot capture adapters for Cymonkey/Pacman/display targets and pass
    those pixels to Blockade.
-7. Add a Grimlock end-to-end test proving:
+6. Add a Grimlock end-to-end test proving:
 
    ```text
    target screenshot → Blockade → observation → Grimlock context → approved action
