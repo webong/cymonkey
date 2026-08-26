@@ -15,8 +15,8 @@ var _authenticated := false
 
 func _ready() -> void:
 	if bearer_token.is_empty():
-		bearer_token = OS.get_environment("JANGOLOVA_PACMAN_TOKEN")
-	var environment_port := OS.get_environment("JANGOLOVA_PACMAN_PORT")
+		bearer_token = OS.get_environment("JANGOLOVA_CYMONKEY_TOKEN")
+	var environment_port := OS.get_environment("JANGOLOVA_CYMONKEY_PORT")
 	if not environment_port.is_empty():
 		listen_port = int(environment_port)
 	_registry = get_node_or_null(registry_path)

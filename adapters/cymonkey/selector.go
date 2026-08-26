@@ -1,6 +1,8 @@
 package cymonkey
 
 import (
+	"strings"
+
 	"context"
 	"errors"
 	"fmt"
@@ -61,7 +63,7 @@ func selectBackendForProfile(requested string, profile contract.Profile, target 
 		if backend.Profile() != profile {
 			continue
 		}
-		if requested != "auto" && requested != string(backend.Name()) {
+		if requested != "auto" && !backendMatchesRequest(backend, requested) {
 			continue
 		}
 		if backend.Compatible(target) {
@@ -73,7 +75,7 @@ func selectBackendForProfile(requested string, profile contract.Profile, target 
 			return nil, errors.New("Cymonkey macOS profile requires a caller-owned native helper; Apple Events and Accessibility are not invoked directly by the provider")
 		}
 		if profile == contract.ProfileEngine {
-			return nil, errors.New("Cymonkey engine profile requires a caller-owned websocket or pacman-ws presentation endpoint")
+			return nil, errors.New("Cymonkey engine profile requires a caller-owned websocket or cymonkey-ws presentation endpoint")
 		}
 		return nil, errors.New("Cymonkey web profile requires a caller-owned CDP, WebDriver BiDi, or Safari MCP endpoint")
 	}
@@ -106,4 +108,14 @@ func resolveProfile(requested contract.Profile, target orchestrator.EngineTarget
 		return "", errors.New("Cymonkey engine profile requires target.kind native-presentation, unity, unreal, or godot")
 	}
 	return requested, nil
+}
+
+func backendMatchesRequest(backend Backend, requested string) bool {
+	if backend.Name() == BackendName(requested) {
+		return true
+	}
+	if _, ok := backend.(enginePresentationBackend); ok {
+		return strings.HasPrefix(requested, "engine-")
+	}
+	return false
 }

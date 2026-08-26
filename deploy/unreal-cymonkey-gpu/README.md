@@ -27,7 +27,7 @@ mkdir -p "$PWD/unreal-artifacts"
 docker run --rm \
   --name jangolova-unreal-pacman \
   -p 8090:8090 \
-  -e JANGOLOVA_PACMAN_TOKEN='replace-with-a-runtime-secret' \
+  -e JANGOLOVA_CYMONKEY_TOKEN='replace-with-a-runtime-secret' \
   -v "$PWD/unreal-artifacts:/workspace/artifacts" \
   ghcr.io/webong/jangolova/unreal-cymonkey-gpu:5.8
 ```
@@ -38,7 +38,7 @@ the required display/Vulkan setup:
 ```sh
 docker run --rm --gpus all \
   -p 8090:8090 \
-  -e JANGOLOVA_PACMAN_TOKEN='replace-with-a-runtime-secret' \
+  -e JANGOLOVA_CYMONKEY_TOKEN='replace-with-a-runtime-secret' \
   -e UNREAL_USE_XVFB=0 \
   -e DISPLAY=:0 \
   ghcr.io/webong/jangolova/unreal-cymonkey-gpu:5.8

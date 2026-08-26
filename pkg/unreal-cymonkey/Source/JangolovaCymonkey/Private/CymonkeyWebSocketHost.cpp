@@ -83,7 +83,7 @@ bool FCymonkeyWebSocketHost::AcceptConnection(const TSharedRef<ICymonkeyWebSocke
                 return;
             }
             Authenticated->Store(true);
-            Connection->SendText(TEXT("{\"type\":\"pacman.authenticated\"}"));
+            Connection->SendText(TEXT("{\"type\":\"cymonkey.authenticated\"}"));
             return;
         }
         CurrentRouter->HandleText(Message, [Connection](const FString& Reply)

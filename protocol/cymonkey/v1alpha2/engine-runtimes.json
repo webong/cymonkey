@@ -25,8 +25,7 @@
     {
       "engine": "unreal",
       "version": "5.8",
-      "image": "ghcr.io/webong/jangolova/unreal-pacman-gpu:5.8",
-      "imageNote": "Published tag retains the historical pacman name; rebuilt images move to unreal-cymonkey-gpu.",
+      "image": "ghcr.io/webong/jangolova/unreal-cymonkey-gpu:5.8",
       "pluginVersion": "0.2.0",
       "protocolVersion": "jangolova.cymonkey/v1alpha2",
       "supportedActions": ["resource.describe", "object.visibility.set"],

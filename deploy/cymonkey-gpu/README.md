@@ -243,7 +243,7 @@ Mount persistent RunPod storage at a separate path such as
 
 Use a secure GPU Pod with a 24 GB-or-larger GPU when available, persistent
 storage for engine caches/artifacts, `8090/tcp` exposed, and
-`JANGOLOVA_PACMAN_TOKEN` injected as a secret. Mount the persistent volume at a
+`JANGOLOVA_CYMONKEY_TOKEN` injected as a secret. Mount the persistent volume at a
 path such as `/mnt/runpod-volume`; do not mount it over `/workspace`, because
 the image's fixture source is copied there. Set the engine-specific artifact
 variable to `/mnt/runpod-volume/artifacts` when artifacts must survive Pod

@@ -118,8 +118,8 @@
   JavaScript execution.
 - [x] Define the Pacman Godot/Unity/Unreal semantic protocol and lifecycle boundary.
 - [x] Add Godot as the license-free Pacman reference runtime.
-- [x] Add a headless Godot 4 fixture and authenticated `pacman-ws` container.
-- [x] Expose authenticated caller-owned `pacman-ws` attachment through the
+- [x] Add a headless Godot 4 fixture and authenticated `cymonkey-ws` container.
+- [x] Expose authenticated caller-owned `cymonkey-ws` attachment through the
   interaction provider.
 - [x] Add a minimal Unity Pacman package with explicit resource/action
   allowlisting and target-preserving disconnect verification.

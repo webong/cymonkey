@@ -32,7 +32,6 @@ const (
 	BackendEngineUnity        Backend = "engine-unity"
 	BackendEngineUnreal       Backend = "engine-unreal"
 	BackendEngineThreejs      Backend = "engine-threejs"
-	BackendEnginePacman       Backend = "engine-pacman"
 )
 
 type Support string

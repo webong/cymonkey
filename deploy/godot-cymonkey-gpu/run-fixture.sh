@@ -13,8 +13,8 @@ if [[ ! -f "${project_path}/project.godot" ]]; then
   echo "Godot Pacman fixture project is missing: ${project_path}" >&2
   exit 1
 fi
-if [[ -z "${JANGOLOVA_PACMAN_TOKEN:-}" ]]; then
-  echo "JANGOLOVA_PACMAN_TOKEN must be supplied at runtime." >&2
+if [[ -z "${JANGOLOVA_CYMONKEY_TOKEN:-}" ]]; then
+  echo "JANGOLOVA_CYMONKEY_TOKEN must be supplied at runtime." >&2
   exit 1
 fi
 

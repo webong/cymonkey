@@ -7,7 +7,7 @@ const fixtures = [
     container: "../deploy/godot-cymonkey-gpu/Containerfile",
     runner: "../deploy/godot-cymonkey-gpu/run-fixture.sh",
     requiredContainer: [/GODOT_IMAGE/, /NVIDIA_VISIBLE_DEVICES=all/, /NVIDIA_DRIVER_CAPABILITIES/, /EXPOSE 8090\/tcp/, /JANGOLOVA_ARTIFACT_DIR/],
-    requiredRunner: [/JANGOLOVA_PACMAN_TOKEN/, /--display-driver/, /--rendering-method/, /--rendering-driver/, /nvidia-smi/, /xvfb-run/],
+    requiredRunner: [/JANGOLOVA_CYMONKEY_TOKEN/, /--display-driver/, /--rendering-method/, /--rendering-driver/, /nvidia-smi/, /xvfb-run/],
     forbiddenRunner: [/--headless/],
   },
   {

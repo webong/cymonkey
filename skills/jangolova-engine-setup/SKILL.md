@@ -20,15 +20,15 @@ Read [references/runtime-matrix.md](references/runtime-matrix.md) for engine-spe
 1. Confirm a Linux `amd64` host, Docker, free disk, and, for rendered tests, an NVIDIA container runtime or supported display/EGL/Vulkan setup.
 2. Authenticate to the registry interactively. Never put PATs in commands, Dockerfiles, build arguments, logs, or chat.
 3. Pull or build the selected Pacman image.
-4. Run it with a protected `JANGOLOVA_PACMAN_TOKEN`, port `8090`, and a mounted artifacts directory.
+4. Run it with a protected `JANGOLOVA_CYMONKEY_TOKEN`, port `8090`, and a mounted artifacts directory.
 5. Verify `hello`, `capabilities`, `describe`, and `health` before attempting actions.
 
 ```sh
-export JANGOLOVA_PACMAN_TOKEN="$(openssl rand -hex 32)"
+export JANGOLOVA_CYMONKEY_TOKEN="$(openssl rand -hex 32)"
 mkdir -p artifacts
 docker run --rm --name jangolova-pacman \
   -p 8090:8090 \
-  -e JANGOLOVA_PACMAN_TOKEN \
+  -e JANGOLOVA_CYMONKEY_TOKEN \
   -v "$PWD/artifacts:/workspace/artifacts" \
   ghcr.io/webong/jangolova/unreal-pacman-gpu:5.8
 ```

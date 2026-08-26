@@ -7,7 +7,7 @@ opaque handle.
 ## Pacman
 
 New Unity and Unreal integrations use [Pacman](pacman.md), a shared semantic
-presentation protocol over a caller-owned `pacman-ws` endpoint. The Jangolova
+presentation protocol over a caller-owned `cymonkey-ws` endpoint. The Jangolova
 adapter dials that endpoint from the generic target descriptor. The application
 owns the listener, renderer, display, and lifecycle. The Unity MVP is at
 `pkg/unity-cymonkey`; the Unreal C++ implementation starts at

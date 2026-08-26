@@ -15,7 +15,7 @@
       "enum": [
         "cdp", "bidi", "safari-mcp", "webextension",
         "macos-apple-events", "macos-accessibility", "macos-cooperative",
-        "engine-godot", "engine-unity", "engine-unreal", "engine-threejs", "engine-pacman"
+        "engine-godot", "engine-unity", "engine-unreal", "engine-threejs"
       ]
     },
     "hello": {

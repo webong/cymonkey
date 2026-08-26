@@ -9,8 +9,8 @@ RUN mkdir -p tests/godot-cymonkey-fixture/addons \
     && cp -R pkg/godot-cymonkey/addons/jangolova_cymonkey tests/godot-cymonkey-fixture/addons/jangolova_cymonkey
 
 ENV GODOT_PROJECT_PATH=/workspace/tests/godot-cymonkey-fixture
-ENV JANGOLOVA_PACMAN_TOKEN=
-ENV JANGOLOVA_PACMAN_PORT=8090
+ENV JANGOLOVA_CYMONKEY_TOKEN=
+ENV JANGOLOVA_CYMONKEY_PORT=8090
 
 EXPOSE 8090
 

@@ -1,21 +1,75 @@
 {
   "$schema": "../../protocol/pacman/v1/scene-plan.schema.json",
-  "apiVersion": "jangolova.pacman.scene/v1alpha1",
+  "apiVersion": "jangolova.cymonkey.scene/v1alpha1",
   "name": "midnight-house",
   "description": "A model-authored night-time house choreography.",
   "requires": [
-    {"id": "object:house", "kind": "object"},
-    {"id": "object:door", "kind": "object"},
-    {"id": "object:hero", "kind": "object"},
-    {"id": "material:interior-light", "kind": "material"},
-    {"id": "camera:main", "kind": "camera"},
-    {"id": "ui:status", "kind": "ui"}
+    {
+      "id": "object:house",
+      "kind": "object"
+    },
+    {
+      "id": "object:door",
+      "kind": "object"
+    },
+    {
+      "id": "object:hero",
+      "kind": "object"
+    },
+    {
+      "id": "material:interior-light",
+      "kind": "material"
+    },
+    {
+      "id": "camera:main",
+      "kind": "camera"
+    },
+    {
+      "id": "ui:status",
+      "kind": "ui"
+    }
   ],
   "actions": [
-    {"name": "object.transform.set", "targetId": "object:hero", "input": {"position": {"x": 132, "y": 129}}},
-    {"name": "object.visible.set", "targetId": "object:door", "input": {"visible": false}},
-    {"name": "material.color.set", "targetId": "material:interior-light", "input": {"color": "#ffd166"}},
-    {"name": "camera.transform.set", "targetId": "camera:main", "input": {"zoom": {"x": 1.25, "y": 1.25}}},
-    {"name": "ui.text.set", "targetId": "ui:status", "input": {"text": "WELCOME HOME  |  PACMAN CONTROL"}}
+    {
+      "name": "object.transform.set",
+      "targetId": "object:hero",
+      "input": {
+        "position": {
+          "x": 132,
+          "y": 129
+        }
+      }
+    },
+    {
+      "name": "object.visible.set",
+      "targetId": "object:door",
+      "input": {
+        "visible": false
+      }
+    },
+    {
+      "name": "material.color.set",
+      "targetId": "material:interior-light",
+      "input": {
+        "color": "#ffd166"
+      }
+    },
+    {
+      "name": "camera.transform.set",
+      "targetId": "camera:main",
+      "input": {
+        "zoom": {
+          "x": 1.25,
+          "y": 1.25
+        }
+      }
+    },
+    {
+      "name": "ui.text.set",
+      "targetId": "ui:status",
+      "input": {
+        "text": "WELCOME HOME  |  PACMAN CONTROL"
+      }
+    }
   ]
 }

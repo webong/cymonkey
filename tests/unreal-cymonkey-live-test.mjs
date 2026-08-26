@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 
-const endpoint = process.env.JANGOLOVA_PACMAN_ENDPOINT ?? "ws://127.0.0.1:8090";
-const token = process.env.JANGOLOVA_PACMAN_TOKEN;
-if (!token) throw new Error("JANGOLOVA_PACMAN_TOKEN is required");
+const endpoint = process.env.JANGOLOVA_CYMONKEY_ENDPOINT ?? "ws://127.0.0.1:8090";
+const token = process.env.JANGOLOVA_CYMONKEY_TOKEN;
+if (!token) throw new Error("JANGOLOVA_CYMONKEY_TOKEN is required");
 
 const socket = new WebSocket(endpoint);
 let nextId = 1;
@@ -13,7 +13,7 @@ const ready = new Promise((resolve, reject) => {
   socket.addEventListener("open", () => socket.send(JSON.stringify({ type: "auth", token })));
   socket.addEventListener("message", (event) => {
     const message = JSON.parse(event.data);
-    if (message.type === "pacman.authenticated") {
+    if (message.type === "cymonkey.authenticated") {
       authenticated = true;
       clearTimeout(timeout);
       resolve();

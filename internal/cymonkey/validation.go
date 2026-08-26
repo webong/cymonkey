@@ -121,7 +121,7 @@ func ValidBackend(value Backend) bool {
 	switch value {
 	case BackendCDP, BackendBiDi, BackendSafariMCP, BackendWebExtension,
 		BackendMacOSAppleEvents, BackendMacOSAccessibility, BackendMacOSCooperative,
-		BackendEngineGodot, BackendEngineUnity, BackendEngineUnreal, BackendEngineThreejs, BackendEnginePacman:
+		BackendEngineGodot, BackendEngineUnity, BackendEngineUnreal, BackendEngineThreejs:
 		return true
 	default:
 		return false
@@ -139,7 +139,7 @@ func backendSupportsProfile(backend Backend, profile Profile) bool {
 		return backend == BackendMacOSAppleEvents || backend == BackendMacOSAccessibility || backend == BackendMacOSCooperative
 	}
 	if profile == ProfileEngine {
-		return backend == BackendEngineGodot || backend == BackendEngineUnity || backend == BackendEngineUnreal || backend == BackendEngineThreejs || backend == BackendEnginePacman
+		return backend == BackendEngineGodot || backend == BackendEngineUnity || backend == BackendEngineUnreal || backend == BackendEngineThreejs
 	}
 	return false
 }

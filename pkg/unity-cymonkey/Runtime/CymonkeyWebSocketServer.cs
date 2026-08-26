@@ -68,7 +68,7 @@ namespace Jangolova.Cymonkey
         private JObject Invoke(WireRequest request)
         {
             try { return new JObject { ["id"] = request.Id, ["result"] = bridge.Dispatch(request.Method, request.Params ?? new JObject()) }; }
-            catch (Exception error) { CymonkeyCallException known = error as CymonkeyCallException; return new JObject { ["id"] = request == null ? 0 : request.Id, ["error"] = new JObject { ["code"] = known == null ? "pacman_error" : known.Code, ["message"] = error.Message } }; }
+            catch (Exception error) { CymonkeyCallException known = error as CymonkeyCallException; return new JObject { ["id"] = request == null ? 0 : request.Id, ["error"] = new JObject { ["code"] = known == null ? "cymonkey_error" : known.Code, ["message"] = error.Message } }; }
         }
 
         private Task<JObject> OnUnityThread(Func<JObject> operation) { TaskCompletionSource<JObject> result = new TaskCompletionSource<JObject>(TaskCreationOptions.RunContinuationsAsynchronously); unityContext.Post(_ => { try { result.SetResult(operation()); } catch (Exception error) { result.SetException(error); } }, null); return result.Task; }

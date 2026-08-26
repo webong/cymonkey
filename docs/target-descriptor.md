@@ -37,7 +37,7 @@ the underlying secret storage.
 The endpoint URL must be reachable from Jangolova's network namespace. Address
 translation, tunnels, firewall rules, service discovery, and runtime lifecycle
 remain caller responsibilities. Unity and Unreal semantic targets advertise a
-`pacman-ws` endpoint; its URL is the target-owned authenticated WebSocket in
+`cymonkey-ws` endpoint; its URL is the target-owned authenticated WebSocket in
 [Pacman](pacman.md), not a display or pixel stream.
 `127.0.0.1`, container DNS, a VM address, and
 a remote TLS URL are treated identically after protocol validation.

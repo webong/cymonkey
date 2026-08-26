@@ -160,7 +160,6 @@ See [Architecture](docs/architecture.md), [Interaction provider](docs/engine-pro
 [browser-extension control plane](docs/browser-extension-control.md),
 [Cymonkey userscripts](docs/userscripts.md),
 [Jangolova macOS extension](docs/macos-extension.md),
-[Pacman](docs/pacman.md),
 [interface creation and operation](docs/interface-model.md),
 [caller-supplied targets](docs/target-descriptor.md),
 [browser target protocols](docs/browser-target-protocols.md), and
@@ -183,7 +182,7 @@ npm run test:pacman-runtime-manifest
 
 The published Unreal 5.8 headless fixture is
 [`ghcr.io/webong/jangolova/unreal-pacman-gpu:5.8`](deploy/unreal-cymonkey-gpu/README.md).
-Run its live protocol check with `JANGOLOVA_PACMAN_TOKEN` and
+Run its live protocol check with `JANGOLOVA_CYMONKEY_TOKEN` and
 `npm run test:unreal-pacman-live` after starting the container.
 
 The optional container fixture is documented in

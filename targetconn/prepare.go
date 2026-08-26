@@ -262,7 +262,7 @@ func requiresConnectionAcknowledgement(kind ReferenceKind, protocol string) bool
 		return true
 	}
 	switch protocol {
-	case "cdp", "webdriver-bidi", "pacman-ws":
+	case "cdp", "webdriver-bidi", "cymonkey-ws":
 		return true
 	default:
 		return false

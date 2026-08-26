@@ -6,11 +6,11 @@ bridge's `registrations` list. Every entry needs a stable kind-prefixed ID, an
 explicit Unity target, and an explicit action allowlist. Pacman never scans or
 exports unregistered GameObjects.
 
-The initial `CymonkeyWebSocketHost` binding uses `pacman-ws`. The target owner
-supplies `JANGOLOVA_PACMAN_PREFIX` (an `HttpListener` prefix,
+The initial `CymonkeyWebSocketHost` binding uses `cymonkey-ws`. The target owner
+supplies `JANGOLOVA_CYMONKEY_PREFIX` (an `HttpListener` prefix,
 for example `http://127.0.0.1:8090/pacman/`) and
-`JANGOLOVA_PACMAN_TOKEN` through a secret injection mechanism. It then gives
-Jangolova the corresponding `ws://...` `pacman-ws` target endpoint and an
+`JANGOLOVA_CYMONKEY_TOKEN` through a secret injection mechanism. It then gives
+Jangolova the corresponding `ws://...` `cymonkey-ws` target endpoint and an
 opaque credential reference that resolves to the Authorization header.
 
 The package is a minimal MVP for Unity 2022.3 using the .NET 4.x API profile.

@@ -96,7 +96,7 @@ bool FCymonkeyRequestRouter::HandleText(const FString& Message, FReply Reply, TS
         FString ErrorMessage;
         if (!RegistryObject->Dispatch(Method, Params, Result, ErrorCode, ErrorMessage))
         {
-            Reply(ErrorResponse(RequestId, ErrorCode.IsEmpty() ? TEXT("pacman_error") : ErrorCode, ErrorMessage));
+            Reply(ErrorResponse(RequestId, ErrorCode.IsEmpty() ? TEXT("cymonkey_error") : ErrorCode, ErrorMessage));
             return;
         }
         Reply(SuccessResponse(RequestId, Result));

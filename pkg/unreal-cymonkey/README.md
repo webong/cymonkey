@@ -69,7 +69,7 @@ must never quit the game, destroy the World, or terminate the host process.
 The package includes a UE 5.8 `WebSocketServer` listen/upgrade adapter. It
 accepts one authenticated connection on the configured port and forwards text
 frames into the Pacman host. The fixture uses it when
-`JANGOLOVA_PACMAN_TOKEN` is present.
+`JANGOLOVA_CYMONKEY_TOKEN` is present.
 
 ## Transport integration
 

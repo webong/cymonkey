@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://jangolova.dev/protocol/pacman/v1/scene-plan.schema.json",
-  "title": "Jangolova Pacman model scene plan",
+  "$id": "https://jangolova.dev/protocol/cymonkey/v1alpha2/scene-plan.schema.json",
+  "title": "Jangolova Cymonkey engine scene plan",
   "description": "A bounded, declarative sequence of Pacman actions produced by a model or other trusted planner.",
   "type": "object",
   "additionalProperties": false,
   "required": ["apiVersion", "name", "requires", "actions"],
   "properties": {
-    "apiVersion": {"const": "jangolova.pacman.scene/v1alpha1"},
+    "apiVersion": {"const": "jangolova.cymonkey.scene/v1alpha1"},
     "name": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$"},
     "description": {"type": "string", "maxLength": 2048},
     "requires": {

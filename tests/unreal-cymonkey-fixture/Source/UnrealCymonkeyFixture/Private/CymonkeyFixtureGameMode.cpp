@@ -14,7 +14,7 @@ void ACymonkeyFixtureGameMode::StartPlay()
     FActorSpawnParameters SpawnParameters;
     SpawnParameters.Name = TEXT("CymonkeyFixtureActor");
     ACymonkeyFixtureActor* Fixture = GetWorld()->SpawnActor<ACymonkeyFixtureActor>(ACymonkeyFixtureActor::StaticClass(), FTransform::Identity, SpawnParameters);
-    const FString Token = FPlatformMisc::GetEnvironmentVariable(TEXT("JANGOLOVA_PACMAN_TOKEN"));
+    const FString Token = FPlatformMisc::GetEnvironmentVariable(TEXT("JANGOLOVA_CYMONKEY_TOKEN"));
     int32 Port = 8090;
     FParse::Value(FCommandLine::Get(), TEXT("PacmanPort="), Port);
     if (Fixture != nullptr && Fixture->PacmanRegistry != nullptr && !Token.IsEmpty())

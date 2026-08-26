@@ -1,4 +1,4 @@
-package pacman
+package cymonkey
 
 import (
 	"bytes"
@@ -19,29 +19,32 @@ import (
 	"jangolova/targetconn"
 )
 
-const maxMessageBytes = 4 * 1024 * 1024
+const engineMaxMessageBytes = 4 * 1024 * 1024
 
-// Transport carries Pacman's transport-neutral request/response methods.
-type Transport interface {
+// EngineTransport carries the transport-neutral request/response methods of
+// the Cymonkey engine profile.
+type EngineTransport interface {
 	bridge.Caller
 	Close() error
 }
 
-// Connector binds Pacman to one target-descriptor endpoint protocol.
-type Connector interface {
+// EngineConnector binds the engine profile to one target-descriptor endpoint
+// protocol.
+type EngineConnector interface {
 	Protocol() string
-	Connect(context.Context, orchestrator.TargetEndpoint) (Transport, error)
+	Connect(context.Context, orchestrator.TargetEndpoint) (EngineTransport, error)
 }
 
-// WebSocketConnector is the initial authenticated pacman-ws binding.
-type WebSocketConnector struct{}
+// EngineWebSocketConnector is the authenticated cymonkey-ws binding for
+// engine-profile peers.
+type EngineWebSocketConnector struct{}
 
-func (WebSocketConnector) Protocol() string { return "pacman-ws" }
+func (EngineWebSocketConnector) Protocol() string { return "cymonkey-ws" }
 
-func (WebSocketConnector) Connect(ctx context.Context, endpoint orchestrator.TargetEndpoint) (Transport, error) {
+func (EngineWebSocketConnector) Connect(ctx context.Context, endpoint orchestrator.TargetEndpoint) (EngineTransport, error) {
 	parsed, err := url.Parse(endpoint.URL)
 	if err != nil || parsed.Scheme != "ws" && parsed.Scheme != "wss" || parsed.User != nil {
-		return nil, errors.New("Pacman WebSocket endpoint must be an absolute ws or wss URL without user information")
+		return nil, errors.New("Cymonkey WebSocket endpoint must be an absolute ws or wss URL without user information")
 	}
 	dialer, connectionHeaders, err := targetconn.WebSocketDialer(endpoint)
 	if err != nil {
@@ -56,26 +59,26 @@ func (WebSocketConnector) Connect(ctx context.Context, endpoint orchestrator.Tar
 		response.Body.Close()
 	}
 	if err != nil {
-		return nil, errors.New("connect to caller-owned Pacman WebSocket endpoint")
+		return nil, errors.New("connect to caller-owned Cymonkey WebSocket endpoint")
 	}
-	connection.SetReadLimit(maxMessageBytes)
-	return &webSocketTransport{connection: connection}, nil
+	connection.SetReadLimit(engineMaxMessageBytes)
+	return &engineWebSocketTransport{connection: connection}, nil
 }
 
-type webSocketTransport struct {
+type engineWebSocketTransport struct {
 	mu         sync.Mutex
 	connection *websocket.Conn
 	nextID     uint64
 	closed     bool
 }
 
-type request struct {
+type engineRequest struct {
 	ID     uint64          `json:"id"`
 	Method string          `json:"method"`
 	Params json.RawMessage `json:"params"`
 }
 
-type response struct {
+type engineResponse struct {
 	ID     uint64          `json:"id"`
 	Result json.RawMessage `json:"result,omitempty"`
 	Error  *struct {
@@ -84,17 +87,17 @@ type response struct {
 	} `json:"error,omitempty"`
 }
 
-func (t *webSocketTransport) Call(ctx context.Context, method string, params json.RawMessage) (json.RawMessage, error) {
+func (t *engineWebSocketTransport) Call(ctx context.Context, method string, params json.RawMessage) (json.RawMessage, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	if t.closed || t.connection == nil {
-		return nil, errors.New("Pacman WebSocket transport is closed")
+		return nil, errors.New("Cymonkey WebSocket transport is closed")
 	}
 	if len(bytes.TrimSpace(params)) == 0 {
 		params = json.RawMessage(`{}`)
 	}
 	if !json.Valid(params) {
-		return nil, errors.New("Pacman params are invalid JSON")
+		return nil, errors.New("Cymonkey params are invalid JSON")
 	}
 	if deadline, ok := ctx.Deadline(); ok {
 		_ = t.connection.SetWriteDeadline(deadline)
@@ -103,26 +106,26 @@ func (t *webSocketTransport) Call(ctx context.Context, method string, params jso
 		defer t.connection.SetReadDeadline(time.Time{})
 	}
 	t.nextID++
-	if err := t.connection.WriteJSON(request{ID: t.nextID, Method: method, Params: params}); err != nil {
-		return nil, errors.New("write Pacman WebSocket request")
+	if err := t.connection.WriteJSON(engineRequest{ID: t.nextID, Method: method, Params: params}); err != nil {
+		return nil, errors.New("write Cymonkey WebSocket request")
 	}
-	var reply response
+	var reply engineResponse
 	if err := t.connection.ReadJSON(&reply); err != nil {
-		return nil, errors.New("read Pacman WebSocket response")
+		return nil, errors.New("read Cymonkey WebSocket response")
 	}
 	if reply.ID != t.nextID {
-		return nil, errors.New("Pacman response id does not match request")
+		return nil, errors.New("Cymonkey response id does not match request")
 	}
 	if reply.Error != nil {
-		return nil, fmt.Errorf("Pacman %s: %s", strings.TrimSpace(reply.Error.Code), reply.Error.Message)
+		return nil, fmt.Errorf("cymonkey %s: %s", strings.TrimSpace(reply.Error.Code), reply.Error.Message)
 	}
 	if !json.Valid(reply.Result) {
-		return nil, errors.New("Pacman response is invalid JSON")
+		return nil, errors.New("Cymonkey response is invalid JSON")
 	}
 	return reply.Result, nil
 }
 
-func (t *webSocketTransport) Close() error {
+func (t *engineWebSocketTransport) Close() error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	if t.closed {

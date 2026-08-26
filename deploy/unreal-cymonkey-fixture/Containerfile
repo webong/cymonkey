@@ -35,6 +35,6 @@ COPY --from=builder /out/UnrealPacmanFixture ./
 COPY deploy/unreal-cymonkey-fixture/run-fixture.sh /usr/local/bin/run-unreal-cymonkey-fixture
 RUN chmod +x /usr/local/bin/run-unreal-cymonkey-fixture
 
-ENV JANGOLOVA_PACMAN_TOKEN=
-ENV JANGOLOVA_PACMAN_PREFIX=
+ENV JANGOLOVA_CYMONKEY_TOKEN=
+ENV JANGOLOVA_CYMONKEY_PREFIX=
 ENTRYPOINT ["/usr/local/bin/run-unreal-cymonkey-fixture"]

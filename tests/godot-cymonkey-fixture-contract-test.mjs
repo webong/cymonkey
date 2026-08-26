@@ -38,12 +38,12 @@ for (const action of ["object.transform.set", "material.color.set", "camera.tran
 for (const node of ["House", "Door", "WindowLeft", "WindowRight", "InteriorLight", "Hero", "Status", "CameraMain"]) assert.match(scene, new RegExp(`name=\\"${node}\\"`));
 assert.match(fixture, /object\.visible\.set/);
 assert.match(fixture, /JANGOLOVA_CAPTURE_PATH/);
-assert.equal(scenePlan.apiVersion, "jangolova.pacman.scene/v1alpha1");
+assert.equal(scenePlan.apiVersion, "jangolova.cymonkey.scene/v1alpha1");
 assert.equal(scenePlan.name, "midnight-house");
 assert.equal(scenePlan.actions.length, 5);
 assert.ok(scenePlan.requires.some((resource) => resource.id === "material:interior-light"));
 assert.match(project, /run\/main_scene/);
 assert.match(container, /--headless/);
 assert.match(container, /GODOT_IMAGE/);
-assert.doesNotMatch(container, /JANGOLOVA_PACMAN_TOKEN=.*[A-Za-z0-9]{8}/);
+assert.doesNotMatch(container, /JANGOLOVA_CYMONKEY_TOKEN=.*[A-Za-z0-9]{8}/);
 console.log("Godot Pacman fixture environment contract is valid.");

@@ -8,7 +8,7 @@ The project discovers the plugin through `AdditionalPluginDirectories` and
 starts `ACymonkeyFixtureGameMode`, which spawns one actor and registers the stable
 resource `object:fixture` with the actions
 `resource.describe` and `object.visibility.set`. When
-`JANGOLOVA_PACMAN_TOKEN` is set, the fixture starts the package's UE 5.8
+`JANGOLOVA_CYMONKEY_TOKEN` is set, the fixture starts the package's UE 5.8
 WebSocketServer listener on port 8090 (or `-PacmanPort=<port>`).
 
 With an installed Unreal Engine 5.3 toolchain, generate project files, compile,

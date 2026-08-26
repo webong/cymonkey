@@ -36,9 +36,7 @@
     "test:cymonkey-runtime-manifest": "node tests/cymonkey-runtime-manifest-test.mjs",
     "test:unreal-cymonkey-live": "node tests/unreal-cymonkey-live-test.mjs",
     "generate:cymonkey-protocol": "node scripts/generate-cymonkey-protocol.mjs",
-    "generate:pacman-protocol": "node scripts/generate-pacman-protocol.mjs",
-    "check:cymonkey-protocol": "node scripts/generate-cymonkey-protocol.mjs --check",
-    "check:pacman-protocol": "node scripts/generate-pacman-protocol.mjs --check"
+    "check:cymonkey-protocol": "node scripts/generate-cymonkey-protocol.mjs --check"
   },
   "dependencies": {
     "playwright-core": "1.51.1",
