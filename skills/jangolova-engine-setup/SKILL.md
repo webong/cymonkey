@@ -10,7 +10,7 @@ Use this skill when an agent must make an engine controllable by Jangolova. Keep
 ## Choose the runtime
 
 - Godot: build `deploy/godot-cymonkey-gpu/Containerfile`; it is the license-free reference runtime.
-- Unreal: pull `ghcr.io/webong/jangolova/unreal-pacman-gpu:5.8` for the packaged fixture, or install `pkg/unreal-cymonkey` from the GitHub Release for a custom project.
+- Unreal: pull `ghcr.io/webong/jangolova/unreal-cymonkey-gpu:5.8` for the packaged fixture, or install `pkg/unreal-cymonkey` from the GitHub Release for a custom project.
 - Unity: supply a licensed private Unity Linux Editor base; never invent or embed Unity credentials.
 
 Read [references/runtime-matrix.md](references/runtime-matrix.md) for engine-specific requirements.
@@ -26,11 +26,11 @@ Read [references/runtime-matrix.md](references/runtime-matrix.md) for engine-spe
 ```sh
 export JANGOLOVA_CYMONKEY_TOKEN="$(openssl rand -hex 32)"
 mkdir -p artifacts
-docker run --rm --name jangolova-pacman \
+docker run --rm --name jangolova-engine \
   -p 8090:8090 \
   -e JANGOLOVA_CYMONKEY_TOKEN \
   -v "$PWD/artifacts:/workspace/artifacts" \
-  ghcr.io/webong/jangolova/unreal-pacman-gpu:5.8
+  ghcr.io/webong/jangolova/unreal-cymonkey-gpu:5.8
 ```
 
 For real GPU rendering add `--gpus all` and configure the engine display path. Xvfb is useful for off-screen smoke tests but does not prove hardware acceleration.

@@ -25,7 +25,7 @@
         "protocolVersion": {"const": "jangolova.cymonkey/v1alpha2"},
         "compatibleProtocols": {
           "type": "array",
-          "items": {"enum": ["jangolova.cymonkey/v1alpha1", "jangolova.pacman/v1alpha1"]},
+          "items": {"enum": ["jangolova.cymonkey/v1alpha1"]},
           "uniqueItems": true
         },
         "implementation": {

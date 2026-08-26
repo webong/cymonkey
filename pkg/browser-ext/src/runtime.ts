@@ -1,7 +1,7 @@
 import { privilegedCapabilityNames } from './capabilities';
 import { dispatchCymonkey } from './engine';
 import { readEvents } from './services/events';
-import { callPacman } from './services/pacman';
+import { callCymonkeyEngine } from './services/cymonkey-engine';
 import { isRecord } from './types';
 
 let xalletSpook: 'discovering' | 'unavailable' | 'connected' = 'discovering';
@@ -23,7 +23,7 @@ export async function dispatchJangolova(method: string, params: Record<string, u
   if (method === 'cymonkey.call') {
     return dispatchCymonkey(String(params.method || ''), isRecord(params.params) ? params.params : {});
   }
-  if (method === 'pacman.call') return callPacman(params.request, params.target);
+  if (method === 'cymonkey-engine.call') return callCymonkeyEngine(params.request, params.target);
   throw new Error(`unsupported Jangolova extension method ${JSON.stringify(method)}`);
 }
 
@@ -31,7 +31,7 @@ function hello() {
   return {
     protocolVersion: 'jangolova.browser-extension/v1alpha1',
     implementation: { name: 'jangolova-browser-extension', version: browser.runtime.getManifest().version },
-    subsystems: ['cymonkey', 'pacman'],
+    subsystems: ['cymonkey', 'cymonkey-engine'],
     backend: 'webextension',
   };
 }
@@ -43,7 +43,7 @@ function capabilities() {
       'storage.scoped', 'policy.fine-grained', 'control.websocket.outbound',
     ],
     cymonkey: privilegedCapabilityNames,
-    pacman: ['pacman.call'],
+    cymonkeyEngine: ['cymonkey-engine.call'],
   };
 }
 
@@ -52,7 +52,7 @@ async function describe() {
     product: 'Jangolova Browser Extension',
     extensionId: browser.runtime.id,
     distribution: 'single-build',
-    subsystems: { cymonkey: true, pacman: true },
+    subsystems: { cymonkey: true, cymonkeyEngine: true },
     integrations: { xalletSpook: { status: xalletSpook }, outboundControl: { status: outboundControl } },
   };
 }

@@ -7,7 +7,6 @@ namespace Jangolova.Cymonkey
     public static class CymonkeyProtocol
     {
         public const string Version = "jangolova.cymonkey/v1alpha2";
-        public static readonly string[] CompatibleProtocols = { "jangolova.pacman/v1alpha1" };
         public const string ProfileEngine = "engine";
         public const string BackendUnity = "engine-unity";
         public const string PrefixEnvironmentVariable = "JANGOLOVA_CYMONKEY_PREFIX";

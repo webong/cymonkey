@@ -18,7 +18,7 @@ test("browser-ext is the canonical WXT product", async () => {
 test("Jangolova owns extension platform services", async () => {
   const engine = await source("pkg/browser-ext/src/engine.ts");
   const runtime = await source("pkg/browser-ext/src/runtime.ts");
-  for (const service of ["events", "injection", "network", "storage", "tabs", "policy", "pacman", "userscripts"]) {
+  for (const service of ["events", "injection", "network", "storage", "tabs", "policy", "cymonkey-engine", "userscripts"]) {
     await source(`pkg/browser-ext/src/services/${service}.ts`);
   }
   assert.match(engine, /services\/injection/);
@@ -26,7 +26,7 @@ test("Jangolova owns extension platform services", async () => {
   assert.match(engine, /services\/storage/);
   assert.match(engine, /jangolova\.cymonkey\/v1alpha2/);
   assert.match(engine, /profiles: \['web'\]/);
-  assert.match(runtime, /pacman\.call/);
+  assert.match(runtime, /cymonkey-engine\.call/);
   assert.match(runtime, /cymonkey\.call/);
   assert.doesNotMatch(runtime, /startsWith\('userscript\.'\)/);
   assert.match(engine, /dispatchUserscript/);

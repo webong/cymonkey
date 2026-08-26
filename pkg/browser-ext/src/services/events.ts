@@ -41,8 +41,8 @@ export function appendEvent(
 export const publishCymonkeyEvent = (type: string, data: Record<string, unknown> = {}, tabId?: number) =>
   appendEvent(`cymonkey.${type}`, data, tabId);
 
-export const publishPacmanEvent = (type: string, data: Record<string, unknown> = {}, tabId?: number) =>
-  appendEvent(`pacman.${type}`, data, tabId);
+export const publishCymonkeyEngineEvent = (type: string, data: Record<string, unknown> = {}, tabId?: number) =>
+  appendEvent(`cymonkey-engine.${type}`, data, tabId);
 
 export const publishAuditEvent = (phase: 'requested' | 'succeeded' | 'denied' | 'failed', data: Record<string, unknown>) =>
   appendEvent(`audit.control.${phase}`, data);

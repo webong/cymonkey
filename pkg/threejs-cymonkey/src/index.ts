@@ -1,17 +1,10 @@
 export const CYMONKEY_PROTOCOL_VERSION = 'jangolova.cymonkey/v1alpha2';
-export const CYMONKEY_COMPATIBLE_PROTOCOLS = ['jangolova.pacman/v1alpha1'];
 export const CYMONKEY_ENGINE_BACKEND = 'engine-threejs';
 export const CYMONKEY_RUNTIME_SYMBOL = Symbol.for('jangolova.cymonkey.runtime');
 
-/** @deprecated Use CYMONKEY_PROTOCOL_VERSION. */
-export const PACMAN_PROTOCOL_VERSION = CYMONKEY_PROTOCOL_VERSION;
-/** @deprecated Use CYMONKEY_RUNTIME_SYMBOL. */
-export const PACMAN_RUNTIME_SYMBOL = CYMONKEY_RUNTIME_SYMBOL;
 
 export type ResourceKind = 'scene' | 'object' | 'ui' | 'camera' | 'material' | 'animation' | 'timeline' | 'artifact' | 'event';
 export type CymonkeyRequest = { id?: unknown; method: string; params?: Record<string, unknown> };
-/** @deprecated Use CymonkeyRequest. */
-export type PacmanRequest = CymonkeyRequest;
 export type Registration = {
   id: string;
   kind: ResourceKind;
@@ -98,7 +91,6 @@ export class ThreeJSCymonkey {
   hello() {
     return {
       protocolVersion: CYMONKEY_PROTOCOL_VERSION,
-      compatibleProtocols: CYMONKEY_COMPATIBLE_PROTOCOLS,
       implementation: { name: 'jangolova-threejs-cymonkey', version: '0.2.0' },
       profiles: ['engine'],
       backends: [CYMONKEY_ENGINE_BACKEND],
@@ -158,8 +150,6 @@ export class ThreeJSCymonkey {
   }
 }
 
-/** @deprecated Use ThreeJSCymonkey. */
-export const ThreeJSPacman = ThreeJSCymonkey;
 
 function applyAction(name: string, target: unknown, input: Record<string, unknown>) {
   const value = target as Record<string, any>;

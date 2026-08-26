@@ -141,9 +141,6 @@ TSharedPtr<FJsonValue> UCymonkeyRegistryComponent::Hello() const
 
     TSharedPtr<FJsonObject> Value = MakeShared<FJsonObject>();
     Value->SetStringField(TEXT("protocolVersion"), Jangolova::Cymonkey::ProtocolVersion);
-    Value->SetArrayField(TEXT("compatibleProtocols"), {
-        MakeShared<FJsonValueString>(Jangolova::Cymonkey::CompatibleProtocol)
-    });
     Value->SetField(TEXT("implementation"), MakeShared<FJsonValueObject>(Implementation));
     Value->SetArrayField(TEXT("profiles"), { MakeShared<FJsonValueString>(Jangolova::Cymonkey::ProfileEngine) });
     Value->SetArrayField(TEXT("backends"), { MakeShared<FJsonValueString>(Jangolova::Cymonkey::BackendUnreal) });

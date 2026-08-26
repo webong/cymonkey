@@ -33,8 +33,8 @@ For event polling, retain the returned cursor and pass it as `after`:
 
 Use these repository tests as executable examples:
 
-- `tests/godot-pacman-house-live-test.mjs`
-- `tests/unreal-pacman-fixture-contract-test.mjs`
-- `tests/unity-pacman-fixture-contract-test.mjs`
+- `tests/godot-cymonkey-house-live-test.mjs`
+- `tests/unreal-cymonkey-fixture-contract-test.mjs`
+- `tests/unity-cymonkey-fixture-contract-test.mjs`
 
 The engine owner must register every resource and action explicitly; these tests do not authorize discovery.

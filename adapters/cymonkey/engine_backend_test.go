@@ -42,7 +42,6 @@ func TestCymonkeyEngineBackendNativeProtocol(t *testing.T) {
 					"id": msg.ID,
 					"result": map[string]any{
 						"protocolVersion":     "jangolova.cymonkey/v1alpha2",
-						"compatibleProtocols": []string{"jangolova.pacman/v1alpha1"},
 						"implementation":      map[string]any{"name": "godot-native", "version": "0.2.0"},
 						"profiles":            []string{"engine"},
 						"backends":            []string{"engine-godot"},

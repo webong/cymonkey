@@ -3,7 +3,7 @@
 
 export const browserExtensionProtocolVersion = 'jangolova.browser-extension/v1alpha1' as const;
 export type ExtensionCallType = 'JANGOLOVA_EXTENSION_CALL' | 'CYMONKEY_CALL';
-export type ExtensionMethod = "hello" | "capabilities" | "describe" | "events" | "cymonkey.call" | "pacman.call" | "policy.describe" | "policy.replace" | "control.websocket.describe" | "control.websocket.configure" | "control.websocket.disable";
+export type ExtensionMethod = "hello" | "capabilities" | "describe" | "events" | "cymonkey.call" | "cymonkey-engine.call" | "policy.describe" | "policy.replace" | "control.websocket.describe" | "control.websocket.configure" | "control.websocket.disable";
 export type CymonkeyMethod = "hello" | "capabilities" | "describe" | "act" | "events";
 export type ControlMethod = ExtensionMethod | CymonkeyMethod;
 export type ControlCaller = 'xallet-spook' | 'authenticated-websocket' | 'extension-origin';

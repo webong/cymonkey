@@ -13,9 +13,7 @@ const container = await readFile(new URL("../deploy/godot-cymonkey-fixture/Conta
 const goProtocol = await readFile(new URL("../internal/cymonkey/protocol.go", import.meta.url), "utf8");
 
 assert.match(protocol, /jangolova\.cymonkey\/v1alpha2/);
-assert.match(protocol, /jangolova\.pacman\/v1alpha1/);
 assert.equal(protocol.match(/VERSION := "([^"]+)"/)?.[1], goProtocol.match(/ProtocolVersion   = "([^"]+)"/)?.[1]);
-assert.match(protocol, /COMPATIBLE_PROTOCOLS := \["jangolova\.pacman\/v1alpha1"\]/);
 assert.match(registry, /"compatibleProtocols": CymonkeyProtocol\.COMPATIBLE_PROTOCOLS/);
 assert.match(registry, /"profiles": \[CymonkeyProtocol\.PROFILE_ENGINE\]/);
 assert.match(registry, /"backends": \[CymonkeyProtocol\.BACKEND_GODOT\]/);
