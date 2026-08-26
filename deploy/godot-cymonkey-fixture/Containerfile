@@ -1,0 +1,17 @@
+ARG GODOT_IMAGE=barichello/godot-ci:4.3
+FROM ${GODOT_IMAGE}
+
+WORKDIR /workspace
+COPY pkg/godot-cymonkey ./pkg/godot-cymonkey
+COPY tests/godot-cymonkey-fixture ./tests/godot-cymonkey-fixture
+
+RUN mkdir -p tests/godot-cymonkey-fixture/addons \
+    && cp -R pkg/godot-cymonkey/addons/jangolova_cymonkey tests/godot-cymonkey-fixture/addons/jangolova_cymonkey
+
+ENV GODOT_PROJECT_PATH=/workspace/tests/godot-cymonkey-fixture
+ENV JANGOLOVA_PACMAN_TOKEN=
+ENV JANGOLOVA_PACMAN_PORT=8090
+
+EXPOSE 8090
+
+ENTRYPOINT ["godot", "--headless", "--path", "/workspace/tests/godot-cymonkey-fixture"]

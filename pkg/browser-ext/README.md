@@ -7,7 +7,7 @@ contains shared extension platform services plus three semantic subsystems:
   `jangolova.cymonkey/v1alpha2` contract to manage augmentations, DOM
   operations, styles, and overlays.
 - **Pacman** transports `jangolova.pacman/v1alpha1` calls to an explicitly installed
-  browser presentation runtime such as `@jangolova/threejs-pacman`.
+  browser presentation runtime such as `@jangolova/threejs-cymonkey`.
 - **Cymonkey userscripts** use the
   `jangolova.cymonkey.userscript/v1alpha1` payload, require explicit approval,
   and register bounded `@grant none` source through the extension's

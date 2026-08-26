@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "com.jangolova.cymonkey": "file:../../../pkg/unity-cymonkey"
+  }
+}

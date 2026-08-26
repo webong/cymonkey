@@ -1,0 +1,115 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://fixture.gd" id="1_fixture"]
+[ext_resource type="Script" path="res://addons/jangolova_cymonkey/cymonkey_registry.gd" id="2_registry"]
+[ext_resource type="Script" path="res://addons/jangolova_cymonkey/cymonkey_websocket_host.gd" id="3_host"]
+
+[node name="GodotCymonkeyFixture" type="Node2D"]
+script = ExtResource("1_fixture")
+
+[node name="Sky" type="ColorRect" parent="."]
+offset_right = 320.0
+offset_bottom = 180.0
+mouse_filter = 2
+color = Color(0.12, 0.18, 0.3, 1)
+z_index = -10
+
+[node name="Ground" type="ColorRect" parent="."]
+offset_top = 145.0
+offset_right = 320.0
+offset_bottom = 180.0
+mouse_filter = 2
+color = Color(0.16, 0.22, 0.18, 1)
+z_index = -9
+
+[node name="Sun" type="ColorRect" parent="."]
+offset_left = 260.0
+offset_top = 18.0
+offset_right = 294.0
+offset_bottom = 52.0
+mouse_filter = 2
+color = Color(0.98, 0.78, 0.28, 1)
+
+[node name="House" type="Node2D" parent="."]
+
+[node name="Body" type="ColorRect" parent="House"]
+offset_left = 88.0
+offset_top = 68.0
+offset_right = 232.0
+offset_bottom = 150.0
+mouse_filter = 2
+color = Color(0.82, 0.56, 0.36, 1)
+
+[node name="Roof" type="Polygon2D" parent="House"]
+polygon = PackedVector2Array(70, 70, 160, 18, 250, 70)
+color = Color(0.48, 0.16, 0.18, 1)
+
+[node name="Door" type="ColorRect" parent="House"]
+offset_left = 145.0
+offset_top = 106.0
+offset_right = 175.0
+offset_bottom = 150.0
+mouse_filter = 2
+color = Color(0.22, 0.12, 0.1, 1)
+
+[node name="DoorKnob" type="ColorRect" parent="House/Door"]
+offset_left = 22.0
+offset_top = 23.0
+offset_right = 26.0
+offset_bottom = 27.0
+mouse_filter = 2
+color = Color(0.95, 0.72, 0.25, 1)
+
+[node name="WindowLeft" type="ColorRect" parent="House"]
+offset_left = 105.0
+offset_top = 88.0
+offset_right = 135.0
+offset_bottom = 115.0
+mouse_filter = 2
+color = Color(0.33, 0.7, 0.82, 1)
+
+[node name="WindowRight" type="ColorRect" parent="House"]
+offset_left = 185.0
+offset_top = 88.0
+offset_right = 215.0
+offset_bottom = 115.0
+mouse_filter = 2
+color = Color(0.33, 0.7, 0.82, 1)
+
+[node name="InteriorLight" type="ColorRect" parent="House"]
+offset_left = 148.0
+offset_top = 78.0
+offset_right = 172.0
+offset_bottom = 101.0
+mouse_filter = 2
+color = Color(1, 1, 1, 1)
+self_modulate = Color(0.2, 0.2, 0.24, 1)
+
+[node name="Hero" type="ColorRect" parent="."]
+offset_left = 50.0
+offset_top = 129.0
+offset_right = 66.0
+offset_bottom = 145.0
+mouse_filter = 2
+color = Color(0.35, 0.9, 0.52, 1)
+
+[node name="Status" type="Label" parent="."]
+offset_left = 8.0
+offset_top = 7.0
+offset_right = 230.0
+offset_bottom = 25.0
+mouse_filter = 2
+text = "NIGHT MODE  |  PACMAN HOUSE"
+theme_override_colors/font_color = Color(0.9, 0.94, 1, 1)
+theme_override_font_sizes/font_size = 10
+
+[node name="CameraMain" type="Camera2D" parent="."]
+position = Vector2(160, 90)
+enabled = true
+
+[node name="CymonkeyRegistry" type="Node" parent="."]
+script = ExtResource("2_registry")
+
+[node name="CymonkeyWebSocketHost" type="Node" parent="."]
+script = ExtResource("3_host")
+registry_path = NodePath("../CymonkeyRegistry")

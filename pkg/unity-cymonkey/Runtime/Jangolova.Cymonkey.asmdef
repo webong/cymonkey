@@ -1,0 +1,5 @@
+{
+  "name": "Jangolova.Cymonkey",
+  "rootNamespace": "Jangolova.Cymonkey",
+  "references": ["Unity.Newtonsoft.Json"]
+}

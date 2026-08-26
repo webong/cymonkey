@@ -42,7 +42,7 @@ func TestScenePlanSchemaAndFixtureAreValidJSON(t *testing.T) {
 	root := filepath.Join(filepath.Dir(file), "..", "..")
 	for _, relative := range []string{
 		filepath.Join("protocol", "pacman", "v1", "scene-plan.schema.json"),
-		filepath.Join("tests", "godot-pacman-fixture", "house.scene-plan.json"),
+		filepath.Join("tests", "godot-cymonkey-fixture", "house.scene-plan.json"),
 	} {
 		contents, err := os.ReadFile(filepath.Join(root, relative))
 		if err != nil {

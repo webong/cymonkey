@@ -1,5 +1,0 @@
-{
-  "dependencies": {
-    "com.jangolova.pacman": "file:../../../pkg/unity-pacman"
-  }
-}

@@ -1,0 +1,18 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "0.1.0",
+  "FriendlyName": "Jangolova Cymonkey",
+  "Description": "Explicitly allowlisted semantic presentation bridge for caller-owned Unreal applications.",
+  "Category": "Runtime",
+  "CreatedBy": "Jangolova",
+  "CanContainContent": false,
+  "IsBetaVersion": true,
+  "Modules": [
+    {
+      "Name": "JangolovaCymonkey",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ]
+}

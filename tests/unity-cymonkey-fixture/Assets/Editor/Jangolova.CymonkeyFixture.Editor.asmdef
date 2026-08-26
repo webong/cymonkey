@@ -1,0 +1,11 @@
+{
+  "name": "Jangolova.CymonkeyFixture.Editor",
+  "rootNamespace": "Jangolova.CymonkeyFixture",
+  "references": [
+    "Jangolova.Cymonkey",
+    "Unity.Newtonsoft.Json"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ]
+}

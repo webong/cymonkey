@@ -182,7 +182,7 @@ npm run test:pacman-runtime-manifest
 ```
 
 The published Unreal 5.8 headless fixture is
-[`ghcr.io/webong/jangolova/unreal-pacman-gpu:5.8`](deploy/unreal-pacman-gpu/README.md).
+[`ghcr.io/webong/jangolova/unreal-pacman-gpu:5.8`](deploy/unreal-cymonkey-gpu/README.md).
 Run its live protocol check with `JANGOLOVA_PACMAN_TOKEN` and
 `npm run test:unreal-pacman-live` after starting the container.
 

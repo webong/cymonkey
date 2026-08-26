@@ -1,0 +1,38 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+
+const root = new URL("./unreal-cymonkey-fixture/", import.meta.url);
+const project = JSON.parse(await readFile(new URL("UnrealCymonkeyFixture.uproject", root)));
+const actor = await readFile(new URL("Source/UnrealCymonkeyFixture/Private/CymonkeyFixtureActor.cpp", root), "utf8");
+const gameMode = await readFile(new URL("Source/UnrealCymonkeyFixture/Private/CymonkeyFixtureGameMode.cpp", root), "utf8");
+const automation = await readFile(new URL("Source/UnrealCymonkeyFixture/Private/CymonkeyFixtureAutomationTests.cpp", root), "utf8");
+const build = await readFile(new URL("Source/UnrealCymonkeyFixture/UnrealCymonkeyFixture.Build.cs", root), "utf8");
+const container = await readFile(new URL("../deploy/unreal-cymonkey-fixture/Containerfile", import.meta.url), "utf8");
+const runtime = await readFile(new URL("../deploy/unreal-cymonkey-fixture/run-fixture.sh", import.meta.url), "utf8");
+const server = await readFile(new URL("../pkg/unreal-cymonkey/Source/JangolovaCymonkey/Private/CymonkeyWebSocketServer.cpp", import.meta.url), "utf8");
+const serverHeader = await readFile(new URL("../pkg/unreal-cymonkey/Source/JangolovaCymonkey/Public/CymonkeyWebSocketServer.h", import.meta.url), "utf8");
+
+assert.equal(project.Modules[0].Name, "UnrealCymonkeyFixture");
+assert.equal(project.Modules[0].Type, "Runtime");
+assert.deepEqual(project.TargetPlatforms, ["Linux"]);
+assert.ok(project.AdditionalPluginDirectories.includes("../../pkg"));
+assert.ok(project.Plugins.some((plugin) => plugin.Name === "JangolovaCymonkey" && plugin.Enabled));
+assert.match(actor, /object:fixture/);
+assert.match(actor, /resource\.describe/);
+assert.match(actor, /object\.visibility\.set/);
+assert.match(actor, /UCymonkeyRegistryComponent/);
+assert.match(gameMode, /SpawnActor<ACymonkeyFixtureActor>/);
+assert.match(automation, /Jangolova\.Cymonkey\.Fixture\.ExplicitRegistration/);
+assert.match(automation, /object\.visibility\.set/);
+assert.match(build, /JangolovaCymonkey/);
+assert.match(container, /ARG UE_BUILD_IMAGE/);
+assert.match(container, /ARG UE_RUNTIME_IMAGE/);
+assert.match(container, /BuildPlugin/);
+assert.match(container, /BuildCookRun/);
+assert.doesNotMatch(container, /jangolova\/engine-runtime/);
+assert.match(runtime, /UNREAL_FIXTURE_EXECUTABLE/);
+assert.match(runtime, /-unattended/);
+assert.match(serverHeader, /FCymonkeyWebSocketServer/);
+assert.match(server, /WebSocketServerModule/);
+assert.match(server, /StartAllServers/);
+console.log("Unreal Cymonkey fixture environment contract is valid.");

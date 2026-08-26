@@ -1,0 +1,15 @@
+; Headless Godot 4 Cymonkey fixture.
+; The package is copied into addons/jangolova_cymonkey by the fixture container.
+config_version=5
+
+[application]
+config/name="Jangolova Godot Cymonkey Fixture"
+run/main_scene="res://fixture.tscn"
+
+[display]
+window/size/viewport_width=320
+window/size/viewport_height=180
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"

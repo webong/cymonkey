@@ -81,7 +81,7 @@ ssh -L 8787:127.0.0.1:8787 codex@SERVER_IP
 ## Engine coverage
 
 - **Godot:** license-free reference runtime; use the repository's
-  `deploy/godot-pacman-fixture` image and `--headless`.
+  `deploy/godot-cymonkey-fixture` image and `--headless`.
 - **Unity:** use an operator-supplied, licensed Unity Linux Editor image and
   run `-batchmode -nographics`.
 - **Unreal:** use operator-supplied, licensed Linux Engine binaries/image and
@@ -94,8 +94,8 @@ when no pixels are rendered.
 
 Rendered screenshots, shaders, lighting, and pixel comparisons require a
 separate GPU-backed runner using the same Pacman conformance tests. The
-render-capable image definitions are under `deploy/godot-pacman-gpu`,
-`deploy/unity-pacman-gpu`, and `deploy/unreal-pacman-gpu`; see their shared
+render-capable image definitions are under `deploy/godot-cymonkey-gpu`,
+`deploy/unity-cymonkey-gpu`, and `deploy/unreal-cymonkey-gpu`; see their shared
 [`deploy/pacman-gpu/README.md`](../deploy/pacman-gpu/README.md). These images
 expect an NVIDIA-enabled runtime such as a RunPod GPU Pod. Xvfb is only a
 fallback display server and does not prove hardware acceleration.

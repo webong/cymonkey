@@ -1,4 +1,0 @@
-interface:
-  display_name: "Jangolova Pacman Control"
-  short_description: "Control registered Pacman resources"
-  default_prompt: "Use $jangolova-pacman-control to inspect and control a running Pacman endpoint."

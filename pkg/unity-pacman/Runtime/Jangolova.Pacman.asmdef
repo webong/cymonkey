@@ -1,5 +1,0 @@
-{
-  "name": "Jangolova.Pacman",
-  "rootNamespace": "Jangolova.Pacman",
-  "references": ["Unity.Newtonsoft.Json"]
-}

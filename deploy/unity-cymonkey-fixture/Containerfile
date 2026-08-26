@@ -1,0 +1,15 @@
+ARG UNITY_EDITOR_IMAGE
+FROM ${UNITY_EDITOR_IMAGE}
+
+ARG UNITY_CONTAINER_USER=root
+USER root
+WORKDIR /workspace
+COPY pkg/unity-cymonkey ./pkg/unity-cymonkey
+COPY tests/unity-cymonkey-fixture ./tests/unity-cymonkey-fixture
+COPY deploy/unity-cymonkey-fixture/run-fixture.sh /usr/local/bin/run-unity-cymonkey-fixture
+RUN chmod +x /usr/local/bin/run-unity-cymonkey-fixture \
+    && chmod -R a+rwX /workspace/tests/unity-cymonkey-fixture
+
+ENV UNITY_PROJECT_PATH=/workspace/tests/unity-cymonkey-fixture
+USER ${UNITY_CONTAINER_USER}
+ENTRYPOINT ["/usr/local/bin/run-unity-cymonkey-fixture"]

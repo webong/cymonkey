@@ -1,0 +1,25 @@
+{
+  "FileVersion": 3,
+  "EngineAssociation": "5.8",
+  "Category": "Jangolova",
+  "Description": "Caller-owned Unreal fixture for Jangolova Pacman conformance.",
+  "Modules": [
+    {
+      "Name": "UnrealCymonkeyFixture",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ],
+  "Plugins": [
+    {
+      "Name": "JangolovaCymonkey",
+      "Enabled": true
+    }
+  ],
+  "AdditionalPluginDirectories": [
+    "../../pkg"
+  ],
+  "TargetPlatforms": [
+    "Linux"
+  ]
+}

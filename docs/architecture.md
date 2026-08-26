@@ -164,13 +164,13 @@ pkg/userscript-runtime/     shared Cymonkey userscript validation and registrati
 protocol/userscript/        versioned Cymonkey userscript payload schema
 protocol/browser-extension/ schema, recorded exchanges, and generated binding source
 internal/browserextensionprotocol/ generated Go browser-extension bindings
-pkg/threejs-pacman/         explicit-registration Three.js Pacman runtime
+pkg/threejs-cymonkey/         explicit-registration Three.js Pacman runtime
 pkg/                        distributable Godot, Unity, and Unreal Pacman packages
-tests/godot-pacman-fixture/ license-free Godot conformance project
+tests/godot-cymonkey-fixture/ license-free Godot conformance project
 tests/unreal-pacman-fixture/ caller-owned Unreal conformance project
 deploy/engine-runtime/      optional interaction artifact
-deploy/godot-pacman-fixture/ optional headless Godot target image
-deploy/unreal-pacman-fixture/ optional packaged Unreal target image
+deploy/godot-cymonkey-fixture/ optional headless Godot target image
+deploy/unreal-cymonkey-fixture/ optional packaged Unreal target image
 tests/docker/               target-owning portability fixture only
 ```
 
