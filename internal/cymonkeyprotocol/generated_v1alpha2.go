@@ -74,12 +74,12 @@ type Implementation struct {
 }
 
 type Hello struct {
-	ProtocolVersion    string         `json:"protocolVersion"`
-	CompatibleProtocols []string      `json:"compatibleProtocols,omitempty"`
-	Implementation     Implementation `json:"implementation"`
-	Profiles           []ProfileName  `json:"profiles"`
-	Backends           []BackendName  `json:"backends"`
-	Features           []string       `json:"features,omitempty"`
+	ProtocolVersion     string         `json:"protocolVersion"`
+	CompatibleProtocols []string       `json:"compatibleProtocols,omitempty"`
+	Implementation      Implementation `json:"implementation"`
+	Profiles            []ProfileName  `json:"profiles"`
+	Backends            []BackendName  `json:"backends"`
+	Features            []string       `json:"features,omitempty"`
 }
 
 type Capability struct {
@@ -105,15 +105,15 @@ type Surface struct {
 }
 
 type Augmentation struct {
-	ID        string        `json:"id"`
-	Revision  string        `json:"revision"`
-	Enabled   bool          `json:"enabled"`
-	Profiles  []ProfileName `json:"profiles,omitempty"`
+	ID       string        `json:"id"`
+	Revision string        `json:"revision"`
+	Enabled  bool          `json:"enabled"`
+	Profiles []ProfileName `json:"profiles,omitempty"`
 }
 
 type Description struct {
-	Revision      string        `json:"revision"`
-	Surfaces      []Surface     `json:"surfaces"`
+	Revision      string         `json:"revision"`
+	Surfaces      []Surface      `json:"surfaces"`
 	Augmentations []Augmentation `json:"augmentations"`
 }
 
@@ -123,17 +123,17 @@ type Action struct {
 }
 
 type Event struct {
-	ID         string        `json:"id"`
-	Type       string        `json:"type"`
-	OccurredAt time.Time     `json:"occurredAt"`
-	Profile    ProfileName   `json:"profile,omitempty"`
-	Backend    BackendName   `json:"backend,omitempty"`
-	SurfaceID  string        `json:"surfaceId,omitempty"`
+	ID         string          `json:"id"`
+	Type       string          `json:"type"`
+	OccurredAt time.Time       `json:"occurredAt"`
+	Profile    ProfileName     `json:"profile,omitempty"`
+	Backend    BackendName     `json:"backend,omitempty"`
+	SurfaceID  string          `json:"surfaceId,omitempty"`
 	Data       json.RawMessage `json:"data,omitempty"`
 }
 
 type EventBatch struct {
-	Cursor string `json:"cursor"`
+	Cursor string  `json:"cursor"`
 	Events []Event `json:"events"`
 }
 

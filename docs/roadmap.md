@@ -153,7 +153,7 @@
 - [x] Expose Blockade observation as a read-only Grimlock tool.
 - [x] Add Grimlock model roles for reasoning, vision, and multimodal models.
 - [x] Define a Grimlock-owned vision-provider registry boundary.
-- [ ] Merge the Pacman wire protocol into Cymonkey as the engine profile
+- [x] Merge the Pacman wire protocol into Cymonkey as the engine profile
   (docs/cymonkey-display-plane-merge.md).
 - [ ] Split the entrypoints: pacman becomes the local CLI/TUI client,
   Grimlock API-only (docs/pacman-cli-plan.md).

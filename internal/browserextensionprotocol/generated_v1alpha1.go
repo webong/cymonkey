@@ -25,7 +25,7 @@ const (
 	MethodDescribe                  Method = "describe"
 	MethodEvents                    Method = "events"
 	MethodCymonkeyCall              Method = "cymonkey.call"
-	MethodCymonkeyEngineCall         Method = "cymonkey-engine.call"
+	MethodCymonkeyEngineCall        Method = "cymonkey-engine.call"
 	MethodPolicyDescribe            Method = "policy.describe"
 	MethodPolicyReplace             Method = "policy.replace"
 	MethodControlWebsocketDescribe  Method = "control.websocket.describe"
