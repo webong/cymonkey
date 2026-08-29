@@ -13,23 +13,30 @@ var (
 	capabilityPattern   = regexp.MustCompile(`^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+$`)
 	augmentationPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`)
 	bundleIDPattern     = regexp.MustCompile(`^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$`)
+	runtimePattern      = regexp.MustCompile(`^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)*$`)
+	driverPattern       = regexp.MustCompile(`^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)*$`)
 )
 
 func ValidateHello(value Hello) error {
 	if value.ProtocolVersion != ProtocolVersion {
 		return fmt.Errorf("Cymonkey protocol %q is incompatible; expected %q", value.ProtocolVersion, ProtocolVersion)
 	}
-	if strings.TrimSpace(value.Implementation.Name) == "" || len(value.Profiles) == 0 || len(value.Backends) == 0 {
-		return errors.New("Cymonkey hello requires implementation, profiles, and backends")
+	if strings.TrimSpace(value.Implementation.Name) == "" || len(value.Domains) == 0 || len(value.Runtimes) == 0 || len(value.Drivers) == 0 {
+		return errors.New("Cymonkey hello requires implementation, domains, runtimes, and drivers")
 	}
-	for _, profile := range value.Profiles {
-		if !ValidProfile(profile) {
-			return fmt.Errorf("unsupported Cymonkey profile %q", profile)
+	for _, domain := range value.Domains {
+		if !ValidDomain(domain) {
+			return fmt.Errorf("unsupported Cymonkey domain %q", domain)
 		}
 	}
-	for _, backend := range value.Backends {
-		if !ValidBackend(backend) {
-			return fmt.Errorf("unsupported Cymonkey backend %q", backend)
+	for _, runtime := range value.Runtimes {
+		if !ValidRuntime(runtime) {
+			return fmt.Errorf("invalid Cymonkey runtime %q", runtime)
+		}
+	}
+	for _, driver := range value.Drivers {
+		if !ValidDriver(driver) {
+			return fmt.Errorf("unsupported Cymonkey driver %q", driver)
 		}
 	}
 	return nil
@@ -38,16 +45,16 @@ func ValidateHello(value Hello) error {
 func ValidateCapabilities(values []Capability) error {
 	seen := make(map[string]struct{}, len(values))
 	for _, value := range values {
-		key := string(value.Profile) + ":" + value.Name
+		key := string(value.Domain) + ":" + value.Runtime + ":" + value.Name
 		if !capabilityPattern.MatchString(value.Name) {
 			return fmt.Errorf("invalid Cymonkey capability name %q", value.Name)
 		}
 		if _, exists := seen[key]; exists {
-			return fmt.Errorf("duplicate Cymonkey capability %q for profile %q", value.Name, value.Profile)
+			return fmt.Errorf("duplicate Cymonkey capability %q for domain %q and runtime %q", value.Name, value.Domain, value.Runtime)
 		}
 		seen[key] = struct{}{}
-		if !ValidProfile(value.Profile) || !backendSupportsProfile(value.Backend, value.Profile) {
-			return fmt.Errorf("Cymonkey capability %q has incompatible profile/backend", value.Name)
+		if !ValidDomain(value.Domain) || !ValidRuntime(value.Runtime) || !driverSupportsDomain(value.Driver, value.Domain) {
+			return fmt.Errorf("Cymonkey capability %q has incompatible domain/runtime/driver", value.Name)
 		}
 		if value.Support != SupportNative && value.Support != SupportMapped && value.Support != SupportEmulated {
 			return fmt.Errorf("Cymonkey capability %q has invalid support", value.Name)
@@ -79,12 +86,15 @@ func ValidateManifest(value Manifest) error {
 	if len(value.Spec.Targets) == 0 {
 		return errors.New("Cymonkey augmentation requires at least one target")
 	}
-	profiles := make(map[Profile]struct{})
+	domains := make(map[Domain]struct{})
 	for _, target := range value.Spec.Targets {
-		if !ValidProfile(target.Profile) {
-			return fmt.Errorf("unsupported Cymonkey target profile %q", target.Profile)
+		if !ValidDomain(target.Domain) {
+			return fmt.Errorf("unsupported Cymonkey target domain %q", target.Domain)
 		}
-		profiles[target.Profile] = struct{}{}
+		if !ValidRuntime(target.Runtime) {
+			return fmt.Errorf("invalid Cymonkey target runtime %q", target.Runtime)
+		}
+		domains[target.Domain] = struct{}{}
 		if err := validateTarget(target); err != nil {
 			return err
 		}
@@ -94,52 +104,72 @@ func ValidateManifest(value Manifest) error {
 			return fmt.Errorf("invalid Cymonkey permission %q", permission)
 		}
 	}
-	if len(bytes.TrimSpace(value.Spec.Web)) > 0 {
-		if _, ok := profiles[ProfileWeb]; !ok {
-			return errors.New("Cymonkey web payload requires a web target")
+	if len(bytes.TrimSpace(value.Spec.Computer)) > 0 {
+		if _, ok := domains[DomainComputer]; !ok {
+			return errors.New("Cymonkey computer payload requires a computer target")
 		}
-		if !jsonObject(value.Spec.Web) {
-			return errors.New("Cymonkey web payload must be an object")
+		if !jsonObject(value.Spec.Computer) {
+			return errors.New("Cymonkey computer payload must be an object")
 		}
 	}
-	if len(bytes.TrimSpace(value.Spec.MacOS)) > 0 {
-		if _, ok := profiles[ProfileMacOS]; !ok {
-			return errors.New("Cymonkey macOS payload requires a macOS target")
+	if len(bytes.TrimSpace(value.Spec.Render)) > 0 {
+		if _, ok := domains[DomainRender]; !ok {
+			return errors.New("Cymonkey render payload requires a render target")
 		}
-		if !jsonObject(value.Spec.MacOS) {
-			return errors.New("Cymonkey macOS payload must be an object")
+		if !jsonObject(value.Spec.Render) {
+			return errors.New("Cymonkey render payload must be an object")
+		}
+	}
+	if len(bytes.TrimSpace(value.Spec.Player)) > 0 {
+		if _, ok := domains[DomainPlayer]; !ok {
+			return errors.New("Cymonkey player payload requires a player target")
+		}
+		if !jsonObject(value.Spec.Player) {
+			return errors.New("Cymonkey player payload must be an object")
 		}
 	}
 	return nil
 }
 
-func ValidProfile(value Profile) bool {
-	return value == ProfileWeb || value == ProfileMacOS || value == ProfileEngine
+func ValidDomain(value Domain) bool {
+	return value == DomainComputer || value == DomainRender || value == DomainPlayer
 }
 
-func ValidBackend(value Backend) bool {
-	switch value {
-	case BackendCDP, BackendBiDi, BackendSafariMCP, BackendWebExtension,
-		BackendMacOSAppleEvents, BackendMacOSAccessibility, BackendMacOSCooperative,
-		BackendEngineGodot, BackendEngineUnity, BackendEngineUnreal, BackendEngineThreejs:
-		return true
+func ValidRuntime(value string) bool {
+	return runtimePattern.MatchString(value)
+}
+
+func ValidDriver(value Driver) bool {
+	return driverPattern.MatchString(string(value))
+}
+
+func driverSupportsDomain(driver Driver, domain Domain) bool {
+	if !ValidDriver(driver) {
+		return false
+	}
+	switch driver {
+	case DriverCDP, DriverBiDi, DriverSafariMCP, DriverWebExtension,
+		DriverMacOSAppleEvents, DriverMacOSAccessibility, DriverMacOSCooperative,
+		DriverCymonkeyWebSocket, DriverInPageRuntime:
+		return knownDriverSupportsDomain(driver, domain)
 	default:
-		return false
+		// A contributor-declared driver is valid for its advertised module
+		// binding. The module registry and capability negotiation, rather than a
+		// closed core enum, provide the semantic authority.
+		return true
 	}
 }
 
-func backendSupportsProfile(backend Backend, profile Profile) bool {
-	if !ValidBackend(backend) {
-		return false
+func knownDriverSupportsDomain(driver Driver, domain Domain) bool {
+	if domain == DomainComputer {
+		return driver == DriverCDP || driver == DriverBiDi || driver == DriverSafariMCP || driver == DriverWebExtension ||
+			driver == DriverMacOSAppleEvents || driver == DriverMacOSAccessibility || driver == DriverMacOSCooperative
 	}
-	if profile == ProfileWeb {
-		return backend == BackendCDP || backend == BackendBiDi || backend == BackendSafariMCP || backend == BackendWebExtension
+	if domain == DomainRender {
+		return driver == DriverCDP || driver == DriverBiDi || driver == DriverSafariMCP || driver == DriverWebExtension || driver == DriverCymonkeyWebSocket || driver == DriverInPageRuntime
 	}
-	if profile == ProfileMacOS {
-		return backend == BackendMacOSAppleEvents || backend == BackendMacOSAccessibility || backend == BackendMacOSCooperative
-	}
-	if profile == ProfileEngine {
-		return backend == BackendEngineGodot || backend == BackendEngineUnity || backend == BackendEngineUnreal || backend == BackendEngineThreejs
+	if domain == DomainPlayer {
+		return true
 	}
 	return false
 }
@@ -147,18 +177,18 @@ func backendSupportsProfile(backend Backend, profile Profile) bool {
 func validateTarget(target Target) error {
 	var match map[string]any
 	if json.Unmarshal(target.Match, &match) != nil || match == nil {
-		return fmt.Errorf("Cymonkey %s target match must be an object", target.Profile)
+		return fmt.Errorf("Cymonkey %s target match must be an object", target.Domain)
 	}
-	switch target.Profile {
-	case ProfileWeb:
+	switch {
+	case target.Domain == DomainComputer && target.Runtime == "browser-dom":
 		patterns, ok := match["urlPatterns"].([]any)
 		if !ok || len(patterns) == 0 {
-			return errors.New("Cymonkey web target requires urlPatterns")
+			return errors.New("Cymonkey browser-dom computer target requires urlPatterns")
 		}
-	case ProfileMacOS:
+	case target.Domain == DomainComputer && target.Runtime == "macos-app":
 		bundleID, _ := match["bundleId"].(string)
 		if !bundleIDPattern.MatchString(bundleID) {
-			return errors.New("Cymonkey macOS target requires a valid bundleId")
+			return errors.New("Cymonkey macos-app computer target requires a valid bundleId")
 		}
 	}
 	return nil

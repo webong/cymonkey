@@ -25,7 +25,8 @@ test("Cymonkey worker provides CDP, BiDi, and Playwright drivers with integrated
   assert.match(worker, /browser\.press/);
   assert.match(worker, /browser\.evaluate/);
   assert.match(worker, /browser\.screenshot/);
-  assert.match(worker, /jangolova\.cymonkey\/v1alpha1/);
+	assert.match(worker, /jangolova\.cymonkey\/v1alpha2/);
+	assert.doesNotMatch(worker, /jangolova\.cymonkey\/v1alpha1/);
   assert.match(worker, /extensionConfig\.mode === "required"/);
   assert.match(worker, /baseCapabilities\(targetProtocol\)/);
   assert.match(worker, /chrome-extension:\/\//);
@@ -48,37 +49,26 @@ test("one reversible live client is shared by CDP and BiDi fixtures", async () =
   assert.match(bidiFixture, /cymonkey-live-client\.mjs[\s\S]*--expect-backend bidi/);
 });
 
-test("versioned Cymonkey schemas define capability provenance and one augmentation contract", async () => {
-  const protocol = JSON.parse(await source("protocol/cymonkey/v1alpha1/protocol.schema.json"));
-  const augmentation = JSON.parse(await source("protocol/cymonkey/v1alpha1/augmentation.schema.json"));
-  assert.equal(protocol.$defs.hello.properties.protocolVersion.const, "jangolova.cymonkey/v1alpha1");
-  for (const field of ["backend", "support", "lifetime", "persistence", "effect", "inputSchema"]) {
+test("v1alpha2 defines runtime-agnostic computer, render, and player domains", async () => {
+  const protocol = JSON.parse(await source("src/cymonkey/protocol/v1alpha2/protocol.schema.json"));
+  const augmentation = JSON.parse(await source("src/cymonkey/protocol/v1alpha2/augmentation.schema.json"));
+  assert.equal(protocol.$defs.hello.properties.protocolVersion.const, "jangolova.cymonkey/v1alpha2");
+  assert.deepEqual(protocol.$defs.domain.enum, ["computer", "render", "player"]);
+  for (const field of ["domain", "runtime", "driver"]) {
     assert.ok(protocol.$defs.capability.required.includes(field), `capability schema missing ${field}`);
   }
-  assert.equal(augmentation.properties.apiVersion.const, "jangolova.cymonkey/v1alpha1");
-  assert.equal(augmentation.properties.kind.const, "Augmentation");
-  assert.deepEqual(augmentation.$defs.script.oneOf, [{ required: ["source"] }, { required: ["files"] }]);
-});
-
-test("v1alpha2 defines runtime-agnostic web, macOS, and engine profiles", async () => {
-  const protocol = JSON.parse(await source("protocol/cymonkey/v1alpha2/protocol.schema.json"));
-  const augmentation = JSON.parse(await source("protocol/cymonkey/v1alpha2/augmentation.schema.json"));
-  assert.equal(protocol.$defs.hello.properties.protocolVersion.const, "jangolova.cymonkey/v1alpha2");
-  assert.deepEqual(protocol.$defs.profile.enum, ["web", "macos", "engine"]);
-  assert.ok(protocol.$defs.capability.required.includes("profile"));
-  assert.ok(protocol.$defs.backend.enum.includes("macos-apple-events"));
-  assert.ok(protocol.$defs.backend.enum.includes("macos-accessibility"));
-  assert.ok(protocol.$defs.backend.enum.includes("engine-godot"));
+  assert.equal(protocol.$defs.driver.type, "string");
+  assert.match("example-driver", new RegExp(protocol.$defs.driver.pattern));
   assert.equal(augmentation.properties.apiVersion.const, "jangolova.cymonkey/v1alpha2");
-  assert.equal(augmentation.$defs.webTarget.properties.profile.const, "web");
-  assert.equal(augmentation.$defs.macosTarget.properties.profile.const, "macos");
-  assert.equal(augmentation.$defs.macosTarget.properties.match.properties.bundleId.type, "string");
+  assert.deepEqual(augmentation.$defs.target.properties.domain.enum, ["computer", "render", "player"]);
+  assert.ok(augmentation.$defs.target.required.includes("runtime"));
+	assert.deepEqual(protocol.$defs.action.dependentRequired, {domain: ["runtime"], runtime: ["domain"]});
   assert.doesNotMatch(JSON.stringify(augmentation), /applescript\.execute|raw-apple-event/);
 });
 
 test("transport mappings expose semantics without raw protocol passthrough", async () => {
   const worker = await source("scripts/cymonkey-worker.mjs");
-  const safari = await source("adapters/cymonkey/safari_backend.go");
+  const safari = await source("integrations/jangolova/cymonkey/safari_backend.go");
   for (const capability of ["augmentation.install", "script.execute", "script.register", "dom.query", "dom.observe", "dom.patch", "network.observe", "storage.get"]) {
     assert.match(worker, new RegExp(capability.replaceAll(".", "\\.")), `worker missing ${capability}`);
   }
@@ -121,8 +111,9 @@ test("Cymonkey separates its page-safe and privileged extension planes", async (
   assert.match(content, /cannot invoke privileged action/);
   assert.match(background, /acceptsExternalSender\(sender\.id\)/);
   assert.match(engine, /jangolova\.cymonkey\/v1alpha2/);
-  assert.match(engine, /compatibleProtocols: \['jangolova\.cymonkey\/v1alpha1'\]/);
-  assert.match(engine, /profiles: \['web'\]/);
+	assert.doesNotMatch(engine, /compatibleProtocols|v1alpha1/);
+  assert.match(engine, /domains: \['computer'\]/);
+  assert.match(engine, /runtimes: \['browser-dom'\]/);
   assert.match(engine, /jangolova-browser-extension-webextension/);
 
   for (const capability of [

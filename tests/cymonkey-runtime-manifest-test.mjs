@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const manifest = JSON.parse(await readFile(new URL("../protocol/cymonkey/v1alpha2/engine-runtimes.json", import.meta.url), "utf8"));
+const manifest = JSON.parse(await readFile(new URL("../integrations/jangolova/cymonkey/fixtures/engine-runtimes.json", import.meta.url), "utf8"));
 assert.equal(manifest.protocolVersion, "jangolova.cymonkey/v1alpha2");
 assert.deepEqual(manifest.runtimes.map((runtime) => runtime.engine), ["godot", "unity", "unreal"]);
 for (const runtime of manifest.runtimes) {

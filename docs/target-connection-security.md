@@ -129,7 +129,7 @@ manager without changing target or adapter contracts.
 | Web presentation CDP | In-process reconnect | Worker replacement | No |
 | WebDriver Classic | Per request | Transport replacement | Transport replacement |
 | Safari MCP HTTP | Per request | Transport replacement | Transport replacement |
-| Pacman WebSocket | Transport replacement | Transport replacement | Transport replacement |
+| Cymonkey WebSocket | Transport replacement | Transport replacement | Transport replacement |
 
 CDP workers authenticate both HTTP discovery and WebSocket attachment. Worker
 processes receive headers over private standard input, never command-line
@@ -139,7 +139,7 @@ caller-owned relay remains the appropriate boundary for that case.
 
 Node worker TLS material remains fixed for the lifetime of one worker process,
 but the adapter replaces that process within the same interaction instance
-when its CA generation changes. Pacman likewise creates a replacement
+when its CA generation changes. Cymonkey likewise creates a replacement
 WebSocket transport, so both credential headers and TLS files are applied to
 its candidate handshake before the previous transport is released.
 

@@ -5,11 +5,11 @@ package builtin
 import (
 	"fmt"
 
-	"jangolova/adapters/cymonkey"
 	"jangolova/adapters/displayinteraction"
 	"jangolova/adapters/safarimcp"
 	"jangolova/adapters/webdriverclassic"
 	"jangolova/adapters/webpresentation"
+	cymonkey "jangolova/integrations/jangolova/cymonkey"
 	"jangolova/internal/orchestrator"
 )
 

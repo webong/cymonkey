@@ -15,7 +15,7 @@
       "type": "object",
       "required": ["type", "method"],
       "properties": {
-        "type": {"enum": ["JANGOLOVA_EXTENSION_CALL", "CYMONKEY_CALL"]},
+        "type": {"const": "JANGOLOVA_EXTENSION_CALL"},
         "id": {"oneOf": [{"type": "string", "maxLength": 128}, {"type": "integer"}]},
         "method": {"type": "string", "minLength": 1, "maxLength": 128},
         "params": {"type": "object"}
@@ -28,10 +28,6 @@
             "policy.describe", "policy.replace",
             "control.websocket.describe", "control.websocket.configure", "control.websocket.disable"
           ]}}}
-        },
-        {
-          "if": {"properties": {"type": {"const": "CYMONKEY_CALL"}}},
-          "then": {"properties": {"method": {"enum": ["hello", "capabilities", "describe", "act", "events"]}}}
         }
       ],
       "additionalProperties": false

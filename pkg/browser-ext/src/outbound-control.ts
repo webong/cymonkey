@@ -194,7 +194,7 @@ export function validateOutboundConfiguration(value: unknown): OutboundControlCo
 }
 
 function isExtensionControlCall(message: unknown): message is Record<string, unknown> {
-  return isRecord(message) && (message.type === 'JANGOLOVA_EXTENSION_CALL' || message.type === 'CYMONKEY_CALL');
+  return isRecord(message) && message.type === 'JANGOLOVA_EXTENSION_CALL';
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

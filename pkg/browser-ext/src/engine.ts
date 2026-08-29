@@ -24,19 +24,16 @@ async function capabilities() {
   return privilegedCapabilities.filter((item) => !userscriptNames.has(item.name));
 }
 
-// Compatibility export for callers compiled against the first extension slice.
-export const dispatchEngine = dispatchCymonkey;
-
 function hello() {
   return {
     protocolVersion: 'jangolova.cymonkey/v1alpha2',
-    compatibleProtocols: ['jangolova.cymonkey/v1alpha1'],
     implementation: {
       name: 'jangolova-browser-extension-webextension',
       version: browser.runtime.getManifest().version,
     },
-    backends: ['webextension'],
-    profiles: ['web'],
+    drivers: ['webextension'],
+    domains: ['computer'],
+    runtimes: ['browser-dom'],
     features: [
       'augmentation', 'jangolova.platform-services', 'events.cursor', 'scripts.packaged',
       'userscripts', 'standalone', 'xallet.spook.runtime-discovery',
@@ -53,7 +50,8 @@ async function describe() {
     revision: `${browser.runtime.getManifest().version}:${scripts.length}:${rules.length}`,
     surfaces: tab ? [{
       id: `web:tab-${tab.id}`,
-      profile: 'web',
+      domain: 'computer',
+      runtime: 'browser-dom',
       kind: 'document',
       label: tab.title || undefined,
       properties: { url: tab.url || null },

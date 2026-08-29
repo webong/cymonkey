@@ -7,13 +7,13 @@ import (
 	"jangolova/internal/orchestrator"
 )
 
-func TestRegistryRetiresStandalonePacman(t *testing.T) {
+func TestRegistryHasNoStandaloneRenderAdapter(t *testing.T) {
 	registry, err := EngineRegistry()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := registry.Engine("pacman"); ok {
-		t.Fatal("standalone Pacman adapter must not be registered; engine targets go through the Cymonkey control plane")
+	if _, ok := registry.Engine("render"); ok {
+		t.Fatal("standalone render adapter must not be registered; engine targets go through the Cymonkey control plane")
 	}
 }
 

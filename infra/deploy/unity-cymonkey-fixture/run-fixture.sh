@@ -10,7 +10,7 @@ if [[ ! -x "${unity_editor}" ]]; then
   exit 1
 fi
 if [[ ! -f "${project_path}/Packages/manifest.json" ]]; then
-  echo "Unity Pacman fixture project is missing." >&2
+  echo "Unity Cymonkey fixture project is missing." >&2
   exit 1
 fi
 
@@ -21,13 +21,13 @@ set +e
   -quit \
   -accept-apiupdate \
   -projectPath "${project_path}" \
-  -executeMethod Jangolova.CymonkeyFixture.HeadlessPacmanFixture.Run \
+  -executeMethod Jangolova.CymonkeyFixture.HeadlessCymonkeyFixture.Run \
   -logFile "${log_path}"
 fixture_status=$?
 set -e
 
 if [[ ${fixture_status} -ne 0 ]]; then
-  echo "Unity Pacman headless fixture failed; inspect the container log artifact." >&2
+  echo "Unity Cymonkey headless fixture failed; inspect the container log artifact." >&2
   exit "${fixture_status}"
 fi
-echo "Unity Pacman headless fixture passed."
+echo "Unity Cymonkey headless fixture passed."

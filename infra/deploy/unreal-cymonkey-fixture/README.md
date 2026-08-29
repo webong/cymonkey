@@ -1,4 +1,4 @@
-# Unreal Pacman fixture image
+# Unreal Cymonkey fixture image
 
 This is a separate target-runtime image definition. It builds the Unreal
 plugin and fixture project with an operator-supplied Unreal build image, then

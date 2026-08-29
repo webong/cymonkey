@@ -1,9 +1,9 @@
 # Experience Bridge Protocol
 
 > This is the generic/browser bridge and the earlier native experiment. New
-> Unity and Unreal semantic presentation integrations use the separate
-> [Pacman protocol](pacman.md), including its `health` method, explicit resource
-> allowlist, and caller-owned WebSocket endpoint.
+> Unity and Unreal semantic presentation integrations use Cymonkey's `render`
+> domain, including explicit resource registration and a caller-owned WebSocket
+> endpoint.
 
 The Jangolova experience bridge lets a cooperative interactive runtime expose
 semantic capabilities without coupling target lifecycle to Three.js,

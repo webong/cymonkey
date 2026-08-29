@@ -1,4 +1,0 @@
-interface:
-  display_name: "Jangolova Blockade Cloud Provider"
-  short_description: "Implement community cloud vision providers"
-  default_prompt: "Use $jangolova-blockade-cloud-provider to implement and register a community cloud vision provider for Blockade observations."

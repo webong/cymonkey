@@ -88,7 +88,7 @@ export class ControlPolicyService {
 }
 
 export function isExtensionControlCall(message: unknown): message is Record<string, unknown> {
-  return isRecord(message) && (message.type === 'JANGOLOVA_EXTENSION_CALL' || message.type === 'CYMONKEY_CALL');
+  return isRecord(message) && message.type === 'JANGOLOVA_EXTENSION_CALL';
 }
 
 export function requireScopedIdentifier(value: unknown, name: string) {
@@ -158,12 +158,11 @@ function unwrapCall(message: Record<string, unknown>) {
     method = String(params.method || '');
     params = isRecord(params.params) ? params.params : {};
   }
-  if (envelopeType === 'CYMONKEY_CALL' || method === 'act') {
-    if (method !== 'act') return {capability: `cymonkey.${method}`, effect: 'read' as const, params, input: {}};
-    const capability = String(params.name || '');
-    const input = isRecord(params.input) ? params.input : {};
-    return {capability, effect: capabilityEffects.get(capability) ?? 'external', params, input};
-  }
+	if (method === 'act') {
+		const capability = String(params.name || '');
+		const input = isRecord(params.input) ? params.input : {};
+		return {capability, effect: capabilityEffects.get(capability) ?? 'external', params, input};
+	}
   const effect = method === 'hello' || method === 'capabilities' || method === 'describe' || method === 'events' || method === 'policy.describe'
     ? 'read' as const
     : 'external' as const;

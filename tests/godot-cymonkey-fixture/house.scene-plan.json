@@ -1,5 +1,5 @@
 {
-  "$schema": "../../protocol/cymonkey/v1alpha2/scene-plan.schema.json",
+  "$schema": "../../src/cymonkey/protocol/v1alpha2/scene-plan.schema.json",
   "apiVersion": "jangolova.cymonkey.scene/v1alpha1",
   "name": "midnight-house",
   "description": "A model-authored night-time house choreography.",
@@ -68,7 +68,7 @@
       "name": "ui.text.set",
       "targetId": "ui:status",
       "input": {
-        "text": "WELCOME HOME  |  PACMAN CONTROL"
+        "text": "WELCOME HOME  |  CYMONKEY CONTROL"
       }
     }
   ]

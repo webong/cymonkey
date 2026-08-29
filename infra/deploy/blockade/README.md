@@ -2,13 +2,13 @@
 
 This is the first local Blockade provider. It observes encoded images and
 returns normalized detections and segmentation masks. Blockade owns pixel
-observation; Jangolova and Grimlock remain responsible for interaction and
-agent orchestration.
+observation; Jangolova remains responsible for interaction while an external
+agent owns orchestration.
 
 Local engine attachments can be declared in
 [blockade.example.yaml](blockade.example.yaml). Use `local-ultralytics` for
 managed subprocess workers and `onnx` for native ONNX Runtime integration.
-Cloud providers are registered by Grimlock and are deliberately not named by
+Cloud providers are caller-owned adapters and are deliberately not named by
 Blockade configuration.
 
 Build and run it from the repository root:
@@ -76,18 +76,9 @@ provided through a mounted cache. Override `BLOCKADE_YOLO_MODEL` and
 
 `POST /v1/observe` accepts JSON with a base64-encoded `image` and returns the
 `blockade.observation/v1alpha1` response. The Go client is in
-`internal/blockade`. Set `JANGOLOVA_BLOCKADE_ENDPOINT=http://blockade:8091`
-when starting Grimlock to advertise the read-only `blockade_observe` tool in
-new sessions.
-
-For an embedded local worker instead of HTTP, configure Grimlock with:
-
-```sh
-export JANGOLOVA_BLOCKADE_WORKER_COMMAND="python3 deploy/blockade/worker.py"
-export JANGOLOVA_BLOCKADE_WORKERS=1
-```
-
-Grimlock starts and stops the Blockade worker pool with its own lifecycle.
+`internal/blockade`. An external agent or application can call this endpoint
+directly, then request an allowed Jangolova action through the Engine Provider
+HTTP or MCP surface.
 
 To select an engine from YAML:
 

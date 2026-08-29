@@ -1,37 +1,35 @@
-// Package cymonkey defines Jangolova's runtime-agnostic augmentation contract.
-// Runtime adapters map these semantics to web, macOS, and future profiles.
+// Package cymonkey defines Jangolova's runtime-agnostic interaction contract.
+// Runtime adapters map computer, render, and player domain semantics to
+// caller-owned targets.
 package cymonkey
 
 import "encoding/json"
 
 const (
-	ProtocolVersion   = "jangolova.cymonkey/v1alpha2"
-	LegacyWebProtocol = "jangolova.cymonkey/v1alpha1"
-	AugmentationKind  = "Augmentation"
+	ProtocolVersion  = "jangolova.cymonkey/v1alpha2"
+	AugmentationKind = "Augmentation"
 )
 
-type Profile string
+type Domain string
 
 const (
-	ProfileWeb    Profile = "web"
-	ProfileMacOS  Profile = "macos"
-	ProfileEngine Profile = "engine"
+	DomainComputer Domain = "computer"
+	DomainRender   Domain = "render"
+	DomainPlayer   Domain = "player"
 )
 
-type Backend string
+type Driver string
 
 const (
-	BackendCDP                Backend = "cdp"
-	BackendBiDi               Backend = "bidi"
-	BackendSafariMCP          Backend = "safari-mcp"
-	BackendWebExtension       Backend = "webextension"
-	BackendMacOSAppleEvents   Backend = "macos-apple-events"
-	BackendMacOSAccessibility Backend = "macos-accessibility"
-	BackendMacOSCooperative   Backend = "macos-cooperative"
-	BackendEngineGodot        Backend = "engine-godot"
-	BackendEngineUnity        Backend = "engine-unity"
-	BackendEngineUnreal       Backend = "engine-unreal"
-	BackendEngineThreejs      Backend = "engine-threejs"
+	DriverCDP                Driver = "cdp"
+	DriverBiDi               Driver = "bidi"
+	DriverSafariMCP          Driver = "safari-mcp"
+	DriverWebExtension       Driver = "webextension"
+	DriverMacOSAppleEvents   Driver = "macos-apple-events"
+	DriverMacOSAccessibility Driver = "macos-accessibility"
+	DriverMacOSCooperative   Driver = "macos-cooperative"
+	DriverCymonkeyWebSocket  Driver = "cymonkey-ws"
+	DriverInPageRuntime      Driver = "in-page-runtime"
 )
 
 type Support string
@@ -65,41 +63,43 @@ type Implementation struct {
 }
 
 type Hello struct {
-	ProtocolVersion     string         `json:"protocolVersion"`
-	CompatibleProtocols []string       `json:"compatibleProtocols,omitempty"`
-	Implementation      Implementation `json:"implementation"`
-	Profiles            []Profile      `json:"profiles"`
-	Backends            []Backend      `json:"backends"`
-	Features            []string       `json:"features,omitempty"`
+	ProtocolVersion string         `json:"protocolVersion"`
+	Implementation  Implementation `json:"implementation"`
+	Domains         []Domain       `json:"domains"`
+	Runtimes        []string       `json:"runtimes"`
+	Drivers         []Driver       `json:"drivers"`
+	Features        []string       `json:"features,omitempty"`
 }
 
 type Capability struct {
-	Name         string          `json:"name"`
-	Description  string          `json:"description,omitempty"`
-	Profile      Profile         `json:"profile"`
-	Backend      Backend         `json:"backend"`
-	Support      Support         `json:"support"`
-	Lifetime     Lifetime        `json:"lifetime"`
-	Persistence  Persistence     `json:"persistence"`
-	Effect       string          `json:"effect"`
-	TargetKinds  []string        `json:"targetKinds,omitempty"`
-	InputSchema  json.RawMessage `json:"inputSchema"`
-	Alternatives []Backend       `json:"alternatives,omitempty"`
+	Name          string          `json:"name"`
+	Description   string          `json:"description,omitempty"`
+	Domain        Domain          `json:"domain"`
+	Runtime       string          `json:"runtime"`
+	Driver        Driver          `json:"driver"`
+	Support       Support         `json:"support"`
+	Lifetime      Lifetime        `json:"lifetime"`
+	Persistence   Persistence     `json:"persistence"`
+	Effect        string          `json:"effect"`
+	ResourceKinds []string        `json:"resourceKinds,omitempty"`
+	InputSchema   json.RawMessage `json:"inputSchema"`
+	Alternatives  []Driver        `json:"alternatives,omitempty"`
 }
 
 type Surface struct {
 	ID         string          `json:"id"`
-	Profile    Profile         `json:"profile"`
+	Domain     Domain          `json:"domain"`
+	Runtime    string          `json:"runtime"`
 	Kind       string          `json:"kind"`
 	Label      string          `json:"label,omitempty"`
 	Properties json.RawMessage `json:"properties,omitempty"`
 }
 
 type AugmentationSummary struct {
-	ID       string    `json:"id"`
-	Revision string    `json:"revision"`
-	Enabled  bool      `json:"enabled"`
-	Profiles []Profile `json:"profiles,omitempty"`
+	ID       string   `json:"id"`
+	Revision string   `json:"revision"`
+	Enabled  bool     `json:"enabled"`
+	Domains  []Domain `json:"domains,omitempty"`
 }
 
 type Description struct {
@@ -125,12 +125,23 @@ type ManifestSpec struct {
 	Targets     []Target        `json:"targets"`
 	Permissions []string        `json:"permissions"`
 	Enabled     *bool           `json:"enabled,omitempty"`
-	Web         json.RawMessage `json:"web,omitempty"`
-	MacOS       json.RawMessage `json:"macos,omitempty"`
+	Computer    json.RawMessage `json:"computer,omitempty"`
+	Render      json.RawMessage `json:"render,omitempty"`
+	Player      json.RawMessage `json:"player,omitempty"`
 	Overlays    json.RawMessage `json:"overlays,omitempty"`
 }
 
 type Target struct {
-	Profile Profile         `json:"profile"`
+	Domain  Domain          `json:"domain"`
+	Runtime string          `json:"runtime"`
 	Match   json.RawMessage `json:"match"`
+}
+
+// Action selects one advertised capability. Domain and Runtime are required
+// only when a composite attachment has more than one binding for the name.
+type Action struct {
+	Name    string          `json:"name"`
+	Input   json.RawMessage `json:"input"`
+	Domain  Domain          `json:"domain,omitempty"`
+	Runtime string          `json:"runtime,omitempty"`
 }

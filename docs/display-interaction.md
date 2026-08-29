@@ -9,7 +9,7 @@ The interaction engine adapter is `display-interaction`. It connects to caller-o
 ## Ownership Boundary
 
 ```text
-Agent / Grimlock
+External agent / application
        │
        ▼  (Semantic methods: display.capture, pointer.click, keyboard.type)
 Jangolova `display-interaction` Adapter (Owned by Jangolova)

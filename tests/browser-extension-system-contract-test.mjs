@@ -25,7 +25,8 @@ test("Jangolova owns extension platform services", async () => {
   assert.match(engine, /services\/network/);
   assert.match(engine, /services\/storage/);
   assert.match(engine, /jangolova\.cymonkey\/v1alpha2/);
-  assert.match(engine, /profiles: \['web'\]/);
+  assert.match(engine, /domains: \['computer'\]/);
+  assert.match(engine, /runtimes: \['browser-dom'\]/);
   assert.match(runtime, /cymonkey-engine\.call/);
   assert.match(runtime, /cymonkey\.call/);
   assert.doesNotMatch(runtime, /startsWith\('userscript\.'\)/);
@@ -36,17 +37,17 @@ test("public page bridge remains Cymonkey-only and page-safe", async () => {
   const page = await source("pkg/browser-ext/entrypoints/cymonkey-main.ts");
   const content = await source("pkg/browser-ext/entrypoints/cymonkey.content.ts");
   assert.match(page, /root\.cymonkey/);
-  assert.doesNotMatch(page, /root\.pacman/);
+  assert.doesNotMatch(page, /root\.render/);
   assert.doesNotMatch(page, /chrome\.|browser\./);
   assert.match(content, /cannot invoke privileged action/);
 });
 
-test("private control plane keeps the legacy Cymonkey alias", async () => {
+test("private control plane uses one Jangolova control envelope", async () => {
   const background = await source("pkg/browser-ext/entrypoints/background.ts");
   const control = await source("pkg/browser-ext/entrypoints/control/main.ts");
   const policy = await source("pkg/browser-ext/src/services/policy.ts");
   assert.match(policy, /JANGOLOVA_EXTENSION_CALL/);
-  assert.match(policy, /CYMONKEY_CALL/);
+	assert.doesNotMatch(policy, /CYMONKEY_CALL/);
   assert.match(background, /acceptsExternalSender\(sender\.id\)/);
   assert.match(control, /jangolovaExtensionDispatch/);
   assert.match(control, /cymonkeyDispatch/);

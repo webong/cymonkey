@@ -1,6 +1,8 @@
 export const CYMONKEY_PROTOCOL_VERSION = 'jangolova.cymonkey/v1alpha2';
-export const CYMONKEY_ENGINE_BACKEND = 'engine-threejs';
 export const CYMONKEY_RUNTIME_SYMBOL = Symbol.for('jangolova.cymonkey.runtime');
+export const CYMONKEY_DOMAIN = 'render';
+export const CYMONKEY_RUNTIME = 'threejs';
+export const CYMONKEY_DRIVER = 'in-page-runtime';
 
 
 export type ResourceKind = 'scene' | 'object' | 'ui' | 'camera' | 'material' | 'animation' | 'timeline' | 'artifact' | 'event';
@@ -14,7 +16,7 @@ export type Registration = {
   describe?: (target: unknown) => Record<string, unknown>;
 };
 
-type CymonkeyEvent = { id: string; type: string; sourceId?: string; occurredAt: string; data?: unknown };
+type CymonkeyEvent = { id: string; type: string; domain: typeof CYMONKEY_DOMAIN; runtime: typeof CYMONKEY_RUNTIME; driver: typeof CYMONKEY_DRIVER; sourceId?: string; occurredAt: string; data?: unknown };
 
 const capabilities = [
   capability('resource.describe', 'read', ['scene', 'object', 'ui', 'camera', 'material', 'animation', 'timeline', 'artifact']),
@@ -26,16 +28,17 @@ const capabilities = [
   capability('animation.stop', 'write', ['animation']),
 ];
 
-function capability(name: string, effect: 'read' | 'write', targetKinds: ResourceKind[]) {
+function capability(name: string, effect: 'read' | 'write', resourceKinds: ResourceKind[]) {
   return {
     name,
-    profile: 'engine',
-    backend: CYMONKEY_ENGINE_BACKEND,
+    domain: CYMONKEY_DOMAIN,
+    runtime: CYMONKEY_RUNTIME,
+    driver: CYMONKEY_DRIVER,
     support: 'native',
     lifetime: 'attachment',
     persistence: 'session',
     effect,
-    targetKinds,
+    resourceKinds,
     inputSchema: { type: 'object', additionalProperties: true },
   };
 }
@@ -92,8 +95,9 @@ export class ThreeJSCymonkey {
     return {
       protocolVersion: CYMONKEY_PROTOCOL_VERSION,
       implementation: { name: 'jangolova-threejs-cymonkey', version: '0.2.0' },
-      profiles: ['engine'],
-      backends: [CYMONKEY_ENGINE_BACKEND],
+      domains: [CYMONKEY_DOMAIN],
+      runtimes: [CYMONKEY_RUNTIME],
+      drivers: [CYMONKEY_DRIVER],
       features: ['explicit-registration', 'stable-ids', 'events.cursor'],
     };
   }
@@ -103,7 +107,8 @@ export class ThreeJSCymonkey {
       revision: String(this.#revision),
       surfaces: [...this.#registrations.values()].map((entry) => ({
         id: entry.id,
-        profile: 'engine',
+        domain: CYMONKEY_DOMAIN,
+        runtime: CYMONKEY_RUNTIME,
         kind: entry.kind,
         label: entry.label,
         properties: entry.describe ? entry.describe(entry.target) : describeTarget(entry.kind, entry.target),
@@ -145,7 +150,7 @@ export class ThreeJSCymonkey {
   publish(type: string, sourceId?: string, data?: unknown) {
     this.#eventSequence += 1;
     const eventType = type.startsWith('event:') ? type : `event:${type}`;
-    this.#events.push({ id: String(this.#eventSequence), type: eventType, sourceId, occurredAt: new Date().toISOString(), data });
+    this.#events.push({ id: String(this.#eventSequence), type: eventType, domain: CYMONKEY_DOMAIN, runtime: CYMONKEY_RUNTIME, driver: CYMONKEY_DRIVER, sourceId, occurredAt: new Date().toISOString(), data });
     if (this.#events.length > 256) this.#events.splice(0, this.#events.length - 256);
   }
 }

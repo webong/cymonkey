@@ -2,7 +2,7 @@
   "FileVersion": 3,
   "EngineAssociation": "5.8",
   "Category": "Jangolova",
-  "Description": "Caller-owned Unreal fixture for Jangolova Pacman conformance.",
+  "Description": "Caller-owned Unreal fixture for Jangolova Cymonkey conformance.",
   "Modules": [
     {
       "Name": "UnrealCymonkeyFixture",

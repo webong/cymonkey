@@ -1,6 +1,6 @@
 # Jangolova Cymonkey for Unreal
 
-Jangolova Pacman is distributed as an Unreal plugin and as a separate packaged
+Jangolova Cymonkey is distributed as an Unreal plugin and as a separate packaged
 headless fixture image. The plugin is engine code that you add to your own
 project; the container is a ready-to-run conformance environment.
 
@@ -30,7 +30,7 @@ engine version or platform should build the source plugin with that engine's
 `RunUAT.sh BuildPlugin` command instead.
 
 `JangolovaCymonkey` is the Unreal Engine implementation of
-`jangolova.pacman/v1alpha1`. It exposes semantic control of explicitly
+the `render` domain of `jangolova.cymonkey/v1alpha2`. It exposes semantic control of explicitly
 registered Unreal objects while Unreal continues to own rendering and
 application lifecycle.
 
@@ -55,20 +55,20 @@ Registration.Actions = { TEXT("resource.describe"), TEXT("object.visibility.set"
 Registry->Registrations.Add(Registration);
 ```
 
-Stable IDs and action names are part of the caller-owned allowlist. Pacman does
+Stable IDs and action names are part of the caller-owned allowlist. Cymonkey does
 not discover arbitrary Unreal objects, actors, widgets, or assets.
 
 The initial semantic handlers provide `resource.describe` and
 `object.visibility.set`. `FCymonkeyWebSocketHost` authenticates an already
-upgraded caller-owned WebSocket with a bearer token, enforces the Pacman message
+upgraded caller-owned WebSocket with a bearer token, enforces the Cymonkey message
 limit, wraps requests and responses, and invokes the registry on the Unreal
 game thread. A platform binding supplies the listen/upgrade implementation via
-`ICymonkeyWebSocketConnection`. Stopping a transport must only detach Pacman; it
+`ICymonkeyWebSocketConnection`. Stopping a transport must only detach Cymonkey; it
 must never quit the game, destroy the World, or terminate the host process.
 
 The package includes a UE 5.8 `WebSocketServer` listen/upgrade adapter. It
 accepts one authenticated connection on the configured port and forwards text
-frames into the Pacman host. The fixture uses it when
+frames into the Cymonkey host. The fixture uses it when
 `JANGOLOVA_CYMONKEY_TOKEN` is present.
 
 ## Transport integration

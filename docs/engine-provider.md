@@ -5,6 +5,10 @@ Jangolova implements the authenticated, provider-neutral
 Jangolova runtime dependency, and other providers can implement the same
 contract.
 
+Jangolova is a tool server, not an agent: an external agent or application
+plans and chooses calls, while this provider attaches targets, enforces policy
+and approvals, executes actions, and retains audit events.
+
 The caller may set `engine.adapter` to `auto` and supply a formal
 `interaction.target/v1alpha1` descriptor. Jangolova selects by protocol and
 required capabilities, never by target location. See
@@ -13,9 +17,9 @@ Opaque credential and TLS references use the secret-safe
 [target connection security layer](target-connection-security.md).
 
 Unity and Unreal semantic presentation targets use the provider-visible
-`pacman` adapter and a caller-owned `cymonkey-ws` endpoint. See the
-[Pacman architecture and protocol](pacman.md). The adapter attaches to the
-application; it does not own its renderer or lifecycle.
+`cymonkey` adapter with `domain: "render"` and a caller-owned
+`cymonkey-ws` endpoint. The adapter attaches to the application; it does not
+own its renderer or lifecycle.
 
 ```bash
 export JANGOLOVA_PROVIDER_TOKEN="a-random-session-secret"
@@ -29,9 +33,35 @@ jangolova serve-engine-provider --bind 127.0.0.1:7391
 - `POST /v1/instances`
 - `GET /v1/instances/{instanceId}`
 - `POST /v1/instances/{instanceId}/call`
+- `POST /v1/instances/{instanceId}/approvals`
+- `POST /v1/instances/{instanceId}/approvals/{approvalId}`
 - `GET /v1/instances/{instanceId}/events`
 - `POST /v1/reconcile`
 - `DELETE /v1/instances/{instanceId}`
+
+## Direct MCP tools
+
+`jangolova serve-mcp` exposes the same Engine Provider operations as direct
+MCP tools over stdio, or Streamable HTTP with `--bind`. It has no model
+connector, agent session, prompt endpoint, or internal planning loop.
+
+The tool set covers engine discovery; instance connect, describe, call, events,
+and disconnect. MCP uses the same provider token and policy/approval gates as
+HTTP.
+
+## Approval receipts and audit events
+
+An instance can declare `engine.approval.requiredActions` when it is
+connected. Before calling one of those semantic actions, an external agent
+requests a pending approval with the exact `act` parameters, an owner-facing
+client resolves it, and the agent supplies the one-time `approvalId` on the
+action call. Approval receipts are bound to the action and parameters, expire
+quickly, and cannot be reused.
+
+Every action contributes retained instance events: `action.requested`,
+`action.denied`, `action.failed`, `action.completed`, and—where
+configured—approval requested, approved/rejected, and consumed events. This is
+execution policy and evidence, not agent reasoning.
 
 ### Declarative reconcile (`POST /v1/reconcile`)
 
@@ -227,7 +257,7 @@ The response describes the interaction instance, not the target:
 
 Cooperative native helpers are the exception that may add `callerLaunch` to
 the successful `POST /v1/instances` response. For example, connecting the
-Cymonkey `macos` profile returns an ephemeral loopback control URL, bearer
+Cymonkey `computer` / `macos-app` attachment returns an ephemeral loopback control URL, bearer
 token, and exact protocol as launch environment. The authorized target owner
 adds its configuration path and launches its signed helper:
 

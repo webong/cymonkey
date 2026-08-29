@@ -7,8 +7,8 @@ const source = (path) => readFile(new URL(path, root), 'utf8');
 
 test('userscripts use one bounded versioned contract', async () => {
   const [schema, augmentationSchema, docs, service, runtime] = await Promise.all([
-    source('protocol/userscript/v1alpha1/userscript.schema.json'),
-    source('protocol/cymonkey/v1alpha2/augmentation.schema.json'),
+    source('src/cymonkey/protocol/userscript/v1alpha1/userscript.schema.json'),
+    source('src/cymonkey/protocol/v1alpha2/augmentation.schema.json'),
     source('docs/userscripts.md'),
     source('pkg/browser-ext/src/services/userscripts.ts'),
     source('pkg/userscript-runtime/src/validate.ts'),
@@ -45,7 +45,7 @@ test('browser builds probe native userscripts and reduce Safari permissions', as
   assert.match(capabilities, /userscript\.install/);
   assert.doesNotMatch(pageBridge, /userscript\.install/);
   assert.doesNotMatch(extensionRuntime, /method\.startsWith\('userscript\.'\)/);
-  assert.doesNotMatch(extensionRuntime, /subsystems: \['cymonkey', 'pacman', 'userscripts'\]/);
+  assert.doesNotMatch(extensionRuntime, /subsystems: \['cymonkey', 'render', 'userscripts'\]/);
 });
 
 test('macOS containing app imports the distinct helper and carries Safari', async () => {

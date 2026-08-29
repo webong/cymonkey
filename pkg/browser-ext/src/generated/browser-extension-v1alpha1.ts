@@ -1,11 +1,10 @@
 // Code generated from protocol/browser-extension/v1alpha1/protocol.schema.json; DO NOT EDIT.
-// Schema SHA-256: 700967cedccd9c45dd1492b6bcc10903b9882d8ce47c1b4783544450448f3d24
+// Schema SHA-256: e058600aae2638160338a49690df83748f65b39f541b09672f0d642cfd0ad0f4
 
 export const browserExtensionProtocolVersion = 'jangolova.browser-extension/v1alpha1' as const;
-export type ExtensionCallType = 'JANGOLOVA_EXTENSION_CALL' | 'CYMONKEY_CALL';
+export type ExtensionCallType = 'JANGOLOVA_EXTENSION_CALL';
 export type ExtensionMethod = "hello" | "capabilities" | "describe" | "events" | "cymonkey.call" | "cymonkey-engine.call" | "policy.describe" | "policy.replace" | "control.websocket.describe" | "control.websocket.configure" | "control.websocket.disable";
-export type CymonkeyMethod = "hello" | "capabilities" | "describe" | "act" | "events";
-export type ControlMethod = ExtensionMethod | CymonkeyMethod;
+export type ControlMethod = ExtensionMethod;
 export type ControlCaller = 'xallet-spook' | 'authenticated-websocket' | 'extension-origin';
 export type CapabilityEffect = 'read' | 'write' | 'external';
 export type PolicyDecision = 'allow' | 'deny';

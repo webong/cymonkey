@@ -9,14 +9,15 @@ const fixture = await readFile(new URL("godot-cymonkey-fixture/fixture.gd", impo
 const scene = await readFile(new URL("godot-cymonkey-fixture/fixture.tscn", import.meta.url), "utf8");
 const scenePlan = JSON.parse(await readFile(new URL("godot-cymonkey-fixture/house.scene-plan.json", import.meta.url), "utf8"));
 const project = await readFile(new URL("godot-cymonkey-fixture/project.godot", import.meta.url), "utf8");
-const container = await readFile(new URL("../deploy/godot-cymonkey-fixture/Containerfile", import.meta.url), "utf8");
+const container = await readFile(new URL("../infra/deploy/godot-cymonkey-fixture/Containerfile", import.meta.url), "utf8");
 const goProtocol = await readFile(new URL("../internal/cymonkey/protocol.go", import.meta.url), "utf8");
 
 assert.match(protocol, /jangolova\.cymonkey\/v1alpha2/);
-assert.equal(protocol.match(/VERSION := "([^"]+)"/)?.[1], goProtocol.match(/ProtocolVersion   = "([^"]+)"/)?.[1]);
-assert.match(registry, /"compatibleProtocols": CymonkeyProtocol\.COMPATIBLE_PROTOCOLS/);
-assert.match(registry, /"profiles": \[CymonkeyProtocol\.PROFILE_ENGINE\]/);
-assert.match(registry, /"backends": \[CymonkeyProtocol\.BACKEND_GODOT\]/);
+assert.equal(protocol.match(/VERSION := "([^"]+)"/)?.[1], goProtocol.match(/ProtocolVersion\s+= "([^"]+)"/)?.[1]);
+assert.doesNotMatch(registry, /compatibleProtocols/);
+assert.match(registry, /"domains": \[CymonkeyProtocol\.DOMAIN_RENDER\]/);
+assert.match(registry, /"runtimes": \[CymonkeyProtocol\.RUNTIME_GODOT\]/);
+assert.match(registry, /"drivers": \[CymonkeyProtocol\.DRIVER_CYMONKEY_WS\]/);
 assert.match(registry, /stale_revision/);
 for (const method of ["hello", "capabilities", "describe", "act", "events", "health"]) assert.match(protocol, new RegExp(`METHOD_[A-Z]+ := "${method}"`));
 for (const kind of ["scene", "object", "ui", "camera", "material", "animation", "timeline", "artifact", "event"]) assert.match(protocol, new RegExp(`"${kind}"`));
@@ -44,4 +45,4 @@ assert.match(project, /run\/main_scene/);
 assert.match(container, /--headless/);
 assert.match(container, /GODOT_IMAGE/);
 assert.doesNotMatch(container, /JANGOLOVA_CYMONKEY_TOKEN=.*[A-Za-z0-9]{8}/);
-console.log("Godot Pacman fixture environment contract is valid.");
+console.log("Godot Cymonkey fixture environment contract is valid.");

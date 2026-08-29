@@ -23,6 +23,13 @@ type EngineSpec struct {
 	RequiredCapabilities []string        `json:"requiredCapabilities,omitempty"`
 	Source               string          `json:"source,omitempty"`
 	Options              json.RawMessage `json:"options,omitempty"`
+	Approval             ApprovalPolicy  `json:"approval,omitempty"`
+}
+
+// ApprovalPolicy makes selected semantic actions require a separate,
+// one-time owner approval receipt before execution.
+type ApprovalPolicy struct {
+	RequiredActions []string `json:"requiredActions,omitempty"`
 }
 
 type TargetEndpoint struct {
@@ -72,8 +79,9 @@ type Health struct {
 }
 
 type CallRequest struct {
-	Method string          `json:"method"`
-	Params json.RawMessage `json:"params,omitempty"`
+	Method     string          `json:"method"`
+	Params     json.RawMessage `json:"params,omitempty"`
+	ApprovalID string          `json:"approvalId,omitempty"`
 }
 
 type CallResponse struct {
@@ -100,6 +108,24 @@ type InstanceEventBatch struct {
 type ErrorResponse struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
+}
+
+type ApprovalRequest struct {
+	Params           json.RawMessage `json:"params"`
+	ExpiresInSeconds int             `json:"expiresInSeconds,omitempty"`
+}
+
+type ApprovalResolution struct {
+	Approved bool `json:"approved"`
+}
+
+type Approval struct {
+	APIVersion string    `json:"apiVersion"`
+	InstanceID string    `json:"instanceId"`
+	ApprovalID string    `json:"approvalId"`
+	Action     string    `json:"action"`
+	Status     string    `json:"status"`
+	ExpiresAt  time.Time `json:"expiresAt"`
 }
 
 type ReconcileRequest struct {

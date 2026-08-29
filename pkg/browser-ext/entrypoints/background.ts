@@ -68,7 +68,10 @@ export default defineBackground(() => {
       );
     }
     if (message.channel === 'jangolova.cymonkey.control') {
-      return handleExtensionOriginCall({type: 'CYMONKEY_CALL', method: String(message.method || ''), params: isRecord(message.params) ? message.params : {}});
+		return handleExtensionOriginCall({
+			type: 'JANGOLOVA_EXTENSION_CALL', method: 'cymonkey.call',
+			params: {method: String(message.method || ''), params: isRecord(message.params) ? message.params : {}},
+		});
     }
     if (message.channel === 'jangolova.extension.control') {
       return handleExtensionOriginCall({type: 'JANGOLOVA_EXTENSION_CALL', method: String(message.method || ''), params: isRecord(message.params) ? message.params : {}});
@@ -117,7 +120,7 @@ export default defineBackground(() => {
   }
 
   async function dispatchAuthorized(message: Record<string, unknown>, method: string, params: Record<string, unknown>) {
-    if (message.type === 'CYMONKEY_CALL') return dispatchCymonkey(method, params);
+	if (method === 'cymonkey.call') return dispatchCymonkey(String(params.method || ''), isRecord(params.params) ? params.params : {});
     if (method === 'policy.describe') return policy.describe();
     if (method === 'policy.replace') return policy.replace(params.policy);
     if (method === 'control.websocket.describe') return outbound.describe();

@@ -12,8 +12,9 @@ test("Three.js Cymonkey exposes only explicitly registered resources", async () 
   assert.equal(description.surfaces.some((surface) => surface.properties?.name === hidden.name), false);
   const hello = runtime.hello();
   assert.equal(hello.protocolVersion, CYMONKEY_PROTOCOL_VERSION);
-  assert.ok(hello.profiles.includes("engine"));
-  assert.deepEqual(hello.backends, ["engine-threejs"]);
+  assert.ok(hello.domains.includes("render"));
+  assert.deepEqual(hello.runtimes, ["threejs"]);
+  assert.deepEqual(hello.drivers, ["in-page-runtime"]);
 });
 
 test("Three.js Cymonkey enforces target and action allowlists", async () => {

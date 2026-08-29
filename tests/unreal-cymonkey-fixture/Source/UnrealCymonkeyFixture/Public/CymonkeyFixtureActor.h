@@ -14,6 +14,6 @@ class UNREALPACMANFIXTURE_API ACymonkeyFixtureActor final : public AActor
 public:
     ACymonkeyFixtureActor();
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pacman")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Cymonkey")
     TObjectPtr<UCymonkeyRegistryComponent> CymonkeyRegistry;
 };

@@ -4,8 +4,9 @@ extends RefCounted
 const VERSION := "jangolova.cymonkey/v1alpha2"
 const MAXIMUM_MESSAGE_BYTES := 4 * 1024 * 1024
 
-const PROFILE_ENGINE := "engine"
-const BACKEND_GODOT := "engine-godot"
+const DOMAIN_RENDER := "render"
+const RUNTIME_GODOT := "godot"
+const DRIVER_CYMONKEY_WS := "cymonkey-ws"
 
 const METHOD_HELLO := "hello"
 const METHOD_CAPABILITIES := "capabilities"

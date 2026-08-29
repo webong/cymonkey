@@ -2,7 +2,7 @@
 import process from "node:process";
 import readline from "node:readline";
 
-const protocolVersion = "jangolova.cymonkey/v1alpha1";
+const protocolVersion = "jangolova.cymonkey/v1alpha2";
 let browser;
 let targetProtocol = "cdp";
 let disconnected = true;
@@ -43,7 +43,7 @@ async function dispatch(method, params) {
   if (method === "connect") return connect(params);
   if (method === "reconnect") return reconnect(params);
   if (method === "disconnect") return disconnect();
-  if (method === "health") return { connected: isConnected(), backends: activeBackends() };
+  if (method === "health") return { connected: isConnected(), drivers: activeDrivers() };
   requireConnection();
   if (method === "hello") return hello();
   if (method === "capabilities") return negotiated;
@@ -67,8 +67,8 @@ async function connect(params) {
   await initializePages();
   await probeExtension();
   negotiated = await negotiateCapabilities();
-  appendEvent("cymonkey.connected", { backends: activeBackends(), driver });
-  return { capabilities: negotiated.map((item) => item.name), descriptors: negotiated, backends: activeBackends() };
+  appendEvent("cymonkey.connected", { drivers: activeDrivers(), driver });
+  return { capabilities: negotiated.map((item) => item.name), descriptors: negotiated, drivers: activeDrivers() };
 }
 
 async function reconnect(params) {
@@ -102,8 +102,8 @@ async function reconnect(params) {
   if (previousCreated && previousControl && !previousControl.isClosed()) await previousControl.close().catch(() => {});
   if (typeof previous.disconnect === "function") previous.disconnect();
   else if (typeof previous.close === "function") await previous.close().catch(() => {});
-  appendEvent("cymonkey.connection.renewed", { backends: activeBackends(), driver });
-  return { reconnected: true, backends: activeBackends() };
+  appendEvent("cymonkey.connection.renewed", { drivers: activeDrivers(), driver });
+  return { reconnected: true, drivers: activeDrivers() };
 }
 
 async function openBrowser(endpoint, protocol, headers, driver = "auto") {
@@ -172,11 +172,11 @@ async function probeExtension() {
     extensionControl = result.page;
     extensionControlCreated = result.created;
     const extensionHello = await callExtension("hello", {});
-    if (![protocolVersion, "jangolova.cymonkey/v1alpha2"].includes(extensionHello?.protocolVersion) ||
-      (extensionHello?.protocolVersion === "jangolova.cymonkey/v1alpha2" && !extensionHello?.profiles?.includes("web")) || ![
-      "jangolova-browser-extension-webextension",
-      "jangolova-cymonkey-webextension",
-    ].includes(extensionHello?.implementation?.name)) {
+    if (extensionHello?.protocolVersion !== protocolVersion ||
+      !extensionHello?.domains?.includes("computer") ||
+      !extensionHello?.runtimes?.includes("browser-dom") ||
+      !extensionHello?.drivers?.includes("webextension") ||
+      extensionHello?.implementation?.name !== "jangolova-browser-extension-webextension") {
       throw new Error("extension returned an incompatible Cymonkey handshake");
     }
   } catch (error) {
@@ -208,7 +208,7 @@ async function negotiateCapabilities() {
   const merged = new Map(base.map((item) => [item.name, item]));
   for (const item of extension) {
     const fallback = merged.get(item.name);
-    if (fallback) item.alternatives = [...new Set([...(item.alternatives || []), fallback.backend])];
+    if (fallback) item.alternatives = [...new Set([...(item.alternatives || []), fallback.driver])];
     merged.set(item.name, item);
   }
   return [...merged.values()].sort((left, right) => left.name.localeCompare(right.name));
@@ -218,7 +218,9 @@ function hello() {
   return {
     protocolVersion,
     implementation: { name: "jangolova-cymonkey", version: "0.1.0" },
-    backends: activeBackends(),
+    domains: ["computer"],
+    runtimes: ["browser-dom"],
+    drivers: activeDrivers(),
     features: ["augmentation", "caller-owned-target", "capabilities.negotiated", "events.cursor", "page-bridge.nested"],
   };
 }
@@ -226,10 +228,12 @@ function hello() {
 async function describe() {
   const pages = (await getPages()).filter((page) => !isExtensionPage(page));
   return {
-    backends: activeBackends(),
-    extension: extensionControl ? { detected: true, id: extensionConfig.id } : { detected: false },
-    pages: await Promise.all(pages.map(async (page, index) => ({ index, url: page.url(), title: await page.title() }))),
-    augmentations: [...augmentations.values()].map((item) => ({ id: item.id, revision: item.revision, enabled: item.enabled })).sort((a, b) => a.id.localeCompare(b.id)),
+    revision: String(sequence),
+    surfaces: await Promise.all(pages.map(async (page, index) => ({
+      id: `document:${index}`, domain: "computer", runtime: "browser-dom", kind: "document",
+      label: await page.title(), properties: { url: page.url() },
+    }))),
+    augmentations: [...augmentations.values()].map((item) => ({ id: item.id, revision: item.revision, enabled: item.enabled, domains: ["computer"] })).sort((a, b) => a.id.localeCompare(b.id)),
   };
 }
 
@@ -240,9 +244,9 @@ async function act(request) {
   if (!descriptor) throw new Error(`Cymonkey capability ${JSON.stringify(name)} is unavailable or denied by policy`);
   await enforceOriginPolicy(input);
   let result;
-  if (descriptor.backend === "webextension") result = await callExtension("act", { name, input });
+  if (descriptor.driver === "webextension") result = await callExtension("act", { name, input });
   else result = await actBase(name, input);
-  appendEvent("cymonkey.action", { name, backend: descriptor.backend });
+  appendEvent("cymonkey.action", { name, driver: descriptor.driver });
   return result;
 }
 
@@ -329,13 +333,16 @@ async function actBase(name, input) {
 
 async function installAugmentation(manifest, update) {
   validateManifest(manifest);
-  for (const match of [...manifest.spec.matches, ...(manifest.spec.excludeMatches || [])]) {
+  const target = browserTarget(manifest);
+  const matches = target.match.urlPatterns;
+  const excludeMatches = target.match.excludeUrlPatterns || [];
+  for (const match of [...matches, ...excludeMatches]) {
     if (!originPatternAllowed(match)) throw new Error(`Cymonkey policy denied augmentation match ${JSON.stringify(match)}`);
   }
   const id = manifest.metadata.id;
   if (update !== augmentations.has(id)) throw new Error(`augmentation ${JSON.stringify(id)} ${update ? "is not installed" : "already exists"}`);
   if (update) await deactivateAugmentation(id);
-  const record = { id, revision: manifest.metadata.revision, enabled: manifest.spec.enabled !== false, manifest };
+  const record = { id, revision: manifest.metadata.revision, enabled: manifest.spec.enabled !== false, manifest, matches, excludeMatches };
   augmentations.set(id, record);
   if (record.enabled) await activateAugmentation(record);
   return publicAugmentation(record);
@@ -357,9 +364,10 @@ async function setAugmentationEnabled(id, enabled) {
 }
 
 async function activateAugmentation(record) {
-  for (const script of record.manifest.spec.scripts || []) await registerScript({ augmentationId: record.id, script, matches: record.manifest.spec.matches, excludeMatches: record.manifest.spec.excludeMatches || [] });
-  for (const style of record.manifest.spec.styles || []) await insertStyle({ augmentationId: record.id, id: style.id, css: style.css });
-  if ((record.manifest.spec.networkRules || []).length > 0) await installNetworkRules({ augmentationId: record.id, rules: record.manifest.spec.networkRules });
+  const computer = record.manifest.spec.computer || {};
+  for (const script of computer.scripts || []) await registerScript({ augmentationId: record.id, script, matches: record.matches, excludeMatches: record.excludeMatches });
+  for (const style of computer.styles || []) await insertStyle({ augmentationId: record.id, id: style.id, css: style.css });
+  if ((computer.networkRules || []).length > 0) await installNetworkRules({ augmentationId: record.id, rules: computer.networkRules });
 }
 
 async function deactivateAugmentation(id) {
@@ -656,17 +664,24 @@ async function probeBaseCapabilities() {
   return candidates.filter((item) => supported.has(item.name));
 }
 
-function cap(name, backend, support, lifetime, persistence, effect, required) {
-  return { name, backend, support, lifetime, persistence, effect, inputSchema: { type: "object", required, additionalProperties: true } };
+function cap(name, driver, support, lifetime, persistence, effect, required) {
+  return {
+    name, domain: "computer", runtime: "browser-dom", driver, support,
+    lifetime: lifetime === "browser-session" ? "attachment" : lifetime === "document" ? "surface" : lifetime,
+    persistence, effect, inputSchema: { type: "object", required, additionalProperties: true },
+  };
 }
 
 function normalizeExtensionCapability(value) {
+  const { backend: _backend, ...capability } = value;
   return {
-    ...value,
-    backend: "webextension",
-    support: value.support || "native",
-    lifetime: value.lifetime || "profile",
-    persistence: value.persistence || "persistent",
+    ...capability,
+    domain: "computer",
+    runtime: "browser-dom",
+    driver: "webextension",
+    support: capability.support || "native",
+    lifetime: capability.lifetime || "installation",
+    persistence: capability.persistence || "persistent",
   };
 }
 
@@ -699,23 +714,25 @@ function matchOrigin(pattern, url) {
 }
 
 function validateManifest(value) {
-  if (!value || value.apiVersion !== protocolVersion || value.kind !== "Augmentation") throw new Error("manifest must be a jangolova.cymonkey/v1alpha1 Augmentation");
+  if (!value || value.apiVersion !== protocolVersion || value.kind !== "Augmentation") throw new Error("manifest must be a jangolova.cymonkey/v1alpha2 Augmentation");
   requireString(value.metadata?.id, "manifest.metadata.id");
   requireString(value.metadata?.revision, "manifest.metadata.revision");
-  if (!Array.isArray(value.spec?.matches) || value.spec.matches.length === 0) throw new Error("manifest.spec.matches is required");
+  const target = value.spec?.targets?.find((item) => item?.domain === "computer" && item?.runtime === "browser-dom");
+  if (!target || !Array.isArray(target.match?.urlPatterns) || target.match.urlPatterns.length === 0) throw new Error("manifest requires a computer/browser-dom target with match.urlPatterns");
 }
 function requireAugmentation(id) { const value = augmentations.get(requireString(id, "augmentationId")); if (!value) throw new Error(`augmentation ${JSON.stringify(id)} is not installed`); return value; }
-function publicAugmentation(value) { return { id: value.id, revision: value.revision, enabled: value.enabled, matches: value.manifest.spec.matches }; }
+function publicAugmentation(value) { return { id: value.id, revision: value.revision, enabled: value.enabled, domains: ["computer"] }; }
+function browserTarget(manifest) { return manifest.spec.targets.find((item) => item?.domain === "computer" && item?.runtime === "browser-dom"); }
 function requireString(value, name) { if (typeof value !== "string" || !value) throw new Error(`${name} is required`); return value; }
 
-function pageBridgeBootstrap(backend = "cdp") {
+function pageBridgeBootstrap(driver = "cdp") {
   if (globalThis.jangolova !== undefined && (globalThis.jangolova === null || !["object", "function"].includes(typeof globalThis.jangolova))) return;
   const root = globalThis.jangolova ||= {};
   if (root.cymonkey) return;
   const overlays = new Map();
   let cursor = 0;
   const pageEvents = [];
-  const emit = (type, data) => { cursor += 1; pageEvents.push({ id: String(cursor), type, occurredAt: new Date().toISOString(), data }); };
+  const emit = (type, data) => { cursor += 1; pageEvents.push({ id: String(cursor), type, occurredAt: new Date().toISOString(), domain: "computer", runtime: "browser-dom", driver, data }); };
   const act = async (name, input = {}) => {
     if (name === "dom.query") return { matches: [...document.querySelectorAll(String(input.selector || ""))].slice(0, 100).map((node) => ({ tag: node.tagName.toLowerCase(), id: node.id || null, text: (node.textContent || "").trim().slice(0, 500) })) };
     if (name === "dom.patch") { const node = document.querySelector(String(input.selector || "")); if (!node) throw new Error("selector did not match"); if (typeof input.text === "string") node.textContent = input.text; return { ok: true }; }
@@ -724,13 +741,13 @@ function pageBridgeBootstrap(backend = "cdp") {
     throw new Error(`page-safe Cymonkey does not expose ${JSON.stringify(name)}`);
   };
   root.cymonkey = Object.freeze({
-    hello: async () => ({ protocolVersion: "jangolova.cymonkey/v1alpha1", implementation: { name: "jangolova-cymonkey-page" }, backends: [backend] }),
+    hello: async () => ({ protocolVersion, implementation: { name: "jangolova-cymonkey-page" }, domains: ["computer"], runtimes: ["browser-dom"], drivers: [driver] }),
     capabilities: async () => [
-      { name: "dom.query", backend, support: "mapped", lifetime: "call", persistence: "ephemeral", effect: "read", inputSchema: { type: "object", required: ["selector"], additionalProperties: true } },
-      { name: "dom.patch", backend, support: "mapped", lifetime: "document", persistence: "ephemeral", effect: "write", inputSchema: { type: "object", required: ["selector"], additionalProperties: true } },
-      ...["overlay.mount", "overlay.patch", "overlay.unmount"].map((name) => ({ name, backend, support: "emulated", lifetime: "document", persistence: "ephemeral", effect: "write", inputSchema: { type: "object", required: ["id"], additionalProperties: true } })),
+      cap("dom.query", driver, "mapped", "call", "ephemeral", "read", ["selector"]),
+      cap("dom.patch", driver, "mapped", "surface", "ephemeral", "write", ["selector"]),
+      ...["overlay.mount", "overlay.patch", "overlay.unmount"].map((name) => cap(name, driver, "emulated", "surface", "ephemeral", "write", ["id"])),
     ],
-    describe: async () => ({ url: location.href, title: document.title, readyState: document.readyState, overlays: [...overlays.keys()] }),
+    describe: async () => ({ revision: String(cursor), surfaces: [{ id: "document:main", domain: "computer", runtime: "browser-dom", kind: "document", label: document.title, properties: { url: location.href, readyState: document.readyState, overlays: [...overlays.keys()] } }], augmentations: [] }),
     act,
     events: async (query = {}) => ({ events: pageEvents.filter((event) => Number(event.id) > Number(query.after || 0)), cursor: String(cursor) }),
   });
@@ -747,7 +764,7 @@ async function callExtension(method, params) {
   if (!extensionControl || extensionControl.isClosed()) throw new Error("Cymonkey WebExtension control plane is unavailable");
   return extensionControl.evaluate(({ method, params }) => globalThis.cymonkeyDispatch(method, params), { method, params });
 }
-function activeBackends() { return [targetProtocol === "webdriver-bidi" ? "bidi" : "cdp", ...(extensionControl ? ["webextension"] : [])]; }
+function activeDrivers() { return [targetProtocol === "webdriver-bidi" ? "bidi" : "cdp", ...(extensionControl ? ["webextension"] : [])]; }
 function isExtensionPage(page) { return page.url().startsWith("chrome-extension://") || page.url().startsWith("moz-extension://"); }
 function redactURL(value) { try { const url = new URL(value); url.username = ""; url.password = ""; url.search = ""; url.hash = ""; return url.toString(); } catch { return ""; } }
 
@@ -757,7 +774,7 @@ function readEvents(query) {
   const types = new Set(Array.isArray(query.types) ? query.types : []);
   return { events: events.filter((event) => Number(event.id) > after && (types.size === 0 || types.has(event.type))).slice(0, limit), cursor: String(sequence) };
 }
-function appendEvent(type, data) { sequence += 1; events.push({ id: String(sequence), type, occurredAt: new Date().toISOString(), backend: targetProtocol === "webdriver-bidi" ? "bidi" : "cdp", data }); if (events.length > 1024) events.splice(0, events.length - 1024); }
+function appendEvent(type, data) { sequence += 1; events.push({ id: String(sequence), type, occurredAt: new Date().toISOString(), domain: "computer", runtime: "browser-dom", driver: targetProtocol === "webdriver-bidi" ? "bidi" : "cdp", data }); if (events.length > 1024) events.splice(0, events.length - 1024); }
 
 async function resolveCDPEndpoint(endpoint, headers) {
   if (endpoint.startsWith("ws://") || endpoint.startsWith("wss://")) return endpoint;

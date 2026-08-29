@@ -9,14 +9,14 @@ import (
 )
 
 func TestRecordedControlCallsDecodeWithGeneratedBindings(t *testing.T) {
-	for _, name := range []string{"legacy-cymonkey-act", "extension-cymonkey-act", "policy-replace"} {
+	for _, name := range []string{"extension-cymonkey-act", "policy-replace"} {
 		contents := readFixture(t, name)
 		var call ControlCall
 		if err := json.Unmarshal(contents, &call); err != nil {
 			t.Fatalf("decode %s: %v", name, err)
 		}
-		if call.Type != CallTypeJangolova && call.Type != CallTypeCymonkey {
-			t.Fatalf("%s decoded unsupported call type %q", name, call.Type)
+		if call.Type != CallTypeJangolova {
+			t.Fatalf("%s decoded non-standard call type %q", name, call.Type)
 		}
 		if call.Method == "" {
 			t.Fatalf("%s decoded empty method", name)

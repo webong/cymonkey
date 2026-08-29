@@ -51,8 +51,9 @@ namespace
     {
         TSharedPtr<FJsonObject> Value = MakeShared<FJsonObject>();
         Value->SetStringField(TEXT("name"), Name);
-        Value->SetStringField(TEXT("profile"), Jangolova::Cymonkey::ProfileEngine);
-        Value->SetStringField(TEXT("backend"), Jangolova::Cymonkey::BackendUnreal);
+        Value->SetStringField(TEXT("domain"), Jangolova::Cymonkey::DomainRender);
+        Value->SetStringField(TEXT("runtime"), Jangolova::Cymonkey::RuntimeUnreal);
+        Value->SetStringField(TEXT("driver"), Jangolova::Cymonkey::DriverCymonkeyWebSocket);
         Value->SetStringField(TEXT("support"), TEXT("native"));
         Value->SetStringField(TEXT("lifetime"), TEXT("attachment"));
         Value->SetStringField(TEXT("persistence"), TEXT("session"));
@@ -62,7 +63,7 @@ namespace
         {
             TargetKinds.Add(MakeShared<FJsonValueString>(Kind));
         }
-        Value->SetArrayField(TEXT("targetKinds"), TargetKinds);
+        Value->SetArrayField(TEXT("resourceKinds"), TargetKinds);
         Value->SetObjectField(TEXT("inputSchema"), InputSchema);
         return ObjectValue(Value);
     }
@@ -142,8 +143,9 @@ TSharedPtr<FJsonValue> UCymonkeyRegistryComponent::Hello() const
     TSharedPtr<FJsonObject> Value = MakeShared<FJsonObject>();
     Value->SetStringField(TEXT("protocolVersion"), Jangolova::Cymonkey::ProtocolVersion);
     Value->SetField(TEXT("implementation"), MakeShared<FJsonValueObject>(Implementation));
-    Value->SetArrayField(TEXT("profiles"), { MakeShared<FJsonValueString>(Jangolova::Cymonkey::ProfileEngine) });
-    Value->SetArrayField(TEXT("backends"), { MakeShared<FJsonValueString>(Jangolova::Cymonkey::BackendUnreal) });
+    Value->SetArrayField(TEXT("domains"), { MakeShared<FJsonValueString>(Jangolova::Cymonkey::DomainRender) });
+    Value->SetArrayField(TEXT("runtimes"), { MakeShared<FJsonValueString>(Jangolova::Cymonkey::RuntimeUnreal) });
+    Value->SetArrayField(TEXT("drivers"), { MakeShared<FJsonValueString>(Jangolova::Cymonkey::DriverCymonkeyWebSocket) });
     Value->SetArrayField(TEXT("features"), {
         MakeShared<FJsonValueString>(TEXT("events.cursor")),
         MakeShared<FJsonValueString>(TEXT("resources.explicit-allowlist"))
@@ -329,7 +331,8 @@ TSharedPtr<FJsonObject> UCymonkeyRegistryComponent::DescribeResource(const FCymo
     }
     TSharedPtr<FJsonObject> Value = MakeShared<FJsonObject>();
     Value->SetStringField(TEXT("id"), Registration.StableId);
-    Value->SetStringField(TEXT("profile"), Jangolova::Cymonkey::ProfileEngine);
+    Value->SetStringField(TEXT("domain"), Jangolova::Cymonkey::DomainRender);
+    Value->SetStringField(TEXT("runtime"), Jangolova::Cymonkey::RuntimeUnreal);
     Value->SetStringField(TEXT("kind"), WireKind(Registration.Kind));
     if (!Registration.Label.IsEmpty()) Value->SetStringField(TEXT("label"), Registration.Label);
     Value->SetObjectField(TEXT("properties"), Properties);
@@ -345,6 +348,9 @@ void UCymonkeyRegistryComponent::Publish(
     TSharedPtr<FJsonObject> Event = MakeShared<FJsonObject>();
     Event->SetStringField(TEXT("id"), LexToString(EventSequence));
     Event->SetStringField(TEXT("type"), Type);
+    Event->SetStringField(TEXT("domain"), Jangolova::Cymonkey::DomainRender);
+    Event->SetStringField(TEXT("runtime"), Jangolova::Cymonkey::RuntimeUnreal);
+    Event->SetStringField(TEXT("driver"), Jangolova::Cymonkey::DriverCymonkeyWebSocket);
     Event->SetStringField(TEXT("sourceId"), SourceId);
     Event->SetStringField(TEXT("occurredAt"), FDateTime::UtcNow().ToIso8601());
     Event->SetObjectField(TEXT("data"), Data);

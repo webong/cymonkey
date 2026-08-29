@@ -12,7 +12,7 @@ let requestId = 1;
 const pending = new Map();
 
 const reply = new Promise((resolve, reject) => {
-  const timeout = setTimeout(() => reject(new Error("Pacman house test timed out")), 15_000);
+  const timeout = setTimeout(() => reject(new Error("Cymonkey house test timed out")), 15_000);
   socket.addEventListener("open", () => socket.send(JSON.stringify({ type: "auth", token })));
   socket.addEventListener("message", (event) => {
     const message = JSON.parse(event.data);
@@ -27,9 +27,9 @@ const reply = new Promise((resolve, reject) => {
     if (message.error) request.reject(new Error(`${message.error.code}: ${message.error.message}`));
     else request.resolve(message.result);
   });
-  socket.addEventListener("error", () => reject(new Error("Pacman WebSocket failed")));
+  socket.addEventListener("error", () => reject(new Error("Cymonkey WebSocket failed")));
   socket.addEventListener("close", (event) => {
-    if (event.code !== 1000) reject(new Error(`Pacman WebSocket closed: ${event.code}`));
+    if (event.code !== 1000) reject(new Error(`Cymonkey WebSocket closed: ${event.code}`));
   });
 });
 
@@ -49,8 +49,9 @@ function act(name, targetId, input) {
 
 const hello = await call("hello");
 assert.equal(hello.protocolVersion, "jangolova.cymonkey/v1alpha2");
-assert.ok(hello.profiles.includes("engine"));
-assert.ok(hello.backends.includes("engine-godot"));
+assert.ok(hello.domains.includes("render"));
+assert.ok(hello.runtimes.includes("godot"));
+assert.ok(hello.drivers.includes("cymonkey-ws"));
 const capabilities = await call("capabilities");
 assert.ok(capabilities.some((capability) => capability.name === "camera.transform.set"));
 assert.ok(capabilities.some((capability) => capability.name === "ui.text.set"));
@@ -70,4 +71,4 @@ const events = await call("events", { after: "0", limit: 20 });
 assert.deepEqual(events.events.map((event) => event.sourceId), plan.actions.map((action) => action.targetId));
 assert.equal((await call("health")).status, "ready");
 socket.close(1000, "house test complete");
-console.log(`Godot Pacman house choreography passed (${events.events.length} resource events).`);
+console.log(`Godot Cymonkey house choreography passed (${events.events.length} resource events).`);

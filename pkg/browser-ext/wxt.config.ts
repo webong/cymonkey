@@ -4,7 +4,7 @@ export default defineConfig({
   outDirTemplate: '{{browser}}-mv{{manifestVersion}}',
   manifest: ({ browser }) => ({
     name: 'Jangolova Browser Extension',
-    description: 'Jangolova browser runtime with Cymonkey, Pacman, and runtime-activated Xallet Spook integration',
+    description: 'Jangolova browser runtime with Cymonkey and runtime-activated Xallet Spook integration',
     permissions: [
       'declarativeNetRequest',
       'declarativeNetRequestWithHostAccess',

@@ -52,8 +52,8 @@ namespace Jangolova.CymonkeyFixture
 
         private static void RunConformance()
         {
-            GameObject bridgeObject = new GameObject("PacmanFixtureBridge");
-            GameObject targetObject = new GameObject("PacmanFixtureTarget");
+            GameObject bridgeObject = new GameObject("CymonkeyFixtureBridge");
+            GameObject targetObject = new GameObject("CymonkeyFixtureTarget");
             try
             {
                 CymonkeyBridge bridge = bridgeObject.AddComponent<CymonkeyBridge>();
@@ -125,7 +125,7 @@ namespace Jangolova.CymonkeyFixture
         private static void InvokeLifecycle(CymonkeyBridge bridge, string methodName)
         {
             MethodInfo method = typeof(CymonkeyBridge).GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic);
-            Require(method != null, "Pacman lifecycle method missing: " + methodName);
+            Require(method != null, "Cymonkey lifecycle method missing: " + methodName);
             method.Invoke(bridge, null);
         }
 

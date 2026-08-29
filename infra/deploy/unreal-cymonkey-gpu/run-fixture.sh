@@ -7,7 +7,7 @@ screen_width="${UNREAL_SCREEN_WIDTH:-1280}"
 screen_height="${UNREAL_SCREEN_HEIGHT:-720}"
 
 if [[ ! -x "${fixture_executable}" ]]; then
-  echo "Unreal Pacman GPU fixture executable is missing: ${fixture_executable}" >&2
+  echo "Unreal Cymonkey GPU fixture executable is missing: ${fixture_executable}" >&2
   exit 1
 fi
 

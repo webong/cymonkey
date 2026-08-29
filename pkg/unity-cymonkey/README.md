@@ -3,12 +3,12 @@
 Add `CymonkeyBridge` and a transport-host component to a scene object, then assign
 the host to the bridge's serialized `transportHost` field. Populate the
 bridge's `registrations` list. Every entry needs a stable kind-prefixed ID, an
-explicit Unity target, and an explicit action allowlist. Pacman never scans or
+explicit Unity target, and an explicit action allowlist. Cymonkey never scans or
 exports unregistered GameObjects.
 
 The initial `CymonkeyWebSocketHost` binding uses `cymonkey-ws`. The target owner
 supplies `JANGOLOVA_CYMONKEY_PREFIX` (an `HttpListener` prefix,
-for example `http://127.0.0.1:8090/pacman/`) and
+for example `http://127.0.0.1:8090/cymonkey/`) and
 `JANGOLOVA_CYMONKEY_TOKEN` through a secret injection mechanism. It then gives
 Jangolova the corresponding `ws://...` `cymonkey-ws` target endpoint and an
 opaque credential reference that resolves to the Authorization header.

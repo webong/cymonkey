@@ -17,22 +17,12 @@ func main() {
 		err = enginesCommand(os.Args[2:])
 	case "connect-engine":
 		err = connectEngineCommand(os.Args[2:])
-	case "models":
-		err = modelsCommand(os.Args[2:])
-	case "connect-model":
-		err = connectModelCommand(os.Args[2:])
 	case "blockade":
 		err = blockadeCommand(os.Args[2:])
 	case "serve-engine-provider":
 		err = serveEngineProviderCommand(os.Args[2:])
-	case "serve-grimlock":
-		err = serveGrimlockCommand(os.Args[2:])
-	case "serve-grimlock-mcp":
-		err = serveGrimlockMCPCommand(os.Args[2:])
-	case "serve-grimlock-acp":
-		err = serveGrimlockACPCommand(os.Args[2:])
-	case "gl":
-		err = grimlockCommand(os.Args[2:])
+	case "serve-mcp":
+		err = serveMCPCommand(os.Args[2:])
 	case "help", "-h", "--help":
 		usage()
 		return
@@ -53,12 +43,7 @@ func usage() {
 Commands:
   engines                 Discover interaction-engine adapters and availability
   connect-engine          Attach one engine to a caller-owned target
-  models                  Discover registered Grimlock model connector protocols
-  connect-model           Test connection to a caller-supplied model provider
   blockade                Validate Blockade config or run one observation
   serve-engine-provider   Serve the authenticated interaction-engine API
-  serve-grimlock           Serve the authenticated Grimlock agent API
-  serve-grimlock-mcp       Serve Grimlock through MCP (stdio or HTTP)
-  serve-grimlock-acp       Serve Grimlock through ACP stdio
-  gl                       Serve Grimlock (use --mcp or --acp for a protocol adapter)`)
+  serve-mcp               Serve Jangolova's direct MCP tool interface (stdio or HTTP)`)
 }

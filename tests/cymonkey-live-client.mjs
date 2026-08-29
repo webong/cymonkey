@@ -14,8 +14,10 @@ let overlayMounted = false;
 
 try {
   const hello = await call("hello", {});
-  assert.equal(hello.protocolVersion, "jangolova.cymonkey/v1alpha1");
-  assert.ok(hello.backends.includes(expectedBackend), JSON.stringify(hello));
+  assert.equal(hello.protocolVersion, "jangolova.cymonkey/v1alpha2");
+  assert.ok(hello.domains.includes("computer"), JSON.stringify(hello));
+  assert.ok(hello.runtimes.includes("browser-dom"), JSON.stringify(hello));
+  assert.ok(hello.drivers.includes(expectedBackend), JSON.stringify(hello));
 
   const capabilities = await call("capabilities", {});
   const byName = new Map(capabilities.map((value) => [value.name, value]));
@@ -27,20 +29,22 @@ try {
     assert.ok(byName.has(name), `${expectedBackend} did not advertise ${name}`);
   }
   for (const capability of capabilities) {
-    for (const field of ["backend", "support", "lifetime", "persistence", "effect", "inputSchema"]) {
+    for (const field of ["domain", "runtime", "driver", "support", "lifetime", "persistence", "effect", "inputSchema"]) {
       assert.ok(capability[field], `${capability.name} omitted ${field}`);
     }
   }
 
   const manifest = {
-    apiVersion: "jangolova.cymonkey/v1alpha1",
+    apiVersion: "jangolova.cymonkey/v1alpha2",
     kind: "Augmentation",
     metadata: { id: augmentationId, revision: "live-conformance-1" },
     spec: {
-      matches: ["file://*/*"],
+	  targets: [{ domain: "computer", runtime: "browser-dom", match: { urlPatterns: ["file://*/*"] } }],
       permissions: ["script.register", "style.insert"],
-      scripts: [{ id: "preload", source: "globalThis.__cymonkeyLivePreload = true;", world: "ISOLATED", runAt: "document_start" }],
-      styles: [{ id: "fixture-style", css: ":root { --cymonkey-live: 1; }" }],
+      computer: {
+        scripts: [{ id: "preload", source: "globalThis.__cymonkeyLivePreload = true;", world: "ISOLATED", runAt: "document_start" }],
+        styles: [{ id: "fixture-style", css: ":root { --cymonkey-live: 1; }" }],
+      },
     },
   };
   const installedResult = await act("augmentation.install", { manifest });
@@ -65,7 +69,7 @@ try {
   const stored = await act("storage.get", { augmentationId, keys: ["proof"] });
   assert.equal(stored.values.proof, expectedBackend);
 
-  if (byName.has("network.rules.install") && byName.get("network.rules.install").backend === expectedBackend) {
+  if (byName.has("network.rules.install") && byName.get("network.rules.install").driver === expectedBackend) {
     await act("network.rules.install", {
       augmentationId,
       rules: [{ id: ruleId, priority: 1, action: { type: "block" }, condition: { urlFilter: "cymonkey-live.invalid/never" } }],

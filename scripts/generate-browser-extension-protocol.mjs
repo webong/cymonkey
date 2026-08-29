@@ -11,16 +11,14 @@ const schema = JSON.parse(schemaSource);
 const digest = createHash('sha256').update(schemaSource).digest('hex');
 const conditions = schema.$defs.controlCall.allOf;
 const extensionMethods = conditions[0].then.properties.method.enum;
-const cymonkeyMethods = conditions[1].then.properties.method.enum;
 
 const typescript = `// Code generated from protocol/browser-extension/v1alpha1/protocol.schema.json; DO NOT EDIT.
 // Schema SHA-256: ${digest}
 
 export const browserExtensionProtocolVersion = 'jangolova.browser-extension/v1alpha1' as const;
-export type ExtensionCallType = 'JANGOLOVA_EXTENSION_CALL' | 'CYMONKEY_CALL';
+export type ExtensionCallType = 'JANGOLOVA_EXTENSION_CALL';
 export type ExtensionMethod = ${union(extensionMethods)};
-export type CymonkeyMethod = ${union(cymonkeyMethods)};
-export type ControlMethod = ExtensionMethod | CymonkeyMethod;
+export type ControlMethod = ExtensionMethod;
 export type ControlCaller = 'xallet-spook' | 'authenticated-websocket' | 'extension-origin';
 export type CapabilityEffect = 'read' | 'write' | 'external';
 export type PolicyDecision = 'allow' | 'deny';
@@ -100,13 +98,12 @@ type CallType string
 
 const (
 	CallTypeJangolova CallType = "JANGOLOVA_EXTENSION_CALL"
-	CallTypeCymonkey CallType = "CYMONKEY_CALL"
 )
 
 type Method string
 
 const (
-${[...new Set([...extensionMethods, ...cymonkeyMethods])].map((method) => `\tMethod${goName(method)} Method = ${JSON.stringify(method)}`).join('\n')}
+${[...new Set(extensionMethods)].map((method) => `\tMethod${goName(method)} Method = ${JSON.stringify(method)}`).join('\n')}
 )
 
 type ControlCall struct {

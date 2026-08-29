@@ -10,7 +10,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Jangolova.Cymonkey
 {
-    // The Unity application owns this listener. Disposing it detaches Pacman;
+    // The Unity application owns this listener. Disposing it detaches Cymonkey;
     // it never exits or otherwise controls the application.
     internal sealed class CymonkeyWebSocketServer : IDisposable
     {
@@ -22,7 +22,7 @@ namespace Jangolova.Cymonkey
 
         internal CymonkeyWebSocketServer(CymonkeyBridge bridge, string prefix, string token, SynchronizationContext unityContext)
         {
-            if (string.IsNullOrWhiteSpace(token)) throw new InvalidOperationException("Pacman token is required when a listener prefix is configured.");
+            if (string.IsNullOrWhiteSpace(token)) throw new InvalidOperationException("Cymonkey token is required when a listener prefix is configured.");
             this.bridge = bridge; this.token = token; this.unityContext = unityContext;
             listener.Prefixes.Add(prefix);
         }
@@ -53,7 +53,7 @@ namespace Jangolova.Cymonkey
                     using (MemoryStream message = new MemoryStream())
                     {
                         WebSocketReceiveResult read;
-                        do { read = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), lifetime.Token); if (read.MessageType == WebSocketMessageType.Close) return; if (message.Length + read.Count > CymonkeyProtocol.MaximumMessageBytes) throw new InvalidDataException("Pacman message is too large."); message.Write(buffer, 0, read.Count); } while (!read.EndOfMessage);
+                        do { read = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), lifetime.Token); if (read.MessageType == WebSocketMessageType.Close) return; if (message.Length + read.Count > CymonkeyProtocol.MaximumMessageBytes) throw new InvalidDataException("Cymonkey message is too large."); message.Write(buffer, 0, read.Count); } while (!read.EndOfMessage);
                         WireRequest request = JsonConvert.DeserializeObject<WireRequest>(Encoding.UTF8.GetString(message.ToArray()));
                         JObject reply = await OnUnityThread(() => Invoke(request));
                         byte[] payload = Encoding.UTF8.GetBytes(reply.ToString(Formatting.None));

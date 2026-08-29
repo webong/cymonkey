@@ -694,6 +694,61 @@ func performRequest(handler http.Handler, method, path, body string) *httptest.R
 	return response
 }
 
+func TestServiceRequiresOneTimeCoreApprovalForConfiguredAction(t *testing.T) {
+	registry := orchestrator.NewRegistry()
+	if err := registry.RegisterEngine("fake", &fakeEngineAdapter{}); err != nil {
+		t.Fatal(err)
+	}
+	service, err := NewService(registry, "test-token")
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := service.Routes()
+	response := performRequest(handler, http.MethodPost, "/v1/instances", `{
+  "apiVersion":"interaction.engine/v1alpha1","instanceId":"approval-one",
+  "engine":{"adapter":"fake","approval":{"requiredActions":["object.visible.set"]}},
+  "target":{"kind":"godot"}
+}`)
+	if response.Code != http.StatusCreated {
+		t.Fatalf("connect status = %d: %s", response.Code, response.Body.String())
+	}
+	params := `{"name":"object.visible.set","input":{"id":"object:door","visible":false}}`
+	response = performRequest(handler, http.MethodPost, "/v1/instances/approval-one/call", `{"method":"act","params":`+params+`}`)
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("unapproved action status = %d: %s", response.Code, response.Body.String())
+	}
+	response = performRequest(handler, http.MethodPost, "/v1/instances/approval-one/approvals", `{"params":`+params+`}`)
+	if response.Code != http.StatusCreated {
+		t.Fatalf("request approval status = %d: %s", response.Code, response.Body.String())
+	}
+	var approval Approval
+	if err := json.NewDecoder(response.Body).Decode(&approval); err != nil {
+		t.Fatal(err)
+	}
+	response = performRequest(handler, http.MethodPost, "/v1/instances/approval-one/approvals/"+approval.ApprovalID, `{"approved":true}`)
+	if response.Code != http.StatusOK {
+		t.Fatalf("approve status = %d: %s", response.Code, response.Body.String())
+	}
+	response = performRequest(handler, http.MethodPost, "/v1/instances/approval-one/call", `{"method":"act","approvalId":"`+approval.ApprovalID+`","params":`+params+`}`)
+	if response.Code != http.StatusOK {
+		t.Fatalf("approved action status = %d: %s", response.Code, response.Body.String())
+	}
+	response = performRequest(handler, http.MethodPost, "/v1/instances/approval-one/call", `{"method":"act","approvalId":"`+approval.ApprovalID+`","params":`+params+`}`)
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("reused approval status = %d: %s", response.Code, response.Body.String())
+	}
+	response = performRequest(handler, http.MethodGet, "/v1/instances/approval-one/events", "")
+	var events InstanceEventBatch
+	if err := json.NewDecoder(response.Body).Decode(&events); err != nil {
+		t.Fatal(err)
+	}
+	for _, expected := range []string{"action.requested", "action.approval_requested", "action.approval_approved", "action.approval_consumed", "action.completed"} {
+		if !hasEventType(events.Events, expected) {
+			t.Fatalf("missing audit event %q in %#v", expected, events.Events)
+		}
+	}
+}
+
 func hasEventType(events []InstanceEvent, eventType string) bool {
 	for _, event := range events {
 		if event.Type == eventType {

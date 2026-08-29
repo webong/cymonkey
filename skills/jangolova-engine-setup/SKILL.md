@@ -1,11 +1,11 @@
 ---
 name: jangolova-engine-setup
-description: Provision and verify Jangolova Pacman engine integrations and headless container environments for Godot, Unity, and Unreal. Use when setting up a Pacman runtime, building or pulling an engine image, configuring a server, or preparing a RunPod or CPU test host.
+description: Provision and verify Jangolova Cymonkey render integrations and headless container environments for Godot, Unity, and Unreal. Use when setting up a Cymonkey runtime, building or pulling an engine image, configuring a server, or preparing a RunPod or CPU test host.
 ---
 
 # Jangolova Engine Setup
 
-Use this skill when an agent must make an engine controllable by Jangolova. Keep engine binaries, licenses, registry credentials, and Pacman bearer tokens outside source control.
+Use this skill when an agent must make an engine controllable by Jangolova. Keep engine binaries, licenses, registry credentials, and Cymonkey bearer tokens outside source control.
 
 ## Choose the runtime
 
@@ -19,7 +19,7 @@ Read [references/runtime-matrix.md](references/runtime-matrix.md) for engine-spe
 
 1. Confirm a Linux `amd64` host, Docker, free disk, and, for rendered tests, an NVIDIA container runtime or supported display/EGL/Vulkan setup.
 2. Authenticate to the registry interactively. Never put PATs in commands, Dockerfiles, build arguments, logs, or chat.
-3. Pull or build the selected Pacman image.
+3. Pull or build the selected Cymonkey image.
 4. Run it with a protected `JANGOLOVA_CYMONKEY_TOKEN`, port `8090`, and a mounted artifacts directory.
 5. Verify `hello`, `capabilities`, `describe`, and `health` before attempting actions.
 
@@ -44,4 +44,4 @@ For real GPU rendering add `--gpus all` and configure the engine display path. X
 - An intentionally unallowlisted action is rejected.
 - Logs and artifacts are written to the mounted directory.
 
-Never scan an engine world, scene tree, UObject heap, or UI tree. Pacman control is explicit and allowlisted.
+Never scan an engine world, scene tree, UObject heap, or UI tree. Cymonkey control is explicit and allowlisted.

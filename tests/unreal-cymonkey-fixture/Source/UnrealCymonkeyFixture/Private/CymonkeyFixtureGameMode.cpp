@@ -22,7 +22,7 @@ void ACymonkeyFixtureGameMode::StartPlay()
         PacmanServer = MakeUnique<FPacmanWebSocketServer>(Token);
         if (!PacmanServer->Start(static_cast<uint16>(Port), Fixture->PacmanRegistry))
         {
-            UE_LOG(LogTemp, Error, TEXT("Unable to start Jangolova Pacman WebSocket server on port %d"), Port);
+            UE_LOG(LogTemp, Error, TEXT("Unable to start Jangolova Cymonkey WebSocket server on port %d"), Port);
         }
     }
 }

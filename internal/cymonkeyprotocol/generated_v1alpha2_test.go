@@ -13,12 +13,12 @@ func TestCymonkeyV1alpha2GeneratedBindingsRoundTrip(t *testing.T) {
 	t.Parallel()
 	now := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	original := Hello{
-		ProtocolVersion:     ProtocolVersion,
-		CompatibleProtocols: []string{"jangolova.cymonkey/v1alpha1"},
-		Implementation:      Implementation{Name: "fixture", Version: "1.0"},
-		Profiles:            []ProfileName{ProfileWeb, ProfileMacOS},
-		Backends:            []BackendName{BackendCDP, BackendBiDi},
-		Features:            []string{"script", "dom"},
+		ProtocolVersion: ProtocolVersion,
+		Implementation:  Implementation{Name: "fixture", Version: "1.0"},
+		Domains:         []DomainName{DomainComputer, DomainRender},
+		Runtimes:        []string{"browser-dom", "threejs"},
+		Drivers:         []DriverName{DriverCDP, DriverInPageRuntime},
+		Features:        []string{"script", "dom"},
 	}
 	payload, err := json.Marshal(original)
 	if err != nil {
@@ -39,8 +39,9 @@ func TestCymonkeyV1alpha2GeneratedBindingsRoundTrip(t *testing.T) {
 				ID:         "evt-1",
 				Type:       "cymonkey.augmentation.applied",
 				OccurredAt: now,
-				Profile:    ProfileWeb,
-				Backend:    BackendCDP,
+				Domain:     DomainComputer,
+				Runtime:    "browser-dom",
+				Driver:     DriverCDP,
 				SurfaceID:  "web:tab-1",
 				Data:       json.RawMessage(`{"augmentationId":"script-1"}`),
 			},

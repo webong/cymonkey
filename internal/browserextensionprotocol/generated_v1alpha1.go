@@ -1,5 +1,5 @@
 // Code generated from protocol/browser-extension/v1alpha1/protocol.schema.json; DO NOT EDIT.
-// Schema SHA-256: 700967cedccd9c45dd1492b6bcc10903b9882d8ce47c1b4783544450448f3d24
+// Schema SHA-256: e058600aae2638160338a49690df83748f65b39f541b09672f0d642cfd0ad0f4
 
 package browserextensionprotocol
 
@@ -14,7 +14,6 @@ type CallType string
 
 const (
 	CallTypeJangolova CallType = "JANGOLOVA_EXTENSION_CALL"
-	CallTypeCymonkey  CallType = "CYMONKEY_CALL"
 )
 
 type Method string
@@ -31,7 +30,6 @@ const (
 	MethodControlWebsocketDescribe  Method = "control.websocket.describe"
 	MethodControlWebsocketConfigure Method = "control.websocket.configure"
 	MethodControlWebsocketDisable   Method = "control.websocket.disable"
-	MethodAct                       Method = "act"
 )
 
 type ControlCall struct {

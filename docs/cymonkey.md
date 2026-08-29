@@ -1,11 +1,16 @@
-# Cymonkey web augmentation profile
+# Cymonkey browser integration
 
 Cymonkey is Jangolova's runtime-agnostic augmentation engine. This document
-defines its existing web profile. The portable `v1alpha2` core, macOS profile,
-ownership model, and migration policy are defined in
+defines its browser integration: the `computer` domain, `browser-dom` runtime,
+and CDP, BiDi, Safari MCP, or WebExtension driver. The portable `v1alpha2`
+core, macOS integration, ownership model, and migration policy are defined in
 [Cymonkey runtime-agnostic augmentation contract](cymonkey-runtime.md).
+See [Cymonkey domains, runtimes, and drivers](cymonkey-domains.md) for the
+canonical target vocabulary.
+See [Cymonkey runtime and driver modules](cymonkey-modules.md) to contribute a
+new caller-approved runtime or driver implementation.
 
-The protocol version is `jangolova.cymonkey/v1alpha1`. Its five operations are
+The protocol version is `jangolova.cymonkey/v1alpha2`. Its five operations are
 also exposed to cooperating page code as:
 
 ```js
@@ -42,7 +47,7 @@ negotiated capability set. It is an error only when extension mode is
 ```text
 application or agent
         |
-        | jangolova.cymonkey/v1alpha1 & v1alpha2
+        | jangolova.cymonkey/v1alpha2
         | hello / capabilities / describe / act / events
         v
 Cymonkey Control Plane Engine
@@ -81,8 +86,9 @@ The default driver is `auto`:
 6. Reject the connection when required capabilities cannot be satisfied after
    probing and policy filtering.
 
-An explicit backend option restricts selection rather than changing the
-semantic API. An explicit extension policy is one of:
+An explicit `module` selects one registered contribution; an explicit `driver`
+selects a compatible driver implementation. Neither changes the semantic API.
+An explicit extension policy is one of:
 
 | Value | Meaning |
 | --- | --- |
@@ -94,7 +100,7 @@ Example:
 
 ```json
 {
-  "backend": "auto",
+  "driver": "auto",
   "extension": {
     "mode": "auto",
     "id": "optional-provider-supplied-id"
@@ -122,7 +128,9 @@ Every advertised capability contains:
 {
   "name": "script.register",
   "description": "Register a script for matching future documents.",
-  "backend": "webextension",
+  "domain": "computer",
+  "runtime": "browser-dom",
+  "driver": "webextension",
   "support": "native",
   "lifetime": "profile",
   "persistence": "persistent",
@@ -139,7 +147,7 @@ authorization.
 
 ## Semantic capability set
 
-The `v1alpha1` Cymonkey vocabulary includes:
+The `v1alpha2` Cymonkey computer-domain vocabulary includes:
 
 - `augmentation.install`, `augmentation.update`, `augmentation.uninstall`
 - `augmentation.enable`, `augmentation.disable`, `augmentation.list`,
@@ -148,12 +156,12 @@ The `v1alpha1` Cymonkey vocabulary includes:
 - `style.insert`, `style.remove`
 - `dom.query`, `dom.observe`, `dom.patch`
 - `overlay.mount`, `overlay.patch`, `overlay.unmount`
-- compatibility routes for `network.*` and `storage.*` while callers migrate
-  to the Jangolova extension control protocol
+- `network.observe`, `network.rules.install`, `network.rules.remove`
+- `storage.get`, `storage.set`
 
 Network rules, storage, shared events, and packaged script injection are
 implemented and authorized by Jangolova platform services. Their appearance in
-the Cymonkey compatibility vocabulary does not assign ownership to Cymonkey.
+the Cymonkey vocabulary does not assign ownership to Cymonkey.
 
 A backend advertises only operations it actually supports after runtime
 probing. For example, a Safari MCP endpoint with click, type, and screenshot
@@ -178,25 +186,29 @@ method appearing in a specification is not sufficient reason to advertise it.
 ## Augmentation manifest and persistence
 
 An augmentation is a versioned semantic declaration. The schema is
-`protocol/cymonkey/v1alpha1/augmentation.schema.json`.
+`src/cymonkey/protocol/v1alpha2/augmentation.schema.json`.
 
 ```json
 {
-  "apiVersion": "jangolova.cymonkey/v1alpha1",
+  "apiVersion": "jangolova.cymonkey/v1alpha2",
   "kind": "Augmentation",
   "metadata": {
     "id": "wikipedia-reading-tools",
     "revision": "sha256:abc123"
   },
   "spec": {
-    "matches": ["https://*.wikipedia.org/wiki/*"],
+    "targets": [{
+      "domain": "computer",
+      "runtime": "browser-dom",
+      "match": {"urlPatterns": ["https://*.wikipedia.org/wiki/*"]}
+    }],
     "permissions": ["dom.query", "overlay.mount", "script.register"],
-    "scripts": [{
+    "computer": {"scripts": [{
       "id": "main",
       "source": "globalThis.wikipediaReadingTools = true;",
       "world": "ISOLATED",
       "runAt": "document_start"
-    }]
+    }]}
   }
 }
 ```
@@ -289,7 +301,7 @@ jangolova connect-engine \
   --adapter cymonkey \
   --target-kind browser \
   --endpoint cdp=http://127.0.0.1:9222 \
-  --options '{"backend":"auto","extension":{"mode":"auto"}}'
+  --options '{"driver":"auto","extension":{"mode":"auto"}}'
 ```
 
 First-class BiDi baseline:
@@ -299,7 +311,7 @@ jangolova connect-engine \
   --adapter cymonkey \
   --target-kind browser \
   --endpoint webdriver-bidi=ws://127.0.0.1:9222/session \
-  --options '{"backend":"bidi","extension":{"mode":"disabled"}}'
+  --options '{"driver":"bidi","extension":{"mode":"disabled"}}'
 ```
 
 Require a provider-installed extension on CDP:

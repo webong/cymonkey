@@ -2,7 +2,10 @@ package engineprovider
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,6 +28,7 @@ var handleNamePattern = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9._-]{0,127}$`)
 var targetIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$`)
 
 const eventHistoryLimit = 256
+const defaultApprovalLifetime = 5 * time.Minute
 
 const (
 	defaultRecoveryInitialBackoff = 250 * time.Millisecond
@@ -60,6 +64,15 @@ type runningInstance struct {
 	healthFailures int
 	events         []InstanceEvent
 	nextEvent      uint64
+	approvals      map[string]*pendingApproval
+}
+
+type pendingApproval struct {
+	action   string
+	digest   string
+	status   string
+	expires  time.Time
+	consumed bool
 }
 
 type ServiceOption func(*Service)
@@ -229,6 +242,14 @@ func (s *Service) handleInstance(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(parts) == 2 && parts[1] == "call" {
 		s.handleInstanceCall(w, r, id)
+		return
+	}
+	if len(parts) == 2 && parts[1] == "approvals" {
+		s.handleApprovalRequest(w, r, id)
+		return
+	}
+	if len(parts) == 3 && parts[1] == "approvals" {
+		s.handleApprovalResolution(w, r, id, parts[2])
 		return
 	}
 	if len(parts) != 1 {
@@ -427,6 +448,16 @@ func (s *Service) handleInstanceCall(w http.ResponseWriter, r *http.Request, id 
 		return
 	}
 	caller, ok := record.instance.(bridge.Caller)
+	actionName := ""
+	if request.Method == "act" {
+		actionName = actionNameForAudit(request.Params)
+		appendInstanceEvent(record, orchestrator.EngineEvent{
+			Type:       "action.requested",
+			Status:     "requested",
+			Message:    actionName,
+			OccurredAt: time.Now().UTC(),
+		})
+	}
 	s.mu.Unlock()
 	if !ok {
 		writeError(w, http.StatusNotImplemented, "calls_unsupported", "interaction engine does not accept bridge calls")
@@ -436,8 +467,16 @@ func (s *Service) handleInstanceCall(w http.ResponseWriter, r *http.Request, id 
 	// Per-capability policy gate: authorize the action before dispatch.
 	if request.Method == "act" {
 		if err := authorizeAction(r.Context(), record.instance, request.Params); err != nil {
+			s.appendActionAudit(id, record, "denied", actionName, err.Error())
 			writeError(w, http.StatusForbidden, "policy_denied", err.Error())
 			return
+		}
+		if requiresApproval(record.request.Engine.Approval, actionName) {
+			if err := s.consumeApproval(id, record, request.ApprovalID, actionName, request.Params); err != nil {
+				s.appendActionAudit(id, record, "denied", actionName, err.Error())
+				writeError(w, http.StatusForbidden, "approval_required", err.Error())
+				return
+			}
 		}
 	}
 
@@ -448,6 +487,9 @@ func (s *Service) handleInstanceCall(w http.ResponseWriter, r *http.Request, id 
 		if record.redact != nil {
 			err = errors.New(record.redact(err.Error()))
 		}
+		if request.Method == "act" {
+			s.appendActionAudit(id, record, "failed", actionName, err.Error())
+		}
 		writeError(w, http.StatusBadGateway, "engine_call_failed", err.Error())
 		return
 	}
@@ -455,8 +497,14 @@ func (s *Service) handleInstanceCall(w http.ResponseWriter, r *http.Request, id 
 		result = record.redactJSON(result)
 	}
 	if !json.Valid(result) {
+		if request.Method == "act" {
+			s.appendActionAudit(id, record, "failed", actionName, "interaction engine returned invalid JSON")
+		}
 		writeError(w, http.StatusBadGateway, "invalid_engine_result", "interaction engine returned invalid JSON")
 		return
+	}
+	if request.Method == "act" {
+		s.appendActionAudit(id, record, "completed", actionName, "")
 	}
 	writeJSON(w, http.StatusOK, CallResponse{
 		APIVersion: APIVersion,
@@ -706,6 +754,11 @@ func validateConnectRequest(request ConnectRequest) error {
 			return fmt.Errorf("invalid required engine capability %q", capability)
 		}
 	}
+	for _, action := range request.Engine.Approval.RequiredActions {
+		if !handleNamePattern.MatchString(action) {
+			return fmt.Errorf("invalid approval-required action %q", action)
+		}
+	}
 	if request.Target.APIVersion != "" && request.Target.APIVersion != TargetAPIVersion {
 		return fmt.Errorf("target.apiVersion must be %q", TargetAPIVersion)
 	}
@@ -932,6 +985,183 @@ func authorizeAction(ctx context.Context, instance orchestrator.EngineInstance, 
 	return nil
 }
 
+func actionNameForAudit(params json.RawMessage) string {
+	var action struct {
+		Name string `json:"name"`
+	}
+	if err := json.Unmarshal(params, &action); err != nil || strings.TrimSpace(action.Name) == "" {
+		return "unknown"
+	}
+	return action.Name
+}
+
+func (s *Service) appendActionAudit(id string, record *runningInstance, status, action, message string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if current, ok := s.instances[id]; !ok || current != record {
+		return
+	}
+	if record.redact != nil && message != "" {
+		message = record.redact(message)
+	}
+	if action != "" && action != "unknown" {
+		if message != "" {
+			message = action + ": " + message
+		} else {
+			message = action
+		}
+	}
+	appendInstanceEvent(record, orchestrator.EngineEvent{
+		Type:       "action." + status,
+		Status:     status,
+		Message:    message,
+		OccurredAt: time.Now().UTC(),
+	})
+}
+
+func (s *Service) handleApprovalRequest(w http.ResponseWriter, r *http.Request, id string) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method_not_allowed", "method not allowed")
+		return
+	}
+	var request ApprovalRequest
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1024*1024))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&request); err != nil || !json.Valid(request.Params) {
+		writeError(w, http.StatusBadRequest, "invalid_request", "approval params must be valid JSON")
+		return
+	}
+	action := actionNameForAudit(request.Params)
+	if action == "unknown" {
+		writeError(w, http.StatusUnprocessableEntity, "invalid_request", "approval action name is required")
+		return
+	}
+	s.mu.Lock()
+	record, ok := s.instances[id]
+	if !ok {
+		s.mu.Unlock()
+		writeError(w, http.StatusNotFound, "instance_not_found", "interaction instance was not found")
+		return
+	}
+	if !requiresApproval(record.request.Engine.Approval, action) {
+		s.mu.Unlock()
+		writeError(w, http.StatusConflict, "approval_not_required", "this action does not require approval")
+		return
+	}
+	instance := record.instance
+	s.mu.Unlock()
+	if err := authorizeAction(r.Context(), instance, request.Params); err != nil {
+		s.appendActionAudit(id, record, "denied", action, err.Error())
+		writeError(w, http.StatusForbidden, "policy_denied", err.Error())
+		return
+	}
+	lifetime := defaultApprovalLifetime
+	if request.ExpiresInSeconds != 0 {
+		if request.ExpiresInSeconds < 1 || request.ExpiresInSeconds > 3600 {
+			writeError(w, http.StatusUnprocessableEntity, "invalid_request", "approval expiry must be between 1 and 3600 seconds")
+			return
+		}
+		lifetime = time.Duration(request.ExpiresInSeconds) * time.Second
+	}
+	approval := Approval{
+		APIVersion: APIVersion, InstanceID: id, ApprovalID: newApprovalID(), Action: action,
+		Status: "pending", ExpiresAt: time.Now().UTC().Add(lifetime),
+	}
+	s.mu.Lock()
+	if current, exists := s.instances[id]; !exists || current != record {
+		s.mu.Unlock()
+		writeError(w, http.StatusNotFound, "instance_not_found", "interaction instance was not found")
+		return
+	}
+	record.approvals[approval.ApprovalID] = &pendingApproval{
+		action: action, digest: actionDigest(action, request.Params), status: approval.Status, expires: approval.ExpiresAt,
+	}
+	appendInstanceEvent(record, orchestrator.EngineEvent{Type: "action.approval_requested", Status: "pending", Message: action, OccurredAt: time.Now().UTC()})
+	s.mu.Unlock()
+	writeJSON(w, http.StatusCreated, approval)
+}
+
+func (s *Service) handleApprovalResolution(w http.ResponseWriter, r *http.Request, id, approvalID string) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method_not_allowed", "method not allowed")
+		return
+	}
+	var resolution ApprovalResolution
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1024*1024))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&resolution); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", "invalid approval resolution")
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	record, ok := s.instances[id]
+	if !ok {
+		writeError(w, http.StatusNotFound, "instance_not_found", "interaction instance was not found")
+		return
+	}
+	pending, ok := record.approvals[approvalID]
+	if !ok || pending.consumed || pending.status != "pending" || time.Now().After(pending.expires) {
+		writeError(w, http.StatusNotFound, "approval_not_found", "approval was not found or has expired")
+		return
+	}
+	if resolution.Approved {
+		pending.status = "approved"
+	} else {
+		pending.status = "rejected"
+	}
+	appendInstanceEvent(record, orchestrator.EngineEvent{
+		Type: "action.approval_" + pending.status, Status: pending.status, Message: pending.action, OccurredAt: time.Now().UTC(),
+	})
+	writeJSON(w, http.StatusOK, Approval{
+		APIVersion: APIVersion, InstanceID: id, ApprovalID: approvalID, Action: pending.action,
+		Status: pending.status, ExpiresAt: pending.expires,
+	})
+}
+
+func requiresApproval(policy ApprovalPolicy, action string) bool {
+	for _, candidate := range policy.RequiredActions {
+		if candidate == action {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Service) consumeApproval(id string, record *runningInstance, approvalID, action string, params json.RawMessage) error {
+	if strings.TrimSpace(approvalID) == "" {
+		return fmt.Errorf("action %q requires an approved approvalId", action)
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if current, ok := s.instances[id]; !ok || current != record {
+		return errors.New("interaction instance was not found")
+	}
+	pending, ok := record.approvals[approvalID]
+	if !ok || pending.consumed || pending.status != "approved" || time.Now().After(pending.expires) {
+		return errors.New("approvalId is not approved or has expired")
+	}
+	if pending.action != action || pending.digest != actionDigest(action, params) {
+		return errors.New("approvalId does not match this action")
+	}
+	pending.consumed = true
+	appendInstanceEvent(record, orchestrator.EngineEvent{Type: "action.approval_consumed", Status: "approved", Message: action, OccurredAt: time.Now().UTC()})
+	return nil
+}
+
+func actionDigest(action string, params json.RawMessage) string {
+	sum := sha256.Sum256(append([]byte(action+":"), params...))
+	return hex.EncodeToString(sum[:])
+}
+
+func newApprovalID() string {
+	value := make([]byte, 16)
+	if _, err := rand.Read(value); err != nil {
+		return fmt.Sprintf("approval-%d", time.Now().UnixNano())
+	}
+	return "approval-" + hex.EncodeToString(value)
+}
+
 // removeInstance deletes the instance record under id if present.
 func (s *Service) removeInstance(id string) {
 	s.mu.Lock()
@@ -957,10 +1187,11 @@ func (s *Service) connectAndRecord(
 		return nil, &connectFailure{code: "instance_exists", message: "interaction instance already exists"}
 	}
 	record := &runningInstance{
-		request: request,
-		adapter: adapterName,
-		status:  "connecting",
-		health:  Health{Status: orchestrator.EngineHealthStarting, ObservedAt: time.Now().UTC()},
+		request:   request,
+		adapter:   adapterName,
+		status:    "connecting",
+		health:    Health{Status: orchestrator.EngineHealthStarting, ObservedAt: time.Now().UTC()},
+		approvals: make(map[string]*pendingApproval),
 	}
 	appendInstanceEvent(record, orchestrator.EngineEvent{
 		Type:       "instance.connecting",

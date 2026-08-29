@@ -50,21 +50,21 @@ public actor CymonkeyRuntime {
             result.append(Capability(
                 name: "app.command.list",
                 description: "List owner-allowlisted application commands.",
-                backend: "macos-apple-events",
+                driver: "macos-apple-events",
                 effect: "read",
                 required: ["surfaceId"]
             ))
             result.append(Capability(
                 name: "app.command.describe",
                 description: "Describe one owner-allowlisted application command.",
-                backend: "macos-apple-events",
+                driver: "macos-apple-events",
                 effect: "read",
                 required: ["surfaceId", "command"]
             ))
             result.append(Capability(
                 name: "app.command.invoke",
                 description: "Invoke one typed, owner-allowlisted Apple Event command.",
-                backend: "macos-apple-events",
+                driver: "macos-apple-events",
                 effect: "external",
                 required: ["surfaceId", "command"],
                 additionalProperties: true
@@ -74,14 +74,14 @@ public actor CymonkeyRuntime {
             result.append(Capability(
                 name: "ui.query",
                 description: "Query a bounded Accessibility subtree in one allowlisted application.",
-                backend: "macos-accessibility",
+                driver: "macos-accessibility",
                 effect: "read",
                 required: ["surfaceId", "selector"]
             ))
             result.append(Capability(
                 name: "ui.action.invoke",
                 description: "Invoke an action reported by an attachment-scoped Accessibility element.",
-                backend: "macos-accessibility",
+                driver: "macos-accessibility",
                 effect: "write",
                 required: ["surfaceId", "elementId", "action"]
             ))
@@ -89,7 +89,7 @@ public actor CymonkeyRuntime {
                 result.append(Capability(
                     name: "ui.attribute.set",
                     description: "Set an allowlisted attribute reported settable by an Accessibility element.",
-                    backend: "macos-accessibility",
+                    driver: "macos-accessibility",
                     effect: "write",
                     required: ["surfaceId", "elementId", "attribute", "value"]
                 ))
@@ -99,17 +99,18 @@ public actor CymonkeyRuntime {
     }
 
     private func hello() -> JSONValue {
-        var backends: [JSONValue] = []
-        if !configuration.appleEventCommands.isEmpty { backends.append(.string("macos-apple-events")) }
-        if accessibility != nil { backends.append(.string("macos-accessibility")) }
+        var drivers: [JSONValue] = []
+        if !configuration.appleEventCommands.isEmpty { drivers.append(.string("macos-apple-events")) }
+        if accessibility != nil { drivers.append(.string("macos-accessibility")) }
         return .object([
             "protocolVersion": .string(cymonkeyProtocolVersion),
             "implementation": .object([
                 "name": .string("jangolova-cymonkey-macos-helper"),
                 "version": .string("0.1.0"),
             ]),
-            "profiles": .array([.string("macos")]),
-            "backends": .array(backends),
+            "domains": .array([.string("computer")]),
+            "runtimes": .array([.string("macos-app")]),
+            "drivers": .array(drivers),
             "features": .array([.string("events.cursor"), .string("consent.negotiated")]),
         ])
     }
@@ -118,8 +119,9 @@ public actor CymonkeyRuntime {
         let surfaces = runningSurfaces().map { surface in
             JSONValue.object([
                 "id": .string(surface.id),
-                "profile": .string("macos"),
-                "kind": .string("application"),
+                "domain": .string("computer"),
+                "runtime": .string("macos-app"),
+                "kind": .string("window"),
                 "label": surface.label.map(JSONValue.string) ?? .null,
                 "properties": .object([
                     "bundleId": .string(surface.bundleId),
@@ -154,7 +156,7 @@ public actor CymonkeyRuntime {
         case "app.command.invoke":
             let command = try requireCommand(input)
             result = try appleEvents.invoke(command: command, input: input)
-            publish("app.command.invoked", backend: "macos-apple-events", data: .object([
+            publish("app.command.invoked", driver: "macos-apple-events", data: .object([
                 "bundleId": .string(command.bundleId), "command": .string(command.name),
             ]))
         case "ui.query":
@@ -171,7 +173,7 @@ public actor CymonkeyRuntime {
             let nativeAction = try requiredString(input, "action")
             try accessibility.perform(surfaceId: surfaceID, elementId: elementID, action: nativeAction)
             result = .object(["ok": .bool(true)])
-            publish("ui.action.invoked", backend: "macos-accessibility", data: .object([
+            publish("ui.action.invoked", driver: "macos-accessibility", data: .object([
                 "surfaceId": .string(surfaceID), "elementId": .string(elementID), "action": .string(nativeAction),
             ]))
         case "ui.attribute.set":
@@ -182,7 +184,7 @@ public actor CymonkeyRuntime {
             guard let value = input["value"] else { throw RuntimeError.invalidRequest("value is required") }
             try accessibility.setAttribute(surfaceId: surfaceID, elementId: elementID, attribute: attribute, value: value)
             result = .object(["ok": .bool(true)])
-            publish("ui.attribute.updated", backend: "macos-accessibility", data: .object([
+            publish("ui.attribute.updated", driver: "macos-accessibility", data: .object([
                 "surfaceId": .string(surfaceID), "elementId": .string(elementID), "attribute": .string(attribute),
             ]))
         default:
@@ -206,12 +208,12 @@ public actor CymonkeyRuntime {
         ])
     }
 
-    private func publish(_ type: String, backend: String, data: JSONValue) {
+    private func publish(_ type: String, driver: String, data: JSONValue) {
         sequence += 1
         events.append(SemanticEvent(
             id: String(sequence), type: type,
             occurredAt: ISO8601DateFormatter().string(from: Date()),
-            profile: "macos", backend: backend, data: data
+            domain: "computer", runtime: "macos-app", driver: driver, data: data
         ))
         if events.count > 1_000 { events.removeFirst(events.count - 1_000) }
     }

@@ -6,15 +6,15 @@ Unity installation on the developer's Mac.
 
 `Packages/manifest.json` references the package through a local UPM path. The
 Editor entrypoint constructs an explicit `object:fixture` registration, checks
-all six Pacman methods, invokes `object.active.set`, observes the resulting
+all six Cymonkey methods, invokes `object.active.set`, observes the resulting
 event, disposes the transport, and verifies that the target survives.
 
 Run the static environment contract without Unity:
 
 ```sh
-npm run test:unity-pacman-fixture
+npm run test:unity-cymonkey-fixture
 ```
 
 Run the real Editor fixture through the separate container after supplying an
 approved `UNITY_EDITOR_IMAGE` and activating its Unity license outside the
-repository. See `deploy/unity-pacman-fixture/README.md`.
+repository. See `infra/deploy/unity-cymonkey-fixture/README.md`.

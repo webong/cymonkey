@@ -1,12 +1,14 @@
 # Architecture
 
-Unity and Unreal semantic presentation use the [Pacman boundary](pacman.md):
-Jangolova dials a caller-owned semantic endpoint while the engine keeps
-rendering and the supervisor separately owns target and display lifecycle.
+Unity, Unreal, Godot, and Three.js semantic presentation use the Cymonkey
+`render` domain: Jangolova dials a caller-owned semantic endpoint while the
+engine keeps rendering and the supervisor separately owns target and display
+lifecycle.
 
-Jangolova owns its Grimlock agent subsystem plus interaction and presentation
-engines. Xallet, a native host, or another operator owns the target runtimes
-with which those engines interact.
+Jangolova is an interaction and presentation toolbox, not an agent. External
+agents, IDEs, and applications own planning and decisions; Xallet, a native
+host, or another operator owns the target runtimes with which Jangolova
+interacts.
 
 Interaction includes operating semantic browser/application interfaces and
 requesting display-level pointer/keyboard actions. Presentation includes
@@ -15,7 +17,7 @@ protocol while target runtime and display ownership remain external.
 
 ## Jangolova Browser Extension System
 
-Jangolova is the browser runtime and extension product. It owns backend
+Jangolova is the browser extension system. It owns backend
 discovery across CDP, WebDriver BiDi, Safari MCP, and WebExtension, plus the
 authenticated control plane, browser policy, packaged injection, scoped
 storage, network rules, and shared event service.
@@ -27,16 +29,17 @@ and extension-origin/CDP calls share this gate and its redacted audit stream.
 
 Cymonkey is its runtime-agnostic augmentation subsystem. Its portable
 `jangolova.cymonkey/v1alpha2` core owns augmentation lifecycle, surface
-discovery, overlays, and capability negotiation. Runtime profiles add bounded
-vocabularies: the web profile adds DOM/style/script operations; the macOS
-profile maps allowlisted Apple Events and Accessibility operations to typed
-`app.command.*` and `ui.*` capabilities. Jangolova owns each runtime backend,
-its authenticated transport, consent checks, and policy.
+discovery, overlays, and capability negotiation. Every capability identifies a
+domain (`computer`, `render`, or `player`), concrete runtime, and driver. The
+browser and macOS application mappings operate in `computer`; explicitly
+registered Three.js, Godot, Unity, and Unreal resources operate in `render`.
+`player` reserves lifecycle-safe media/game-session semantics. Jangolova owns
+each runtime backend, its authenticated transport, consent checks, and policy.
 
-Pacman remains the engine-neutral explicit-registration presentation contract.
-In browsers, `@jangolova/threejs-pacman` maps allowlisted stable IDs to Three.js
-scenes, objects, cameras, materials, and animation actions. It never scans
-arbitrary page or scene objects.
+The render domain remains explicit-registration only. In browsers,
+`@jangolova/threejs-cymonkey` maps allowlisted stable IDs to Three.js scenes,
+objects, cameras, materials, and animation actions. It never scans arbitrary
+page or scene objects.
 
 Userscripts are a privileged Cymonkey augmentation form with the shared
 `jangolova.cymonkey.userscript/v1alpha1` manifest. Cymonkey owns their semantic
@@ -52,18 +55,20 @@ the Safari WebExtension. It owns only its helper connection, never the target
 applications it augments.
 
 The public page bridge contains only page-safe Cymonkey operations. Platform
-services and Pacman control are reachable only through the authenticated
+services and render control are reachable only through the authenticated
 extension control plane or a caller-owned CDP/BiDi/MCP connection.
 
 ## System boundary
 
 ```text
-User, agent, IDE, or application
+External agent, IDE, or application
         |
-        +-- deterministic engine API -----------------+
-        |                                             |
-        +-- HTTP / MCP / ACP --> Grimlock ------------+
-                                      model + policy  |
+        +-- authenticated HTTP / MCP tool calls ------+
+                                                     |
+                                                     v
+                                JANGOLOVA TOOL CORE
+                                policy / approval / audit
+                                                     |
                                                      v
                                 CYMONKEY UNIFIED CONTROL PLANE
                                 (jangolova.cymonkey/v1alpha2)
@@ -73,7 +78,7 @@ User, agent, IDE, or application
         │                                            │                                            │
         ▼                                            ▼                                            ▼
 AUTOMATION DRIVERS                           INTERACTION DRIVERS                          PRESENTATION DRIVERS
-• Playwright Driver (CDP)                    • WebExtension (WXT)                         • Three.js Pacman Driver
+• Playwright Driver (CDP)                    • WebExtension (WXT)                         • Three.js Cymonkey runtime
 • Puppeteer Driver (CDP/BiDi)                • Userscripts Engine                         • Declarative Web Presentation
 • Native CDP Driver                          • macOS Accessibility / Apple Events         • Unity / Unreal Bridge WS
 • WebDriver BiDi Driver                      • Safari MCP Relay                           • Display Pixel / YOLO (Blockade)
@@ -96,7 +101,7 @@ Jangolova owns:
 - Cymonkey control plane and driver matrix (Playwright, Puppeteer, CDP, WebDriver BiDi, WebExtension, Safari MCP, macOS Accessibility);
 - Playwright, Puppeteer, and browser automation drivers integrated into the Cymonkey control plane;
 - WebDriver and MCP clients that attach to caller-owned WebKit/Safari targets;
-- Three.js presentation logic, Pacman presentation drivers, and cooperative web experiences;
+- Three.js render logic and cooperative web experiences;
 - Unity and Unreal interaction plugins and bridge protocol;
 - semantic capability discovery, description, actions, observations, events,
   and interaction-session health;
@@ -150,10 +155,15 @@ cmd/jangolova/              CLI and authenticated provider
 internal/engineprovider/    target-in / semantic-call protocol
 internal/orchestrator/      interaction lifecycle and target contracts
 internal/bridge/            engine-neutral semantic methods
-internal/grimlock/          ADK agents and caller-supplied model connectors
+internal/engineprovider/    direct HTTP/MCP tools, target policy, and audit
 adapters/browserautomation/ Playwright CDP and Puppeteer CDP/BiDi attachment
-internal/cymonkey/          runtime-agnostic augmentation contract and validation
-adapters/cymonkey/          web backends plus bounded macOS capability mapping
+cymonkey/                   Jangolova's temporary public import façade
+src/cymonkey/               dependency-free, extraction-ready Cymonkey core
+internal/cymonkey/          Jangolova migration shim for the portable wire contract
+integrations/jangolova/cymonkey/
+                            Jangolova-owned browser, macOS, and engine adapters
+src/cymonkey/protocol/      canonical versioned Cymonkey schemas
+src/cymonkey/conformance/   portable Cymonkey contract checks
 adapters/webdriverclassic/  existing W3C WebDriver session attachment
 adapters/safarimcp/         caller-owned Safari MCP relay attachment
 adapters/displayinteraction/ provider-neutral VNC/WebRTC/Wayland display interaction
@@ -161,13 +171,12 @@ pkg/browser-ext/           single-build WXT runtime with optional Xallet Spook a
 pkg/macos-cymonkey-helper/  caller-owned Swift Apple Events/Accessibility binding
 pkg/macos-ext/              menu-bar host, managed helper mode, and Safari container
 pkg/userscript-runtime/     shared Cymonkey userscript validation and registration planning
-protocol/userscript/        versioned Cymonkey userscript payload schema
 protocol/browser-extension/ schema, recorded exchanges, and generated binding source
 internal/browserextensionprotocol/ generated Go browser-extension bindings
-pkg/threejs-cymonkey/         explicit-registration Three.js Pacman runtime
-pkg/                        distributable Godot, Unity, and Unreal Pacman packages
+pkg/threejs-cymonkey/         explicit-registration Three.js Cymonkey runtime
+pkg/                          distributable Godot, Unity, and Unreal Cymonkey packages
 tests/godot-cymonkey-fixture/ license-free Godot conformance project
-tests/unreal-pacman-fixture/ caller-owned Unreal conformance project
+tests/unreal-cymonkey-fixture/ caller-owned Unreal conformance project
 deploy/engine-runtime/      optional interaction artifact
 deploy/godot-cymonkey-fixture/ optional headless Godot target image
 deploy/unreal-cymonkey-fixture/ optional packaged Unreal target image

@@ -1,12 +1,12 @@
 # Cymonkey macOS Helper
 
-This package is the caller-owned native binding for Cymonkey's `macos`
-profile. It is a Swift executable that a native host builds, signs, configures,
+This package is the caller-owned native binding for Cymonkey's `computer`
+domain with runtime `macos-app`. It is a Swift executable that a native host builds, signs, configures,
 and launches. Jangolova never launches or terminates it.
 
 The helper connects outward to an authenticated WebSocket control endpoint and
 implements the same five `jangolova.cymonkey/v1alpha2` operations used by other
-Cymonkey profiles: `hello`, `capabilities`, `describe`, `act`, and `events`.
+Cymonkey domains: `hello`, `capabilities`, `describe`, `act`, and `events`.
 
 It exposes only:
 

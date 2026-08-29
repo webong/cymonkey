@@ -3,7 +3,15 @@ import { pageCapabilities } from '../src/capabilities';
 import { isRecord } from '../src/types';
 
 type OverlayRecord = { host: HTMLElement; shadow: ShadowRoot };
-type PageEvent = { id: string; type: string; occurredAt: string; data: Record<string, unknown> };
+type PageEvent = {
+  id: string;
+  type: string;
+  occurredAt: string;
+  domain: 'computer';
+  runtime: 'browser-dom';
+  driver: 'webextension';
+  data: Record<string, unknown>;
+};
 
 export default defineContentScript({
   matches: ['<all_urls>'],
@@ -56,22 +64,26 @@ export default defineContentScript({
 
     function hello() {
       return {
-        protocolVersion: 'jangolova.cymonkey/v1alpha1',
+        protocolVersion: 'jangolova.cymonkey/v1alpha2',
         implementation: {
           name: 'jangolova-cymonkey-page',
           version: browser.runtime.getManifest().version,
         },
-        backends: ['webextension'],
+        domains: ['computer'],
+        runtimes: ['browser-dom'],
+        drivers: ['webextension'],
         features: ['augmentation.page-safe', 'events.cursor', 'overlay.shadow-dom'],
       };
     }
 
     function describe() {
       return {
-        url: location.href,
-        title: document.title,
-        readyState: document.readyState,
-        overlays: [...overlays.keys()].sort(),
+        revision: String(eventSequence),
+        surfaces: [{
+          id: 'document:main', domain: 'computer', runtime: 'browser-dom', kind: 'document',
+          label: document.title || undefined, properties: { url: location.href, readyState: document.readyState, overlays: [...overlays.keys()].sort() },
+        }],
+        augmentations: [],
       };
     }
 
@@ -134,7 +146,10 @@ export default defineContentScript({
 
     function publishEvent(type: string, data: Record<string, unknown>) {
       eventSequence += 1;
-      const event = { id: String(eventSequence), type, occurredAt: new Date().toISOString(), data };
+      const event: PageEvent = {
+        id: String(eventSequence), type, occurredAt: new Date().toISOString(),
+        domain: 'computer', runtime: 'browser-dom', driver: 'webextension', data,
+      };
       events.push(event);
       if (events.length > 256) events.splice(0, events.length - 256);
       void browser.runtime.sendMessage({ channel: 'jangolova.cymonkey.event', event }).catch(() => undefined);

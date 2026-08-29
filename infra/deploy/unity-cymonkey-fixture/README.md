@@ -1,6 +1,6 @@
-# Unity Pacman headless fixture image
+# Unity Cymonkey headless fixture image
 
-This image runs the Unity Pacman fixture through a Linux Unity 2022.3 Editor in
+This image runs the Unity Cymonkey fixture through a Linux Unity 2022.3 Editor in
 `-batchmode -nographics`. It is a separate caller-owned target/test environment,
 not an extension of the Jangolova provider image.
 

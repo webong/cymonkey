@@ -1,6 +1,6 @@
 ---
 name: jangolova-engine-control
-description: Connect Jangolova to an authenticated Pacman WebSocket and control explicitly registered engine resources using hello, capabilities, describe, act, events, and health. Use when an agent needs to inspect or manipulate a running Godot, Unity, or Unreal runtime.
+description: Connect Jangolova to an authenticated Cymonkey WebSocket and control explicitly registered engine resources using hello, capabilities, describe, act, events, and health. Use when an agent needs to inspect or manipulate a running Godot, Unity, or Unreal runtime.
 ---
 
 # Jangolova Engine Control
@@ -36,7 +36,7 @@ Unreal authenticates the already-upgraded WebSocket with an HTTP `Authorization:
 - Do not guess target IDs or action names.
 - On `action_not_allowlisted`, stop and report the missing registration rather than retrying with a guessed ID.
 - Expect action results and events to be asynchronous; use `events` instead of assuming local state changed.
-- Never use Pacman to terminate the engine, destroy its world, or bypass its lifecycle boundary.
+- Never use Cymonkey to terminate the engine, destroy its world, or bypass its lifecycle boundary.
 
 ## Baseline sequence
 

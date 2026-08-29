@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jangolova.dev/protocol/cymonkey/v1alpha2/protocol.schema.json",
+  "title": "Jangolova Cymonkey multi-domain interaction protocol",
+  "oneOf": [
+    {"$ref": "#/$defs/hello"},
+    {"$ref": "#/$defs/capability"},
+    {"$ref": "#/$defs/description"},
+    {"$ref": "#/$defs/action"},
+    {"$ref": "#/$defs/eventBatch"}
+  ],
+  "$defs": {
+    "domain": {"enum": ["computer", "render", "player"]},
+    "runtime": {"type": "string", "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)*$"},
+    "driver": {"type": "string", "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)*$"},
+    "resourceKind": {
+      "enum": ["document", "window", "element", "canvas", "scene", "viewport", "object", "ui", "camera", "material", "animation", "timeline", "artifact", "session", "event"]
+    },
+    "hello": {
+      "type": "object",
+      "required": ["protocolVersion", "implementation", "domains", "runtimes", "drivers"],
+      "properties": {
+        "protocolVersion": {"const": "jangolova.cymonkey/v1alpha2"},
+        "implementation": {
+          "type": "object",
+          "required": ["name"],
+          "properties": {
+            "name": {"type": "string", "minLength": 1},
+            "version": {"type": "string"}
+          },
+          "additionalProperties": false
+        },
+        "domains": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/domain"}, "uniqueItems": true},
+        "runtimes": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/runtime"}, "uniqueItems": true},
+        "drivers": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/driver"}, "uniqueItems": true},
+        "features": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      },
+      "additionalProperties": false
+    },
+    "capability": {
+      "type": "object",
+      "required": ["name", "domain", "runtime", "driver", "support", "lifetime", "persistence", "effect", "inputSchema"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$"},
+        "description": {"type": "string"},
+        "domain": {"$ref": "#/$defs/domain"},
+        "runtime": {"$ref": "#/$defs/runtime"},
+        "driver": {"$ref": "#/$defs/driver"},
+        "support": {"enum": ["native", "mapped", "emulated"]},
+        "lifetime": {"enum": ["call", "surface", "attachment", "installation"]},
+        "persistence": {"enum": ["ephemeral", "session", "persistent"]},
+        "effect": {"enum": ["read", "write", "external"]},
+        "resourceKinds": {"type": "array", "items": {"$ref": "#/$defs/resourceKind"}, "uniqueItems": true},
+        "inputSchema": {"type": "object"},
+        "alternatives": {"type": "array", "items": {"$ref": "#/$defs/driver"}, "uniqueItems": true}
+      },
+      "additionalProperties": false
+    },
+    "surface": {
+      "type": "object",
+      "required": ["id", "domain", "runtime", "kind"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9._/-]{0,127}$"},
+        "domain": {"$ref": "#/$defs/domain"},
+        "runtime": {"$ref": "#/$defs/runtime"},
+        "kind": {"$ref": "#/$defs/resourceKind"},
+        "label": {"type": "string"},
+        "properties": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
+    "augmentation": {
+      "type": "object",
+      "required": ["id", "revision", "enabled"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"},
+        "revision": {"type": "string", "minLength": 1},
+        "enabled": {"type": "boolean"},
+        "domains": {"type": "array", "items": {"$ref": "#/$defs/domain"}, "uniqueItems": true}
+      },
+      "additionalProperties": false
+    },
+    "description": {
+      "type": "object",
+      "required": ["revision", "surfaces", "augmentations"],
+      "properties": {
+        "revision": {"type": "string", "minLength": 1},
+        "surfaces": {"type": "array", "items": {"$ref": "#/$defs/surface"}},
+        "augmentations": {"type": "array", "items": {"$ref": "#/$defs/augmentation"}}
+      },
+      "additionalProperties": false
+    },
+    "action": {
+      "type": "object",
+      "required": ["name", "input"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "input": {"type": "object"},
+        "domain": {"$ref": "#/$defs/domain"},
+        "runtime": {"$ref": "#/$defs/runtime"}
+      },
+      "dependentRequired": {"domain": ["runtime"], "runtime": ["domain"]},
+      "additionalProperties": false
+    },
+    "event": {
+      "type": "object",
+      "required": ["id", "type", "occurredAt", "domain", "runtime", "driver"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "type": {"type": "string", "minLength": 1},
+        "occurredAt": {"type": "string", "format": "date-time"},
+        "domain": {"$ref": "#/$defs/domain"},
+        "runtime": {"$ref": "#/$defs/runtime"},
+        "driver": {"$ref": "#/$defs/driver"},
+        "surfaceId": {"type": "string"},
+        "data": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
+    "eventBatch": {
+      "type": "object",
+      "required": ["events", "cursor"],
+      "properties": {
+        "events": {"type": "array", "items": {"$ref": "#/$defs/event"}},
+        "cursor": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    }
+  }
+}

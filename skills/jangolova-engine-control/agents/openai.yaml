@@ -1,4 +1,4 @@
 interface:
   display_name: "Jangolova Engine Control"
-  short_description: "Control registered Pacman resources"
-  default_prompt: "Use $jangolova-engine-control to inspect and control a running Pacman endpoint."
+  short_description: "Control registered Cymonkey resources"
+  default_prompt: "Use $jangolova-engine-control to inspect and control a running Cymonkey endpoint."

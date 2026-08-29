@@ -86,8 +86,9 @@ public struct ControlResponse: Codable, Sendable {
 public struct Capability: Codable, Equatable, Sendable {
     public let name: String
     public let description: String
-    public let profile: String
-    public let backend: String
+    public let domain: String
+    public let runtime: String
+    public let driver: String
     public let support: String
     public let lifetime: String
     public let persistence: String
@@ -97,15 +98,16 @@ public struct Capability: Codable, Equatable, Sendable {
     public init(
         name: String,
         description: String,
-        backend: String,
+        driver: String,
         effect: String,
         required: [String],
         additionalProperties: Bool = false
     ) {
         self.name = name
         self.description = description
-        self.profile = "macos"
-        self.backend = backend
+        self.domain = "computer"
+        self.runtime = "macos-app"
+        self.driver = driver
         self.support = "mapped"
         self.lifetime = "attachment"
         self.persistence = "session"
@@ -122,8 +124,9 @@ public struct SemanticEvent: Codable, Equatable, Sendable {
     public let id: String
     public let type: String
     public let occurredAt: String
-    public let profile: String
-    public let backend: String
+    public let domain: String
+    public let runtime: String
+    public let driver: String
     public let data: JSONValue
 }
 

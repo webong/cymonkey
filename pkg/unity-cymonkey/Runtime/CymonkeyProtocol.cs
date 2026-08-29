@@ -7,8 +7,9 @@ namespace Jangolova.Cymonkey
     public static class CymonkeyProtocol
     {
         public const string Version = "jangolova.cymonkey/v1alpha2";
-        public const string ProfileEngine = "engine";
-        public const string BackendUnity = "engine-unity";
+        public const string DomainRender = "render";
+        public const string RuntimeUnity = "unity";
+        public const string DriverCymonkeyWebSocket = "cymonkey-ws";
         public const string PrefixEnvironmentVariable = "JANGOLOVA_CYMONKEY_PREFIX";
         public const string TokenEnvironmentVariable = "JANGOLOVA_CYMONKEY_TOKEN";
         public const int MaximumMessageBytes = 4 * 1024 * 1024;
@@ -21,7 +22,7 @@ namespace Jangolova.Cymonkey
         public string id;
         public CymonkeyResourceKind kind;
         public string label;
-        [Tooltip("The explicitly exposed Unity object. Unregistered objects are invisible to Pacman.")]
+        [Tooltip("The explicitly exposed Unity object. Unregistered objects are invisible to Cymonkey.")]
         public UnityEngine.Object target;
         [Tooltip("Explicit action allowlist for this resource.")]
         public string[] actions = Array.Empty<string>();

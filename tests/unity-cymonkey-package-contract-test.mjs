@@ -13,7 +13,7 @@ const goProtocol = await readFile(new URL("../internal/cymonkey/protocol.go", im
 assert.equal(manifest.name, "com.jangolova.cymonkey");
 assert.equal(manifest.unity, "2022.3");
 const unityVersion = protocol.match(/Version = "([^"]+)"/)?.[1];
-const goVersion = goProtocol.match(/ProtocolVersion   = "([^"]+)"/)?.[1];
+const goVersion = goProtocol.match(/ProtocolVersion\s+= "([^"]+)"/)?.[1];
 assert.equal(unityVersion, "jangolova.cymonkey/v1alpha2");
 assert.equal(unityVersion, goVersion);
 for (const method of ["hello", "capabilities", "describe", "act", "events", "health"]) assert.ok(bridge.includes(`"${method}"`));
@@ -29,4 +29,4 @@ assert.match(server, /HttpListener/);
 assert.match(server, /Authorization/);
 assert.match(server, /ConstantTimeEquals/);
 assert.doesNotMatch(server, /Application\.Quit|Process\.Kill/);
-console.log("Unity Pacman package contract is valid.");
+console.log("Unity Cymonkey package contract is valid.");

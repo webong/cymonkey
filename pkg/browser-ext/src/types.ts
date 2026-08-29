@@ -4,8 +4,9 @@ export type Capability = {
   name: string;
   description: string;
   effect: CapabilityEffect;
-  profile: 'web';
-  backend: 'webextension';
+  domain: 'computer';
+  runtime: 'browser-dom';
+  driver: 'webextension';
   support: 'native' | 'mapped' | 'emulated';
   lifetime: 'call' | 'surface' | 'attachment' | 'installation';
   persistence: 'ephemeral' | 'session' | 'persistent';
@@ -20,8 +21,9 @@ export type CymonkeyEvent = {
   id: string;
   type: string;
   occurredAt: string;
-  profile: 'web';
-  backend?: 'webextension';
+  domain: 'computer';
+  runtime: 'browser-dom';
+  driver: 'webextension';
   data: Record<string, unknown>;
 };
 
@@ -64,8 +66,9 @@ export function capability(
     name,
     description,
     effect,
-    profile: 'web',
-    backend: 'webextension',
+    domain: 'computer',
+    runtime: 'browser-dom',
+    driver: 'webextension',
     support: 'native',
     lifetime,
     persistence,

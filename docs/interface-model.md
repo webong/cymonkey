@@ -90,7 +90,7 @@ available target interaction contract.
 ## Runtime ownership
 
 ```text
-Agent or Grimlock
+External agent or application
        |
        | intent and policy-approved actions
        v

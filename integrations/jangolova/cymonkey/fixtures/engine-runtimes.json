@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "protocolVersion": "jangolova.cymonkey/v1alpha2",
+  "runtimes": [
+    {
+      "engine": "godot",
+      "version": "4.x",
+      "image": "jangolova/godot-cymonkey-fixture:local",
+      "pluginVersion": "0.2.0",
+      "protocolVersion": "jangolova.cymonkey/v1alpha2",
+      "domains": ["render"],
+      "supportedActions": ["resource.describe", "object.visibility.set", "object.transform.set", "material.color.set", "camera.transform.set", "ui.text.set"],
+      "supportedPlatforms": ["linux/amd64", "linux/arm64"],
+      "requirements": {"headless": "Godot --headless; no GPU required", "gpu": "Optional Mesa/llvmpipe or host GPU for rendered tests"}
+    },
+    {
+      "engine": "unity",
+      "version": "2022.3",
+      "image": "operator-supplied/private Unity Editor image",
+      "pluginVersion": "0.2.0",
+      "protocolVersion": "jangolova.cymonkey/v1alpha2",
+      "domains": ["render"],
+      "supportedActions": ["resource.describe", "object.active.set"],
+      "supportedPlatforms": ["linux/amd64"],
+      "requirements": {"headless": "Unity -batchmode -nographics with licensed Editor", "gpu": "Optional GPU host for rendered tests"}
+    },
+    {
+      "engine": "unreal",
+      "version": "5.8",
+      "image": "ghcr.io/webong/jangolova/unreal-cymonkey-gpu:5.8",
+      "pluginVersion": "0.2.0",
+      "protocolVersion": "jangolova.cymonkey/v1alpha2",
+      "domains": ["render"],
+      "supportedActions": ["resource.describe", "object.visibility.set"],
+      "supportedPlatforms": ["linux/amd64"],
+      "requirements": {"headless": "Xvfb/NullRHI; no GPU required", "gpu": "NVIDIA runtime and compatible host for hardware rendering"}
+    }
+  ]
+}

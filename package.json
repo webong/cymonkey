@@ -14,7 +14,7 @@
     "check:browser-extension-protocol": "node scripts/generate-browser-extension-protocol.mjs --check",
     "compile:threejs-cymonkey": "pkg/browser-ext/node_modules/.bin/tsc -p pkg/threejs-cymonkey/tsconfig.json --noEmit",
     "test:browser-worker": "node --test tests/browser-worker-contract-test.mjs",
-    "test:cymonkey": "node --test tests/cymonkey-contract-test.mjs",
+    "test:cymonkey": "node --test src/cymonkey/conformance/contract.mjs tests/cymonkey-contract-test.mjs",
     "test:cymonkey:macos-helper": "swift test --package-path pkg/macos-cymonkey-helper && node --test tests/macos-cymonkey-helper-contract-test.mjs",
     "test:userscripts": "npm --prefix pkg/userscript-runtime test",
     "test:macos-extension": "swift test --package-path pkg/macos-ext && node --test tests/macos-extension-contract-test.mjs",

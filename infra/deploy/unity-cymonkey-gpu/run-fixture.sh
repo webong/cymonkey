@@ -13,7 +13,7 @@ if [[ ! -x "${unity_editor}" ]]; then
   exit 1
 fi
 if [[ ! -f "${project_path}/Packages/manifest.json" ]]; then
-  echo "Unity Pacman fixture project is missing." >&2
+  echo "Unity Cymonkey fixture project is missing." >&2
   exit 1
 fi
 
@@ -53,7 +53,7 @@ fixture_status=$?
 set -e
 
 if [[ ${fixture_status} -ne 0 ]]; then
-  echo "Unity Pacman GPU fixture failed; inspect the container log artifact." >&2
+  echo "Unity Cymonkey GPU fixture failed; inspect the container log artifact." >&2
   exit "${fixture_status}"
 fi
-echo "Unity Pacman GPU fixture passed."
+echo "Unity Cymonkey GPU fixture passed."

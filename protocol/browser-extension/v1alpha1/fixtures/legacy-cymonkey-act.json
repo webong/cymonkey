@@ -1,9 +1,0 @@
-{
-  "type": "CYMONKEY_CALL",
-  "id": "legacy-1",
-  "method": "act",
-  "params": {
-    "name": "dom.query",
-    "input": {"selector": "main"}
-  }
-}

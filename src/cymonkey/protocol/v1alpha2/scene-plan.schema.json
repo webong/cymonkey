@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jangolova.dev/protocol/cymonkey/v1alpha2/scene-plan.schema.json",
+  "title": "Jangolova Cymonkey engine scene plan",
+  "description": "A bounded, declarative sequence of Cymonkey render actions produced by a model or other trusted planner.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "name", "requires", "actions"],
+  "properties": {
+    "apiVersion": {"const": "jangolova.cymonkey.scene/v1alpha1"},
+    "name": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$"},
+    "description": {"type": "string", "maxLength": 2048},
+    "requires": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {"$ref": "#/$defs/resourceRequirement"}
+    },
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {"$ref": "#/$defs/action"}
+    }
+  },
+  "$defs": {
+    "stableId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,31}:[A-Za-z0-9][A-Za-z0-9._/-]{0,127}$"
+    },
+    "resourceKind": {
+      "enum": ["scene", "object", "ui", "camera", "material", "animation", "timeline", "artifact", "event"]
+    },
+    "resourceRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind"],
+      "properties": {
+        "id": {"$ref": "#/$defs/stableId"},
+        "kind": {"$ref": "#/$defs/resourceKind"}
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "targetId", "input"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[a-z][a-z0-9.-]{0,127}$"},
+        "targetId": {"$ref": "#/$defs/stableId"},
+        "input": {"type": "object", "maxProperties": 64}
+      }
+    }
+  }
+}

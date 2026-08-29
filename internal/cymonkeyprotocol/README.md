@@ -9,12 +9,12 @@ npm run generate:cymonkey-protocol   # regenerate from schema
 npm run check:cymonkey-protocol      # verify generated files are up to date
 ```
 
-Source schema: `protocol/cymonkey/v1alpha2/protocol.schema.json`
+Source schema: `src/cymonkey/protocol/v1alpha2/protocol.schema.json`
 
 ## Contents
 
 - Protocol version constant: `ProtocolVersion`
-- Typed enums: `ProfileName`, `BackendName`, `SupportMode`, `Lifetime`, `Persistence`, `Effect`
+- Typed enums: `DomainName`, `DriverName`, `SupportMode`, `Lifetime`, `Persistence`, `Effect`
 - Message structs: `Hello`, `Capability`, `Surface`, `Augmentation`, `Description`, `Action`, `Event`, `EventBatch`
 - `Client` / `Transport` interface for typed dispatch
 

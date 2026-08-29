@@ -1,7 +1,7 @@
 # Headless engine test server
 
-This runbook records the planned server setup for Jangolova Pacman testing.
-The server is a caller-owned test host; it is not part of the Pacman protocol.
+This runbook records the planned server setup for Jangolova Cymonkey render testing.
+The server is a caller-owned test host; it is not part of the Cymonkey protocol.
 Last updated: 2026-08-12.
 
 ## Host
@@ -71,7 +71,7 @@ Keep the environments isolated under `/opt/jangolova`:
 ```
 
 Install Docker and its Compose/build tooling from the official Debian source.
-Run each engine in its own container and keep Pacman listeners private. Use an
+Run each engine in its own container and keep Cymonkey listeners private. Use an
 SSH tunnel when Jangolova needs to connect from the operator workstation:
 
 ```sh
@@ -93,9 +93,9 @@ behavior. This validates Jangolova controlling semantic engine resources even
 when no pixels are rendered.
 
 Rendered screenshots, shaders, lighting, and pixel comparisons require a
-separate GPU-backed runner using the same Pacman conformance tests. The
+separate GPU-backed runner using the same Cymonkey conformance tests. The
 render-capable image definitions are under `deploy/godot-cymonkey-gpu`,
 `deploy/unity-cymonkey-gpu`, and `deploy/unreal-cymonkey-gpu`; see their shared
-[`deploy/pacman-gpu/README.md`](../deploy/pacman-gpu/README.md). These images
+[`infra/deploy/cymonkey-gpu/README.md`](../infra/deploy/cymonkey-gpu/README.md). These images
 expect an NVIDIA-enabled runtime such as a RunPod GPU Pod. Xvfb is only a
 fallback display server and does not prove hardware acceleration.

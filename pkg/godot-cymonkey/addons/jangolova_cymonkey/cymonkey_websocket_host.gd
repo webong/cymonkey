@@ -21,11 +21,11 @@ func _ready() -> void:
 		listen_port = int(environment_port)
 	_registry = get_node_or_null(registry_path)
 	if _registry == null or bearer_token.is_empty():
-		push_error("Pacman WebSocket host requires a registry and bearer token.")
+		push_error("Cymonkey WebSocket host requires a registry and bearer token.")
 		return
 	var error := _server.listen(listen_port, listen_host)
 	if error != OK:
-		push_error("Pacman WebSocket listener failed: %s" % error)
+		push_error("Cymonkey WebSocket listener failed: %s" % error)
 
 func _process(_delta: float) -> void:
 	if _peer == null and _server.is_connection_available():
@@ -46,11 +46,11 @@ func _process(_delta: float) -> void:
 		while _peer.get_available_packet_count() > 0:
 			var packet := _peer.get_packet()
 			if packet.size() > CymonkeyProtocol.MAXIMUM_MESSAGE_BYTES:
-				_peer.close(1009, "Pacman message is too large")
+				_peer.close(1009, "Cymonkey message is too large")
 				return
 			if not _authenticated:
 				if not _authenticate_packet(packet):
-					_peer.close(1008, "Pacman authorization required")
+					_peer.close(1008, "Cymonkey authorization required")
 					return
 				_authenticated = true
 				_send({"type": "cymonkey.authenticated"})
@@ -91,13 +91,13 @@ func _constant_time_equals(left: String, right: String) -> bool:
 func _handle_message(text: String) -> void:
 	var request = JSON.parse_string(text)
 	if not request is Dictionary:
-		_send_error(0, "invalid_json", "Pacman request must be an object.")
+		_send_error(0, "invalid_json", "Cymonkey request must be an object.")
 		return
 	var request_id = request.get("id", 0)
 	var method := str(request.get("method", ""))
 	var params: Dictionary = request.get("params", {})
 	if method.is_empty() or not params is Dictionary:
-		_send_error(request_id, "invalid_request", "Pacman request requires method and object params.")
+		_send_error(request_id, "invalid_request", "Cymonkey request requires method and object params.")
 		return
 	var result = _registry.dispatch(method, params)
 	if result is Dictionary and result.has("__cymonkey_error"):
@@ -115,5 +115,5 @@ func _send(value: Dictionary) -> void:
 
 func _exit_tree() -> void:
 	if _peer != null:
-		_peer.close(1000, "Pacman detached")
+	_peer.close(1000, "Cymonkey detached")
 	_server.stop()

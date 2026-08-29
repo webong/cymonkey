@@ -1,7 +1,7 @@
 # Unreal Cymonkey fixture environment
 
 This is a separate caller-owned Unreal project for compiling and exercising
-`pkg/unreal-pacman`. It is not part of the Jangolova provider image and it owns
+`pkg/unreal-cymonkey`. It is not part of the Jangolova provider image and it owns
 its own Unreal process, World, renderer, and lifecycle.
 
 The project discovers the plugin through `AdditionalPluginDirectories` and
@@ -17,6 +17,6 @@ platform. The project is intentionally source-only in this repository; cooked
 assets and packaged binaries belong in the separate build output.
 
 The optional container definition at
-`deploy/unreal-pacman-fixture/Containerfile` uses operator-supplied Unreal build
+`infra/deploy/unreal-cymonkey-fixture/Containerfile` uses operator-supplied Unreal build
 and runtime images. It never assumes a public Unreal image or puts the Unreal
 Editor in the Jangolova runtime image.

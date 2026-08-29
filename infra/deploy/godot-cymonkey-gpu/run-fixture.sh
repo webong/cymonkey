@@ -10,7 +10,7 @@ screen_width="${GODOT_SCREEN_WIDTH:-1280}"
 screen_height="${GODOT_SCREEN_HEIGHT:-720}"
 
 if [[ ! -f "${project_path}/project.godot" ]]; then
-  echo "Godot Pacman fixture project is missing: ${project_path}" >&2
+  echo "Godot Cymonkey fixture project is missing: ${project_path}" >&2
   exit 1
 fi
 if [[ -z "${JANGOLOVA_CYMONKEY_TOKEN:-}" ]]; then

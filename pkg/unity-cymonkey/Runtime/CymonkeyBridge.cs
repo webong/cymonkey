@@ -27,7 +27,7 @@ namespace Jangolova.Cymonkey
             if (transportHost == null) return;
             activeTransportHost = transportHost as ICymonkeyTransportHost;
             if (activeTransportHost == null)
-                throw new InvalidOperationException("Pacman transportHost must implement ICymonkeyTransportHost.");
+                throw new InvalidOperationException("Cymonkey transportHost must implement ICymonkeyTransportHost.");
             activeTransportHost.StartHost(this);
         }
 
@@ -41,12 +41,12 @@ namespace Jangolova.Cymonkey
             allowlist.Clear();
             foreach (CymonkeyRegistration item in registrations)
             {
-                if (item == null) throw new InvalidOperationException("Pacman registrations cannot be null.");
+                if (item == null) throw new InvalidOperationException("Cymonkey registrations cannot be null.");
                 string kind = WireKind(item.kind);
                 if (item.target == null || !StableId.IsMatch(item.id ?? "") || !item.id.StartsWith(kind + ":", StringComparison.Ordinal))
-                    throw new InvalidOperationException("Every Pacman registration requires a target and a matching stable kind-prefixed ID.");
+                    throw new InvalidOperationException("Every Cymonkey registration requires a target and a matching stable kind-prefixed ID.");
                 if (allowlist.ContainsKey(item.id))
-                    throw new InvalidOperationException("Duplicate Pacman resource ID: " + item.id);
+                    throw new InvalidOperationException("Duplicate Cymonkey resource ID: " + item.id);
                 allowlist.Add(item.id, item);
             }
         }
@@ -61,7 +61,7 @@ namespace Jangolova.Cymonkey
                 case "act": return Act(parameters);
                 case "events": return Events(parameters);
                 case "health": return Health();
-                default: throw new CymonkeyCallException("method_not_found", "Unsupported Pacman method.");
+                default: throw new CymonkeyCallException("method_not_found", "Unsupported Cymonkey method.");
             }
         }
 
@@ -69,10 +69,10 @@ namespace Jangolova.Cymonkey
         {
             return new JObject {
                 ["protocolVersion"] = CymonkeyProtocol.Version,
-                ["compatibleProtocols"] = new JArray(CymonkeyProtocol.CompatibleProtocols),
                 ["implementation"] = new JObject { ["name"] = "jangolova-unity-cymonkey", ["version"] = "0.2.0" },
-                ["profiles"] = new JArray(CymonkeyProtocol.ProfileEngine),
-                ["backends"] = new JArray(CymonkeyProtocol.BackendUnity),
+                ["domains"] = new JArray(CymonkeyProtocol.DomainRender),
+                ["runtimes"] = new JArray(CymonkeyProtocol.RuntimeUnity),
+                ["drivers"] = new JArray(CymonkeyProtocol.DriverCymonkeyWebSocket),
                 ["features"] = new JArray("events.cursor", "resources.explicit-allowlist")
             };
         }
@@ -141,7 +141,7 @@ namespace Jangolova.Cymonkey
         private void Publish(string type, string sourceId, JObject data)
         {
             eventSequence++;
-            events.Add(new JObject { ["id"] = eventSequence.ToString(CultureInfo.InvariantCulture), ["type"] = type, ["sourceId"] = sourceId, ["occurredAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture), ["data"] = data });
+            events.Add(new JObject { ["id"] = eventSequence.ToString(CultureInfo.InvariantCulture), ["type"] = type, ["domain"] = CymonkeyProtocol.DomainRender, ["runtime"] = CymonkeyProtocol.RuntimeUnity, ["driver"] = CymonkeyProtocol.DriverCymonkeyWebSocket, ["sourceId"] = sourceId, ["occurredAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture), ["data"] = data });
             if (events.Count > MaximumEvents) events.RemoveAt(0);
         }
 
@@ -150,20 +150,21 @@ namespace Jangolova.Cymonkey
             GameObject gameObject = item.target as GameObject;
             Component component = item.target as Component;
             if (gameObject == null && component != null) gameObject = component.gameObject;
-            return new JObject { ["id"] = item.id, ["profile"] = CymonkeyProtocol.ProfileEngine, ["kind"] = WireKind(item.kind), ["label"] = item.label, ["properties"] = new JObject { ["active"] = gameObject == null ? (JToken)JValue.CreateNull() : gameObject.activeSelf } };
+            return new JObject { ["id"] = item.id, ["domain"] = CymonkeyProtocol.DomainRender, ["runtime"] = CymonkeyProtocol.RuntimeUnity, ["kind"] = WireKind(item.kind), ["label"] = item.label, ["properties"] = new JObject { ["active"] = gameObject == null ? (JToken)JValue.CreateNull() : gameObject.activeSelf } };
         }
 
         private static JObject Capability(string name, string effect, JArray kinds, JObject schema)
         {
             return new JObject {
                 ["name"] = name,
-                ["profile"] = CymonkeyProtocol.ProfileEngine,
-                ["backend"] = CymonkeyProtocol.BackendUnity,
+                ["domain"] = CymonkeyProtocol.DomainRender,
+                ["runtime"] = CymonkeyProtocol.RuntimeUnity,
+                ["driver"] = CymonkeyProtocol.DriverCymonkeyWebSocket,
                 ["support"] = "native",
                 ["lifetime"] = "attachment",
                 ["persistence"] = "session",
                 ["effect"] = effect,
-                ["targetKinds"] = kinds,
+                ["resourceKinds"] = kinds,
                 ["inputSchema"] = schema
             };
         }

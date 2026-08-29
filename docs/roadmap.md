@@ -1,20 +1,14 @@
 # Roadmap
 
-## Phase 0: Grimlock agent interface
+## Phase 0: Direct agent-tool interface
 
-- [x] Define Grimlock as Jangolova's internal model-powered agent subsystem,
-  distinct from deterministic engine APIs and target lifecycle ownership.
-- [x] Define a separate caller-supplied model profile with opaque credential
-  and TLS references.
-- [x] Add the ADK Go agent factory, model-connector registry, and initial
-  OpenAI-compatible gateway connector.
-- [x] Adapt Jangolova capabilities into effect-classified ADK tools with
-  approval checks immediately before execution.
-- [x] Add the native Grimlock HTTP session/run/event API.
-- [x] Add the MCP adapter over the same Grimlock application service.
-- [x] Add the ACP adapter over the same Grimlock application service.
-- [ ] Add persistent agent sessions, budgets, tracing, and multi-agent
-  workflows.
+- [x] Define Jangolova as a target-attached capability toolbox, not an agent.
+- [x] Keep planning, model selection, memory, and session ownership outside
+  Jangolova.
+- [x] Expose the authenticated Engine Provider HTTP API directly to callers.
+- [x] Add a direct MCP tool server over the same Engine Provider operations.
+- [x] Record requested, denied, failed, and completed action audit events at
+  the execution boundary.
 
 ## Phase 1: Correct interaction boundary
 
@@ -79,11 +73,12 @@
 ## Phase 2c: Runtime-agnostic augmentation
 
 - [x] Define `jangolova.cymonkey/v1alpha2` as a portable augmentation contract
-  with typed runtime profiles, surfaces, lifecycle, capability provenance, and
-  target-neutral manifests.
+  with typed domains, runtimes, drivers, surfaces, lifecycle, capability
+  provenance, and target-neutral manifests.
 - [x] Adapt the Jangolova Browser Extension control plane to advertise the
-  `web` profile while retaining the page-safe `v1alpha1` compatibility bridge.
-- [x] Define a bounded macOS profile over typed `app.command.*` and `ui.*`
+  `computer` / `browser-dom` attachment while retaining the page-safe
+  `v1alpha1` compatibility bridge.
+- [x] Define a bounded `computer` / `macos-app` mapping over typed `app.command.*` and `ui.*`
   operations without raw AppleScript, raw Apple Events, or unrestricted
   Accessibility-tree passthrough.
 - [x] Add shared Go validation and a policy-filtered macOS capability mapper.
@@ -116,12 +111,12 @@
 - [x] Verify artifact mounting in a direct-container target without Xallet.
 - [x] Add authorization, audit, timeout, and cancellation hooks for authored
   JavaScript execution.
-- [x] Define the Pacman Godot/Unity/Unreal semantic protocol and lifecycle boundary.
-- [x] Add Godot as the license-free Pacman reference runtime.
+- [x] Define the Cymonkey render contract and lifecycle boundary for Godot, Unity, and Unreal.
+- [x] Add Godot as the license-free Cymonkey render reference runtime.
 - [x] Add a headless Godot 4 fixture and authenticated `cymonkey-ws` container.
 - [x] Expose authenticated caller-owned `cymonkey-ws` attachment through the
   interaction provider.
-- [x] Add a minimal Unity Pacman package with explicit resource/action
+- [x] Add a minimal Unity Cymonkey package with explicit resource/action
   allowlisting and target-preserving disconnect verification.
 - [x] Scaffold a distributable Unreal plugin with explicit resource/action
   registration and game-thread semantic dispatch.
@@ -150,21 +145,18 @@
 - [x] Add worker-pool lifecycle, framed stdin/stdout IPC, and shutdown.
 - [x] Add YAML engine configuration and local model-file validation.
 - [x] Add `blockade validate` and `blockade observe` CLI flows.
-- [x] Expose Blockade observation as a read-only Grimlock tool.
-- [x] Add Grimlock model roles for reasoning, vision, and multimodal models.
-- [x] Define a Grimlock-owned vision-provider registry boundary.
-- [x] Merge the Pacman wire protocol into Cymonkey as the engine profile
+- [x] Keep Blockade as a read-only observation capability for external agents
+  and applications.
+- [x] Consolidate engine render control into Cymonkey's `render` domain
   (docs/cymonkey-display-plane-merge.md).
-- [ ] Split the entrypoints: pacman becomes the local CLI/TUI client,
-  Grimlock API-only (docs/pacman-cli-plan.md).
 - [x] Add reproducible model-cache mounts and a real YOLO/SAM fixture launcher.
 - [x] Run the fixture with pinned weights and add a real inference smoke test.
 - [x] Add native ONNX Runtime inference.
-- [ ] Cloud-provider adapters (fal.ai and similar): community-owned via the
-  Grimlock `VisionProvider` boundary, contract validators, and the
-  `jangolova-blockade-cloud-provider` agent skill.
-- [ ] Capture screenshots from Cymonkey, Pacman, and display targets for Blockade.
-- [ ] Add the full screenshot → observation → Grimlock → approved-action test.
+- [ ] Cloud-provider adapters (fal.ai and similar): caller-owned adapters
+  that map provider responses to the Blockade contract.
+- [ ] Capture screenshots from Cymonkey and display targets for Blockade.
+- [ ] Add the full screenshot → observation → external-agent decision →
+  approved-action test.
 
 ## Phase 5: Hardening
 

@@ -3,12 +3,13 @@ import XCTest
 @testable import CymonkeyMacOSRuntime
 
 final class RuntimeTests: XCTestCase {
-    func testHelloAndCapabilitiesExposeOnlyMacOSSemanticProfile() async throws {
+    func testHelloAndCapabilitiesExposeComputerDomain() async throws {
         let runtime = try makeRuntime(accessibilityAuthorized: true)
         let hello = await runtime.handle(ControlRequest(id: 1, method: "hello"))
         XCTAssertNil(hello.error)
         XCTAssertEqual(hello.result?.objectValue?["protocolVersion"]?.stringValue, cymonkeyProtocolVersion)
-        XCTAssertEqual(hello.result?.objectValue?["profiles"], .array([.string("macos")]))
+        XCTAssertEqual(hello.result?.objectValue?["domains"], .array([.string("computer")]))
+        XCTAssertEqual(hello.result?.objectValue?["runtimes"], .array([.string("macos-app")]))
 
         let capabilities = await runtime.capabilities().map(\.name)
         XCTAssertTrue(capabilities.contains("app.command.invoke"))

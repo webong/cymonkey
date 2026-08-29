@@ -6,8 +6,8 @@ const manifest = JSON.parse(await readFile(new URL("Packages/manifest.json", fix
 const projectVersion = await readFile(new URL("ProjectSettings/ProjectVersion.txt", fixtureRoot), "utf8");
 const assembly = JSON.parse(await readFile(new URL("Assets/Editor/Jangolova.CymonkeyFixture.Editor.asmdef", fixtureRoot)));
 const fixture = await readFile(new URL("Assets/Editor/HeadlessCymonkeyFixture.cs", fixtureRoot), "utf8");
-const container = await readFile(new URL("../deploy/unity-cymonkey-fixture/Containerfile", import.meta.url), "utf8");
-const runner = await readFile(new URL("../deploy/unity-cymonkey-fixture/run-fixture.sh", import.meta.url), "utf8");
+const container = await readFile(new URL("../infra/deploy/unity-cymonkey-fixture/Containerfile", import.meta.url), "utf8");
+const runner = await readFile(new URL("../infra/deploy/unity-cymonkey-fixture/run-fixture.sh", import.meta.url), "utf8");
 
 assert.equal(manifest.dependencies["com.jangolova.cymonkey"], "file:../../../pkg/unity-cymonkey");
 assert.match(projectVersion, /m_EditorVersion: 2022\.3\./);
@@ -30,7 +30,7 @@ assert.doesNotMatch(container, /jangolova\/engine-runtime/);
 for (const argument of ["-batchmode", "-nographics", "-quit", "-executeMethod"]) {
   assert.ok(runner.includes(argument));
 }
-assert.match(runner, /HeadlessPacmanFixture\.Run/);
+assert.match(runner, /HeadlessCymonkeyFixture\.Run/);
 assert.doesNotMatch(`${container}\n${runner}`, /UNITY_(?:EMAIL|PASSWORD|SERIAL|LICENSE)\s*=/);
 assert.doesNotMatch(`${container}\n${runner}`, /Xvfb|DISPLAY=/);
-console.log("Unity Pacman headless fixture environment contract is valid.");
+console.log("Unity Cymonkey headless fixture environment contract is valid.");

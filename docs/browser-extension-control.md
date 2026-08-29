@@ -2,7 +2,7 @@
 
 The private browser-extension protocol is
 `jangolova.browser-extension/v1alpha1`. It carries Jangolova platform calls,
-Cymonkey's five semantic operations, and Pacman calls over authenticated
+Cymonkey's five semantic operations, including render-domain calls, over authenticated
 extension-origin, Xallet Spook, or optional outbound WebSocket transports.
 Website code cannot access this plane.
 
@@ -85,7 +85,7 @@ dependency.
 Xallet Spook messaging, extension-origin/CDP control, standalone page-safe
 operation, and this WebSocket remain runtime choices in one build.
 
-## Generated bindings and compatibility
+## Generated bindings
 
 The canonical schema is
 `protocol/browser-extension/v1alpha1/protocol.schema.json`. Generate the
@@ -97,6 +97,6 @@ npm run check:browser-extension-protocol
 ```
 
 Recorded exchanges under `protocol/browser-extension/v1alpha1/fixtures`
-verify both the legacy `CYMONKEY_CALL` envelope and the current nested
-`cymonkey.call` envelope. Generated files include the source schema digest and
-must not be edited manually.
+verify the one `JANGOLOVA_EXTENSION_CALL` envelope, including its nested
+`cymonkey.call` subsystem method. Generated files include the source schema
+digest and must not be edited manually.

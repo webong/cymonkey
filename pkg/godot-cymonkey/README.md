@@ -1,12 +1,12 @@
 # Jangolova Cymonkey for Godot
 
-`godot-pacman` is the license-free reference runtime for
-`jangolova.pacman/v1alpha1`. It is a small Godot 4 GDScript package that keeps
+`godot-cymonkey` is the license-free reference runtime for the `render` domain
+of `jangolova.cymonkey/v1alpha2`. It is a small Godot 4 GDScript package that keeps
 semantic registration separate from rendering and application lifecycle.
 
 Add `CymonkeyRegistry` to a scene and populate `registrations` explicitly. Each
 registration has a stable kind-prefixed ID, a Node target, and an action
-allowlist. Unregistered Nodes are invisible to Pacman; the package never walks
+allowlist. Unregistered Nodes are invisible to Cymonkey; the package never walks
 the SceneTree to export the project automatically.
 
 `CymonkeyWebSocketHost` owns an authenticated caller-facing `cymonkey-ws` listener.
@@ -15,11 +15,11 @@ semantic work on Godot's main thread. Where the Godot server exposes the
 upgrade headers, callers authenticate with `Authorization: Bearer <token>`.
 For runtimes that do not expose those headers, the first WebSocket message may
 be `{"type":"auth","token":"<token>"}`; the host replies with
-`{"type":"pacman.authenticated"}` before accepting Pacman requests. Closing
+`{"type":"cymonkey.authenticated"}` before accepting Cymonkey requests. Closing
 the connection never quits Godot or frees the target scene.
 
 The package is dependency-free and can run in a headless Godot 4 container. The
-fixture at `tests/godot-pacman-fixture` exercises the protocol without requiring
+fixture at `tests/godot-cymonkey-fixture` exercises the protocol without requiring
 a display or a proprietary engine license.
 
 The fixture also has a rendered house choreography path. It uses the same

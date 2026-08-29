@@ -1,4 +1,4 @@
-# Pacman GPU fixture images
+# Cymonkey GPU fixture images
 
 These images are render-capable target environments for GPU-backed CI, such as
 a RunPod Pod. They are separate from the CPU/headless fixtures and do not
@@ -10,13 +10,13 @@ Each image:
 - advertises the NVIDIA container runtime through
   `NVIDIA_VISIBLE_DEVICES=all` and `NVIDIA_DRIVER_CAPABILITIES`;
 - writes engine logs and an `nvidia-smi` snapshot to `/workspace/artifacts`;
-- exposes the conventional Pacman port `8090/tcp`;
+- exposes the conventional Cymonkey port `8090/tcp`;
 - supports an operator-provided `DISPLAY` or an Xvfb fallback.
 
 The Xvfb fallback makes the fixture runnable without a display server, but it
 is not evidence of hardware-accelerated rendering. For real GPU rendering,
 provide a display/EGL/Vulkan setup supported by the engine and set the
-corresponding `*_USE_XVFB=0` variable. Pacman authentication tokens are always
+corresponding `*_USE_XVFB=0` variable. Cymonkey authentication tokens are always
 runtime secrets.
 
 ## Quick start
@@ -30,7 +30,7 @@ stored in this repository.
 
 The deployment handoff is a set of image references, not an uploaded license
 file. Build or obtain the licensed base images first, push them to a private
-registry, then build and push the Pacman layers that reference those bases.
+registry, then build and push the Cymonkey layers that reference those bases.
 
 Set the registry and version in your shell. `docker login` should prompt for
 credentials; do not put a registry token in a command, Dockerfile, or build
@@ -85,7 +85,7 @@ docker push "${REGISTRY}/unreal-build:5.3"
 docker push "${REGISTRY}/unreal-runtime:5.3"
 ```
 
-### Build and push the Pacman layers
+### Build and push the Cymonkey layers
 
 Run these commands on the Mac with OrbStack or on the Debian `x86_64` build
 server:
@@ -157,7 +157,7 @@ manual activation with `-createManualActivationFile` and
 `-manualLicenseFile`; those files should be handled as secrets and removed
 after the runner is retired. [Unity command-line licensing](https://docs.unity3d.com/es/current/Manual/CommandLineArguments.html)
 
-Build the Pacman GPU image after the private base is available:
+Build the Cymonkey GPU image after the private base is available:
 
 ```sh
 docker login ghcr.io
@@ -190,7 +190,7 @@ containers and `RunUAT.sh BuildCookRun` for packaging. [Epic Unreal container qu
 
 Keep the Unreal images in a private registry and comply with the Unreal Engine
 EULA. Do not copy the engine into this repository or publish it in a public
-image. Build the Pacman GPU image with:
+image. Build the Cymonkey GPU image with:
 
 ```sh
 docker login ghcr.io
@@ -250,7 +250,7 @@ variable to `/mnt/runpod-volume/artifacts` when artifacts must survive Pod
 restarts.
 
 RunPod Pods run one custom image; Docker Compose is not part of this deployment
-model. Keep the Pacman listener authenticated and prefer a private tunnel or
+model. Keep the Cymonkey listener authenticated and prefer a private tunnel or
 TLS endpoint over an open public port. The current Unity and Unreal fixtures
 exercise their package conformance entrypoints; their live WebSocket listeners
 remain a separate integration layer, while the Godot fixture owns the initial
