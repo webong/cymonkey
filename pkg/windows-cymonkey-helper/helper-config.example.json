@@ -1,0 +1,11 @@
+{
+  "allowedExecutableNames": ["notepad.exe"],
+  "viewer": {
+    "enabled": true,
+    "allowCapture": true,
+    "allowInput": false,
+    "maxTextLength": 1000,
+    "blockedKeys": ["alt+f4", "control+alt+delete"],
+    "redactTypedInput": true
+  }
+}

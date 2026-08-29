@@ -1,6 +1,6 @@
 # Cymonkey macOS Helper
 
-This package is the caller-owned native binding for Cymonkey's `computer`
+This package is the caller-owned native binding for Cymonkey's `viewer`
 domain with runtime `macos-app`. It is a Swift executable that a native host builds, signs, configures,
 and launches. Jangolova never launches or terminates it.
 
@@ -15,10 +15,12 @@ It exposes only:
 - bounded Accessibility queries for configured application bundle IDs;
 - actions reported by the selected Accessibility element;
 - attributes that Accessibility reports as settable and that policy allows.
+- optional, allowlisted window viewer surfaces with Screen Recording-gated PNG
+  capture and Accessibility-gated, policy-bounded pointer or keyboard input.
 
 It does not accept AppleScript source, raw Apple Event descriptors, arbitrary
-bundle identifiers, process launch requests, or system-wide Accessibility
-tree dumps.
+bundle identifiers, process launch requests, raw display-server handles, or
+system-wide Accessibility tree dumps.
 
 ## Build and test
 
@@ -68,3 +70,10 @@ Accessibility consent is checked with the macOS Accessibility API. The helper
 can request the normal system prompt only when `promptForAccessibilityConsent`
 is enabled. Apple Events are sent only for configured commands; macOS remains
 responsible for Automation consent.
+
+When the optional `viewer` configuration is enabled, Screen Recording consent
+is negotiated separately for `display.capture`; Accessibility is negotiated
+separately for pointer and keyboard input. The helper advertises neither
+viewer capability family until the corresponding consent is granted. Viewer
+surfaces are restricted to windows owned by the configured bundle IDs and are
+attachment-scoped.

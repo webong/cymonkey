@@ -29,7 +29,7 @@ func normalizeOptions(value *options) error {
 	}
 	switch value.Driver {
 	case "auto", "playwright", "puppeteer", string(BackendCDP), string(BackendBiDi), string(BackendSafariMCP),
-		string(BackendMacOSAppleEvents), string(BackendMacOSAccessibility), string(BackendMacOSCooperative):
+		string(BackendMacOSAppleEvents), string(BackendMacOSAccessibility), string(BackendMacOSCooperative), string(BackendWindowsCooperative):
 	default:
 		return fmt.Errorf("unsupported Cymonkey driver %q", value.Driver)
 	}

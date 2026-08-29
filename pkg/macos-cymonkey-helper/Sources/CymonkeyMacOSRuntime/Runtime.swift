@@ -5,13 +5,15 @@ public actor CymonkeyRuntime {
     private let configuration: HelperConfiguration
     private let appleEvents: AppleEventSending
     private let accessibility: AccessibilityProviding?
+    private let viewer: ViewerProviding?
     private var events: [SemanticEvent] = []
     private var sequence: UInt64 = 0
 
     public init(
         configuration: HelperConfiguration,
         appleEvents: AppleEventSending = SystemAppleEventSender(),
-        accessibility: AccessibilityProviding? = nil
+        accessibility: AccessibilityProviding? = nil,
+        viewer: ViewerProviding? = nil
     ) throws {
         try configuration.validate()
         self.configuration = configuration
@@ -22,6 +24,13 @@ public actor CymonkeyRuntime {
             self.accessibility = SystemAccessibilityProvider(policy: policy)
         } else {
             self.accessibility = nil
+        }
+        if let viewer {
+            self.viewer = viewer
+        } else if let policy = configuration.viewer, policy.enabled {
+            self.viewer = SystemViewerProvider(allowedBundleIDs: configuration.allowedBundleIds, policy: policy)
+        } else {
+            self.viewer = nil
         }
     }
 
@@ -95,6 +104,15 @@ public actor CymonkeyRuntime {
                 ))
             }
         }
+        if let viewer, viewer.captureAuthorized {
+            result.append(Capability(name: "display.describe", description: "Describe an allowlisted desktop viewer surface.", driver: "macos-viewer", effect: "read", required: ["surfaceId"], runtime: "macos-viewer"))
+            result.append(Capability(name: "display.capture", description: "Capture an allowlisted desktop viewer surface.", driver: "macos-viewer", effect: "read", required: ["surfaceId"], runtime: "macos-viewer"))
+        }
+        if let viewer, viewer.inputAuthorized {
+            for name in ["pointer.move", "pointer.click", "pointer.drag", "pointer.scroll", "keyboard.type", "keyboard.press"] {
+                result.append(Capability(name: name, description: "Inject policy-bounded input into an allowlisted viewer surface.", driver: "macos-viewer", effect: "write", required: ["surfaceId"], additionalProperties: true, runtime: "macos-viewer"))
+            }
+        }
         return result.sorted { $0.name < $1.name }
     }
 
@@ -102,24 +120,27 @@ public actor CymonkeyRuntime {
         var drivers: [JSONValue] = []
         if !configuration.appleEventCommands.isEmpty { drivers.append(.string("macos-apple-events")) }
         if accessibility != nil { drivers.append(.string("macos-accessibility")) }
+        if viewer != nil { drivers.append(.string("macos-viewer")) }
+        var runtimes: [JSONValue] = [.string("macos-app")]
+        if viewer != nil { runtimes.append(.string("macos-viewer")) }
         return .object([
             "protocolVersion": .string(cymonkeyProtocolVersion),
             "implementation": .object([
                 "name": .string("jangolova-cymonkey-macos-helper"),
                 "version": .string("0.1.0"),
             ]),
-            "domains": .array([.string("computer")]),
-            "runtimes": .array([.string("macos-app")]),
+            "domains": .array([.string("viewer")]),
+            "runtimes": .array(runtimes),
             "drivers": .array(drivers),
             "features": .array([.string("events.cursor"), .string("consent.negotiated")]),
         ])
     }
 
     private func describe() -> JSONValue {
-        let surfaces = runningSurfaces().map { surface in
+        var surfaces = runningSurfaces().map { surface in
             JSONValue.object([
                 "id": .string(surface.id),
-                "domain": .string("computer"),
+                "domain": .string("viewer"),
                 "runtime": .string("macos-app"),
                 "kind": .string("window"),
                 "label": surface.label.map(JSONValue.string) ?? .null,
@@ -129,6 +150,15 @@ public actor CymonkeyRuntime {
                 ]),
             ])
         }
+        if let viewer {
+            surfaces.append(contentsOf: viewer.surfaces().map { surface in
+                .object([
+                    "id": .string(surface.id), "domain": .string("viewer"), "runtime": .string("macos-viewer"), "kind": .string("viewport"),
+                    "label": surface.label.map(JSONValue.string) ?? .null,
+                    "properties": .object(["processId": .number(Double(surface.processId)), "windowId": .number(Double(surface.windowId)), "x": .number(Double(surface.x)), "y": .number(Double(surface.y)), "width": .number(Double(surface.width)), "height": .number(Double(surface.height))]),
+                ])
+            })
+        }
         return .object([
             "revision": .string(surfaceRevision(surfaces: runningSurfaces())),
             "surfaces": .array(surfaces),
@@ -136,6 +166,7 @@ public actor CymonkeyRuntime {
             "consent": .object([
                 "accessibility": .string(accessibility?.authorized == true ? "granted" : "unavailable"),
                 "automation": .string("per-command"),
+                "screenCapture": .string(viewer?.captureAuthorized == true ? "granted" : "unavailable"),
             ]),
         ])
     }
@@ -187,6 +218,35 @@ public actor CymonkeyRuntime {
             publish("ui.attribute.updated", driver: "macos-accessibility", data: .object([
                 "surfaceId": .string(surfaceID), "elementId": .string(elementID), "attribute": .string(attribute),
             ]))
+        case "display.describe":
+            guard let viewer else { throw RuntimeError.unavailable("viewer backend is unavailable") }
+            let surfaceID = try requiredString(input, "surfaceId")
+            guard let surface = viewer.surfaces().first(where: { $0.id == surfaceID }) else { throw RuntimeError.staleReference("viewer surface is unavailable or stale") }
+            result = .object(["surfaceId": .string(surface.id), "width": .number(Double(surface.width)), "height": .number(Double(surface.height)), "coordinateSpace": .string("window-local")])
+        case "display.capture":
+            guard let viewer else { throw RuntimeError.unavailable("viewer backend is unavailable") }
+            let capture = try viewer.capture(surfaceId: try requiredString(input, "surfaceId"))
+            result = try encodeToJSON(capture)
+        case "pointer.move":
+            guard let viewer else { throw RuntimeError.unavailable("viewer backend is unavailable") }
+            try viewer.move(surfaceId: try requiredString(input, "surfaceId"), x: try requiredInt(input, "x"), y: try requiredInt(input, "y")); result = .object(["ok": .bool(true)])
+        case "pointer.click":
+            guard let viewer else { throw RuntimeError.unavailable("viewer backend is unavailable") }
+            try viewer.click(surfaceId: try requiredString(input, "surfaceId"), x: try requiredInt(input, "x"), y: try requiredInt(input, "y"), button: input["button"]?.stringValue ?? "left"); result = .object(["ok": .bool(true)])
+        case "pointer.drag":
+            guard let viewer else { throw RuntimeError.unavailable("viewer backend is unavailable") }
+            try viewer.drag(surfaceId: try requiredString(input, "surfaceId"), startX: try requiredInt(input, "startX"), startY: try requiredInt(input, "startY"), endX: try requiredInt(input, "endX"), endY: try requiredInt(input, "endY")); result = .object(["ok": .bool(true)])
+        case "pointer.scroll":
+            guard let viewer else { throw RuntimeError.unavailable("viewer backend is unavailable") }
+            try viewer.scroll(surfaceId: try requiredString(input, "surfaceId"), x: try requiredInt(input, "x"), y: try requiredInt(input, "y"), deltaY: try requiredInt(input, "deltaY")); result = .object(["ok": .bool(true)])
+        case "keyboard.type":
+            guard let viewer else { throw RuntimeError.unavailable("viewer backend is unavailable") }
+            let text = try requiredString(input, "text")
+            try viewer.type(surfaceId: try requiredString(input, "surfaceId"), text: text)
+            result = .object(["ok": .bool(true)])
+        case "keyboard.press":
+            guard let viewer else { throw RuntimeError.unavailable("viewer backend is unavailable") }
+            try viewer.press(surfaceId: try requiredString(input, "surfaceId"), key: try requiredString(input, "key")); result = .object(["ok": .bool(true)])
         default:
             throw RuntimeError.denied("Cymonkey capability was not advertised")
         }
@@ -213,7 +273,7 @@ public actor CymonkeyRuntime {
         events.append(SemanticEvent(
             id: String(sequence), type: type,
             occurredAt: ISO8601DateFormatter().string(from: Date()),
-            domain: "computer", runtime: "macos-app", driver: driver, data: data
+            domain: "viewer", runtime: "macos-app", driver: driver, data: data
         ))
         if events.count > 1_000 { events.removeFirst(events.count - 1_000) }
     }
@@ -281,6 +341,13 @@ private func requiredString(_ input: [String: JSONValue], _ name: String) throws
         throw RuntimeError.invalidRequest("\(name) is required")
     }
     return value
+}
+
+private func requiredInt(_ input: [String: JSONValue], _ name: String) throws -> Int {
+    guard case .number(let value) = input[name], value.rounded() == value else {
+        throw RuntimeError.invalidRequest("\(name) must be an integer")
+    }
+    return Int(value)
 }
 
 private func encodeToJSON<T: Encodable>(_ value: T) throws -> JSONValue {

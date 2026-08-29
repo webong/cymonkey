@@ -101,12 +101,13 @@ public struct Capability: Codable, Equatable, Sendable {
         driver: String,
         effect: String,
         required: [String],
-        additionalProperties: Bool = false
+        additionalProperties: Bool = false,
+        runtime: String = "macos-app"
     ) {
         self.name = name
         self.description = description
-        self.domain = "computer"
-        self.runtime = "macos-app"
+        self.domain = "viewer"
+        self.runtime = runtime
         self.driver = driver
         self.support = "mapped"
         self.lifetime = "attachment"

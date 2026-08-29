@@ -11,7 +11,7 @@ const ProtocolVersion = contract.ProtocolVersion
 type Domain = contract.Domain
 
 const (
-	DomainComputer = contract.DomainComputer
+	DomainViewer = contract.DomainViewer
 	DomainRender   = contract.DomainRender
 	DomainPlayer   = contract.DomainPlayer
 )
@@ -26,6 +26,7 @@ const (
 	BackendMacOSAppleEvents   BackendName = "macos-apple-events"
 	BackendMacOSAccessibility BackendName = "macos-accessibility"
 	BackendMacOSCooperative   BackendName = "macos-cooperative"
+	BackendWindowsCooperative BackendName = "windows-cooperative"
 )
 
 type SupportMode string

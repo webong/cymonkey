@@ -15,5 +15,14 @@
     "maxDepth": 8,
     "maxResults": 50,
     "promptForAccessibilityConsent": false
+  },
+  "viewer": {
+    "enabled": false,
+    "allowCapture": false,
+    "allowInput": false,
+    "maxTextLength": 1000,
+    "blockedKeys": ["command+q"],
+    "redactTypedInput": true,
+    "promptForScreenCaptureConsent": false
   }
 }

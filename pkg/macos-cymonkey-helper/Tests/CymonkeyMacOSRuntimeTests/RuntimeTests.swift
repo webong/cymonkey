@@ -8,7 +8,7 @@ final class RuntimeTests: XCTestCase {
         let hello = await runtime.handle(ControlRequest(id: 1, method: "hello"))
         XCTAssertNil(hello.error)
         XCTAssertEqual(hello.result?.objectValue?["protocolVersion"]?.stringValue, cymonkeyProtocolVersion)
-        XCTAssertEqual(hello.result?.objectValue?["domains"], .array([.string("computer")]))
+        XCTAssertEqual(hello.result?.objectValue?["domains"], .array([.string("viewer")]))
         XCTAssertEqual(hello.result?.objectValue?["runtimes"], .array([.string("macos-app")]))
 
         let capabilities = await runtime.capabilities().map(\.name)
@@ -99,9 +99,26 @@ final class RuntimeTests: XCTestCase {
         ))
     }
 
+    func testViewerCapabilitiesRequireTheirOwnConsent() async throws {
+        let runtime = try makeRuntime(
+            accessibilityAuthorized: false,
+            viewer: FakeViewer(captureAuthorized: true, inputAuthorized: false)
+        )
+        let names = await runtime.capabilities().map(\.name)
+        XCTAssertTrue(names.contains("display.capture"))
+        XCTAssertFalse(names.contains("pointer.click"))
+        let response = await runtime.handle(ControlRequest(
+            id: 9,
+            method: "act",
+            params: .object(["name": .string("display.capture"), "input": .object(["surfaceId": .string("macos-viewer:42-7")])])
+        ))
+        XCTAssertNil(response.error)
+    }
+
     private func makeRuntime(
         appleEvents: AppleEventSending = FakeAppleEvents(),
-        accessibilityAuthorized: Bool
+        accessibilityAuthorized: Bool,
+        viewer: ViewerProviding? = nil
     ) throws -> CymonkeyRuntime {
         let accessibilityPolicy = AccessibilityPolicy(
             allowedBundleIds: ["com.example.Target"],
@@ -121,9 +138,32 @@ final class RuntimeTests: XCTestCase {
         return try CymonkeyRuntime(
             configuration: configuration,
             appleEvents: appleEvents,
-            accessibility: FakeAccessibility(authorized: accessibilityAuthorized)
+            accessibility: FakeAccessibility(authorized: accessibilityAuthorized),
+            viewer: viewer
         )
     }
+}
+
+private final class FakeViewer: ViewerProviding, @unchecked Sendable {
+    let captureAuthorized: Bool
+    let inputAuthorized: Bool
+
+    init(captureAuthorized: Bool, inputAuthorized: Bool) {
+        self.captureAuthorized = captureAuthorized
+        self.inputAuthorized = inputAuthorized
+    }
+
+    func surfaces() -> [ViewerSurface] {
+        [ViewerSurface(id: "macos-viewer:42-7", processId: 42, windowId: 7, label: "Target", x: 0, y: 0, width: 20, height: 20)]
+    }
+
+    func capture(surfaceId: String) throws -> ViewerCapture { ViewerCapture(format: "image/png", width: 1, height: 1, base64Data: "AA==") }
+    func move(surfaceId: String, x: Int, y: Int) throws {}
+    func click(surfaceId: String, x: Int, y: Int, button: String) throws {}
+    func drag(surfaceId: String, startX: Int, startY: Int, endX: Int, endY: Int) throws {}
+    func scroll(surfaceId: String, x: Int, y: Int, deltaY: Int) throws {}
+    func type(surfaceId: String, text: String) throws {}
+    func press(surfaceId: String, key: String) throws {}
 }
 
 private final class FakeAppleEvents: AppleEventSending, @unchecked Sendable {

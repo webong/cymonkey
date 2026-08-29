@@ -4,15 +4,18 @@ public struct HelperConfiguration: Codable, Sendable {
     public let allowedBundleIds: [String]
     public let appleEventCommands: [AppleEventCommand]
     public let accessibility: AccessibilityPolicy?
+    public let viewer: ViewerPolicy?
 
     public init(
         allowedBundleIds: [String],
         appleEventCommands: [AppleEventCommand] = [],
-        accessibility: AccessibilityPolicy? = nil
+        accessibility: AccessibilityPolicy? = nil,
+        viewer: ViewerPolicy? = nil
     ) throws {
         self.allowedBundleIds = try Self.validatedBundleIDs(allowedBundleIds)
         self.appleEventCommands = appleEventCommands
         self.accessibility = accessibility
+        self.viewer = viewer
         try validate()
     }
 
@@ -30,6 +33,9 @@ public struct HelperConfiguration: Codable, Sendable {
         }
         if let accessibility {
             try accessibility.validate(allowedBundleIDs: allowed)
+        }
+        if let viewer {
+            try viewer.validate()
         }
     }
 
@@ -52,6 +58,43 @@ public struct HelperConfiguration: Codable, Sendable {
             if seen.insert(value).inserted { result.append(value) }
         }
         return result.sorted()
+    }
+}
+
+public struct ViewerPolicy: Codable, Equatable, Sendable {
+    public let enabled: Bool
+    public let allowCapture: Bool
+    public let allowInput: Bool
+    public let maxTextLength: Int
+    public let blockedKeys: [String]
+    public let redactTypedInput: Bool
+    public let promptForScreenCaptureConsent: Bool
+
+    public init(
+        enabled: Bool = false,
+        allowCapture: Bool = false,
+        allowInput: Bool = false,
+        maxTextLength: Int = 0,
+        blockedKeys: [String] = [],
+        redactTypedInput: Bool = false,
+        promptForScreenCaptureConsent: Bool = false
+    ) {
+        self.enabled = enabled
+        self.allowCapture = allowCapture
+        self.allowInput = allowInput
+        self.maxTextLength = maxTextLength
+        self.blockedKeys = blockedKeys
+        self.redactTypedInput = redactTypedInput
+        self.promptForScreenCaptureConsent = promptForScreenCaptureConsent
+    }
+
+    fileprivate func validate() throws {
+        guard maxTextLength >= 0 && maxTextLength <= 10_000 else {
+            throw RuntimeError.invalidRequest("viewer maxTextLength must be between 0 and 10000")
+        }
+        guard blockedKeys.allSatisfy({ !$0.isEmpty && !$0.contains("\n") && $0.count <= 80 }) else {
+            throw RuntimeError.invalidRequest("invalid viewer blocked key")
+        }
     }
 }
 

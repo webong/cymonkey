@@ -63,7 +63,7 @@ var _ bridge.Caller = (*instance)(nil)
 func (Adapter) InspectEngine(context.Context) orchestrator.EngineInspection {
 	capabilities := stableStrings(append(capabilityNames(),
 		"app.command.describe", "app.command.invoke", "app.command.list",
-		"target.macos-cooperative", "ui.action.invoke", "ui.attribute.set", "ui.query",
+		"target.macos-cooperative", "target.windows-cooperative", "ui.action.invoke", "ui.attribute.set", "ui.query",
 	))
 	if _, err := exec.LookPath("node"); err != nil {
 		return orchestrator.EngineInspection{Available: true, Capabilities: capabilities, Message: "macOS computer runtime is available; browser runtime requires Node.js: " + err.Error()}
