@@ -196,6 +196,7 @@ func jangolovaMCPTools() []map[string]any {
 		{"name": "jangolova_instance_describe", "description": "Inspect one attached interaction instance.", "inputSchema": object(map[string]any{"instanceId": map[string]any{"type": "string"}}, "instanceId")},
 		{"name": "jangolova_instance_call", "description": "Call a negotiated semantic method on an attached instance.", "inputSchema": object(map[string]any{"instanceId": map[string]any{"type": "string"}, "method": map[string]any{"type": "string"}, "params": map[string]any{"type": "object"}, "approvalId": map[string]any{"type": "string"}}, "instanceId", "method")},
 		{"name": "jangolova_instance_events", "description": "Read target and action audit events after an optional cursor.", "inputSchema": object(map[string]any{"instanceId": map[string]any{"type": "string"}, "after": map[string]any{"type": "string"}, "limit": map[string]any{"type": "integer"}}, "instanceId")},
+		{"name": "jangolova_instance_observe", "description": "Capture an attached browser through Cymonkey and return a Blockade observation with Jangolova provenance.", "inputSchema": object(map[string]any{"instanceId": map[string]any{"type": "string"}, "prompt": map[string]any{"type": "string"}, "fullPage": map[string]any{"type": "boolean"}, "approvalId": map[string]any{"type": "string"}}, "instanceId")},
 		{"name": "jangolova_action_approval_request", "description": "Create a pending owner approval for an action configured to require it.", "inputSchema": object(map[string]any{"instanceId": map[string]any{"type": "string"}, "params": map[string]any{"type": "object"}, "expiresInSeconds": map[string]any{"type": "integer"}}, "instanceId", "params")},
 		{"name": "jangolova_action_approval_resolve", "description": "Approve or reject a pending action approval.", "inputSchema": object(map[string]any{"instanceId": map[string]any{"type": "string"}, "approvalId": map[string]any{"type": "string"}, "approved": map[string]any{"type": "boolean"}}, "instanceId", "approvalId", "approved")},
 		{"name": "jangolova_instance_disconnect", "description": "Detach an interaction instance without stopping the caller-owned target.", "inputSchema": object(map[string]any{"instanceId": map[string]any{"type": "string"}}, "instanceId")},
@@ -243,6 +244,11 @@ func (server *MCPServer) callTool(ctx context.Context, name string, raw json.Raw
 		if after := stringValue(args["after"]); after != "" {
 			path += "?after=" + after
 		}
+	case "jangolova_instance_observe":
+		method, path, body = http.MethodPost, "/v1/instances/"+stringValue(args["instanceId"])+"/observe", nil
+		body, _ = json.Marshal(map[string]json.RawMessage{
+			"prompt": args["prompt"], "fullPage": args["fullPage"], "approvalId": args["approvalId"],
+		})
 	case "jangolova_action_approval_request":
 		method, path = http.MethodPost, "/v1/instances/"+stringValue(args["instanceId"])+"/approvals"
 		body, _ = json.Marshal(map[string]json.RawMessage{"params": args["params"], "expiresInSeconds": args["expiresInSeconds"]})

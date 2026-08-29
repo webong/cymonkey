@@ -17,8 +17,10 @@ type processBackend struct {
 	endpointProtocol string
 }
 
-func (backend processBackend) Name() BackendName       { return backend.name }
-func (backend processBackend) Domain() contract.Domain { return contract.DomainComputer }
+func (backend processBackend) Name() BackendName { return backend.name }
+func (backend processBackend) Domains() []contract.Domain {
+	return []contract.Domain{contract.DomainViewer, contract.DomainRender}
+}
 func (backend processBackend) Compatible(target orchestrator.EngineTarget) bool {
 	_, ok := target.Endpoint(backend.endpointProtocol)
 	return target.Kind == "browser" && ok
@@ -49,8 +51,8 @@ func (Adapter) Connect(ctx context.Context, spec manifest.EngineSpec, target orc
 	if err != nil {
 		return nil, err
 	}
-	if domain != contract.DomainComputer && config.Extension.Mode == extensionRequired {
-		return nil, errors.New("Cymonkey WebExtension mode is available only for the computer domain")
+	if domain != contract.DomainViewer && domain != contract.DomainRender && config.Extension.Mode == extensionRequired {
+		return nil, errors.New("Cymonkey WebExtension mode is available only for browser viewer or render domains")
 	}
 	if backend.Name() != BackendCDP && config.Extension.Mode == extensionRequired {
 		return nil, fmt.Errorf("Cymonkey extension mode required is not available with backend %s", backend.Name())
@@ -59,12 +61,12 @@ func (Adapter) Connect(ctx context.Context, spec manifest.EngineSpec, target orc
 }
 
 func selectBackend(requested string, target orchestrator.EngineTarget) (Backend, error) {
-	return selectBackendForDomain(requested, contract.DomainComputer, target)
+	return selectBackendForDomain(requested, contract.DomainViewer, target)
 }
 
 func selectBackendForDomain(requested string, domain contract.Domain, target orchestrator.EngineTarget) (Backend, error) {
 	for _, backend := range configuredBackends {
-		if backend.Domain() != domain {
+		if !containsDomain(backend.Domains(), domain) {
 			continue
 		}
 		if requested != "auto" && !backendMatchesRequest(backend, requested) {
@@ -75,19 +77,19 @@ func selectBackendForDomain(requested string, domain contract.Domain, target orc
 		}
 	}
 	if requested == "auto" {
-		if domain == contract.DomainComputer && target.Kind == "macos-application" {
-			return nil, errors.New("Cymonkey computer domain for macOS requires a caller-owned native helper; Apple Events and Accessibility are not invoked directly by the provider")
+		if domain == contract.DomainViewer && target.Kind == "macos-application" {
+			return nil, errors.New("Cymonkey viewer domain for macOS requires a caller-owned native helper; Apple Events and Accessibility are not invoked directly by the provider")
 		}
-		if domain == contract.DomainComputer && target.Kind == "windows-application" {
-			return nil, errors.New("Cymonkey computer domain for Windows requires a caller-owned native helper; Win32 input is not invoked directly by the provider")
+		if domain == contract.DomainViewer && target.Kind == "windows-application" {
+			return nil, errors.New("Cymonkey viewer domain for Windows requires a caller-owned native helper; Win32 input is not invoked directly by the provider")
 		}
 		if domain == contract.DomainRender {
-			return nil, errors.New("Cymonkey render domain requires a caller-owned websocket or cymonkey-ws presentation endpoint")
+			return nil, errors.New("Cymonkey render domain requires a caller-owned websocket presentation endpoint")
 		}
 		if domain == contract.DomainPlayer {
 			return nil, errors.New("Cymonkey player domain has no negotiated driver for this target")
 		}
-		return nil, errors.New("Cymonkey computer domain requires a caller-owned CDP, WebDriver BiDi, or Safari MCP endpoint")
+		return nil, errors.New("Cymonkey viewer domain requires a caller-owned CDP, WebDriver BiDi, or Safari MCP endpoint")
 	}
 	return nil, fmt.Errorf("Cymonkey backend %s has no compatible caller-owned %s domain target", requested, domain)
 }
@@ -96,11 +98,11 @@ func resolveDomain(requested contract.Domain, target orchestrator.EngineTarget) 
 	if requested == "" {
 		switch target.Kind {
 		case "browser":
-			return contract.DomainComputer, nil
+			return contract.DomainViewer, nil
 		case "macos-application":
-			return contract.DomainComputer, nil
+			return contract.DomainViewer, nil
 		case "windows-application":
-			return contract.DomainComputer, nil
+			return contract.DomainViewer, nil
 		case "native-presentation", "unity", "unreal", "godot":
 			return contract.DomainRender, nil
 		default:
@@ -110,11 +112,11 @@ func resolveDomain(requested contract.Domain, target orchestrator.EngineTarget) 
 	if !contract.ValidDomain(requested) {
 		return "", fmt.Errorf("unsupported Cymonkey domain %q", requested)
 	}
-	if requested == contract.DomainComputer && target.Kind != "browser" && target.Kind != "macos-application" && target.Kind != "windows-application" {
-		return "", errors.New("Cymonkey computer domain requires target.kind browser, macos-application, or windows-application")
+	if requested == contract.DomainViewer && target.Kind != "browser" && target.Kind != "macos-application" && target.Kind != "windows-application" {
+		return "", errors.New("Cymonkey viewer domain requires target.kind browser, macos-application, or windows-application")
 	}
-	if requested == contract.DomainRender && target.Kind != "native-presentation" && target.Kind != "unity" && target.Kind != "unreal" && target.Kind != "godot" {
-		return "", errors.New("Cymonkey render domain requires target.kind native-presentation, unity, unreal, or godot")
+	if requested == contract.DomainRender && target.Kind != "browser" && target.Kind != "native-presentation" && target.Kind != "unity" && target.Kind != "unreal" && target.Kind != "godot" {
+		return "", errors.New("Cymonkey render domain requires target.kind browser, native-presentation, unity, unreal, or godot")
 	}
 	if requested == contract.DomainPlayer && target.Kind != "browser" && target.Kind != "macos-application" && target.Kind != "windows-application" && target.Kind != "native-presentation" && target.Kind != "unity" && target.Kind != "unreal" && target.Kind != "godot" {
 		return "", errors.New("Cymonkey player domain requires a browser, macos-application, windows-application, or native presentation target")

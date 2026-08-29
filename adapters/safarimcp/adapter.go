@@ -167,7 +167,7 @@ func (Adapter) Connect(
 	})
 	if source := strings.TrimSpace(spec.Source); source != "" {
 		params, _ := json.Marshal(map[string]any{
-			"name": "browser.navigate", "input": map[string]string{"url": source},
+			"name": "window.navigate", "input": map[string]string{"url": source},
 		})
 		if _, err := running.Call(ctx, bridge.MethodAct, params); err != nil {
 			_ = running.Disconnect(context.Background())
@@ -277,21 +277,21 @@ func (i *instance) act(ctx context.Context, raw json.RawMessage) (json.RawMessag
 	toolName := ""
 	arguments := map[string]any{}
 	switch request.Name {
-	case "browser.navigate":
+	case "window.navigate":
 		toolName = "navigate_to_url"
 		value, err := requiredString(request.Input, "url")
 		if err != nil {
 			return nil, err
 		}
 		arguments["url"] = value
-	case "browser.evaluate":
+	case "window.evaluate":
 		toolName = "evaluate_javascript"
 		value, err := requiredString(request.Input, "expression")
 		if err != nil {
 			return nil, err
 		}
 		arguments[i.toolArgument(toolName, "script", "expression", "javascript", "code")] = value
-	case "browser.screenshot":
+	case "window.screenshot":
 		toolName = "screenshot"
 	case "browser.interact":
 		toolName = "page_interactions"
@@ -513,13 +513,13 @@ func capabilities(tools map[string]tool) []bridge.Capability {
 		values = append(values, capability("mcp.tool."+value.Name, toolEffect(value.Name), value.InputSchema))
 	}
 	if _, ok := tools["navigate_to_url"]; ok {
-		values = append(values, capability("browser.navigate", bridge.EffectWrite, objectSchema("url")))
+		values = append(values, capability("window.navigate", bridge.EffectWrite, objectSchema("url")))
 	}
 	if _, ok := tools["evaluate_javascript"]; ok {
-		values = append(values, capability("browser.evaluate", bridge.EffectExternal, objectSchema("expression")))
+		values = append(values, capability("window.evaluate", bridge.EffectExternal, objectSchema("expression")))
 	}
 	if _, ok := tools["screenshot"]; ok {
-		values = append(values, capability("browser.screenshot", bridge.EffectRead, objectSchema()))
+		values = append(values, capability("window.screenshot", bridge.EffectRead, objectSchema()))
 	}
 	if value, ok := tools["page_interactions"]; ok {
 		values = append(values, capability("browser.interact", bridge.EffectWrite, value.InputSchema))

@@ -9,7 +9,7 @@ registration has a stable kind-prefixed ID, a Node target, and an action
 allowlist. Unregistered Nodes are invisible to Cymonkey; the package never walks
 the SceneTree to export the project automatically.
 
-`CymonkeyWebSocketHost` owns an authenticated caller-facing `cymonkey-ws` listener.
+`CymonkeyWebSocketHost` owns an authenticated caller-facing `websocket` listener.
 It accepts one connection, enforces a message-size limit, and dispatches all
 semantic work on Godot's main thread. Where the Godot server exposes the
 upgrade headers, callers authenticate with `Authorization: Bearer <token>`.

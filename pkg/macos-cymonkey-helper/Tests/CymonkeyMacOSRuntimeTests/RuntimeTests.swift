@@ -3,7 +3,7 @@ import XCTest
 @testable import CymonkeyMacOSRuntime
 
 final class RuntimeTests: XCTestCase {
-    func testHelloAndCapabilitiesExposeComputerDomain() async throws {
+    func testHelloAndCapabilitiesExposeViewerDomain() async throws {
         let runtime = try makeRuntime(accessibilityAuthorized: true)
         let hello = await runtime.handle(ControlRequest(id: 1, method: "hello"))
         XCTAssertNil(hello.error)

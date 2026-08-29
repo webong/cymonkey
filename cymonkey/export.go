@@ -26,11 +26,11 @@ type (
 )
 
 const (
-	DomainComputer = core.DomainComputer
-	DomainRender   = core.DomainRender
-	DomainPlayer   = core.DomainPlayer
-	RuntimeModule  = core.RuntimeModule
-	DriverModule   = core.DriverModule
+	DomainViewer  = core.DomainViewer
+	DomainRender  = core.DomainRender
+	DomainPlayer  = core.DomainPlayer
+	RuntimeModule = core.RuntimeModule
+	DriverModule  = core.DriverModule
 )
 
 var (

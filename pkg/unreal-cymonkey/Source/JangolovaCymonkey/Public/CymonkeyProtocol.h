@@ -8,7 +8,7 @@ namespace Jangolova::Cymonkey
     inline constexpr TCHAR ProtocolVersion[] = TEXT("jangolova.cymonkey/v1alpha2");
     inline constexpr TCHAR DomainRender[] = TEXT("render");
     inline constexpr TCHAR RuntimeUnreal[] = TEXT("unreal");
-    inline constexpr TCHAR DriverCymonkeyWebSocket[] = TEXT("cymonkey-ws");
+    inline constexpr TCHAR DriverWebSocket[] = TEXT("websocket");
     inline constexpr TCHAR MethodHello[] = TEXT("hello");
     inline constexpr TCHAR MethodCapabilities[] = TEXT("capabilities");
     inline constexpr TCHAR MethodDescribe[] = TEXT("describe");

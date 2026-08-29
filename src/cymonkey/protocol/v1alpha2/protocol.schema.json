@@ -10,7 +10,7 @@
     {"$ref": "#/$defs/eventBatch"}
   ],
   "$defs": {
-    "domain": {"enum": ["computer", "render", "player"]},
+    "domain": {"enum": ["viewer", "render", "player"]},
     "runtime": {"type": "string", "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)*$"},
     "driver": {"type": "string", "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)*$"},
     "resourceKind": {

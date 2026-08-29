@@ -17,7 +17,7 @@ assert.equal(protocol.match(/VERSION := "([^"]+)"/)?.[1], goProtocol.match(/Prot
 assert.doesNotMatch(registry, /compatibleProtocols/);
 assert.match(registry, /"domains": \[CymonkeyProtocol\.DOMAIN_RENDER\]/);
 assert.match(registry, /"runtimes": \[CymonkeyProtocol\.RUNTIME_GODOT\]/);
-assert.match(registry, /"drivers": \[CymonkeyProtocol\.DRIVER_CYMONKEY_WS\]/);
+assert.match(registry, /"drivers": \[CymonkeyProtocol\.DRIVER_WEBSOCKET\]/);
 assert.match(registry, /stale_revision/);
 for (const method of ["hello", "capabilities", "describe", "act", "events", "health"]) assert.match(protocol, new RegExp(`METHOD_[A-Z]+ := "${method}"`));
 for (const kind of ["scene", "object", "ui", "camera", "material", "animation", "timeline", "artifact", "event"]) assert.match(protocol, new RegExp(`"${kind}"`));

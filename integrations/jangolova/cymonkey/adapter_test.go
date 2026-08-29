@@ -96,10 +96,11 @@ func TestRuntimeDomainIsInferredFromCallerOwnedTarget(t *testing.T) {
 		target    orchestrator.EngineTarget
 		want      contract.Domain
 	}{
-		"browser computer":  {target: orchestrator.EngineTarget{Kind: "browser"}, want: contract.DomainComputer},
-		"macos computer":    {target: orchestrator.EngineTarget{Kind: "macos-application"}, want: contract.DomainComputer},
-		"native render":     {target: orchestrator.EngineTarget{Kind: "godot"}, want: contract.DomainRender},
-		"explicit computer": {requested: contract.DomainComputer, target: orchestrator.EngineTarget{Kind: "browser"}, want: contract.DomainComputer},
+		"browser viewer":  {target: orchestrator.EngineTarget{Kind: "browser"}, want: contract.DomainViewer},
+		"macos viewer":    {target: orchestrator.EngineTarget{Kind: "macos-application"}, want: contract.DomainViewer},
+		"native render":   {target: orchestrator.EngineTarget{Kind: "godot"}, want: contract.DomainRender},
+		"explicit viewer": {requested: contract.DomainViewer, target: orchestrator.EngineTarget{Kind: "browser"}, want: contract.DomainViewer},
+		"browser render":  {requested: contract.DomainRender, target: orchestrator.EngineTarget{Kind: "browser"}, want: contract.DomainRender},
 	} {
 		t.Run(name, func(t *testing.T) {
 			got, err := resolveDomain(fixture.requested, fixture.target)
@@ -110,8 +111,8 @@ func TestRuntimeDomainIsInferredFromCallerOwnedTarget(t *testing.T) {
 	}
 }
 
-func TestComputerDomainReturnsCallerOwnedNativeHelperLaunchMaterial(t *testing.T) {
-	connected, err := (Adapter{}).Connect(context.Background(), manifest.EngineSpec{Options: json.RawMessage(`{"domain":"computer"}`)}, orchestrator.EngineTarget{Kind: "macos-application"})
+func TestViewerDomainReturnsCallerOwnedNativeHelperLaunchMaterial(t *testing.T) {
+	connected, err := (Adapter{}).Connect(context.Background(), manifest.EngineSpec{Options: json.RawMessage(`{"domain":"viewer"}`)}, orchestrator.EngineTarget{Kind: "macos-application"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,15 +141,25 @@ func TestBackendSelectionPrefersCDPThenBiDiThenSafariMCP(t *testing.T) {
 	}
 }
 
+func TestBrowserDriversSupportViewerAndRenderDomains(t *testing.T) {
+	target := orchestrator.EngineTarget{Kind: "browser", Endpoints: []orchestrator.TargetEndpoint{{Protocol: "cdp"}}}
+	for _, domain := range []contract.Domain{contract.DomainViewer, contract.DomainRender} {
+		backend, err := selectBackendForDomain("auto", domain, target)
+		if err != nil || backend.Name() != BackendCDP {
+			t.Fatalf("selectBackendForDomain(%q) = %v, %v", domain, backend, err)
+		}
+	}
+}
+
 func TestSafariMapperDoesNotInferAugmentationFromGenericInteractionTools(t *testing.T) {
 	discovered := []bridge.Capability{
 		{Name: "mcp.tool.click", Effect: bridge.EffectWrite, InputSchema: objectSchema("selector")},
 		{Name: "mcp.tool.screenshot", Effect: bridge.EffectRead, InputSchema: objectSchema()},
-		{Name: "browser.evaluate", Effect: bridge.EffectExternal, InputSchema: objectSchema("expression")},
+		{Name: "window.evaluate", Effect: bridge.EffectExternal, InputSchema: objectSchema("expression")},
 		{Name: "mcp.tool.add_preload_script", Effect: bridge.EffectExternal, InputSchema: objectSchema("source")},
 	}
 	_, capabilities := mapSafariCapabilities(discovered, nil)
-	if !contains(capabilityNamesFromDescriptors(capabilities), "script.execute") || !contains(capabilityNamesFromDescriptors(capabilities), "script.register") {
+	if !contains(capabilityNamesFromDescriptors(capabilities), "window.evaluate") || !contains(capabilityNamesFromDescriptors(capabilities), "script.register") {
 		t.Fatalf("mapped capabilities = %#v", capabilities)
 	}
 	if contains(capabilityNamesFromDescriptors(capabilities), "augmentation.install") {

@@ -15,7 +15,7 @@ let overlayMounted = false;
 try {
   const hello = await call("hello", {});
   assert.equal(hello.protocolVersion, "jangolova.cymonkey/v1alpha2");
-  assert.ok(hello.domains.includes("computer"), JSON.stringify(hello));
+  assert.ok(hello.domains.includes("viewer"), JSON.stringify(hello));
   assert.ok(hello.runtimes.includes("browser-dom"), JSON.stringify(hello));
   assert.ok(hello.drivers.includes(expectedBackend), JSON.stringify(hello));
 
@@ -23,7 +23,7 @@ try {
   const byName = new Map(capabilities.map((value) => [value.name, value]));
   for (const name of [
     "augmentation.install", "augmentation.list", "augmentation.disable",
-    "augmentation.enable", "augmentation.uninstall", "dom.query",
+    "augmentation.enable", "augmentation.uninstall", "document.query",
     "overlay.mount", "overlay.unmount", "storage.get", "storage.set",
   ]) {
     assert.ok(byName.has(name), `${expectedBackend} did not advertise ${name}`);
@@ -39,9 +39,9 @@ try {
     kind: "Augmentation",
     metadata: { id: augmentationId, revision: "live-conformance-1" },
     spec: {
-	  targets: [{ domain: "computer", runtime: "browser-dom", match: { urlPatterns: ["file://*/*"] } }],
-      permissions: ["script.register", "style.insert"],
-      computer: {
+	  targets: [{ domain: "render", runtime: "browser-dom", match: { urlPatterns: ["file://*/*"] } }],
+	  permissions: ["script.register", "style.insert"],
+      render: {
         scripts: [{ id: "preload", source: "globalThis.__cymonkeyLivePreload = true;", world: "ISOLATED", runAt: "document_start" }],
         styles: [{ id: "fixture-style", css: ":root { --cymonkey-live: 1; }" }],
       },
@@ -55,12 +55,12 @@ try {
   const listed = await act("augmentation.list", {});
   assert.ok(listed.augmentations.some((value) => value.id === augmentationId));
 
-  const queried = await act("dom.query", { selector: "title", limit: 1 });
+  const queried = await act("document.query", { selector: "title", limit: 1 });
   assert.equal(queried.matches[0]?.text, "Jangolova Fixture");
 
   await act("overlay.mount", { id: overlayId, html: "<strong>Cymonkey live</strong>" });
   overlayMounted = true;
-  const overlay = await act("dom.query", { selector: `[data-jangolova-cymonkey-overlay="${overlayId}"]`, limit: 1 });
+  const overlay = await act("document.query", { selector: `[data-jangolova-cymonkey-overlay="${overlayId}"]`, limit: 1 });
   assert.equal(overlay.matches.length, 1);
   await act("overlay.unmount", { id: overlayId });
   overlayMounted = false;

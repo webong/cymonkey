@@ -14,17 +14,21 @@ test('the portable core publishes the Jangolova Cymonkey v1alpha2 contract', asy
   ]);
 
   assert.equal(protocol.$defs.hello.properties.protocolVersion.const, 'jangolova.cymonkey/v1alpha2');
-  assert.deepEqual(protocol.$defs.domain.enum, ['computer', 'render', 'player']);
+  assert.deepEqual(protocol.$defs.domain.enum, ['viewer', 'render', 'player']);
   assert.equal(protocol.$defs.driver.type, 'string');
   assert.match('contributor-driver', new RegExp(protocol.$defs.driver.pattern));
   assert.deepEqual(protocol.$defs.action.dependentRequired, { domain: ['runtime'], runtime: ['domain'] });
 
   assert.equal(augmentation.properties.apiVersion.const, 'jangolova.cymonkey/v1alpha2');
-  assert.deepEqual(augmentation.$defs.target.properties.domain.enum, ['computer', 'render', 'player']);
+  assert.deepEqual(augmentation.$defs.target.properties.domain.enum, ['viewer', 'render', 'player']);
   assert.equal(
-    augmentation.$defs.computerPayload.properties.userscripts.items.$ref,
+    augmentation.$defs.viewerPayload.properties.userscripts.items.$ref,
     '../userscript/v1alpha1/userscript.schema.json',
   );
+  assert.ok(augmentation.$defs.renderPayload.properties.scripts);
+  assert.ok(augmentation.$defs.renderPayload.properties.styles);
+  assert.equal(augmentation.$defs.viewerPayload.properties.scripts, undefined);
+  assert.equal(augmentation.$defs.viewerPayload.properties.styles, undefined);
   assert.equal(scenePlan.properties.apiVersion.const, 'jangolova.cymonkey.scene/v1alpha1');
   assert.equal(userscript.properties.apiVersion.const, 'jangolova.cymonkey.userscript/v1alpha1');
 });

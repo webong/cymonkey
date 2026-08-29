@@ -49,14 +49,14 @@ for adapter in playwright puppeteer; do
   curl -fsS \
     -H "Authorization: Bearer ${token}" \
     -H "Content-Type: application/json" \
-    -d '{"method":"act","params":{"name":"browser.evaluate","input":{"expression":"document.title"}}}' \
+    -d '{"method":"act","params":{"name":"window.evaluate","input":{"expression":"document.title"}}}' \
     http://127.0.0.1:7391/v1/instances/"${adapter}"-one/call >/tmp/"${adapter}"-call.json
 
   node -e '
     const fs = require("fs");
     const connected = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
     const called = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
-    if (connected.status !== "connected" || !connected.capabilities.includes("browser.evaluate")) {
+    if (connected.status !== "connected" || !connected.capabilities.includes("window.evaluate")) {
       throw new Error(`bad connection: ${JSON.stringify(connected)}`);
     }
     if (called.result?.value !== "Jangolova Fixture") {
@@ -74,7 +74,7 @@ done
 curl -fsS \
   -H "Authorization: Bearer ${token}" \
   -H "Content-Type: application/json" \
-  -d '{"apiVersion":"interaction.engine/v1alpha1","instanceId":"cymonkey-cdp","engine":{"adapter":"cymonkey","requiredCapabilities":["augmentation.install","dom.query","storage.set"],"options":{"backend":"cdp","extension":{"mode":"disabled"}}},"target":{"kind":"browser","endpoints":[{"name":"cdp","protocol":"cdp","url":"http://127.0.0.1:9222"}]}}' \
+  -d '{"apiVersion":"interaction.engine/v1alpha1","instanceId":"cymonkey-cdp","engine":{"adapter":"cymonkey","requiredCapabilities":["augmentation.install","document.query","storage.set"],"options":{"backend":"cdp","extension":{"mode":"disabled"}}},"target":{"kind":"browser","endpoints":[{"name":"cdp","protocol":"cdp","url":"http://127.0.0.1:9222"}]}}' \
   http://127.0.0.1:7391/v1/instances >/tmp/cymonkey-cdp-connect.json
 
 JANGOLOVA_PROVIDER_TOKEN="${token}" node tests/cymonkey-live-client.mjs \

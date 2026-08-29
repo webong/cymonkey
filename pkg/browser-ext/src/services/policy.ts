@@ -197,7 +197,7 @@ function escapeRegularExpression(value: string) {
 }
 
 function affectsTab(capability: string) {
-  return /^(dom|overlay|script|style|network|cymonkey|cymonkey-engine)\./.test(capability);
+  return /^(document|overlay|script|style|network|cymonkey|cymonkey-engine)\./.test(capability);
 }
 
 function safeOrigin(value?: string) {

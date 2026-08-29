@@ -1,7 +1,8 @@
 # Cymonkey browser integration
 
 Cymonkey is Jangolova's runtime-agnostic augmentation engine. This document
-defines its browser integration: the `computer` domain, `browser-dom` runtime,
+defines its browser integration: the `viewer` platform domain and `render`
+document domain over the `browser-dom` runtime,
 and CDP, BiDi, Safari MCP, or WebExtension driver. The portable `v1alpha2`
 core, macOS integration, ownership model, and migration policy are defined in
 [Cymonkey runtime-agnostic augmentation contract](cymonkey-runtime.md).
@@ -106,7 +107,7 @@ Example:
     "id": "optional-provider-supplied-id"
   },
   "policy": {
-    "allowedCapabilities": ["dom.query", "overlay.mount", "script.execute"],
+    "allowedCapabilities": ["document.query", "overlay.mount", "script.execute"],
     "allowedOrigins": ["https://*.wikipedia.org"]
   }
 }
@@ -128,7 +129,7 @@ Every advertised capability contains:
 {
   "name": "script.register",
   "description": "Register a script for matching future documents.",
-  "domain": "computer",
+  "domain": "render",
   "runtime": "browser-dom",
   "driver": "webextension",
   "support": "native",
@@ -147,21 +148,23 @@ authorization.
 
 ## Semantic capability set
 
-The `v1alpha2` Cymonkey computer-domain vocabulary includes:
+The `v1alpha2` Cymonkey browser vocabulary separates platform and display
+semantics:
 
 - `augmentation.install`, `augmentation.update`, `augmentation.uninstall`
 - `augmentation.enable`, `augmentation.disable`, `augmentation.list`,
   `augmentation.describe`
-- `script.execute`, `script.register`, `script.unregister`
-- `style.insert`, `style.remove`
-- `dom.query`, `dom.observe`, `dom.patch`
-- `overlay.mount`, `overlay.patch`, `overlay.unmount`
-- `network.observe`, `network.rules.install`, `network.rules.remove`
-- `storage.get`, `storage.set`
+- `render`: `document.query`, `document.observe`, `document.patch`,
+  `script.execute`, `script.register`, `script.unregister`, `style.insert`,
+  `style.remove`, `overlay.mount`, `overlay.patch`, `overlay.unmount`
+- `viewer`: `window.navigate`, `window.click`, `window.fill`,
+  `window.press`, `window.evaluate`, `window.screenshot`, `network.observe`,
+  `network.rules.install`, `network.rules.remove`, `storage.get`, `storage.set`
 
 Network rules, storage, shared events, and packaged script injection are
-implemented and authorized by Jangolova platform services. Their appearance in
-the Cymonkey vocabulary does not assign ownership to Cymonkey.
+implemented and authorized by Jangolova platform services. Script injection
+still advertises `render`: its effect is the displayed document. Their
+appearance in the Cymonkey vocabulary does not assign ownership to Cymonkey.
 
 A backend advertises only operations it actually supports after runtime
 probing. For example, a Safari MCP endpoint with click, type, and screenshot
@@ -198,12 +201,12 @@ An augmentation is a versioned semantic declaration. The schema is
   },
   "spec": {
     "targets": [{
-      "domain": "computer",
+      "domain": "render",
       "runtime": "browser-dom",
       "match": {"urlPatterns": ["https://*.wikipedia.org/wiki/*"]}
     }],
-    "permissions": ["dom.query", "overlay.mount", "script.register"],
-    "computer": {"scripts": [{
+    "permissions": ["document.query", "overlay.mount", "script.register"],
+    "render": {"scripts": [{
       "id": "main",
       "source": "globalThis.wikipediaReadingTools = true;",
       "world": "ISOLATED",

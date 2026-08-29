@@ -15,7 +15,7 @@ func TestCymonkeyV1alpha2GeneratedBindingsRoundTrip(t *testing.T) {
 	original := Hello{
 		ProtocolVersion: ProtocolVersion,
 		Implementation:  Implementation{Name: "fixture", Version: "1.0"},
-		Domains:         []DomainName{DomainComputer, DomainRender},
+		Domains:         []DomainName{DomainViewer, DomainRender},
 		Runtimes:        []string{"browser-dom", "threejs"},
 		Drivers:         []DriverName{DriverCDP, DriverInPageRuntime},
 		Features:        []string{"script", "dom"},
@@ -39,7 +39,7 @@ func TestCymonkeyV1alpha2GeneratedBindingsRoundTrip(t *testing.T) {
 				ID:         "evt-1",
 				Type:       "cymonkey.augmentation.applied",
 				OccurredAt: now,
-				Domain:     DomainComputer,
+				Domain:     DomainViewer,
 				Runtime:    "browser-dom",
 				Driver:     DriverCDP,
 				SurfaceID:  "web:tab-1",

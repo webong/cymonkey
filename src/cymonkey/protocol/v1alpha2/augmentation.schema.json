@@ -28,7 +28,7 @@
           "uniqueItems": true
         },
         "enabled": {"type": "boolean", "default": true},
-        "computer": {"$ref": "#/$defs/computerPayload"},
+        "viewer": {"$ref": "#/$defs/viewerPayload"},
         "render": {"$ref": "#/$defs/renderPayload"},
         "player": {"$ref": "#/$defs/playerPayload"},
         "overlays": {"type": "array", "items": {"$ref": "#/$defs/overlay"}}
@@ -42,17 +42,15 @@
       "type": "object",
       "required": ["domain", "runtime", "match"],
       "properties": {
-        "domain": {"enum": ["computer", "render", "player"]},
+        "domain": {"enum": ["viewer", "render", "player"]},
         "runtime": {"$ref": "#/$defs/runtime"},
         "match": {"type": "object"}
       },
       "additionalProperties": false
     },
-    "computerPayload": {
+    "viewerPayload": {
       "type": "object",
       "properties": {
-        "scripts": {"type": "array", "items": {"type": "object"}},
-        "styles": {"type": "array", "items": {"type": "object"}},
         "networkRules": {"type": "array", "items": {"type": "object"}},
         "userscripts": {"type": "array", "items": {"$ref": "../userscript/v1alpha1/userscript.schema.json"}},
         "commands": {
@@ -70,6 +68,8 @@
     "renderPayload": {
       "type": "object",
       "properties": {
+        "scripts": {"type": "array", "items": {"type": "object"}},
+        "styles": {"type": "array", "items": {"type": "object"}},
         "resources": {
           "type": "array",
           "items": {

@@ -17,8 +17,10 @@ import (
 // provider process; those operations stay inside the owner-launched helper.
 type windowsCooperativeBackend struct{}
 
-func (windowsCooperativeBackend) Name() BackendName       { return BackendWindowsCooperative }
-func (windowsCooperativeBackend) Domain() contract.Domain { return contract.DomainViewer }
+func (windowsCooperativeBackend) Name() BackendName { return BackendWindowsCooperative }
+func (windowsCooperativeBackend) Domains() []contract.Domain {
+	return []contract.Domain{contract.DomainViewer}
+}
 func (windowsCooperativeBackend) Compatible(target orchestrator.EngineTarget) bool {
 	return target.Kind == "windows-application"
 }

@@ -7,7 +7,7 @@ type PageEvent = {
   id: string;
   type: string;
   occurredAt: string;
-  domain: 'computer';
+  domain: 'render';
   runtime: 'browser-dom';
   driver: 'webextension';
   data: Record<string, unknown>;
@@ -69,7 +69,7 @@ export default defineContentScript({
           name: 'jangolova-cymonkey-page',
           version: browser.runtime.getManifest().version,
         },
-        domains: ['computer'],
+        domains: ['render'],
         runtimes: ['browser-dom'],
         drivers: ['webextension'],
         features: ['augmentation.page-safe', 'events.cursor', 'overlay.shadow-dom'],
@@ -80,7 +80,7 @@ export default defineContentScript({
       return {
         revision: String(eventSequence),
         surfaces: [{
-          id: 'document:main', domain: 'computer', runtime: 'browser-dom', kind: 'document',
+          id: 'document:main', domain: 'render', runtime: 'browser-dom', kind: 'document',
           label: document.title || undefined, properties: { url: location.href, readyState: document.readyState, overlays: [...overlays.keys()].sort() },
         }],
         augmentations: [],
@@ -88,7 +88,7 @@ export default defineContentScript({
     }
 
     function act(name: string, input: Record<string, unknown>) {
-      if (name === 'dom.query') return queryDOM(input);
+      if (name === 'document.query') return queryDOM(input);
       if (name === 'overlay.mount') return mountOverlay(input, false);
       if (name === 'overlay.patch') return mountOverlay(input, true);
       if (name === 'overlay.unmount') return unmountOverlay(input);
@@ -148,7 +148,7 @@ export default defineContentScript({
       eventSequence += 1;
       const event: PageEvent = {
         id: String(eventSequence), type, occurredAt: new Date().toISOString(),
-        domain: 'computer', runtime: 'browser-dom', driver: 'webextension', data,
+        domain: 'render', runtime: 'browser-dom', driver: 'webextension', data,
       };
       events.push(event);
       if (events.length > 256) events.splice(0, events.length - 256);

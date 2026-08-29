@@ -13,8 +13,10 @@ import (
 	"syscall"
 	"time"
 
+	"jangolova/internal/blockade"
 	"jangolova/internal/builtin"
 	"jangolova/internal/engineprovider"
+	"jangolova/internal/orchestrator"
 )
 
 func serveEngineProviderCommand(args []string) error {
@@ -39,7 +41,7 @@ func serveEngineProviderCommand(args []string) error {
 	if err != nil {
 		return err
 	}
-	provider, err := engineprovider.NewService(registry, token)
+	provider, err := newEngineProvider(registry, token)
 	if err != nil {
 		return err
 	}
@@ -78,4 +80,36 @@ func envOrDefault(name, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func newEngineProvider(registry *orchestrator.Registry, token string) (*engineprovider.Service, error) {
+	var options []engineprovider.ServiceOption
+	endpoint := strings.TrimSpace(os.Getenv("JANGOLOVA_BLOCKADE_ENDPOINT"))
+	configPath := strings.TrimSpace(os.Getenv("JANGOLOVA_BLOCKADE_CONFIG"))
+	if endpoint != "" && configPath != "" {
+		return nil, errors.New("JANGOLOVA_BLOCKADE_ENDPOINT and JANGOLOVA_BLOCKADE_CONFIG are mutually exclusive")
+	}
+	if configPath != "" {
+		config, err := blockade.LoadConfig(configPath)
+		if err != nil {
+			return nil, fmt.Errorf("load embedded Blockade config: %w", err)
+		}
+		engineID := strings.TrimSpace(os.Getenv("JANGOLOVA_BLOCKADE_ENGINE"))
+		if engineID == "" {
+			engineID = config.Engines[0].ID
+		}
+		engineConfig, ok := config.Engine(engineID)
+		if !ok {
+			return nil, fmt.Errorf("embedded Blockade engine %q is not configured", engineID)
+		}
+		engine, err := blockade.StartConfiguredEngine(context.Background(), engineConfig)
+		if err != nil {
+			return nil, fmt.Errorf("start embedded Blockade engine %q: %w", engineID, err)
+		}
+		options = append(options, engineprovider.WithBlockadeEngine(engine))
+	}
+	if endpoint != "" {
+		options = append(options, engineprovider.WithBlockadeClient(blockade.Client{BaseURL: endpoint}))
+	}
+	return engineprovider.NewService(registry, token, options...)
 }

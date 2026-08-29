@@ -66,10 +66,10 @@ func (Adapter) InspectEngine(context.Context) orchestrator.EngineInspection {
 		"target.macos-cooperative", "target.windows-cooperative", "ui.action.invoke", "ui.attribute.set", "ui.query",
 	))
 	if _, err := exec.LookPath("node"); err != nil {
-		return orchestrator.EngineInspection{Available: true, Capabilities: capabilities, Message: "macOS computer runtime is available; browser runtime requires Node.js: " + err.Error()}
+		return orchestrator.EngineInspection{Available: true, Capabilities: capabilities, Message: "macOS viewer runtime is available; browser runtime requires Node.js: " + err.Error()}
 	}
 	if _, err := resolveWorker(""); err != nil {
-		return orchestrator.EngineInspection{Available: true, Capabilities: capabilities, Message: "macOS computer runtime is available; browser runtime is unavailable: " + err.Error()}
+		return orchestrator.EngineInspection{Available: true, Capabilities: capabilities, Message: "macOS viewer runtime is available; browser runtime is unavailable: " + err.Error()}
 	}
 	return orchestrator.EngineInspection{Available: true, Capabilities: capabilities}
 }
@@ -415,8 +415,8 @@ func capabilityNames() []string {
 	return []string{
 		"act", "augmentation", "augmentation.install", "augmentation.update", "augmentation.uninstall",
 		"augmentation.enable", "augmentation.disable", "augmentation.list", "augmentation.describe",
-		"browser.click", "browser.evaluate", "browser.fill", "browser.navigate", "browser.press", "browser.screenshot",
-		"capabilities", "describe", "events", "dom.observe", "dom.patch", "dom.query", "network.observe",
+		"window.click", "window.evaluate", "window.fill", "window.navigate", "window.press", "window.screenshot",
+		"capabilities", "describe", "events", "document.observe", "document.patch", "document.query", "network.observe",
 		"network.rules.install", "network.rules.remove",
 		"overlay.mount", "overlay.patch", "overlay.unmount", "script.execute", "script.register",
 		"script.unregister", "storage.get", "storage.set", "style.insert", "style.remove",

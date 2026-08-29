@@ -18,7 +18,7 @@ Opaque credential and TLS references use the secret-safe
 
 Unity and Unreal semantic presentation targets use the provider-visible
 `cymonkey` adapter with `domain: "render"` and a caller-owned
-`cymonkey-ws` endpoint. The adapter attaches to the application; it does not
+`websocket` endpoint. The adapter attaches to the application; it does not
 own its renderer or lifecycle.
 
 ```bash
@@ -33,11 +33,38 @@ jangolova serve-engine-provider --bind 127.0.0.1:7391
 - `POST /v1/instances`
 - `GET /v1/instances/{instanceId}`
 - `POST /v1/instances/{instanceId}/call`
+- `POST /v1/instances/{instanceId}/observe`
 - `POST /v1/instances/{instanceId}/approvals`
 - `POST /v1/instances/{instanceId}/approvals/{approvalId}`
 - `GET /v1/instances/{instanceId}/events`
 - `POST /v1/reconcile`
 - `DELETE /v1/instances/{instanceId}`
+
+### Context-switched visual observation
+
+When one Blockade deployment mode is configured, an attached browser instance
+can be observed without teaching Blockade anything about Cymonkey:
+
+- `JANGOLOVA_BLOCKADE_CONFIG` embeds a configured Blockade engine and calls it
+  directly. `JANGOLOVA_BLOCKADE_ENGINE` optionally selects the configured
+  engine ID.
+- `JANGOLOVA_BLOCKADE_ENDPOINT` calls a separately deployed Blockade HTTP
+  service.
+
+The two settings are mutually exclusive. In either case:
+
+```json
+{
+  "prompt": "find the primary action button",
+  "fullPage": false
+}
+```
+
+`POST /v1/instances/{instanceId}/observe` authorizes the negotiated
+`window.screenshot` action, captures pixels, sends those pixels to Blockade,
+and returns Blockade's normalized response beneath Jangolova capture
+provenance. It never turns an observation into an action. A later Cymonkey
+action is a separate, policy- and approval-governed request from the caller.
 
 ## Direct MCP tools
 
@@ -45,9 +72,9 @@ jangolova serve-engine-provider --bind 127.0.0.1:7391
 MCP tools over stdio, or Streamable HTTP with `--bind`. It has no model
 connector, agent session, prompt endpoint, or internal planning loop.
 
-The tool set covers engine discovery; instance connect, describe, call, events,
-and disconnect. MCP uses the same provider token and policy/approval gates as
-HTTP.
+The tool set covers engine discovery; instance connect, describe, call,
+observe, events, and disconnect. MCP uses the same provider token and
+policy/approval gates as HTTP.
 
 ## Approval receipts and audit events
 
@@ -251,13 +278,13 @@ The response describes the interaction instance, not the target:
     "status": "connected",
     "observedAt": "2026-08-01T12:00:00Z"
   },
-  "capabilities": ["browser.click", "browser.evaluate", "browser.fill"]
+  "capabilities": ["window.click", "window.evaluate", "window.fill"]
 }
 ```
 
 Cooperative native helpers are the exception that may add `callerLaunch` to
 the successful `POST /v1/instances` response. For example, connecting the
-Cymonkey `computer` / `macos-app` attachment returns an ephemeral loopback control URL, bearer
+Cymonkey `viewer` / `macos-app` attachment returns an ephemeral loopback control URL, bearer
 token, and exact protocol as launch environment. The authorized target owner
 adds its configuration path and launches its signed helper:
 
@@ -288,7 +315,7 @@ Content-Type: application/json
 {
   "method": "act",
   "params": {
-    "name": "browser.fill",
+    "name": "window.fill",
     "input": {"selector": "#email", "value": "agent@example.com"}
   }
 }

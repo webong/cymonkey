@@ -19,13 +19,13 @@ const ProtocolVersion = "jangolova.cymonkey/v1alpha2"
 type Domain string
 
 const (
-	DomainComputer Domain = "computer"
+	DomainViewer Domain = "viewer"
 	DomainRender   Domain = "render"
 	DomainPlayer   Domain = "player"
 )
 
 func ValidDomain(domain Domain) bool {
-	return domain == DomainComputer || domain == DomainRender || domain == DomainPlayer
+	return domain == DomainViewer || domain == DomainRender || domain == DomainPlayer
 }
 
 var identifierPattern = regexp.MustCompile(`^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$`)

@@ -55,33 +55,33 @@ func _hello() -> Dictionary:
 		"implementation": {"name": "jangolova-godot-cymonkey", "version": "0.2.0"},
 		"domains": [CymonkeyProtocol.DOMAIN_RENDER],
 		"runtimes": [CymonkeyProtocol.RUNTIME_GODOT],
-		"drivers": [CymonkeyProtocol.DRIVER_CYMONKEY_WS],
+		"drivers": [CymonkeyProtocol.DRIVER_WEBSOCKET],
 		"features": ["events.cursor", "resources.explicit-allowlist"]
 	}
 
 func _capabilities() -> Array:
 	return [
-		{"name": "resource.describe", "domain": CymonkeyProtocol.DOMAIN_RENDER, "runtime": CymonkeyProtocol.RUNTIME_GODOT, "driver": CymonkeyProtocol.DRIVER_CYMONKEY_WS,
+		{"name": "resource.describe", "domain": CymonkeyProtocol.DOMAIN_RENDER, "runtime": CymonkeyProtocol.RUNTIME_GODOT, "driver": CymonkeyProtocol.DRIVER_WEBSOCKET,
 			"support": "native", "lifetime": "attachment", "persistence": "session",
 			"effect": "read", "resourceKinds": CymonkeyProtocol.RESOURCE_KINDS,
 			"inputSchema": {"type": "object", "additionalProperties": false}},
-		{"name": "object.visible.set", "domain": CymonkeyProtocol.DOMAIN_RENDER, "runtime": CymonkeyProtocol.RUNTIME_GODOT, "driver": CymonkeyProtocol.DRIVER_CYMONKEY_WS,
+		{"name": "object.visible.set", "domain": CymonkeyProtocol.DOMAIN_RENDER, "runtime": CymonkeyProtocol.RUNTIME_GODOT, "driver": CymonkeyProtocol.DRIVER_WEBSOCKET,
 			"support": "native", "lifetime": "attachment", "persistence": "session",
 			"effect": "write", "resourceKinds": ["object", "ui", "camera"],
 			"inputSchema": {"type": "object", "properties": {"visible": {"type": "boolean"}}, "required": ["visible"], "additionalProperties": false}},
-		{"name": "object.transform.set", "domain": CymonkeyProtocol.DOMAIN_RENDER, "runtime": CymonkeyProtocol.RUNTIME_GODOT, "driver": CymonkeyProtocol.DRIVER_CYMONKEY_WS,
+		{"name": "object.transform.set", "domain": CymonkeyProtocol.DOMAIN_RENDER, "runtime": CymonkeyProtocol.RUNTIME_GODOT, "driver": CymonkeyProtocol.DRIVER_WEBSOCKET,
 			"support": "native", "lifetime": "attachment", "persistence": "session",
 			"effect": "write", "resourceKinds": ["scene", "object", "ui", "camera"],
 			"inputSchema": {"type": "object", "properties": {"position": {"type": "object"}, "rotationDegrees": {"type": "number"}, "scale": {"type": "object"}}, "additionalProperties": false}},
-		{"name": "material.color.set", "domain": CymonkeyProtocol.DOMAIN_RENDER, "runtime": CymonkeyProtocol.RUNTIME_GODOT, "driver": CymonkeyProtocol.DRIVER_CYMONKEY_WS,
+		{"name": "material.color.set", "domain": CymonkeyProtocol.DOMAIN_RENDER, "runtime": CymonkeyProtocol.RUNTIME_GODOT, "driver": CymonkeyProtocol.DRIVER_WEBSOCKET,
 			"support": "native", "lifetime": "attachment", "persistence": "session",
 			"effect": "write", "resourceKinds": ["object", "ui", "material"],
 			"inputSchema": {"type": "object", "properties": {"color": {"type": "string"}}, "required": ["color"], "additionalProperties": false}},
-		{"name": "camera.transform.set", "domain": CymonkeyProtocol.DOMAIN_RENDER, "runtime": CymonkeyProtocol.RUNTIME_GODOT, "driver": CymonkeyProtocol.DRIVER_CYMONKEY_WS,
+		{"name": "camera.transform.set", "domain": CymonkeyProtocol.DOMAIN_RENDER, "runtime": CymonkeyProtocol.RUNTIME_GODOT, "driver": CymonkeyProtocol.DRIVER_WEBSOCKET,
 			"support": "native", "lifetime": "attachment", "persistence": "session",
 			"effect": "write", "resourceKinds": ["camera"],
 			"inputSchema": {"type": "object", "properties": {"position": {"type": "object"}, "zoom": {"type": "object"}, "rotationDegrees": {"type": "number"}}, "additionalProperties": false}},
-		{"name": "ui.text.set", "domain": CymonkeyProtocol.DOMAIN_RENDER, "runtime": CymonkeyProtocol.RUNTIME_GODOT, "driver": CymonkeyProtocol.DRIVER_CYMONKEY_WS,
+		{"name": "ui.text.set", "domain": CymonkeyProtocol.DOMAIN_RENDER, "runtime": CymonkeyProtocol.RUNTIME_GODOT, "driver": CymonkeyProtocol.DRIVER_WEBSOCKET,
 			"support": "native", "lifetime": "attachment", "persistence": "session",
 			"effect": "write", "resourceKinds": ["ui"],
 			"inputSchema": {"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"], "additionalProperties": false}}
@@ -255,7 +255,7 @@ func _transform_properties(target) -> Dictionary:
 
 func _publish(kind: String, source_id: String, data: Dictionary) -> void:
 	_event_sequence += 1
-	var event := {"id": str(_event_sequence), "type": kind, "domain": CymonkeyProtocol.DOMAIN_RENDER, "runtime": CymonkeyProtocol.RUNTIME_GODOT, "driver": CymonkeyProtocol.DRIVER_CYMONKEY_WS, "sourceId": source_id,
+	var event := {"id": str(_event_sequence), "type": kind, "domain": CymonkeyProtocol.DOMAIN_RENDER, "runtime": CymonkeyProtocol.RUNTIME_GODOT, "driver": CymonkeyProtocol.DRIVER_WEBSOCKET, "sourceId": source_id,
 		"occurredAt": Time.get_datetime_string_from_system(true), "data": data}
 	_event_log.append(event)
 	if _event_log.size() > 256:

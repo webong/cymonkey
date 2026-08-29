@@ -104,12 +104,12 @@ func ValidateManifest(value Manifest) error {
 			return fmt.Errorf("invalid Cymonkey permission %q", permission)
 		}
 	}
-	if len(bytes.TrimSpace(value.Spec.Computer)) > 0 {
-		if _, ok := domains[DomainComputer]; !ok {
-			return errors.New("Cymonkey computer payload requires a computer target")
+	if len(bytes.TrimSpace(value.Spec.Viewer)) > 0 {
+		if _, ok := domains[DomainViewer]; !ok {
+			return errors.New("Cymonkey viewer payload requires a viewer target")
 		}
-		if !jsonObject(value.Spec.Computer) {
-			return errors.New("Cymonkey computer payload must be an object")
+		if !jsonObject(value.Spec.Viewer) {
+			return errors.New("Cymonkey viewer payload must be an object")
 		}
 	}
 	if len(bytes.TrimSpace(value.Spec.Render)) > 0 {
@@ -132,7 +132,7 @@ func ValidateManifest(value Manifest) error {
 }
 
 func ValidDomain(value Domain) bool {
-	return value == DomainComputer || value == DomainRender || value == DomainPlayer
+	return value == DomainViewer || value == DomainRender || value == DomainPlayer
 }
 
 func ValidRuntime(value string) bool {
@@ -150,7 +150,7 @@ func driverSupportsDomain(driver Driver, domain Domain) bool {
 	switch driver {
 	case DriverCDP, DriverBiDi, DriverSafariMCP, DriverWebExtension,
 		DriverMacOSAppleEvents, DriverMacOSAccessibility, DriverMacOSCooperative,
-		DriverCymonkeyWebSocket, DriverInPageRuntime:
+		DriverWebSocket, DriverInPageRuntime:
 		return knownDriverSupportsDomain(driver, domain)
 	default:
 		// A contributor-declared driver is valid for its advertised module
@@ -161,12 +161,12 @@ func driverSupportsDomain(driver Driver, domain Domain) bool {
 }
 
 func knownDriverSupportsDomain(driver Driver, domain Domain) bool {
-	if domain == DomainComputer {
+	if domain == DomainViewer {
 		return driver == DriverCDP || driver == DriverBiDi || driver == DriverSafariMCP || driver == DriverWebExtension ||
 			driver == DriverMacOSAppleEvents || driver == DriverMacOSAccessibility || driver == DriverMacOSCooperative
 	}
 	if domain == DomainRender {
-		return driver == DriverCDP || driver == DriverBiDi || driver == DriverSafariMCP || driver == DriverWebExtension || driver == DriverCymonkeyWebSocket || driver == DriverInPageRuntime
+		return driver == DriverCDP || driver == DriverBiDi || driver == DriverSafariMCP || driver == DriverWebExtension || driver == DriverWebSocket || driver == DriverInPageRuntime
 	}
 	if domain == DomainPlayer {
 		return true
@@ -180,15 +180,15 @@ func validateTarget(target Target) error {
 		return fmt.Errorf("Cymonkey %s target match must be an object", target.Domain)
 	}
 	switch {
-	case target.Domain == DomainComputer && target.Runtime == "browser-dom":
+	case (target.Domain == DomainViewer || target.Domain == DomainRender) && target.Runtime == "browser-dom":
 		patterns, ok := match["urlPatterns"].([]any)
 		if !ok || len(patterns) == 0 {
-			return errors.New("Cymonkey browser-dom computer target requires urlPatterns")
+			return fmt.Errorf("Cymonkey browser-dom %s target requires urlPatterns", target.Domain)
 		}
-	case target.Domain == DomainComputer && target.Runtime == "macos-app":
+	case target.Domain == DomainViewer && target.Runtime == "macos-app":
 		bundleID, _ := match["bundleId"].(string)
 		if !bundleIDPattern.MatchString(bundleID) {
-			return errors.New("Cymonkey macos-app computer target requires a valid bundleId")
+			return errors.New("Cymonkey macos-app viewer target requires a valid bundleId")
 		}
 	}
 	return nil

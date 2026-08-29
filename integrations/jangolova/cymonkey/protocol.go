@@ -12,8 +12,8 @@ type Domain = contract.Domain
 
 const (
 	DomainViewer = contract.DomainViewer
-	DomainRender   = contract.DomainRender
-	DomainPlayer   = contract.DomainPlayer
+	DomainRender = contract.DomainRender
+	DomainPlayer = contract.DomainPlayer
 )
 
 type BackendName string

@@ -5,7 +5,7 @@
   "params": {
     "method": "act",
     "params": {
-      "name": "dom.query",
+      "name": "document.query",
       "input": {"selector": "main"}
     }
   }

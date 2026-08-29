@@ -18,8 +18,10 @@ import (
 
 type macOSCooperativeBackend struct{}
 
-func (macOSCooperativeBackend) Name() BackendName       { return BackendMacOSCooperative }
-func (macOSCooperativeBackend) Domain() contract.Domain { return contract.DomainViewer }
+func (macOSCooperativeBackend) Name() BackendName { return BackendMacOSCooperative }
+func (macOSCooperativeBackend) Domains() []contract.Domain {
+	return []contract.Domain{contract.DomainViewer}
+}
 func (macOSCooperativeBackend) Compatible(target orchestrator.EngineTarget) bool {
 	return target.Kind == "macos-application"
 }

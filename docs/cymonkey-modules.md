@@ -14,10 +14,10 @@ arbitrarily inspect caller-owned targets.
 
 | Term | Meaning | Examples |
 | --- | --- | --- |
-| `domain` | Where an operation takes effect. | `computer`, `render`, `player` |
+| `domain` | Where an operation takes effect. | `viewer`, `render`, `player` |
 | `runtime` | The concrete augmentable implementation. | `browser-dom`, `macos-app`, `godot` |
-| `driver` | The implementation that translates Cymonkey operations for a target. | `playwright`, `puppeteer`, `macos-cooperative`, `godot-ws` |
-| `transport` | The wire mechanism used by a driver. | `cdp`, `webdriver-bidi`, `cymonkey-ws`, Apple Events |
+| `driver` | The implementation that translates Cymonkey operations for a target. | `playwright`, `puppeteer`, `macos-cooperative`, `websocket` |
+| `transport` | The wire mechanism used by a driver. | `cdp`, `webdriver-bidi`, `websocket`, Apple Events |
 | `module` | A versioned Cymonkey contribution that provides a runtime or driver. | `browser.playwright`, `render.godot` |
 
 Playwright and Puppeteer are drivers. CDP and WebDriver BiDi are transports
@@ -26,7 +26,8 @@ runtime that a browser driver augments.
 
 ```text
 caller-owned browser tab
-└── computer / browser-dom
+├── viewer / browser-dom (window and platform work)
+└── render / browser-dom (document and augmentation work)
     ├── driver: playwright
     └── transport: cdp
 ```
@@ -71,13 +72,13 @@ target. There is no unreviewed download-and-execute plugin loader.
 
 | Module | Kind | Runtime | Driver | Transport |
 | --- | --- | --- | --- | --- |
-| `computer.playwright` | driver | `computer/browser-dom` | `playwright` | `cdp` |
-| `computer.puppeteer` | driver | `computer/browser-dom` | `puppeteer` | `cdp`, `webdriver-bidi` |
-| `computer.cdp` | driver | `computer/browser-dom` | `cdp` | `cdp` |
-| `computer.bidi` | driver | `computer/browser-dom` | `bidi` | `webdriver-bidi` |
-| `computer.safari-mcp` | driver | `computer/browser-dom` | `safari-mcp` | `mcp-streamable-http` |
-| `computer.macos` | runtime | `computer/macos-app` | `macos-cooperative` | authenticated local WebSocket to helper |
-| `render.godot` | runtime | `render/godot` | `godot-ws` | `cymonkey-ws` |
+| `browser.playwright` | driver | `viewer` + `render` / `browser-dom` | `playwright` | `cdp` |
+| `browser.puppeteer` | driver | `viewer` + `render` / `browser-dom` | `puppeteer` | `cdp`, `webdriver-bidi` |
+| `browser.cdp` | driver | `viewer` + `render` / `browser-dom` | `cdp` | `cdp` |
+| `browser.bidi` | driver | `viewer` + `render` / `browser-dom` | `bidi` | `webdriver-bidi` |
+| `browser.safari-mcp` | driver | `viewer` + `render` / `browser-dom` | `safari-mcp` | `mcp-streamable-http` |
+| `viewer.macos` | runtime | `viewer/macos-app` | `macos-cooperative` | authenticated local WebSocket to helper |
+| `render.godot` | runtime | `render/godot` | `websocket` | `websocket` |
 
 The current macOS helper may map an action through Apple Events or
 Accessibility after user consent. Those are helper implementation details;
@@ -94,13 +95,13 @@ routes an action by its advertised `domain` and `runtime`.
 {
   "composite": {
     "bindings": [
-      { "id": "desktop", "module": "computer.macos" },
+      { "id": "desktop", "module": "viewer.macos" },
       {
         "id": "scene",
         "module": "render.godot",
         "target": {
           "kind": "godot",
-          "endpoints": [{ "protocol": "cymonkey-ws", "url": "ws://127.0.0.1:9321" }]
+          "endpoints": [{ "protocol": "websocket", "url": "ws://127.0.0.1:9321" }]
         }
       }
     ]

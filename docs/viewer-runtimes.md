@@ -1,4 +1,4 @@
-# Viewer and viewer runtimes
+# Viewer runtimes
 
 Cymonkey's `viewer` domain covers two different kinds of desktop attachment.
 They share the five-operation contract, but they do not have the same authority
@@ -9,9 +9,9 @@ or native implementation.
 | `macos-app` / `windows-app` | Understand and operate an explicitly allowlisted application. | macOS Apple Events and Accessibility; Windows UI Automation and Win32 window APIs. |
 | `macos-viewer` / `windows-viewer` | Observe pixels and inject bounded pointer or keyboard input into an explicitly selected display or window. | macOS ScreenCaptureKit/Core Graphics and Accessibility; Windows Graphics Capture/GDI and `SendInput`. |
 
-Both are **computer** runtimes. `render` remains the domain for a document,
+Both are **viewer** runtimes. `render` remains the domain for a document,
 scene, canvas, camera, or other visual composition that a cooperative runtime
-explicitly exposes. A screenshot is an observation of a computer display; it
+explicitly exposes. A screenshot is an observation of a caller-owned computer display; it
 does not turn an arbitrary desktop application into a render runtime.
 
 ## Attachment model

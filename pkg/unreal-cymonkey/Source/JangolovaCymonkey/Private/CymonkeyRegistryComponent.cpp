@@ -53,7 +53,7 @@ namespace
         Value->SetStringField(TEXT("name"), Name);
         Value->SetStringField(TEXT("domain"), Jangolova::Cymonkey::DomainRender);
         Value->SetStringField(TEXT("runtime"), Jangolova::Cymonkey::RuntimeUnreal);
-        Value->SetStringField(TEXT("driver"), Jangolova::Cymonkey::DriverCymonkeyWebSocket);
+        Value->SetStringField(TEXT("driver"), Jangolova::Cymonkey::DriverWebSocket);
         Value->SetStringField(TEXT("support"), TEXT("native"));
         Value->SetStringField(TEXT("lifetime"), TEXT("attachment"));
         Value->SetStringField(TEXT("persistence"), TEXT("session"));
@@ -145,7 +145,7 @@ TSharedPtr<FJsonValue> UCymonkeyRegistryComponent::Hello() const
     Value->SetField(TEXT("implementation"), MakeShared<FJsonValueObject>(Implementation));
     Value->SetArrayField(TEXT("domains"), { MakeShared<FJsonValueString>(Jangolova::Cymonkey::DomainRender) });
     Value->SetArrayField(TEXT("runtimes"), { MakeShared<FJsonValueString>(Jangolova::Cymonkey::RuntimeUnreal) });
-    Value->SetArrayField(TEXT("drivers"), { MakeShared<FJsonValueString>(Jangolova::Cymonkey::DriverCymonkeyWebSocket) });
+    Value->SetArrayField(TEXT("drivers"), { MakeShared<FJsonValueString>(Jangolova::Cymonkey::DriverWebSocket) });
     Value->SetArrayField(TEXT("features"), {
         MakeShared<FJsonValueString>(TEXT("events.cursor")),
         MakeShared<FJsonValueString>(TEXT("resources.explicit-allowlist"))
@@ -350,7 +350,7 @@ void UCymonkeyRegistryComponent::Publish(
     Event->SetStringField(TEXT("type"), Type);
     Event->SetStringField(TEXT("domain"), Jangolova::Cymonkey::DomainRender);
     Event->SetStringField(TEXT("runtime"), Jangolova::Cymonkey::RuntimeUnreal);
-    Event->SetStringField(TEXT("driver"), Jangolova::Cymonkey::DriverCymonkeyWebSocket);
+    Event->SetStringField(TEXT("driver"), Jangolova::Cymonkey::DriverWebSocket);
     Event->SetStringField(TEXT("sourceId"), SourceId);
     Event->SetStringField(TEXT("occurredAt"), FDateTime::UtcNow().ToIso8601());
     Event->SetObjectField(TEXT("data"), Data);

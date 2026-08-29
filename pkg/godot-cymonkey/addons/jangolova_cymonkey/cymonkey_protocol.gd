@@ -6,7 +6,7 @@ const MAXIMUM_MESSAGE_BYTES := 4 * 1024 * 1024
 
 const DOMAIN_RENDER := "render"
 const RUNTIME_GODOT := "godot"
-const DRIVER_CYMONKEY_WS := "cymonkey-ws"
+const DRIVER_WEBSOCKET := "websocket"
 
 const METHOD_HELLO := "hello"
 const METHOD_CAPABILITIES := "capabilities"

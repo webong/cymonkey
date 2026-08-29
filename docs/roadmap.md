@@ -76,9 +76,9 @@
   with typed domains, runtimes, drivers, surfaces, lifecycle, capability
   provenance, and target-neutral manifests.
 - [x] Adapt the Jangolova Browser Extension control plane to advertise the
-  `computer` / `browser-dom` attachment while retaining the page-safe
+  `viewer` and `render` / `browser-dom` attachment while retaining the page-safe
   `v1alpha1` compatibility bridge.
-- [x] Define a bounded `computer` / `macos-app` mapping over typed `app.command.*` and `ui.*`
+- [x] Define a bounded `viewer` / `macos-app` mapping over typed `app.command.*` and `ui.*`
   operations without raw AppleScript, raw Apple Events, or unrestricted
   Accessibility-tree passthrough.
 - [x] Add shared Go validation and a policy-filtered macOS capability mapper.
@@ -113,8 +113,8 @@
   JavaScript execution.
 - [x] Define the Cymonkey render contract and lifecycle boundary for Godot, Unity, and Unreal.
 - [x] Add Godot as the license-free Cymonkey render reference runtime.
-- [x] Add a headless Godot 4 fixture and authenticated `cymonkey-ws` container.
-- [x] Expose authenticated caller-owned `cymonkey-ws` attachment through the
+- [x] Add a headless Godot 4 fixture and authenticated `websocket` container.
+- [x] Expose authenticated caller-owned `websocket` attachment through the
   interaction provider.
 - [x] Add a minimal Unity Cymonkey package with explicit resource/action
   allowlisting and target-preserving disconnect verification.

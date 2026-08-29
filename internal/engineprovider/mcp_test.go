@@ -43,13 +43,16 @@ func TestMCPServerExposesDirectEngineTools(t *testing.T) {
 	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
 		t.Fatal(err)
 	}
-	found := false
+	foundCall, foundObserve := false, false
 	for _, tool := range response.Result.Tools {
 		if tool.Name == "jangolova_instance_call" {
-			found = true
+			foundCall = true
+		}
+		if tool.Name == "jangolova_instance_observe" {
+			foundObserve = true
 		}
 	}
-	if !found {
+	if !foundCall || !foundObserve {
 		t.Fatalf("MCP tools = %#v", response.Result.Tools)
 	}
 }

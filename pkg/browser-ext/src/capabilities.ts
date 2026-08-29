@@ -1,19 +1,19 @@
 import { capability } from './types';
 
 export const pageCapabilities = [
-  capability('dom.query', 'Query bounded DOM summaries.', 'read', ['selector'], 'call', 'ephemeral'),
-  capability('overlay.mount', 'Mount a Cymonkey Shadow DOM overlay.', 'write', ['id'], 'surface', 'ephemeral'),
-  capability('overlay.patch', 'Replace a Cymonkey overlay content.', 'write', ['id'], 'surface', 'ephemeral'),
-  capability('overlay.unmount', 'Remove a Cymonkey overlay.', 'write', ['id'], 'surface', 'ephemeral'),
+  capability('document.query', 'Query bounded DOM summaries.', 'read', ['selector'], 'call', 'ephemeral', 'render'),
+  capability('overlay.mount', 'Mount a Cymonkey Shadow DOM overlay.', 'write', ['id'], 'surface', 'ephemeral', 'render'),
+  capability('overlay.patch', 'Replace a Cymonkey overlay content.', 'write', ['id'], 'surface', 'ephemeral', 'render'),
+  capability('overlay.unmount', 'Remove a Cymonkey overlay.', 'write', ['id'], 'surface', 'ephemeral', 'render'),
 ];
 
 const extensionCapabilities = [
   ...pageCapabilities,
-  capability('script.execute', 'Execute packaged augmentation scripts once.', 'external', ['augmentationId', 'files'], 'call', 'ephemeral'),
-  capability('script.register', 'Register a packaged augmentation content script.', 'external', ['augmentationId', 'script']),
-  capability('script.unregister', 'Unregister an augmentation content script.', 'external', ['augmentationId', 'id']),
-  capability('style.insert', 'Insert CSS in a target tab.', 'write', ['augmentationId', 'css'], 'surface', 'ephemeral'),
-  capability('style.remove', 'Remove previously inserted CSS from a target tab.', 'write', ['augmentationId', 'css'], 'surface', 'ephemeral'),
+  capability('script.execute', 'Execute packaged augmentation scripts once.', 'external', ['augmentationId', 'files'], 'call', 'ephemeral', 'render'),
+  capability('script.register', 'Register a packaged augmentation content script.', 'external', ['augmentationId', 'script'], 'installation', 'persistent', 'render'),
+  capability('script.unregister', 'Unregister an augmentation content script.', 'external', ['augmentationId', 'id'], 'installation', 'persistent', 'render'),
+  capability('style.insert', 'Insert CSS in a target tab.', 'write', ['augmentationId', 'css'], 'surface', 'ephemeral', 'render'),
+  capability('style.remove', 'Remove previously inserted CSS from a target tab.', 'write', ['augmentationId', 'css'], 'surface', 'ephemeral', 'render'),
   capability('network.rules.install', 'Install owned declarative network rules.', 'external', ['augmentationId', 'rules']),
   capability('network.rules.remove', 'Remove owned declarative network rules.', 'external', ['augmentationId', 'ruleIds']),
   capability('storage.get', 'Read augmentation-scoped extension storage.', 'read', ['augmentationId', 'keys']),

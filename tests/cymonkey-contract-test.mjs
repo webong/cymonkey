@@ -19,12 +19,9 @@ test("Cymonkey worker provides CDP, BiDi, and Playwright drivers with integrated
   assert.match(worker, /puppeteer\.connect/);
   assert.match(worker, /playwright-core/);
   assert.match(worker, /webDriverBiDi/);
-  assert.match(worker, /browser\.navigate/);
-  assert.match(worker, /browser\.click/);
-  assert.match(worker, /browser\.fill/);
-  assert.match(worker, /browser\.press/);
-  assert.match(worker, /browser\.evaluate/);
-  assert.match(worker, /browser\.screenshot/);
+	for (const capability of ["window.navigate", "window.click", "window.fill", "window.press", "window.evaluate", "window.screenshot"]) {
+		assert.match(worker, new RegExp(capability.replaceAll(".", "\\.")));
+	}
 	assert.match(worker, /jangolova\.cymonkey\/v1alpha2/);
 	assert.doesNotMatch(worker, /jangolova\.cymonkey\/v1alpha1/);
   assert.match(worker, /extensionConfig\.mode === "required"/);
@@ -49,18 +46,18 @@ test("one reversible live client is shared by CDP and BiDi fixtures", async () =
   assert.match(bidiFixture, /cymonkey-live-client\.mjs[\s\S]*--expect-backend bidi/);
 });
 
-test("v1alpha2 defines runtime-agnostic computer, render, and player domains", async () => {
+test("v1alpha2 defines runtime-agnostic viewer, render, and player domains", async () => {
   const protocol = JSON.parse(await source("src/cymonkey/protocol/v1alpha2/protocol.schema.json"));
   const augmentation = JSON.parse(await source("src/cymonkey/protocol/v1alpha2/augmentation.schema.json"));
   assert.equal(protocol.$defs.hello.properties.protocolVersion.const, "jangolova.cymonkey/v1alpha2");
-  assert.deepEqual(protocol.$defs.domain.enum, ["computer", "render", "player"]);
+  assert.deepEqual(protocol.$defs.domain.enum, ["viewer", "render", "player"]);
   for (const field of ["domain", "runtime", "driver"]) {
     assert.ok(protocol.$defs.capability.required.includes(field), `capability schema missing ${field}`);
   }
   assert.equal(protocol.$defs.driver.type, "string");
   assert.match("example-driver", new RegExp(protocol.$defs.driver.pattern));
   assert.equal(augmentation.properties.apiVersion.const, "jangolova.cymonkey/v1alpha2");
-  assert.deepEqual(augmentation.$defs.target.properties.domain.enum, ["computer", "render", "player"]);
+  assert.deepEqual(augmentation.$defs.target.properties.domain.enum, ["viewer", "render", "player"]);
   assert.ok(augmentation.$defs.target.required.includes("runtime"));
 	assert.deepEqual(protocol.$defs.action.dependentRequired, {domain: ["runtime"], runtime: ["domain"]});
   assert.doesNotMatch(JSON.stringify(augmentation), /applescript\.execute|raw-apple-event/);
@@ -69,10 +66,10 @@ test("v1alpha2 defines runtime-agnostic computer, render, and player domains", a
 test("transport mappings expose semantics without raw protocol passthrough", async () => {
   const worker = await source("scripts/cymonkey-worker.mjs");
   const safari = await source("integrations/jangolova/cymonkey/safari_backend.go");
-  for (const capability of ["augmentation.install", "script.execute", "script.register", "dom.query", "dom.observe", "dom.patch", "network.observe", "storage.get"]) {
+  for (const capability of ["augmentation.install", "script.execute", "script.register", "document.query", "document.observe", "document.patch", "network.observe", "storage.get"]) {
     assert.match(worker, new RegExp(capability.replaceAll(".", "\\.")), `worker missing ${capability}`);
   }
-  assert.match(safari, /browser\.evaluate/);
+  assert.match(safari, /window\.evaluate/);
   assert.match(safari, /strings\.Contains\(lower, "preload"\)/);
   assert.match(safari, /network\.observe/);
   assert.doesNotMatch(worker, /cdp\.call|bidi\.call|browser\.api|chrome\.evaluate/);
@@ -112,9 +109,12 @@ test("Cymonkey separates its page-safe and privileged extension planes", async (
   assert.match(background, /acceptsExternalSender\(sender\.id\)/);
   assert.match(engine, /jangolova\.cymonkey\/v1alpha2/);
 	assert.doesNotMatch(engine, /compatibleProtocols|v1alpha1/);
-  assert.match(engine, /domains: \['computer'\]/);
+  assert.match(engine, /domains: \['viewer', 'render'\]/);
   assert.match(engine, /runtimes: \['browser-dom'\]/);
   assert.match(engine, /jangolova-browser-extension-webextension/);
+  assert.match(capabilities, /capability\('document\.query',[\s\S]*?'render'\)/);
+  assert.match(capabilities, /capability\('script\.execute',[\s\S]*?'render'\)/);
+  assert.match(capabilities, /capability\('style\.insert',[\s\S]*?'render'\)/);
 
   for (const capability of [
     "script.execute", "script.register", "script.unregister", "style.insert", "style.remove",

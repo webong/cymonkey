@@ -53,7 +53,7 @@ Those modules are products of Jangolova, not requirements of Cymonkey:
 | CDP / BiDi / Safari MCP | Map browser protocols to semantic Cymonkey operations. |
 | Browser Extension | Provide privileged persistence and browser-native facilities. |
 | macOS helper | Obtain user-consented Apple Events / Accessibility capability. |
-| Godot | Provide an optional reference runtime module over `cymonkey-ws`. |
+| Godot | Provide an optional reference runtime module over `websocket`. |
 
 The integration layer may import Jangolova internals. The core may not.
 

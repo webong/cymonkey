@@ -55,7 +55,7 @@ func TestAdapterUsesExistingSessionAndNeverDeletesIt(t *testing.T) {
 		bridge.MethodHello:        json.RawMessage(`{}`),
 		bridge.MethodCapabilities: json.RawMessage(`{}`),
 		bridge.MethodDescribe:     json.RawMessage(`{}`),
-		bridge.MethodAct:          json.RawMessage(`{"name":"browser.fill","input":{"selector":"#name","value":"Jango"}}`),
+		bridge.MethodAct:          json.RawMessage(`{"name":"window.fill","input":{"selector":"#name","value":"Jango"}}`),
 		bridge.MethodEvents:       json.RawMessage(`{"limit":10}`),
 	} {
 		if result, callErr := instance.Call(context.Background(), method, params); callErr != nil || !json.Valid(result) {

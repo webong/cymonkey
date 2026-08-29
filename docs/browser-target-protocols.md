@@ -179,9 +179,9 @@ At connection time Jangolova initializes MCP, discovers `tools/list`, and
 publishes every returned tool as `mcp.tool.<tool-name>` with the server's input
 schema. It additionally maps these stable Safari tools when present:
 
-- `navigate_to_url` to `browser.navigate`;
-- `evaluate_javascript` to `browser.evaluate`;
-- `screenshot` to `browser.screenshot`;
+- `navigate_to_url` to `window.navigate`;
+- `evaluate_javascript` to `window.evaluate`;
+- `screenshot` to `window.screenshot`;
 - `page_interactions` to schema-preserving `browser.interact`;
 - `page_info` into `describe`.
 

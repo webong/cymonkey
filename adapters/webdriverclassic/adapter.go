@@ -129,7 +129,7 @@ func (a Adapter) Connect(
 	running.appendEvent("browser.connected", map[string]any{"adapter": a.name(), "protocol": "webdriver"})
 	if source := strings.TrimSpace(spec.Source); source != "" {
 		params, _ := json.Marshal(map[string]any{
-			"name":  "browser.navigate",
+			"name":  "window.navigate",
 			"input": map[string]string{"url": source},
 		})
 		if _, err := running.Call(ctx, bridge.MethodAct, params); err != nil {
@@ -249,13 +249,13 @@ func (i *instance) act(ctx context.Context, raw json.RawMessage) (json.RawMessag
 	var result json.RawMessage
 	var err error
 	switch request.Name {
-	case "browser.navigate":
+	case "window.navigate":
 		value, valueErr := requiredString(request.Input, "url")
 		if valueErr != nil {
 			return nil, valueErr
 		}
 		result, err = i.command(ctx, http.MethodPost, "/url", map[string]string{"url": value})
-	case "browser.click":
+	case "window.click":
 		selector, valueErr := requiredString(request.Input, "selector")
 		if valueErr != nil {
 			return nil, valueErr
@@ -265,7 +265,7 @@ func (i *instance) act(ctx context.Context, raw json.RawMessage) (json.RawMessag
 		if err == nil {
 			result, err = i.command(ctx, http.MethodPost, "/element/"+url.PathEscape(id)+"/click", map[string]any{})
 		}
-	case "browser.fill":
+	case "window.fill":
 		selector, valueErr := requiredString(request.Input, "selector")
 		if valueErr != nil {
 			return nil, valueErr
@@ -282,13 +282,13 @@ func (i *instance) act(ctx context.Context, raw json.RawMessage) (json.RawMessag
 		if err == nil {
 			result, err = i.command(ctx, http.MethodPost, "/element/"+url.PathEscape(id)+"/value", map[string]any{"text": value, "value": strings.Split(value, "")})
 		}
-	case "browser.press":
+	case "window.press":
 		key, valueErr := requiredString(request.Input, "key")
 		if valueErr != nil {
 			return nil, valueErr
 		}
 		result, err = i.command(ctx, http.MethodPost, "/actions", keyActions(webDriverKey(key)))
-	case "browser.evaluate":
+	case "window.evaluate":
 		expression, valueErr := requiredString(request.Input, "expression")
 		if valueErr != nil {
 			return nil, valueErr
@@ -296,7 +296,7 @@ func (i *instance) act(ctx context.Context, raw json.RawMessage) (json.RawMessag
 		result, err = i.command(ctx, http.MethodPost, "/execute/sync", map[string]any{
 			"script": "return eval(arguments[0]);", "args": []any{expression},
 		})
-	case "browser.screenshot":
+	case "window.screenshot":
 		result, err = i.command(ctx, http.MethodGet, "/screenshot", nil)
 	default:
 		return nil, fmt.Errorf("unsupported browser action %q", request.Name)
@@ -308,7 +308,7 @@ func (i *instance) act(ctx context.Context, raw json.RawMessage) (json.RawMessag
 	if len(result) == 0 || string(result) == "null" {
 		return json.RawMessage(`{}`), nil
 	}
-	if request.Name == "browser.screenshot" {
+	if request.Name == "window.screenshot" {
 		return json.Marshal(map[string]json.RawMessage{"pngBase64": result})
 	}
 	return result, nil
@@ -430,12 +430,12 @@ func (i *instance) readEvents(raw json.RawMessage) (json.RawMessage, error) {
 
 func capabilities() []bridge.Capability {
 	return []bridge.Capability{
-		capability("browser.navigate", bridge.EffectWrite, "url"),
-		capability("browser.click", bridge.EffectWrite, "selector"),
-		capability("browser.fill", bridge.EffectWrite, "selector", "value"),
-		capability("browser.press", bridge.EffectWrite, "key"),
-		capability("browser.evaluate", bridge.EffectExternal, "expression"),
-		capability("browser.screenshot", bridge.EffectRead),
+		capability("window.navigate", bridge.EffectWrite, "url"),
+		capability("window.click", bridge.EffectWrite, "selector"),
+		capability("window.fill", bridge.EffectWrite, "selector", "value"),
+		capability("window.press", bridge.EffectWrite, "key"),
+		capability("window.evaluate", bridge.EffectExternal, "expression"),
+		capability("window.screenshot", bridge.EffectRead),
 	}
 }
 

@@ -7,7 +7,7 @@ opaque handle.
 ## Cymonkey render runtimes
 
 Unity and Unreal integrations use the Cymonkey `render` domain over a
-caller-owned `cymonkey-ws` endpoint. The Jangolova adapter dials that endpoint
+caller-owned `websocket` endpoint. The Jangolova adapter dials that endpoint
 from the generic target descriptor. The application owns the listener,
 renderer, display, and lifecycle. The Unity MVP is at
 `pkg/unity-cymonkey`; the Unreal C++ implementation starts at

@@ -72,7 +72,7 @@ namespace Jangolova.Cymonkey
                 ["implementation"] = new JObject { ["name"] = "jangolova-unity-cymonkey", ["version"] = "0.2.0" },
                 ["domains"] = new JArray(CymonkeyProtocol.DomainRender),
                 ["runtimes"] = new JArray(CymonkeyProtocol.RuntimeUnity),
-                ["drivers"] = new JArray(CymonkeyProtocol.DriverCymonkeyWebSocket),
+                ["drivers"] = new JArray(CymonkeyProtocol.DriverWebSocket),
                 ["features"] = new JArray("events.cursor", "resources.explicit-allowlist")
             };
         }
@@ -141,7 +141,7 @@ namespace Jangolova.Cymonkey
         private void Publish(string type, string sourceId, JObject data)
         {
             eventSequence++;
-            events.Add(new JObject { ["id"] = eventSequence.ToString(CultureInfo.InvariantCulture), ["type"] = type, ["domain"] = CymonkeyProtocol.DomainRender, ["runtime"] = CymonkeyProtocol.RuntimeUnity, ["driver"] = CymonkeyProtocol.DriverCymonkeyWebSocket, ["sourceId"] = sourceId, ["occurredAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture), ["data"] = data });
+            events.Add(new JObject { ["id"] = eventSequence.ToString(CultureInfo.InvariantCulture), ["type"] = type, ["domain"] = CymonkeyProtocol.DomainRender, ["runtime"] = CymonkeyProtocol.RuntimeUnity, ["driver"] = CymonkeyProtocol.DriverWebSocket, ["sourceId"] = sourceId, ["occurredAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture), ["data"] = data });
             if (events.Count > MaximumEvents) events.RemoveAt(0);
         }
 
@@ -159,7 +159,7 @@ namespace Jangolova.Cymonkey
                 ["name"] = name,
                 ["domain"] = CymonkeyProtocol.DomainRender,
                 ["runtime"] = CymonkeyProtocol.RuntimeUnity,
-                ["driver"] = CymonkeyProtocol.DriverCymonkeyWebSocket,
+                ["driver"] = CymonkeyProtocol.DriverWebSocket,
                 ["support"] = "native",
                 ["lifetime"] = "attachment",
                 ["persistence"] = "session",

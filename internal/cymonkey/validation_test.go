@@ -5,10 +5,10 @@ import (
 	"testing"
 )
 
-func TestRuntimeAgnosticManifestAcceptsComputerAndRenderTargets(t *testing.T) {
+func TestRuntimeAgnosticManifestAcceptsViewerAndRenderTargets(t *testing.T) {
 	for name, raw := range map[string]string{
-		"browser": `{"apiVersion":"jangolova.cymonkey/v1alpha2","kind":"Augmentation","metadata":{"id":"reading-tools","revision":"1"},"spec":{"targets":[{"domain":"computer","runtime":"browser-dom","match":{"urlPatterns":["https://example.com/*"]}}],"permissions":["dom.query"],"computer":{"scripts":[]}}}`,
-		"macos":   `{"apiVersion":"jangolova.cymonkey/v1alpha2","kind":"Augmentation","metadata":{"id":"music-tools","revision":"1"},"spec":{"targets":[{"domain":"computer","runtime":"macos-app","match":{"bundleId":"com.apple.Music"}}],"permissions":["app.command.invoke","ui.query"],"computer":{"commands":[{"id":"play"}]}}}`,
+		"browser": `{"apiVersion":"jangolova.cymonkey/v1alpha2","kind":"Augmentation","metadata":{"id":"reading-tools","revision":"1"},"spec":{"targets":[{"domain":"render","runtime":"browser-dom","match":{"urlPatterns":["https://example.com/*"]}}],"permissions":["document.query"],"render":{"scripts":[]}}}`,
+		"macos":   `{"apiVersion":"jangolova.cymonkey/v1alpha2","kind":"Augmentation","metadata":{"id":"music-tools","revision":"1"},"spec":{"targets":[{"domain":"viewer","runtime":"macos-app","match":{"bundleId":"com.apple.Music"}}],"permissions":["app.command.invoke","ui.query"],"viewer":{"commands":[{"id":"play"}]}}}`,
 		"render":  `{"apiVersion":"jangolova.cymonkey/v1alpha2","kind":"Augmentation","metadata":{"id":"scene-tools","revision":"1"},"spec":{"targets":[{"domain":"render","runtime":"threejs","match":{"name":"main"}}],"permissions":["camera.projection.set"],"render":{"resources":[{"id":"camera:main","kind":"camera"}]}}}`,
 		"player":  `{"apiVersion":"jangolova.cymonkey/v1alpha2","kind":"Augmentation","metadata":{"id":"session-tools","revision":"1"},"spec":{"targets":[{"domain":"player","runtime":"browser-game","match":{"name":"main"}}],"permissions":["player.session.describe"],"player":{"sessions":[{"id":"main"}]}}}`,
 	} {
@@ -26,7 +26,7 @@ func TestRuntimeAgnosticManifestAcceptsComputerAndRenderTargets(t *testing.T) {
 
 func TestRuntimeAgnosticCapabilityRejectsIncompatibleDomainDriver(t *testing.T) {
 	err := ValidateCapabilities([]Capability{{
-		Name: "ui.query", Domain: DomainComputer, Runtime: "macos-app", Driver: DriverCymonkeyWebSocket,
+		Name: "ui.query", Domain: DomainViewer, Runtime: "macos-app", Driver: DriverWebSocket,
 		Support: SupportMapped, Lifetime: LifetimeAttachment, Persistence: PersistenceSession,
 		Effect: "read", InputSchema: json.RawMessage(`{"type":"object"}`),
 	}})
@@ -37,7 +37,7 @@ func TestRuntimeAgnosticCapabilityRejectsIncompatibleDomainDriver(t *testing.T) 
 
 func TestRuntimeAgnosticCapabilityAcceptsContributorDriver(t *testing.T) {
 	err := ValidateCapabilities([]Capability{{
-		Name: "ui.query", Domain: DomainComputer, Runtime: "example.desktop", Driver: "example-driver",
+		Name: "ui.query", Domain: DomainViewer, Runtime: "example.desktop", Driver: "example-driver",
 		Support: SupportNative, Lifetime: LifetimeAttachment, Persistence: PersistenceSession,
 		Effect: "read", InputSchema: json.RawMessage(`{"type":"object"}`),
 	}})
@@ -49,7 +49,7 @@ func TestRuntimeAgnosticCapabilityAcceptsContributorDriver(t *testing.T) {
 func TestRuntimeHelloRequiresExactVersionAndKnownDomain(t *testing.T) {
 	value := Hello{
 		ProtocolVersion: ProtocolVersion, Implementation: Implementation{Name: "fixture"},
-		Domains:  []Domain{DomainComputer, DomainRender, DomainPlayer},
+		Domains:  []Domain{DomainViewer, DomainRender, DomainPlayer},
 		Runtimes: []string{"browser-dom", "threejs", "browser-game"},
 		Drivers:  []Driver{DriverWebExtension, DriverInPageRuntime},
 	}

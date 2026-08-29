@@ -14,12 +14,12 @@ let disconnected = false;
 let sequence = 0;
 const events = [];
 const capabilities = [
-  capability("browser.navigate", "Navigate the active page", "write", ["url"]),
-  capability("browser.click", "Click an element", "write", ["selector"]),
-  capability("browser.fill", "Fill an editable element", "write", ["selector", "value"]),
-  capability("browser.press", "Press a key in an element", "write", ["selector", "key"]),
-  capability("browser.evaluate", "Evaluate JavaScript in the active page", "external", ["expression"]),
-  capability("browser.screenshot", "Capture the active page as base64 PNG", "read", []),
+  capability("window.navigate", "Navigate the active window", "write", ["url"]),
+  capability("window.click", "Click an element in the active window", "write", ["selector"]),
+  capability("window.fill", "Fill an editable element in the active window", "write", ["selector", "value"]),
+  capability("window.press", "Press a key in the active window", "write", ["selector", "key"]),
+  capability("window.evaluate", "Evaluate a bounded expression in the active window", "external", ["expression"]),
+  capability("window.screenshot", "Capture the active window as base64 PNG", "read", []),
 ];
 
 const lines = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });
@@ -159,28 +159,28 @@ async function act(request) {
   const input = request?.input || {};
   const page = await activePage();
   let result;
-  if (name === "browser.navigate") {
+  if (name === "window.navigate") {
     requireString(input.url, "url");
     const response = await page.goto(input.url, { waitUntil: "domcontentloaded" });
     result = { url: page.url(), status: response?.status?.() ?? null };
-  } else if (name === "browser.click") {
+  } else if (name === "window.click") {
     requireString(input.selector, "selector");
     await page.locator(input.selector).click();
     result = { clicked: true };
-  } else if (name === "browser.fill") {
+  } else if (name === "window.fill") {
     requireString(input.selector, "selector");
     requireString(input.value, "value");
     await page.locator(input.selector).fill(input.value);
     result = { filled: true };
-  } else if (name === "browser.press") {
+  } else if (name === "window.press") {
     requireString(input.selector, "selector");
     requireString(input.key, "key");
     await page.locator(input.selector).press(input.key);
     result = { pressed: input.key };
-  } else if (name === "browser.evaluate") {
+  } else if (name === "window.evaluate") {
     requireString(input.expression, "expression");
     result = { value: await page.evaluate(input.expression) };
-  } else if (name === "browser.screenshot") {
+  } else if (name === "window.screenshot") {
     result = { pngBase64: await page.screenshot({ encoding: "base64", fullPage: Boolean(input.fullPage) }) };
   } else {
     throw new Error(`unsupported browser action ${name}`);

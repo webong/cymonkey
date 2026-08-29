@@ -107,7 +107,7 @@ func TestAdapterDiscoversAndCallsCallerOwnedSafariMCP(t *testing.T) {
 		bridge.MethodHello:        json.RawMessage(`{}`),
 		bridge.MethodCapabilities: json.RawMessage(`{}`),
 		bridge.MethodDescribe:     json.RawMessage(`{}`),
-		bridge.MethodAct:          json.RawMessage(`{"name":"browser.navigate","input":{"url":"https://example.test"}}`),
+		bridge.MethodAct:          json.RawMessage(`{"name":"window.navigate","input":{"url":"https://example.test"}}`),
 		bridge.MethodEvents:       json.RawMessage(`{"limit":10}`),
 	}
 	for method, params := range requests {
@@ -117,7 +117,7 @@ func TestAdapterDiscoversAndCallsCallerOwnedSafariMCP(t *testing.T) {
 		}
 	}
 	for _, action := range []string{
-		`{"name":"browser.evaluate","input":{"expression":"document.title"}}`,
+		`{"name":"window.evaluate","input":{"expression":"document.title"}}`,
 		`{"name":"mcp.tool.screenshot","input":{}}`,
 		`{"name":"mcp.call","input":{"name":"page_interactions","arguments":{"actions":[]}}}`,
 	} {

@@ -20,29 +20,25 @@ var _ bridge.Caller = (*engineInstance)(nil)
 
 func (enginePresentationBackend) Name() BackendName { return BackendName("engine-native") }
 
-func (enginePresentationBackend) Domain() contract.Domain { return contract.DomainRender }
+func (enginePresentationBackend) Domains() []contract.Domain {
+	return []contract.Domain{contract.DomainRender}
+}
 
 func (enginePresentationBackend) Compatible(target orchestrator.EngineTarget) bool {
 	if target.Kind != "native-presentation" && target.Kind != "unity" && target.Kind != "unreal" && target.Kind != "godot" {
 		return false
 	}
-	_, okWS := target.Endpoint("websocket")
-	_, okCymonkey := target.Endpoint("cymonkey-ws")
-	return okWS || okCymonkey
+	_, ok := target.Endpoint("websocket")
+	return ok
 }
 
 func (b enginePresentationBackend) Connect(ctx context.Context, spec manifest.EngineSpec, target orchestrator.EngineTarget, config options) (orchestrator.EngineInstance, error) {
 	if !b.Compatible(target) {
-		return nil, errors.New("Cymonkey render domain requires target.kind native-presentation, unity, unreal, or godot with a websocket or cymonkey-ws endpoint")
+		return nil, errors.New("Cymonkey render domain requires target.kind native-presentation, unity, unreal, or godot with a websocket endpoint")
 	}
-	endpointProtocol := "cymonkey-ws"
-	endpoint, ok := target.Endpoint(endpointProtocol)
+	endpoint, ok := target.Endpoint("websocket")
 	if !ok {
-		endpointProtocol = "websocket"
-		endpoint, ok = target.Endpoint(endpointProtocol)
-	}
-	if !ok {
-		return nil, errors.New("Cymonkey engine backend requires a caller-owned websocket or cymonkey-ws endpoint")
+		return nil, errors.New("Cymonkey engine backend requires a caller-owned websocket endpoint")
 	}
 	if err := targetconn.Validate(endpoint); err != nil {
 		return nil, err

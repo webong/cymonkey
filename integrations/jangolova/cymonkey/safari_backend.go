@@ -17,8 +17,10 @@ import (
 
 type safariMCPBackend struct{}
 
-func (safariMCPBackend) Name() BackendName       { return BackendSafariMCP }
-func (safariMCPBackend) Domain() contract.Domain { return contract.DomainComputer }
+func (safariMCPBackend) Name() BackendName { return BackendSafariMCP }
+func (safariMCPBackend) Domains() []contract.Domain {
+	return []contract.Domain{contract.DomainViewer, contract.DomainRender}
+}
 func (safariMCPBackend) Compatible(target orchestrator.EngineTarget) bool {
 	_, ok := target.Endpoint("mcp-streamable-http")
 	return target.Kind == "browser" && ok
@@ -77,7 +79,7 @@ func (instance *safariInstance) Call(ctx context.Context, method string, params 
 		return json.Marshal(Hello{
 			ProtocolVersion: ProtocolVersion,
 			Implementation:  implementation{Name: "jangolova-cymonkey", Version: "0.1.0"},
-			Domains:         []contract.Domain{contract.DomainComputer},
+			Domains:         []contract.Domain{contract.DomainViewer, contract.DomainRender},
 			Runtimes:        []string{"browser-dom"},
 			Drivers:         []BackendName{BackendSafariMCP},
 			Features:        []string{"caller-owned-target", "capabilities.negotiated", "safari-mcp.dynamic-mapping"},
@@ -164,13 +166,13 @@ func (instance *safariInstance) EngineEvents() <-chan orchestrator.EngineEvent {
 func mapSafariCapabilities(discovered []bridge.Capability, allowed []string) (map[string]safariMapping, []Capability) {
 	mappings := make(map[string]safariMapping)
 	capabilities := make([]Capability, 0)
-	add := func(name string, mapping safariMapping, effect string, schema json.RawMessage) {
+	add := func(name string, domain contract.Domain, mapping safariMapping, effect string, schema json.RawMessage) {
 		if _, exists := mappings[name]; exists || !capabilityAllowed(allowed, name) {
 			return
 		}
 		mappings[name] = mapping
 		capabilities = append(capabilities, Capability{
-			Name: name, Domain: contract.DomainComputer, Runtime: "browser-dom", Driver: BackendSafariMCP, Support: SupportMapped,
+			Name: name, Domain: domain, Runtime: "browser-dom", Driver: BackendSafariMCP, Support: SupportMapped,
 			Lifetime: LifetimeCall, Persistence: PersistenceEphemeral,
 			Effect: effect, InputSchema: schema,
 		})
@@ -178,8 +180,8 @@ func mapSafariCapabilities(discovered []bridge.Capability, allowed []string) (ma
 	for _, capability := range discovered {
 		lower := strings.ToLower(capability.Name)
 		mapping := safariMapping{action: capability.Name}
-		if capability.Name == "browser.evaluate" {
-			add("script.execute", mapping, "external", objectSchema("source"))
+		if capability.Name == "window.evaluate" {
+			add("window.evaluate", contract.DomainViewer, mapping, "external", objectSchema("expression"))
 			continue
 		}
 		if !strings.HasPrefix(lower, "mcp.tool.") {
@@ -189,17 +191,17 @@ func mapSafariCapabilities(discovered []bridge.Capability, allowed []string) (ma
 		mapping = safariMapping{tool: tool}
 		switch {
 		case strings.Contains(lower, "preload") && containsAny(lower, "add", "register", "install"):
-			add("script.register", mapping, "external", capability.InputSchema)
+			add("script.register", contract.DomainRender, mapping, "external", capability.InputSchema)
 		case strings.Contains(lower, "preload") && containsAny(lower, "remove", "unregister"):
-			add("script.unregister", mapping, "external", capability.InputSchema)
+			add("script.unregister", contract.DomainRender, mapping, "external", capability.InputSchema)
 		case strings.Contains(lower, "network") && containsAny(lower, "observe", "event", "traffic", "request"):
-			add("network.observe", mapping, "read", capability.InputSchema)
+			add("network.observe", contract.DomainViewer, mapping, "read", capability.InputSchema)
 		case strings.Contains(lower, "network") && containsAny(lower, "add_intercept", "install_rule", "register_intercept"):
-			add("network.rules.install", mapping, "external", capability.InputSchema)
+			add("network.rules.install", contract.DomainViewer, mapping, "external", capability.InputSchema)
 		case strings.Contains(lower, "network") && containsAny(lower, "remove_intercept", "remove_rule", "unregister_intercept"):
-			add("network.rules.remove", mapping, "external", capability.InputSchema)
+			add("network.rules.remove", contract.DomainViewer, mapping, "external", capability.InputSchema)
 		case containsAny(lower, "dom_query", "locate_node", "find_element"):
-			add("dom.query", mapping, "read", capability.InputSchema)
+			add("document.query", contract.DomainRender, mapping, "read", capability.InputSchema)
 		}
 	}
 	sort.Slice(capabilities, func(left, right int) bool { return capabilities[left].Name < capabilities[right].Name })

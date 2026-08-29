@@ -45,7 +45,7 @@ func TestCymonkeyEngineBackendNativeProtocol(t *testing.T) {
 						"implementation":  map[string]any{"name": "godot-native", "version": "0.2.0"},
 						"domains":         []string{"render"},
 						"runtimes":        []string{"godot"},
-						"drivers":         []string{"cymonkey-ws"},
+						"drivers":         []string{"websocket"},
 					},
 				})
 			case "capabilities":
@@ -55,7 +55,7 @@ func TestCymonkeyEngineBackendNativeProtocol(t *testing.T) {
 						"name":          "object.visible.set",
 						"domain":        "render",
 						"runtime":       "godot",
-						"driver":        "cymonkey-ws",
+						"driver":        "websocket",
 						"support":       "native",
 						"lifetime":      "attachment",
 						"persistence":   "session",
@@ -95,7 +95,7 @@ func TestCymonkeyEngineBackendNativeProtocol(t *testing.T) {
 	wsURL := "ws" + strings.TrimPrefix(server.URL, "http")
 	instance, err := cymonkey.Adapter{}.Connect(context.Background(), manifest.EngineSpec{Adapter: "cymonkey"}, orchestrator.EngineTarget{
 		Kind:      "godot",
-		Endpoints: []orchestrator.TargetEndpoint{{Name: "websocket", Protocol: "cymonkey-ws", URL: wsURL}},
+		Endpoints: []orchestrator.TargetEndpoint{{Name: "websocket", Protocol: "websocket", URL: wsURL}},
 	})
 	if err != nil {
 		t.Fatalf("native connect failed: %v", err)
@@ -113,7 +113,7 @@ func TestCymonkeyEngineBackendNativeProtocol(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(helloRes), `"cymonkey-ws"`) {
+	if !strings.Contains(string(helloRes), `"websocket"`) {
 		t.Fatalf("expected native hello passthrough, got %s", helloRes)
 	}
 	actRes, err := caller.Call(context.Background(), "act", json.RawMessage(`{"name":"object.visible.set","input":{"targetId":"object:door","visible":false}}`))

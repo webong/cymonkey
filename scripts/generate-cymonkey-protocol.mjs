@@ -25,7 +25,7 @@ const ProtocolVersion = "jangolova.cymonkey/v1alpha2"
 type DomainName string
 
 const (
-	DomainComputer DomainName = "computer"
+	DomainViewer DomainName = "viewer"
 	DomainRender   DomainName = "render"
 	DomainPlayer   DomainName = "player"
 )
@@ -40,7 +40,7 @@ const (
 	DriverMacOSAppleEvents   DriverName = "macos-apple-events"
 	DriverMacOSAccessibility DriverName = "macos-accessibility"
 	DriverMacOSCooperative   DriverName = "macos-cooperative"
-	DriverCymonkeyWebSocket  DriverName = "cymonkey-ws"
+	DriverWebSocket          DriverName = "websocket"
 	DriverInPageRuntime      DriverName = "in-page-runtime"
 )
 

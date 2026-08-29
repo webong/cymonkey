@@ -1,4 +1,4 @@
-import type { CymonkeyEvent, EventQuery } from '../types';
+import type { CymonkeyDomain, CymonkeyEvent, EventQuery } from '../types';
 
 const sequenceKey = 'jangolova.eventSequence';
 const eventsKey = 'jangolova.events';
@@ -12,6 +12,7 @@ export function appendEvent(
   type: string,
   data: Record<string, unknown> = {},
   tabId?: number,
+  domain: CymonkeyDomain = 'viewer',
 ): Promise<{ accepted: true; id: string; tabId: number | null }> {
   const operation = async () => {
     const storage = eventStorage();
@@ -24,7 +25,7 @@ export function appendEvent(
       id: String(sequence),
       type,
       occurredAt: new Date().toISOString(),
-      domain: 'computer',
+      domain,
       runtime: 'browser-dom',
       driver: 'webextension',
       data: tabId === undefined ? { ...data } : { ...data, tabId },
@@ -40,13 +41,17 @@ export function appendEvent(
 }
 
 export const publishCymonkeyEvent = (type: string, data: Record<string, unknown> = {}, tabId?: number) =>
-  appendEvent(`cymonkey.${type}`, data, tabId);
+  appendEvent(`cymonkey.${type}`, data, tabId, cymonkeyEventDomain(type));
 
 export const publishCymonkeyEngineEvent = (type: string, data: Record<string, unknown> = {}, tabId?: number) =>
   appendEvent(`cymonkey-engine.${type}`, data, tabId);
 
 export const publishAuditEvent = (phase: 'requested' | 'succeeded' | 'denied' | 'failed', data: Record<string, unknown>) =>
   appendEvent(`audit.control.${phase}`, data);
+
+function cymonkeyEventDomain(type: string): CymonkeyDomain {
+  return /^(document|overlay|script|style)\./.test(type) ? 'render' : 'viewer';
+}
 
 export async function readEvents(query: EventQuery = {}) {
   const cursor = Number.parseInt(query.after || '0', 10);

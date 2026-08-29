@@ -3,11 +3,12 @@
 This is the canonical WXT implementation of Jangolova's browser runtime. It
 contains shared extension platform services plus Cymonkey domain integrations:
 
-- **Computer domain** uses runtime `browser-dom` to manage augmentations, DOM
-  operations, styles, overlays, and browser-native platform services.
-- **Render domain** reaches an explicitly installed in-page runtime such as
-  `@jangolova/threejs-cymonkey` through the private `cymonkey-engine.call`
-  control route.
+- **Viewer domain** uses runtime `browser-dom` for window/tab interaction and
+  browser-native platform services such as storage and network rules.
+- **Render domain** uses runtime `browser-dom` for document operations,
+  scripts, styles, and overlays; it can also reach an explicitly installed
+  in-page runtime such as `@jangolova/threejs-cymonkey` through the private
+  `cymonkey-engine.call` control route.
 - **Cymonkey userscripts** use the
   `jangolova.cymonkey.userscript/v1alpha1` payload, require explicit approval,
   and register bounded `@grant none` source through the extension's
@@ -31,7 +32,7 @@ npm run check
 ```
 
 The privileged extension control plane advertises `v1alpha2` with domain
-`computer` and runtime `browser-dom`; the page-safe `window.jangolova.cymonkey` API uses the same
+`viewer` and runtime `browser-dom`; the page-safe `window.jangolova.cymonkey` API uses the same
 `jangolova.cymonkey/v1alpha2` contract. Every build
 works standalone and carries the Xallet Spook client. On Chrome, Edge, and
 Firefox, when an enabled

@@ -38,7 +38,7 @@ func TestWindowsCooperativeBackendNegotiatesOwnerHelper(t *testing.T) {
 	}
 }
 
-func TestWindowsTargetSelectsComputerDomain(t *testing.T) {
+func TestWindowsTargetSelectsViewerDomain(t *testing.T) {
 	domain, err := resolveDomain("", orchestrator.EngineTarget{Kind: "windows-application"})
 	if err != nil || domain != contract.DomainViewer {
 		t.Fatalf("resolveDomain() = %q, %v", domain, err)

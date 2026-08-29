@@ -1,10 +1,11 @@
 export type CapabilityEffect = 'read' | 'write' | 'external';
+export type CymonkeyDomain = 'viewer' | 'render';
 
 export type Capability = {
   name: string;
   description: string;
   effect: CapabilityEffect;
-  domain: 'computer';
+  domain: CymonkeyDomain;
   runtime: 'browser-dom';
   driver: 'webextension';
   support: 'native' | 'mapped' | 'emulated';
@@ -21,7 +22,7 @@ export type CymonkeyEvent = {
   id: string;
   type: string;
   occurredAt: string;
-  domain: 'computer';
+  domain: CymonkeyDomain;
   runtime: 'browser-dom';
   driver: 'webextension';
   data: Record<string, unknown>;
@@ -61,12 +62,13 @@ export function capability(
   required: string[],
   lifetime: Capability['lifetime'] = 'installation',
   persistence: Capability['persistence'] = 'persistent',
+  domain: CymonkeyDomain = 'viewer',
 ): Capability {
   return {
     name,
     description,
     effect,
-    domain: 'computer',
+    domain,
     runtime: 'browser-dom',
     driver: 'webextension',
     support: 'native',

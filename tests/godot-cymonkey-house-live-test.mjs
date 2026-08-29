@@ -51,7 +51,7 @@ const hello = await call("hello");
 assert.equal(hello.protocolVersion, "jangolova.cymonkey/v1alpha2");
 assert.ok(hello.domains.includes("render"));
 assert.ok(hello.runtimes.includes("godot"));
-assert.ok(hello.drivers.includes("cymonkey-ws"));
+assert.ok(hello.drivers.includes("websocket"));
 const capabilities = await call("capabilities");
 assert.ok(capabilities.some((capability) => capability.name === "camera.transform.set"));
 assert.ok(capabilities.some((capability) => capability.name === "ui.text.set"));

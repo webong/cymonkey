@@ -25,7 +25,7 @@ test("Jangolova owns extension platform services", async () => {
   assert.match(engine, /services\/network/);
   assert.match(engine, /services\/storage/);
   assert.match(engine, /jangolova\.cymonkey\/v1alpha2/);
-  assert.match(engine, /domains: \['computer'\]/);
+  assert.match(engine, /domains: \['viewer', 'render'\]/);
   assert.match(engine, /runtimes: \['browser-dom'\]/);
   assert.match(runtime, /cymonkey-engine\.call/);
   assert.match(runtime, /cymonkey\.call/);

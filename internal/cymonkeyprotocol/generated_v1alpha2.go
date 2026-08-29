@@ -1,5 +1,5 @@
 // Code generated from src/cymonkey/protocol/v1alpha2/protocol.schema.json; DO NOT EDIT.
-// Schema SHA-256: 4022a1c84c86a0a45bbea2779dfbb8376b8eca053b04ce4bee0a5e4bb44e3a3e
+// Schema SHA-256: 15de68ad0e7a95d958d0b1184d309acf5bf6604d20a68ebe2ac708cc082b573d
 
 package cymonkeyprotocol
 
@@ -14,7 +14,7 @@ const ProtocolVersion = "jangolova.cymonkey/v1alpha2"
 type DomainName string
 
 const (
-	DomainComputer DomainName = "computer"
+	DomainViewer DomainName = "viewer"
 	DomainRender   DomainName = "render"
 	DomainPlayer   DomainName = "player"
 )
@@ -29,7 +29,7 @@ const (
 	DriverMacOSAppleEvents   DriverName = "macos-apple-events"
 	DriverMacOSAccessibility DriverName = "macos-accessibility"
 	DriverMacOSCooperative   DriverName = "macos-cooperative"
-	DriverCymonkeyWebSocket  DriverName = "cymonkey-ws"
+	DriverWebSocket          DriverName = "websocket"
 	DriverInPageRuntime      DriverName = "in-page-runtime"
 )
 

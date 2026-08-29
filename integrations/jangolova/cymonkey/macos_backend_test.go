@@ -20,7 +20,7 @@ import (
 
 func TestMacOSCooperativeBackendHandshakesAndEnforcesBundlePolicy(t *testing.T) {
 	spec := manifest.EngineSpec{Options: json.RawMessage(`{
-		"domain":"computer",
+		"domain":"viewer",
 		"policy":{"allowedBundleIds":["com.example.Allowed"]}
 	}`)}
 	connected, err := (Adapter{}).Connect(context.Background(), spec, orchestrator.EngineTarget{Kind: "macos-application"})
@@ -65,7 +65,7 @@ func TestMacOSSwiftHelperLive(t *testing.T) {
 	if executable == "" {
 		t.Skip("set JANGOLOVA_CYMONKEY_MACOS_HELPER to the test-built Swift helper")
 	}
-	connected, err := (Adapter{}).Connect(context.Background(), manifest.EngineSpec{Options: json.RawMessage(`{"domain":"computer"}`)}, orchestrator.EngineTarget{Kind: "macos-application"})
+	connected, err := (Adapter{}).Connect(context.Background(), manifest.EngineSpec{Options: json.RawMessage(`{"domain":"viewer"}`)}, orchestrator.EngineTarget{Kind: "macos-application"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +106,7 @@ func TestMacOSSwiftHelperLive(t *testing.T) {
 		t.Fatal(err)
 	}
 	var hello contract.Hello
-	if err := json.Unmarshal(raw, &hello); err != nil || hello.ProtocolVersion != contract.ProtocolVersion || !containsDomain(hello.Domains, contract.DomainComputer) {
+	if err := json.Unmarshal(raw, &hello); err != nil || hello.ProtocolVersion != contract.ProtocolVersion || !containsDomain(hello.Domains, contract.DomainViewer) {
 		t.Fatalf("hello = %s, %v", raw, err)
 	}
 }
@@ -135,13 +135,13 @@ func serveFakeMacOSHelper(t *testing.T, environment map[string]string, actions *
 				result = contract.Hello{
 					ProtocolVersion: contract.ProtocolVersion,
 					Implementation:  contract.Implementation{Name: "fake-macos-helper"},
-					Domains:         []contract.Domain{contract.DomainComputer},
+					Domains:         []contract.Domain{contract.DomainViewer},
 					Runtimes:        []string{"macos-app"},
 					Drivers:         []contract.Driver{contract.DriverMacOSAppleEvents},
 				}
 			case "capabilities":
 				result = []contract.Capability{{
-					Name: "app.command.invoke", Domain: contract.DomainComputer, Runtime: "macos-app",
+					Name: "app.command.invoke", Domain: contract.DomainViewer, Runtime: "macos-app",
 					Driver: contract.DriverMacOSAppleEvents, Support: contract.SupportMapped,
 					Lifetime: contract.LifetimeAttachment, Persistence: contract.PersistenceSession,
 					Effect: "external", InputSchema: objectSchema("surfaceId", "command"),

@@ -140,7 +140,7 @@ func (a Adapter) Connect(
 	}
 	if source := strings.TrimSpace(spec.Source); source != "" {
 		params, _ := json.Marshal(map[string]any{
-			"name":  "browser.navigate",
+			"name":  "window.navigate",
 			"input": map[string]string{"url": source},
 		})
 		if _, err := running.Call(ctx, bridge.MethodAct, params); err != nil {
@@ -460,7 +460,7 @@ func resolveWorker(configured string) (string, error) {
 }
 
 func capabilityNames(implementation string) []string {
-	capabilities := []string{"act", "browser.click", "browser.evaluate", "browser.fill", "browser.navigate", "browser.press", "browser.screenshot", "capabilities", "describe", "events", "target.cdp"}
+	capabilities := []string{"act", "window.click", "window.evaluate", "window.fill", "window.navigate", "window.press", "window.screenshot", "capabilities", "describe", "events", "target.cdp"}
 	if implementation == "puppeteer" {
 		capabilities = append(capabilities, "target.webdriver-bidi")
 	}

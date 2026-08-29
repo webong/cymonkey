@@ -97,7 +97,7 @@ func MapMacOSPrimitives(primitives []MacOSPrimitive, allowedBundleIDs, allowedCa
 
 func macOSCapability(name string, driver contract.Driver, effect string, schema json.RawMessage) contract.Capability {
 	return contract.Capability{
-		Name: name, Domain: contract.DomainComputer, Runtime: "macos-app", Driver: driver,
+		Name: name, Domain: contract.DomainViewer, Runtime: "macos-app", Driver: driver,
 		Support: contract.SupportMapped, Lifetime: contract.LifetimeAttachment,
 		Persistence: contract.PersistenceSession, Effect: effect, InputSchema: schema,
 	}

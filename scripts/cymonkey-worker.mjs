@@ -173,7 +173,7 @@ async function probeExtension() {
     extensionControlCreated = result.created;
     const extensionHello = await callExtension("hello", {});
     if (extensionHello?.protocolVersion !== protocolVersion ||
-      !extensionHello?.domains?.includes("computer") ||
+      !extensionHello?.domains?.includes("viewer") ||
       !extensionHello?.runtimes?.includes("browser-dom") ||
       !extensionHello?.drivers?.includes("webextension") ||
       extensionHello?.implementation?.name !== "jangolova-browser-extension-webextension") {
@@ -218,7 +218,7 @@ function hello() {
   return {
     protocolVersion,
     implementation: { name: "jangolova-cymonkey", version: "0.1.0" },
-    domains: ["computer"],
+    domains: ["viewer", "render"],
     runtimes: ["browser-dom"],
     drivers: activeDrivers(),
     features: ["augmentation", "caller-owned-target", "capabilities.negotiated", "events.cursor", "page-bridge.nested"],
@@ -230,10 +230,10 @@ async function describe() {
   return {
     revision: String(sequence),
     surfaces: await Promise.all(pages.map(async (page, index) => ({
-      id: `document:${index}`, domain: "computer", runtime: "browser-dom", kind: "document",
+      id: `document:${index}`, domain: "render", runtime: "browser-dom", kind: "document",
       label: await page.title(), properties: { url: page.url() },
     }))),
-    augmentations: [...augmentations.values()].map((item) => ({ id: item.id, revision: item.revision, enabled: item.enabled, domains: ["computer"] })).sort((a, b) => a.id.localeCompare(b.id)),
+    augmentations: [...augmentations.values()].map((item) => ({ id: item.id, revision: item.revision, enabled: item.enabled, domains: ["render"] })).sort((a, b) => a.id.localeCompare(b.id)),
   };
 }
 
@@ -258,13 +258,13 @@ async function actBase(name, input) {
   if (name === "augmentation.disable") return setAugmentationEnabled(requireString(input.augmentationId, "augmentationId"), false);
   if (name === "augmentation.list") return { augmentations: [...augmentations.values()].map(publicAugmentation) };
   if (name === "augmentation.describe") return publicAugmentation(requireAugmentation(input.augmentationId));
-  if (name === "browser.navigate") {
+  if (name === "window.navigate") {
     const page = await targetPage(input);
     requireString(input.url, "url");
     const response = await page.goto(input.url, { waitUntil: "domcontentloaded" });
     return { url: page.url(), status: response?.status?.() ?? null };
   }
-  if (name === "browser.click") {
+  if (name === "window.click") {
     const page = await targetPage(input);
     requireString(input.selector, "selector");
     if (typeof page.locator === "function") {
@@ -274,7 +274,7 @@ async function actBase(name, input) {
     }
     return { clicked: true };
   }
-  if (name === "browser.fill") {
+  if (name === "window.fill") {
     const page = await targetPage(input);
     requireString(input.selector, "selector");
     requireString(input.value, "value");
@@ -292,7 +292,7 @@ async function actBase(name, input) {
     }
     return { filled: true };
   }
-  if (name === "browser.press") {
+  if (name === "window.press") {
     const page = await targetPage(input);
     requireString(input.selector, "selector");
     requireString(input.key, "key");
@@ -304,12 +304,12 @@ async function actBase(name, input) {
     }
     return { pressed: input.key };
   }
-  if (name === "browser.evaluate") {
+  if (name === "window.evaluate") {
     const page = await targetPage(input);
     requireString(input.expression, "expression");
     return { value: await page.evaluate(input.expression) };
   }
-  if (name === "browser.screenshot") {
+  if (name === "window.screenshot") {
     const page = await targetPage(input);
     return { pngBase64: await page.screenshot({ encoding: "base64", fullPage: Boolean(input.fullPage) }) };
   }
@@ -318,9 +318,9 @@ async function actBase(name, input) {
   if (name === "script.unregister") return unregisterScript(input);
   if (name === "style.insert") return insertStyle(input);
   if (name === "style.remove") return removeStyle(input);
-  if (name === "dom.query") return domQuery(input);
-  if (name === "dom.observe") return domObserve(input);
-  if (name === "dom.patch") return domPatch(input);
+  if (name === "document.query") return domQuery(input);
+  if (name === "document.observe") return domObserve(input);
+  if (name === "document.patch") return domPatch(input);
   if (name === "overlay.mount") return overlayChange(input, "mount");
   if (name === "overlay.patch") return overlayChange(input, "patch");
   if (name === "overlay.unmount") return overlayChange(input, "unmount");
@@ -364,10 +364,11 @@ async function setAugmentationEnabled(id, enabled) {
 }
 
 async function activateAugmentation(record) {
-  const computer = record.manifest.spec.computer || {};
-  for (const script of computer.scripts || []) await registerScript({ augmentationId: record.id, script, matches: record.matches, excludeMatches: record.excludeMatches });
-  for (const style of computer.styles || []) await insertStyle({ augmentationId: record.id, id: style.id, css: style.css });
-  if ((computer.networkRules || []).length > 0) await installNetworkRules({ augmentationId: record.id, rules: computer.networkRules });
+  const viewer = record.manifest.spec.viewer || {};
+  const render = record.manifest.spec.render || {};
+  for (const script of render.scripts || []) await registerScript({ augmentationId: record.id, script, matches: record.matches, excludeMatches: record.excludeMatches });
+  for (const style of render.styles || []) await insertStyle({ augmentationId: record.id, id: style.id, css: style.css });
+  if ((viewer.networkRules || []).length > 0) await installNetworkRules({ augmentationId: record.id, rules: viewer.networkRules });
 }
 
 async function deactivateAugmentation(id) {
@@ -444,7 +445,7 @@ async function domObserve(input) {
   await page.evaluate(({ id, selector }) => {
     const root = globalThis.__jangolovaCymonkeyObservers ||= new Map();
     root.get(id)?.disconnect();
-    const observer = new MutationObserver((mutations) => globalThis.__jangolovaCymonkeyEmit({ type: "dom.mutation", data: { id, count: mutations.length } }));
+    const observer = new MutationObserver((mutations) => globalThis.__jangolovaCymonkeyEmit({ type: "document.mutation", data: { id, count: mutations.length } }));
     for (const node of document.querySelectorAll(selector)) observer.observe(node, { subtree: true, childList: true, attributes: true, characterData: true });
     root.set(id, observer);
   }, { id, selector });
@@ -608,23 +609,23 @@ function baseCapabilities(protocol) {
     cap("augmentation.disable", backend, "mapped", "browser-session", "session", "write", ["augmentationId"]),
     cap("augmentation.list", backend, "mapped", "call", "ephemeral", "read", []),
     cap("augmentation.describe", backend, "mapped", "call", "ephemeral", "read", ["augmentationId"]),
-    cap("browser.navigate", backend, "native", "call", "ephemeral", "write", ["url"]),
-    cap("browser.click", backend, "native", "call", "ephemeral", "write", ["selector"]),
-    cap("browser.fill", backend, "native", "call", "ephemeral", "write", ["selector", "value"]),
-    cap("browser.press", backend, "native", "call", "ephemeral", "write", ["selector", "key"]),
-    cap("browser.evaluate", backend, "native", "call", "ephemeral", "external", ["expression"]),
-    cap("browser.screenshot", backend, "native", "call", "ephemeral", "read", []),
-    cap("script.execute", backend, "native", "call", "ephemeral", "external", ["source"]),
-    cap("script.register", backend, "native", "browser-session", "session", "external", ["augmentationId", "script"]),
-    cap("script.unregister", backend, "native", "browser-session", "session", "external", ["augmentationId", "id"]),
-    cap("style.insert", backend, "mapped", "document", "ephemeral", "write", ["augmentationId", "css"]),
-    cap("style.remove", backend, "mapped", "document", "ephemeral", "write", ["augmentationId"]),
-    cap("dom.query", backend, "mapped", "call", "ephemeral", "read", ["selector"]),
-    cap("dom.observe", backend, "mapped", "document", "ephemeral", "read", ["selector"]),
-    cap("dom.patch", backend, "mapped", "document", "ephemeral", "write", ["selector"]),
-    cap("overlay.mount", backend, "emulated", "document", "ephemeral", "write", ["id"]),
-    cap("overlay.patch", backend, "emulated", "document", "ephemeral", "write", ["id"]),
-    cap("overlay.unmount", backend, "emulated", "document", "ephemeral", "write", ["id"]),
+    cap("window.navigate", backend, "native", "call", "ephemeral", "write", ["url"]),
+    cap("window.click", backend, "native", "call", "ephemeral", "write", ["selector"]),
+    cap("window.fill", backend, "native", "call", "ephemeral", "write", ["selector", "value"]),
+    cap("window.press", backend, "native", "call", "ephemeral", "write", ["selector", "key"]),
+    cap("window.evaluate", backend, "native", "call", "ephemeral", "external", ["expression"]),
+    cap("window.screenshot", backend, "native", "call", "ephemeral", "read", []),
+    cap("script.execute", backend, "native", "call", "ephemeral", "external", ["source"], "render"),
+    cap("script.register", backend, "native", "browser-session", "session", "external", ["augmentationId", "script"], "render"),
+    cap("script.unregister", backend, "native", "browser-session", "session", "external", ["augmentationId", "id"], "render"),
+    cap("style.insert", backend, "mapped", "document", "ephemeral", "write", ["augmentationId", "css"], "render"),
+    cap("style.remove", backend, "mapped", "document", "ephemeral", "write", ["augmentationId"], "render"),
+    cap("document.query", backend, "mapped", "call", "ephemeral", "read", ["selector"], "render"),
+    cap("document.observe", backend, "mapped", "document", "ephemeral", "read", ["selector"], "render"),
+    cap("document.patch", backend, "mapped", "document", "ephemeral", "write", ["selector"], "render"),
+    cap("overlay.mount", backend, "emulated", "document", "ephemeral", "write", ["id"], "render"),
+    cap("overlay.patch", backend, "emulated", "document", "ephemeral", "write", ["id"], "render"),
+    cap("overlay.unmount", backend, "emulated", "document", "ephemeral", "write", ["id"], "render"),
     cap("network.observe", backend, "native", "browser-session", "session", "read", []),
     cap("storage.get", backend, "emulated", "browser-session", "session", "read", ["augmentationId", "keys"]),
     cap("storage.set", backend, "emulated", "browser-session", "session", "write", ["augmentationId", "values"]),
@@ -644,7 +645,7 @@ async function probeBaseCapabilities() {
   if (!page) return candidates.filter((item) => supported.has(item.name));
   try {
     await page.evaluate(() => true);
-    for (const name of ["script.execute", "dom.query", "dom.observe", "dom.patch", "overlay.mount", "overlay.patch", "overlay.unmount", "browser.navigate", "browser.click", "browser.fill", "browser.press", "browser.evaluate", "browser.screenshot"]) supported.add(name);
+    for (const name of ["script.execute", "document.query", "document.observe", "document.patch", "overlay.mount", "overlay.patch", "overlay.unmount", "window.navigate", "window.click", "window.fill", "window.press", "window.evaluate", "window.screenshot"]) supported.add(name);
   } catch {}
   if (targetProtocol === "cdp" && typeof page.setRequestInterception === "function") {
     supported.add("network.rules.install");
@@ -664,9 +665,9 @@ async function probeBaseCapabilities() {
   return candidates.filter((item) => supported.has(item.name));
 }
 
-function cap(name, driver, support, lifetime, persistence, effect, required) {
+function cap(name, driver, support, lifetime, persistence, effect, required, domain = "viewer") {
   return {
-    name, domain: "computer", runtime: "browser-dom", driver, support,
+    name, domain, runtime: "browser-dom", driver, support,
     lifetime: lifetime === "browser-session" ? "attachment" : lifetime === "document" ? "surface" : lifetime,
     persistence, effect, inputSchema: { type: "object", required, additionalProperties: true },
   };
@@ -676,7 +677,7 @@ function normalizeExtensionCapability(value) {
   const { backend: _backend, ...capability } = value;
   return {
     ...capability,
-    domain: "computer",
+    domain: capability.domain || "viewer",
     runtime: "browser-dom",
     driver: "webextension",
     support: capability.support || "native",
@@ -717,12 +718,12 @@ function validateManifest(value) {
   if (!value || value.apiVersion !== protocolVersion || value.kind !== "Augmentation") throw new Error("manifest must be a jangolova.cymonkey/v1alpha2 Augmentation");
   requireString(value.metadata?.id, "manifest.metadata.id");
   requireString(value.metadata?.revision, "manifest.metadata.revision");
-  const target = value.spec?.targets?.find((item) => item?.domain === "computer" && item?.runtime === "browser-dom");
-  if (!target || !Array.isArray(target.match?.urlPatterns) || target.match.urlPatterns.length === 0) throw new Error("manifest requires a computer/browser-dom target with match.urlPatterns");
+  const target = value.spec?.targets?.find((item) => item?.domain === "render" && item?.runtime === "browser-dom");
+  if (!target || !Array.isArray(target.match?.urlPatterns) || target.match.urlPatterns.length === 0) throw new Error("manifest requires a render/browser-dom target with match.urlPatterns");
 }
 function requireAugmentation(id) { const value = augmentations.get(requireString(id, "augmentationId")); if (!value) throw new Error(`augmentation ${JSON.stringify(id)} is not installed`); return value; }
-function publicAugmentation(value) { return { id: value.id, revision: value.revision, enabled: value.enabled, domains: ["computer"] }; }
-function browserTarget(manifest) { return manifest.spec.targets.find((item) => item?.domain === "computer" && item?.runtime === "browser-dom"); }
+function publicAugmentation(value) { return { id: value.id, revision: value.revision, enabled: value.enabled, domains: ["render"] }; }
+function browserTarget(manifest) { return manifest.spec.targets.find((item) => item?.domain === "render" && item?.runtime === "browser-dom"); }
 function requireString(value, name) { if (typeof value !== "string" || !value) throw new Error(`${name} is required`); return value; }
 
 function pageBridgeBootstrap(driver = "cdp") {
@@ -732,22 +733,22 @@ function pageBridgeBootstrap(driver = "cdp") {
   const overlays = new Map();
   let cursor = 0;
   const pageEvents = [];
-  const emit = (type, data) => { cursor += 1; pageEvents.push({ id: String(cursor), type, occurredAt: new Date().toISOString(), domain: "computer", runtime: "browser-dom", driver, data }); };
+  const emit = (type, data) => { cursor += 1; pageEvents.push({ id: String(cursor), type, occurredAt: new Date().toISOString(), domain: "render", runtime: "browser-dom", driver, data }); };
   const act = async (name, input = {}) => {
-    if (name === "dom.query") return { matches: [...document.querySelectorAll(String(input.selector || ""))].slice(0, 100).map((node) => ({ tag: node.tagName.toLowerCase(), id: node.id || null, text: (node.textContent || "").trim().slice(0, 500) })) };
-    if (name === "dom.patch") { const node = document.querySelector(String(input.selector || "")); if (!node) throw new Error("selector did not match"); if (typeof input.text === "string") node.textContent = input.text; return { ok: true }; }
+    if (name === "document.query") return { matches: [...document.querySelectorAll(String(input.selector || ""))].slice(0, 100).map((node) => ({ tag: node.tagName.toLowerCase(), id: node.id || null, text: (node.textContent || "").trim().slice(0, 500) })) };
+    if (name === "document.patch") { const node = document.querySelector(String(input.selector || "")); if (!node) throw new Error("selector did not match"); if (typeof input.text === "string") node.textContent = input.text; return { ok: true }; }
     if (["overlay.mount", "overlay.patch"].includes(name)) { let host = overlays.get(input.id); if (!host) { host = document.createElement("div"); host.dataset.jangolovaCymonkeyOverlay = input.id; host.attachShadow({ mode: "open" }); document.documentElement.append(host); overlays.set(input.id, host); } host.shadowRoot.innerHTML = `<style>${input.css || ""}</style><div>${input.html || ""}</div>`; emit(name === "overlay.mount" ? "overlay.mounted" : "overlay.patched", { id: input.id }); return { ok: true }; }
     if (name === "overlay.unmount") { const host = overlays.get(input.id); if (!host) throw new Error("overlay does not exist"); host.remove(); overlays.delete(input.id); emit("overlay.unmounted", { id: input.id }); return { ok: true }; }
     throw new Error(`page-safe Cymonkey does not expose ${JSON.stringify(name)}`);
   };
   root.cymonkey = Object.freeze({
-    hello: async () => ({ protocolVersion, implementation: { name: "jangolova-cymonkey-page" }, domains: ["computer"], runtimes: ["browser-dom"], drivers: [driver] }),
+    hello: async () => ({ protocolVersion, implementation: { name: "jangolova-cymonkey-page" }, domains: ["render"], runtimes: ["browser-dom"], drivers: [driver] }),
     capabilities: async () => [
-      cap("dom.query", driver, "mapped", "call", "ephemeral", "read", ["selector"]),
-      cap("dom.patch", driver, "mapped", "surface", "ephemeral", "write", ["selector"]),
-      ...["overlay.mount", "overlay.patch", "overlay.unmount"].map((name) => cap(name, driver, "emulated", "surface", "ephemeral", "write", ["id"])),
+      cap("document.query", driver, "mapped", "call", "ephemeral", "read", ["selector"], "render"),
+      cap("document.patch", driver, "mapped", "surface", "ephemeral", "write", ["selector"], "render"),
+      ...["overlay.mount", "overlay.patch", "overlay.unmount"].map((name) => cap(name, driver, "emulated", "surface", "ephemeral", "write", ["id"], "render")),
     ],
-    describe: async () => ({ revision: String(cursor), surfaces: [{ id: "document:main", domain: "computer", runtime: "browser-dom", kind: "document", label: document.title, properties: { url: location.href, readyState: document.readyState, overlays: [...overlays.keys()] } }], augmentations: [] }),
+    describe: async () => ({ revision: String(cursor), surfaces: [{ id: "document:main", domain: "render", runtime: "browser-dom", kind: "document", label: document.title, properties: { url: location.href, readyState: document.readyState, overlays: [...overlays.keys()] } }], augmentations: [] }),
     act,
     events: async (query = {}) => ({ events: pageEvents.filter((event) => Number(event.id) > Number(query.after || 0)), cursor: String(cursor) }),
   });
@@ -774,7 +775,7 @@ function readEvents(query) {
   const types = new Set(Array.isArray(query.types) ? query.types : []);
   return { events: events.filter((event) => Number(event.id) > after && (types.size === 0 || types.has(event.type))).slice(0, limit), cursor: String(sequence) };
 }
-function appendEvent(type, data) { sequence += 1; events.push({ id: String(sequence), type, occurredAt: new Date().toISOString(), domain: "computer", runtime: "browser-dom", driver: targetProtocol === "webdriver-bidi" ? "bidi" : "cdp", data }); if (events.length > 1024) events.splice(0, events.length - 1024); }
+function appendEvent(type, data) { sequence += 1; const domain = /^(document|overlay|script|style)\./.test(type) ? "render" : "viewer"; events.push({ id: String(sequence), type, occurredAt: new Date().toISOString(), domain, runtime: "browser-dom", driver: targetProtocol === "webdriver-bidi" ? "bidi" : "cdp", data }); if (events.length > 1024) events.splice(0, events.length - 1024); }
 
 async function resolveCDPEndpoint(endpoint, headers) {
   if (endpoint.startsWith("ws://") || endpoint.startsWith("wss://")) return endpoint;

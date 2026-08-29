@@ -14,7 +14,7 @@ import (
 // browser or application lifecycle.
 type Backend interface {
 	Name() BackendName
-	Domain() contract.Domain
+	Domains() []contract.Domain
 	Compatible(orchestrator.EngineTarget) bool
 	Connect(context.Context, manifest.EngineSpec, orchestrator.EngineTarget, options) (orchestrator.EngineInstance, error)
 }

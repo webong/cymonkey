@@ -1,5 +1,5 @@
 // Package cymonkey defines Jangolova's runtime-agnostic interaction contract.
-// Runtime adapters map computer, render, and player domain semantics to
+// Runtime adapters map viewer, render, and player domain semantics to
 // caller-owned targets.
 package cymonkey
 
@@ -13,9 +13,9 @@ const (
 type Domain string
 
 const (
-	DomainComputer Domain = "computer"
-	DomainRender   Domain = "render"
-	DomainPlayer   Domain = "player"
+	DomainViewer Domain = "viewer"
+	DomainRender Domain = "render"
+	DomainPlayer Domain = "player"
 )
 
 type Driver string
@@ -28,7 +28,7 @@ const (
 	DriverMacOSAppleEvents   Driver = "macos-apple-events"
 	DriverMacOSAccessibility Driver = "macos-accessibility"
 	DriverMacOSCooperative   Driver = "macos-cooperative"
-	DriverCymonkeyWebSocket  Driver = "cymonkey-ws"
+	DriverWebSocket          Driver = "websocket"
 	DriverInPageRuntime      Driver = "in-page-runtime"
 )
 
@@ -125,7 +125,7 @@ type ManifestSpec struct {
 	Targets     []Target        `json:"targets"`
 	Permissions []string        `json:"permissions"`
 	Enabled     *bool           `json:"enabled,omitempty"`
-	Computer    json.RawMessage `json:"computer,omitempty"`
+	Viewer      json.RawMessage `json:"viewer,omitempty"`
 	Render      json.RawMessage `json:"render,omitempty"`
 	Player      json.RawMessage `json:"player,omitempty"`
 	Overlays    json.RawMessage `json:"overlays,omitempty"`

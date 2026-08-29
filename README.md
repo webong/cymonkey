@@ -21,9 +21,9 @@ same target endpoints and handles without Xallet.
 ## Included interaction engines
 
 - **Cymonkey Master Control Plane (`jangolova.cymonkey/v1alpha2`)**: Runtime-agnostic control plane engine governing automation, interaction, and 2D/3D presentation across caller-owned targets.
-  - **Automation Drivers**: Integrated Playwright and Puppeteer CDP/WebDriver BiDi drivers for browser automation primitives (`browser.navigate`, `browser.click`, `browser.fill`, `browser.press`, `browser.evaluate`, `browser.screenshot`).
+  - **Automation Drivers**: Integrated Playwright and Puppeteer CDP/WebDriver BiDi drivers for generic window primitives (`window.navigate`, `window.click`, `window.fill`, `window.press`, `window.evaluate`, `window.screenshot`).
   - **Web & Extension Drivers**: Jangolova WebExtension control plane, Cymonkey augmented browsing, userscripts runtime (`jangolova.cymonkey.userscript/v1alpha1`), and Safari MCP relay.
-  - **Computer Domain Drivers**: Browser DOM and bounded macOS application operations via WebExtension, CDP/BiDi, Apple Events, and Accessibility.
+  - **Viewer Domain Drivers**: Browser and bounded macOS application operations via WebExtension, CDP/BiDi, Apple Events, and Accessibility.
   - **Render Domain Drivers**: Unified 2D/3D explicit-registration runtimes spanning Godot, Unity, Unreal, and Three.js.
   - **Player Domain**: Reserved for negotiated, typed content-session controls; it never transfers player lifecycle ownership to Jangolova.
 - WebDriver Classic attachment to an existing caller-owned session, including Safari's `safaridriver`.

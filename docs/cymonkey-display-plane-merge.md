@@ -1,7 +1,7 @@
 # Cymonkey display-plane consolidation
 
 Cymonkey is the single semantic contract for Jangolova augmentation across
-computer applications, renderers, and player sessions. Its `render` domain
+viewer applications, renderers, and player sessions. Its `render` domain
 provides explicit engine-resource control.
 
 ## Target vocabulary
@@ -10,14 +10,15 @@ Every v1alpha2 attachment and capability states three independent facts:
 
 | Field | Meaning | Examples |
 | --- | --- | --- |
-| `domain` | Interaction plane | `computer`, `render`, `player` |
+| `domain` | Interaction plane | `viewer`, `render`, `player` |
 | `runtime` | Concrete implementation inside that plane | `browser-dom`, `macos-app`, `threejs`, `godot`, `unity`, `unreal` |
-| `driver` | Mechanism used to connect or execute | `cdp`, `bidi`, `webextension`, `accessibility`, `apple-events`, `cymonkey-ws`, `in-page-runtime` |
+| `driver` | Mechanism used to connect or execute | `cdp`, `bidi`, `webextension`, `accessibility`, `apple-events`, `websocket`, `in-page-runtime` |
 
 This avoids treating a browser as an application runtime or treating Three.js
-as a browser. A browser page containing Three.js has two attachable domains:
-`computer/browser-dom` for page and browser work, and `render/threejs` for
-explicitly registered scene resources. A goal may coordinate both attachments.
+as a browser. A browser page exposes `viewer/browser-dom` for window and
+platform work and `render/browser-dom` for document work; a page containing
+Three.js can additionally expose `render/threejs` for explicitly registered
+scene resources. A goal may coordinate all of them.
 
 ## Consolidated contract
 
@@ -44,8 +45,8 @@ capability set is implemented.
 
 ## Migration status
 
-The browser extension exposes `computer/browser-dom`; the macOS helper exposes
-`computer/macos-app`; Three.js, Godot, Unity, and Unreal expose their
+The browser extension exposes `viewer` and `render` over `browser-dom`; the
+macOS helper exposes `viewer/macos-app`; Three.js, Godot, Unity, and Unreal expose their
 `render` runtimes. Cymonkey is the only semantic API.
 
 For field-level migration and mixed-domain attachment examples, see

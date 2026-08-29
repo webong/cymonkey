@@ -35,7 +35,7 @@ func serveMCPCommand(args []string) error {
 	if err != nil {
 		return err
 	}
-	provider, err := engineprovider.NewService(registry, token)
+	provider, err := newEngineProvider(registry, token)
 	if err != nil {
 		return err
 	}

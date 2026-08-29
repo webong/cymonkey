@@ -30,11 +30,13 @@ and extension-origin/CDP calls share this gate and its redacted audit stream.
 Cymonkey is its runtime-agnostic augmentation subsystem. Its portable
 `jangolova.cymonkey/v1alpha2` core owns augmentation lifecycle, surface
 discovery, overlays, and capability negotiation. Every capability identifies a
-domain (`computer`, `render`, or `player`), concrete runtime, and driver. The
-browser and macOS application mappings operate in `computer`; explicitly
+domain (`viewer`, `render`, or `player`), concrete runtime, and driver. The
+browser and macOS application mappings operate in `viewer`; explicitly
 registered Three.js, Godot, Unity, and Unreal resources operate in `render`.
 `player` reserves lifecycle-safe media/game-session semantics. Jangolova owns
 each runtime backend, its authenticated transport, consent checks, and policy.
+The caller-owned computer is the host for those domains, not an additional
+wire-domain value.
 
 The render domain remains explicit-registration only. In browsers,
 `@jangolova/threejs-cymonkey` maps allowlisted stable IDs to Three.js scenes,

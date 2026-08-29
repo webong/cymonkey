@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"jangolova/internal/blockade"
 	"jangolova/internal/manifest"
 	"jangolova/internal/orchestrator"
 	"jangolova/targetconn"
@@ -24,6 +25,7 @@ type fakeEngineAdapter struct {
 	instances    []*fakeEngineInstance
 	capabilities []string
 	callResult   string
+	screenshot   bool
 }
 
 func (f *fakeEngineAdapter) Connect(
@@ -35,7 +37,7 @@ func (f *fakeEngineAdapter) Connect(
 	defer f.mu.Unlock()
 	f.spec = spec
 	f.target = target
-	f.instance = &fakeEngineInstance{events: make(chan orchestrator.EngineEvent, 4), callResult: f.callResult}
+	f.instance = &fakeEngineInstance{events: make(chan orchestrator.EngineEvent, 4), callResult: f.callResult, screenshot: f.screenshot}
 	f.instances = append(f.instances, f.instance)
 	return f.instance, nil
 }
@@ -56,6 +58,7 @@ type fakeEngineInstance struct {
 	events       chan orchestrator.EngineEvent
 	once         sync.Once
 	callResult   string
+	screenshot   bool
 }
 
 func (f *fakeEngineInstance) Disconnect(context.Context) error {
@@ -82,10 +85,31 @@ func (f *fakeEngineInstance) isDisconnected() bool {
 func (f *fakeEngineInstance) EngineEvents() <-chan orchestrator.EngineEvent { return f.events }
 func (f *fakeEngineInstance) EngineCapabilities() []string                  { return []string{"describe", "act"} }
 func (f *fakeEngineInstance) Call(_ context.Context, method string, params json.RawMessage) (json.RawMessage, error) {
+	if f.screenshot && method == "act" && strings.Contains(string(params), "window.screenshot") {
+		return json.RawMessage(`{"pngBase64":"cG5n"}`), nil
+	}
 	if f.callResult != "" {
 		return json.Marshal(map[string]string{"value": f.callResult})
 	}
 	return json.Marshal(map[string]any{"method": method, "params": params})
+}
+
+type fakeBlockadeEngine struct {
+	calls  int
+	closed bool
+}
+
+func (f *fakeBlockadeEngine) Observe(_ context.Context, request blockade.ObserveRequest) (blockade.ObserveResponse, error) {
+	f.calls++
+	if string(request.Image) != "png" {
+		return blockade.ObserveResponse{}, errors.New("unexpected capture payload")
+	}
+	return blockade.ObserveResponse{APIVersion: blockade.APIVersion, RequestID: "observation-1", Observations: []blockade.Observation{{Kind: "object", Label: "button", Confidence: 0.9}}}, nil
+}
+
+func (f *fakeBlockadeEngine) Close() error {
+	f.closed = true
+	return nil
 }
 
 type nilEngineAdapter struct{}
@@ -452,7 +476,7 @@ func TestServiceReturnsCallerLaunchOnlyOnInitialConnection(t *testing.T) {
 
 func TestServiceAutomaticallySelectsEngineFromCallerSuppliedTarget(t *testing.T) {
 	registry := orchestrator.NewRegistry()
-	playwright := &fakeEngineAdapter{capabilities: []string{"target.cdp", "browser.evaluate"}}
+	playwright := &fakeEngineAdapter{capabilities: []string{"target.cdp", "window.evaluate"}}
 	presentation := &fakeEngineAdapter{capabilities: []string{"target.cdp", "presentation.mount"}}
 	if err := registry.RegisterEngine("playwright", playwright); err != nil {
 		t.Fatal(err)
@@ -535,7 +559,7 @@ func TestServiceAutomaticallySelectsEngineFromCallerSuppliedTarget(t *testing.T)
 
 func TestAutomaticSelectionDoesNotDependOnTargetLocation(t *testing.T) {
 	registry := orchestrator.NewRegistry()
-	adapter := &fakeEngineAdapter{capabilities: []string{"target.cdp", "browser.evaluate"}}
+	adapter := &fakeEngineAdapter{capabilities: []string{"target.cdp", "window.evaluate"}}
 	if err := registry.RegisterEngine("playwright", adapter); err != nil {
 		t.Fatal(err)
 	}
@@ -746,6 +770,65 @@ func TestServiceRequiresOneTimeCoreApprovalForConfiguredAction(t *testing.T) {
 		if !hasEventType(events.Events, expected) {
 			t.Fatalf("missing audit event %q in %#v", expected, events.Events)
 		}
+	}
+}
+
+func TestServiceComposesCymonkeyCaptureWithBlockadeWithoutCouplingBlockade(t *testing.T) {
+	registry := orchestrator.NewRegistry()
+	if err := registry.RegisterEngine("fake", &fakeEngineAdapter{screenshot: true}); err != nil {
+		t.Fatal(err)
+	}
+	blockadeEngine := &fakeBlockadeEngine{}
+	service, err := NewService(registry, "test-token", WithBlockadeEngine(blockadeEngine))
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := service.Routes()
+	response := performRequest(handler, http.MethodPost, "/v1/instances", `{
+  "apiVersion":"interaction.engine/v1alpha1","instanceId":"browser-observe",
+  "engine":{"adapter":"fake"},"target":{"kind":"browser"}
+}`)
+	if response.Code != http.StatusCreated {
+		t.Fatalf("connect status = %d: %s", response.Code, response.Body.String())
+	}
+	response = performRequest(handler, http.MethodPost, "/v1/instances/browser-observe/observe", `{"prompt":"find the button"}`)
+	if response.Code != http.StatusOK {
+		t.Fatalf("observe status = %d: %s", response.Code, response.Body.String())
+	}
+	var observed ObservationResponse
+	if err := json.NewDecoder(response.Body).Decode(&observed); err != nil {
+		t.Fatal(err)
+	}
+	if observed.CaptureAction != "window.screenshot" || observed.Observation.APIVersion != blockade.APIVersion || len(observed.Observation.Observations) != 1 {
+		t.Fatalf("observation response = %#v", observed)
+	}
+	if blockadeEngine.calls != 1 {
+		t.Fatalf("Blockade calls = %d", blockadeEngine.calls)
+	}
+	response = performRequest(handler, http.MethodGet, "/v1/instances/browser-observe/events", "")
+	var events InstanceEventBatch
+	if err := json.NewDecoder(response.Body).Decode(&events); err != nil {
+		t.Fatal(err)
+	}
+	for _, expected := range []string{"observation.capture_requested", "observation.captured", "observation.completed"} {
+		if !hasEventType(events.Events, expected) {
+			t.Fatalf("missing observation event %q in %#v", expected, events.Events)
+		}
+	}
+}
+
+func TestServiceClosesEmbeddedBlockadeEngine(t *testing.T) {
+	registry := orchestrator.NewRegistry()
+	blockadeEngine := &fakeBlockadeEngine{}
+	service, err := NewService(registry, "test-token", WithBlockadeEngine(blockadeEngine))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Close(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if !blockadeEngine.closed {
+		t.Fatal("embedded Blockade engine was not closed")
 	}
 }
 

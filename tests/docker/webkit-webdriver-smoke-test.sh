@@ -66,7 +66,7 @@ curl -fsS \
 curl -fsS \
   -H "Authorization: Bearer ${token}" \
   -H "Content-Type: application/json" \
-  -d '{"method":"act","params":{"name":"browser.evaluate","input":{"expression":"document.title"}}}' \
+  -d '{"method":"act","params":{"name":"window.evaluate","input":{"expression":"document.title"}}}' \
   http://127.0.0.1:7391/v1/instances/webkit-one/call >/tmp/webkit-call.json
 
 node -e '

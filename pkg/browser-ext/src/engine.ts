@@ -32,7 +32,7 @@ function hello() {
       version: browser.runtime.getManifest().version,
     },
     drivers: ['webextension'],
-    domains: ['computer'],
+    domains: ['viewer', 'render'],
     runtimes: ['browser-dom'],
     features: [
       'augmentation', 'jangolova.platform-services', 'events.cursor', 'scripts.packaged',
@@ -50,7 +50,7 @@ async function describe() {
     revision: `${browser.runtime.getManifest().version}:${scripts.length}:${rules.length}`,
     surfaces: tab ? [{
       id: `web:tab-${tab.id}`,
-      domain: 'computer',
+      domain: 'render',
       runtime: 'browser-dom',
       kind: 'document',
       label: tab.title || undefined,
@@ -74,7 +74,7 @@ async function describe() {
 
 async function act(name: string, input: Record<string, unknown>) {
   if (name.startsWith('userscript.')) return dispatchUserscript(name, input);
-  const augmentationId = name.startsWith('dom.') || name.startsWith('overlay.') ? null : requireAugmentation(input);
+  const augmentationId = name.startsWith('document.') || name.startsWith('overlay.') ? null : requireAugmentation(input);
   if (name === 'script.execute') return executePackagedScripts(augmentationId!, input);
   if (name === 'script.register') return registerPackagedScripts(augmentationId!, input);
   if (name === 'script.unregister') return unregisterPackagedScripts(augmentationId!, input);
@@ -84,7 +84,7 @@ async function act(name: string, input: Record<string, unknown>) {
   if (name === 'network.rules.remove') return removeOwnedRules(augmentationId!, input);
   if (name === 'storage.get') return readScopedStorage('cymonkey', input);
   if (name === 'storage.set') return writeScopedStorage('cymonkey', input);
-  if (['dom.query', 'overlay.mount', 'overlay.patch', 'overlay.unmount'].includes(name)) {
+  if (['document.query', 'overlay.mount', 'overlay.patch', 'overlay.unmount'].includes(name)) {
     const tab = await targetTab(input.target);
     return sendToTab(requireTabID(tab), 'act', { name, input });
   }

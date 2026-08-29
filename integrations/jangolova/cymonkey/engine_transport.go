@@ -35,11 +35,11 @@ type EngineConnector interface {
 	Connect(context.Context, orchestrator.TargetEndpoint) (EngineTransport, error)
 }
 
-// EngineWebSocketConnector is the authenticated cymonkey-ws binding for
-// render-domain peers.
+// EngineWebSocketConnector is the authenticated WebSocket transport binding
+// for render-domain peers.
 type EngineWebSocketConnector struct{}
 
-func (EngineWebSocketConnector) Protocol() string { return "cymonkey-ws" }
+func (EngineWebSocketConnector) Protocol() string { return "websocket" }
 
 func (EngineWebSocketConnector) Connect(ctx context.Context, endpoint orchestrator.TargetEndpoint) (EngineTransport, error) {
 	parsed, err := url.Parse(endpoint.URL)
