@@ -1,0 +1,4 @@
+interface:
+  display_name: "Jangolova Agent Tools"
+  short_description: "Attach and operate Jangolova targets"
+  default_prompt: "Use $jangolova-agent-tools to attach Jangolova to a caller-owned target and operate its advertised capabilities."
