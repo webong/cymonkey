@@ -53,6 +53,11 @@ Cymonkey requests through it:
 }
 ```
 
+The first camera-permission mount returns a short-lived `approvalId`. The user
+reviews it in the Jangolova extension popup and chooses **Allow once**. The
+caller then retries the identical input with that `approvalId`; successful
+mounting consumes it.
+
 `cymonkey-engine.call` uses `delivery: "sandbox"`, `augmentationId`, and
 `sandboxId: "camera"` to call the package. The page does not receive the
 token, port, or any extension APIs.

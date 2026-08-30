@@ -30,9 +30,11 @@ async function verify(directory) {
   }
   assert.ok(manifest.permissions.includes('scripting'));
   assert.ok(manifest.permissions.includes('declarativeNetRequest'));
-  for (const path of ['background.js', 'control.html', 'popup.html', 'cymonkey-main.js', 'content-scripts/cymonkey.js']) {
+  for (const path of ['background.js', 'control.html', 'popup.html', 'cymonkey-main.js', 'content-scripts/cymonkey.js', 'augmentations/registry.json']) {
     await access(new URL(path, output));
   }
+  const registry = JSON.parse(await readFile(new URL('augmentations/registry.json', output), 'utf8'));
+  assert.deepEqual(registry.packages, [], `${directory}: base extension registry must be empty`);
 }
 
 console.log('verified Jangolova builds for Chrome, Edge, Firefox, and the capability-limited Safari container');

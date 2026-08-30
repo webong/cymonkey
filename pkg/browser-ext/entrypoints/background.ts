@@ -7,6 +7,7 @@ import { ControlPolicyService, isExtensionControlCall, type AuthorizationResult,
 import { errorMessage, isRecord, type XalletSpookState } from '../src/types';
 import { XalletSpookClient } from '../src/xallet-spook';
 import { reconcileUserscripts } from '../src/services/userscripts';
+import { listPackageApprovals, resolvePackageApproval } from '../src/services/approvals';
 
 export default defineBackground(() => {
   const policy = new ControlPolicyService();
@@ -106,7 +107,7 @@ export default defineBackground(() => {
     state = { ...state, status: 'running', lastAction: method, lastError: undefined };
     await spook.updateState(state);
     try {
-      const result = await dispatchAuthorized(message, method, params);
+      const result = await dispatchAuthorized(message, method, params, source);
       state = { ...state, status: 'ready', lastAction: method, lastError: undefined };
       await spook.updateState(state);
       await publishAuditEvent('succeeded', audit);
@@ -119,8 +120,12 @@ export default defineBackground(() => {
     }
   }
 
-  async function dispatchAuthorized(message: Record<string, unknown>, method: string, params: Record<string, unknown>) {
+  async function dispatchAuthorized(message: Record<string, unknown>, method: string, params: Record<string, unknown>, source: ControlSource) {
 	if (method === 'cymonkey.call') return dispatchCymonkey(String(params.method || ''), isRecord(params.params) ? params.params : {});
+    if (method === 'approval.list' || method === 'approval.resolve') {
+      if (source !== 'extension-origin') throw new Error('package approvals are available only in Jangolova extension UI');
+      return method === 'approval.list' ? listPackageApprovals() : resolvePackageApproval(params.id, params.decision);
+    }
     if (method === 'policy.describe') return policy.describe();
     if (method === 'policy.replace') return policy.replace(params.policy);
     if (method === 'control.websocket.describe') return outbound.describe();

@@ -50,6 +50,7 @@ const defaultPolicy: ControlPolicy = {
       callers: ['xallet-spook', 'extension-origin'],
       capabilities: ['policy.*', 'control.websocket.*'],
     },
+    {id: 'default-approval-ui', decision: 'allow', callers: ['extension-origin'], capabilities: ['approval.*']},
   ],
 };
 
@@ -168,6 +169,7 @@ function unwrapCall(message: Record<string, unknown>) {
     return {capability: method, effect: 'external' as const, params, input};
   }
   const effect = method === 'hello' || method === 'capabilities' || method === 'describe' || method === 'events' || method === 'policy.describe'
+    || method === 'packages.list' || method === 'packages.describe' || method === 'approval.list'
     ? 'read' as const
     : 'external' as const;
   return {capability: method, effect, params, input: {}};

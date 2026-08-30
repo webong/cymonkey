@@ -9,7 +9,8 @@ not exposed to the target page.
 
 ```text
 Jangolova control plane
-        │ authorized sandbox.mount / cymonkey-engine.call
+        │ policy-authorized sandbox.mount / cymonkey-engine.call
+        │ sensitive permission → popup approval → retry
         ▼
 content script ── closed Shadow DOM ── sandboxed extension iframe
         │              MessageChannel              │
@@ -38,6 +39,8 @@ and `events`), so a caller does not need a library-specific extension API.
   permission—for example, `permissions: ["camera"]`. A camera or other
   sensitive browser permission still requires a visible user gesture in the
   package UI. `sandbox.mount` alone does not grant it.
+- Sensitive approvals are single-use and bound to the package, augmentation,
+  tab, origin, and exact permission set. They expire after five minutes.
 
 ## Why a sandbox exists
 
@@ -50,9 +53,10 @@ the SDK's documented endpoints and reviewed with the package.
 
 ## Product composition
 
-The base `pkg/browser-ext` artifact contains the generic sandbox host only. A
-product build may copy one or more approved package bundles into the output
-directory and amend the sandbox CSP for those packages. The Camera Kit proof
+The base `pkg/browser-ext` artifact contains the generic sandbox host and an
+empty reviewed-package registry. A product manifest selects one or more
+approved package bundles. The generic builder copies their canonical manifests,
+writes the output registry, and derives the sandbox CSP. The Camera Kit product
 build is:
 
 ```sh
@@ -67,5 +71,7 @@ base extension dependency graph.
 
 Chrome and Edge expose the extension sandbox used by this design. The current
 Firefox and Safari builds do not advertise `sandbox.mount` or
-`sandbox.unmount`; a caller should use `capabilities` to negotiate another
-delivery mode.
+`sandbox.unmount`. Their deliberate alternative is a target-owned
+`page-runtime` or an ordinary reviewed `augmentation-package` that does not
+need sandboxed remote WebAssembly. Product composition leaves incompatible
+sandbox packages out of those artifacts instead of weakening their boundary.

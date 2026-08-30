@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Explicit-consent Cymonkey augmentation runtime for Snap Camera Kit Web",
   "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
-  "files": ["dist", "README.md"],
+  "files": ["dist", "README.md", "browser-package.json"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "build:sandbox": "node scripts/build-sandbox.mjs",

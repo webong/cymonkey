@@ -1,0 +1,32 @@
+{
+  "apiVersion": "jangolova.browser-package/v1alpha1",
+  "kind": "BrowserAugmentationPackage",
+  "metadata": {
+    "id": "snapchat-camera-kit",
+    "name": "Snapchat Camera Kit",
+    "version": "0.1.0"
+  },
+  "spec": {
+    "deliveries": [
+      {
+        "kind": "sandbox",
+        "entrypoint": "sandbox.js",
+        "browsers": ["chrome", "edge"]
+      }
+    ],
+    "permissions": ["camera"],
+    "capabilities": [
+      "camera-kit.overlay.mount",
+      "camera-kit.session.describe",
+      "camera-kit.lens.apply",
+      "camera-kit.lens.remove",
+      "camera-kit.camera.stop",
+      "camera-kit.overlay.unmount"
+    ],
+    "sandbox": {
+      "wasm": true,
+      "scriptSources": ["https://cf-st.sc-cdn.net", "blob:"],
+      "connectSources": ["https://*.snapar.com"]
+    }
+  }
+}

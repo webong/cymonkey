@@ -1,0 +1,17 @@
+{
+  "apiVersion": "jangolova.browser-package/v1alpha1",
+  "kind": "BrowserExtensionProduct",
+  "metadata": {
+    "id": "camera-kit",
+    "name": "Jangolova Camera Kit Browser Extension"
+  },
+  "spec": {
+    "browsers": ["chrome", "edge"],
+    "packages": [
+      {
+        "directory": "pkg/snapchat-camera-kit-cymonkey",
+        "build": "build:sandbox"
+      }
+    ]
+  }
+}

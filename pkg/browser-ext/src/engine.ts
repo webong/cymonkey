@@ -1,7 +1,9 @@
 import { privilegedCapabilities, sandboxPackagesSupported, userscriptCapabilities } from './capabilities';
+import { authorizePackageMount } from './services/approvals';
 import { readEvents } from './services/events';
 import { changeStyle, executePackagedScripts, registerPackagedScripts, unregisterPackagedScripts } from './services/injection';
 import { installOwnedRules, removeOwnedRules } from './services/network';
+import { listReviewedPackages, requireSandboxPackage } from './services/packages';
 import { requireScopedIdentifier } from './services/policy';
 import { readScopedStorage, writeScopedStorage } from './services/storage';
 import { activeTab, requireTabID, sendToTab, sendToTabChannel, targetTab } from './services/tabs';
@@ -70,6 +72,7 @@ async function describe() {
     activeTab: tab ? { id: tab.id, url: tab.url || null, title: tab.title || null } : null,
     registeredScripts: scripts.map((script) => script.id).sort(),
     userscripts: await describeUserscriptManager(),
+    packages: await listReviewedPackages(),
     dynamicRuleIds: rules.map((rule) => rule.id).sort((left, right) => left - right),
     page,
   };
@@ -98,7 +101,26 @@ async function act(name: string, input: Record<string, unknown>) {
 async function dispatchSandbox(name: string, input: Record<string, unknown>) {
   if (!sandboxPackagesSupported()) throw new Error(`sandbox packages are unavailable in the ${import.meta.env.BROWSER} container`);
   const tab = await targetTab(input.target);
+  if (name === 'sandbox.mount') {
+    const packageValue = await requireSandboxPackage(input.package, input.permissions);
+    const augmentationId = requireScopedIdentifier(input.augmentationId, 'augmentationId');
+    const approval = await authorizePackageMount({
+      approvalId: input.approvalId,
+      packageId: packageValue.description.id,
+      packageName: packageValue.description.name,
+      permissions: packageValue.permissions,
+      augmentationId,
+      tabId: requireTabID(tab),
+      origin: safeOrigin(tab.url),
+    });
+    if (!approval.approved) return {ok: false, status: 'approval-required', approval: approval.approval};
+  }
   return sendToTabChannel(requireTabID(tab), 'jangolova.cymonkey.sandbox', name.slice('sandbox.'.length), input);
+}
+
+function safeOrigin(value?: string) {
+  if (!value) return 'unknown';
+  try { return new URL(value).origin; } catch { return 'unknown'; }
 }
 
 function requireAugmentation(input: Record<string, unknown>) {

@@ -10,7 +10,7 @@ packages. A package is selected by the product builder or target owner, and is
 then shipped as reviewed extension code below:
 
 ```text
-augmentations/<augmentation-id>/
+augmentations/<package-id>/
 ├── manifest.json
 ├── content.js
 ├── sandbox.js
@@ -21,6 +21,13 @@ The extension accepts only files below that package directory. It never
 downloads and executes an arbitrary npm package or remote JavaScript at
 runtime. That preserves WebExtension policy, makes the package reviewable, and
 keeps the capability boundary meaningful.
+
+Every product artifact also carries `augmentations/registry.json`. A package
+is mountable only when it appears in that reviewed registry, its canonical
+manifest is present, its delivery supports the current browser, and every
+requested iframe permission is declared by the manifest. Merely placing an
+unlisted JavaScript file in the artifact does not make it executable through
+the Jangolova control plane.
 
 This restriction matters for SDKs that download executable code themselves.
 For example, Snap Camera Kit Web downloads its Lens renderer as WebAssembly.
@@ -91,6 +98,15 @@ package. The extension policy authorizes the mount and every call before the
 page-side relay sees them. No page script can access the port, the package
 configuration, or extension APIs.
 
+When the mount requests a sensitive permission such as `camera`, the first
+call returns `status: "approval-required"` with a short-lived approval ID. The
+extension badge indicates a pending request. The user opens Jangolova, reviews
+the package, permission, and target origin, and chooses **Allow once** or
+**Deny**. An approved caller retries the identical mount with `approvalId`;
+the approval is consumed and cannot be reused for another package, origin,
+tab, or augmentation. Package configuration, including API tokens, is never
+stored in the approval record.
+
 Sandboxes are currently available in the composed Chrome and Edge artifacts.
 Firefox and Safari builds negotiate the absence of `sandbox.*` rather than
 pretend to offer it.
@@ -114,3 +130,14 @@ A product or deployment composes the desired packages into the extension build.
 This lets a target owner choose a small reviewed set—for example, a Three.js
 overlay *or* a Camera Kit package—without making every browser installation
 carry every SDK.
+
+A browser product is declared in `products/browser/*.json` and built with:
+
+```sh
+npm run build:browser-product -- products/browser/camera-kit.json
+```
+
+The product builder compiles its packages, builds each selected browser,
+copies reviewed manifests and artifacts, writes the per-browser registry, and
+derives the sandbox CSP from the included package manifests. It refuses
+repository-escaping paths and unrecognized CSP sources.

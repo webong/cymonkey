@@ -1,5 +1,5 @@
 // Code generated from protocol/browser-extension/v1alpha1/protocol.schema.json; DO NOT EDIT.
-// Schema SHA-256: e058600aae2638160338a49690df83748f65b39f541b09672f0d642cfd0ad0f4
+// Schema SHA-256: 0919d89d282b1388b9134b7300f9a06515841c9ddecd9a307cda3d5ad23a08be
 
 package browserextensionprotocol
 
@@ -25,6 +25,10 @@ const (
 	MethodEvents                    Method = "events"
 	MethodCymonkeyCall              Method = "cymonkey.call"
 	MethodCymonkeyEngineCall        Method = "cymonkey-engine.call"
+	MethodPackagesList              Method = "packages.list"
+	MethodPackagesDescribe          Method = "packages.describe"
+	MethodApprovalList              Method = "approval.list"
+	MethodApprovalResolve           Method = "approval.resolve"
 	MethodPolicyDescribe            Method = "policy.describe"
 	MethodPolicyReplace             Method = "policy.replace"
 	MethodControlWebsocketDescribe  Method = "control.websocket.describe"

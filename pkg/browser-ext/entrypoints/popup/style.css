@@ -53,3 +53,59 @@ dd {
   margin: 0;
   font-weight: 650;
 }
+
+section {
+  margin-top: 20px;
+  border-top: 1px solid #202b4b;
+  padding-top: 14px;
+}
+
+h2, h3 {
+  margin: 0;
+}
+
+h2 {
+  font-size: 16px;
+}
+
+h3 {
+  font-size: 14px;
+}
+
+section p {
+  color: #aeb9d7;
+  font-size: 12px;
+}
+
+article {
+  margin-top: 12px;
+  border: 1px solid #2b385e;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.approval-actions {
+  display: flex;
+  gap: 8px;
+}
+
+button {
+  border: 0;
+  border-radius: 7px;
+  padding: 7px 10px;
+  color: white;
+  cursor: pointer;
+}
+
+button.approve {
+  background: #3157d5;
+}
+
+button.deny {
+  background: #4b556f;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}

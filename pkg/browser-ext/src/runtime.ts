@@ -2,6 +2,7 @@ import { browserPrivilegedCapabilityNames } from './capabilities';
 import { dispatchCymonkey } from './engine';
 import { readEvents } from './services/events';
 import { callCymonkeyEngine } from './services/cymonkey-engine';
+import { describeReviewedPackage, listReviewedPackages } from './services/packages';
 import { isRecord } from './types';
 
 let xalletSpook: 'discovering' | 'unavailable' | 'connected' = 'discovering';
@@ -20,6 +21,8 @@ export async function dispatchJangolova(method: string, params: Record<string, u
   if (method === 'capabilities') return capabilities();
   if (method === 'describe') return describe();
   if (method === 'events') return readEvents(params);
+  if (method === 'packages.list') return listReviewedPackages();
+  if (method === 'packages.describe') return describeReviewedPackage(params.id);
   if (method === 'cymonkey.call') {
     return dispatchCymonkey(String(params.method || ''), isRecord(params.params) ? params.params : {});
   }
@@ -41,6 +44,7 @@ function capabilities() {
     platform: [
       'events.read', 'audit.events', 'injection.packaged', 'network.rules',
       'storage.scoped', 'policy.fine-grained', 'control.websocket.outbound',
+      'packages.reviewed',
     ],
     cymonkey: browserPrivilegedCapabilityNames(),
     cymonkeyEngine: ['cymonkey-engine.call'],

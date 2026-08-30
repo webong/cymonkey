@@ -1,9 +1,9 @@
 // Code generated from protocol/browser-extension/v1alpha1/protocol.schema.json; DO NOT EDIT.
-// Schema SHA-256: e058600aae2638160338a49690df83748f65b39f541b09672f0d642cfd0ad0f4
+// Schema SHA-256: 0919d89d282b1388b9134b7300f9a06515841c9ddecd9a307cda3d5ad23a08be
 
 export const browserExtensionProtocolVersion = 'jangolova.browser-extension/v1alpha1' as const;
 export type ExtensionCallType = 'JANGOLOVA_EXTENSION_CALL';
-export type ExtensionMethod = "hello" | "capabilities" | "describe" | "events" | "cymonkey.call" | "cymonkey-engine.call" | "policy.describe" | "policy.replace" | "control.websocket.describe" | "control.websocket.configure" | "control.websocket.disable";
+export type ExtensionMethod = "hello" | "capabilities" | "describe" | "events" | "cymonkey.call" | "cymonkey-engine.call" | "packages.list" | "packages.describe" | "approval.list" | "approval.resolve" | "policy.describe" | "policy.replace" | "control.websocket.describe" | "control.websocket.configure" | "control.websocket.disable";
 export type ControlMethod = ExtensionMethod;
 export type ControlCaller = 'xallet-spook' | 'authenticated-websocket' | 'extension-origin';
 export type CapabilityEffect = 'read' | 'write' | 'external';

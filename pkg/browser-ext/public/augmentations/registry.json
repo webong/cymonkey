@@ -1,0 +1,5 @@
+{
+  "apiVersion": "jangolova.browser-package/v1alpha1",
+  "kind": "BrowserPackageRegistry",
+  "packages": []
+}
