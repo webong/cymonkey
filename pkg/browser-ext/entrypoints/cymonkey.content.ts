@@ -1,4 +1,3 @@
-import { injectScript } from 'wxt/utils/inject-script';
 import { pageCapabilities } from '../src/capabilities';
 import { isRecord } from '../src/types';
 
@@ -79,8 +78,6 @@ export default defineContentScript({
       if (message.channel !== 'jangolova.cymonkey.control') return undefined;
       return dispatch(String(message.method || ''), isRecord(message.params) ? message.params : {});
     });
-
-    await injectScript('/cymonkey-main.js', { keepInDom: true });
 
     async function handlePageRequest(value: unknown) {
       if (!isRecord(value)) throw new Error('invalid Cymonkey page request');

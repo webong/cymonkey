@@ -99,11 +99,13 @@ test("WXT package builds once per browser with embedded Xallet Spook support", a
 test("Cymonkey separates its page-safe and privileged extension planes", async () => {
   const background = await source("pkg/browser-ext/entrypoints/background.ts");
   const content = await source("pkg/browser-ext/entrypoints/cymonkey.content.ts");
-  const page = await source("pkg/browser-ext/entrypoints/cymonkey-main.ts");
+  const page = await source("pkg/browser-ext/entrypoints/cymonkey-page.content.ts");
   const capabilities = await source("pkg/browser-ext/src/capabilities.ts");
   const engine = await source("pkg/browser-ext/src/engine.ts");
 
   assert.match(page, /root\.cymonkey = Object\.freeze/);
+  assert.match(page, /world: 'MAIN'/);
+  assert.doesNotMatch(content, /injectScript/);
   assert.match(content, /allowedPageActions/);
   assert.match(content, /cannot invoke privileged action/);
   assert.match(background, /acceptsExternalSender\(sender\.id\)/);

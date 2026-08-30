@@ -30,7 +30,10 @@ async function verify(directory) {
   }
   assert.ok(manifest.permissions.includes('scripting'));
   assert.ok(manifest.permissions.includes('declarativeNetRequest'));
-  for (const path of ['background.js', 'control.html', 'popup.html', 'cymonkey-main.js', 'content-scripts/cymonkey.js', 'augmentations/registry.json']) {
+  const pageBridge = manifest.content_scripts?.find((script) => script.js?.includes('content-scripts/cymonkey-page.js'));
+  assert.equal(pageBridge?.world, 'MAIN', `${directory}: page bridge must execute in the page MAIN world`);
+  assert.equal(pageBridge?.run_at, 'document_start', `${directory}: page bridge must be available from document start`);
+  for (const path of ['background.js', 'control.html', 'popup.html', 'content-scripts/cymonkey-page.js', 'content-scripts/cymonkey.js', 'augmentations/registry.json']) {
     await access(new URL(path, output));
   }
   const registry = JSON.parse(await readFile(new URL('augmentations/registry.json', output), 'utf8'));

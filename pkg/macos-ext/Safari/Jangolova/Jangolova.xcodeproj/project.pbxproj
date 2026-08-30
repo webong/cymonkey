@@ -29,7 +29,6 @@
 		49FF39EC301FE15700A80237 /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 49FF39E3301FE15700A80237 /* manifest.json */; };
 		49FF39ED301FE15700A80237 /* augmentations in Resources */ = {isa = PBXBuildFile; fileRef = 49FF39E4301FE15700A80237 /* augmentations */; };
 		49FF39EE301FE15700A80237 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = 49FF39E5301FE15700A80237 /* assets */; };
-		49FF39EF301FE15700A80237 /* cymonkey-main.js in Resources */ = {isa = PBXBuildFile; fileRef = 49FF39E6301FE15700A80237 /* cymonkey-main.js */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -100,7 +99,6 @@
 		49FF39E3301FE15700A80237 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = Resources/manifest.json; sourceTree = "<group>"; };
 		49FF39E4301FE15700A80237 /* augmentations */ = {isa = PBXFileReference; lastKnownFileType = folder; name = augmentations; path = Resources/augmentations; sourceTree = "<group>"; };
 		49FF39E5301FE15700A80237 /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = assets; path = Resources/assets; sourceTree = "<group>"; };
-		49FF39E6301FE15700A80237 /* cymonkey-main.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = "cymonkey-main.js"; path = "Resources/cymonkey-main.js"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -223,7 +221,6 @@
 				49FF39E3301FE15700A80237 /* manifest.json */,
 				49FF39E4301FE15700A80237 /* augmentations */,
 				49FF39E5301FE15700A80237 /* assets */,
-				49FF39E6301FE15700A80237 /* cymonkey-main.js */,
 			);
 			name = Resources;
 			path = "Jangolova Extension";
@@ -403,7 +400,6 @@
 				49FF39E7301FE15700A80237 /* control.html in Resources */,
 				49FF39EC301FE15700A80237 /* manifest.json in Resources */,
 				49FF39ED301FE15700A80237 /* augmentations in Resources */,
-				49FF39EF301FE15700A80237 /* cymonkey-main.js in Resources */,
 				49FF39EB301FE15700A80237 /* content-scripts in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

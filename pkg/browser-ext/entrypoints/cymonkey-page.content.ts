@@ -18,8 +18,10 @@ declare global {
   }
 }
 
-export default defineUnlistedScript({
-  globalName: false,
+export default defineContentScript({
+  matches: ['<all_urls>'],
+  runAt: 'document_start',
+  world: 'MAIN',
   main() {
     if (window.jangolova !== undefined && (
       window.jangolova === null || !['object', 'function'].includes(typeof window.jangolova)

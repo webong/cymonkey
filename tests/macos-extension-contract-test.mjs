@@ -31,7 +31,7 @@ test('browser builds probe native userscripts and reduce Safari permissions', as
     source('pkg/browser-ext/src/engine.ts'),
     source('pkg/browser-ext/src/capabilities.ts'),
     source('pkg/browser-ext/src/runtime.ts'),
-    source('pkg/browser-ext/entrypoints/cymonkey-main.ts'),
+    source('pkg/browser-ext/entrypoints/cymonkey-page.content.ts'),
   ]);
   assert.match(config, /browser === 'safari'/);
   assert.match(config, /'management', 'userScripts'/);

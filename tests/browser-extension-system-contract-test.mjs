@@ -66,11 +66,13 @@ test("the extension hosts generic augmentation packages without library coupling
 });
 
 test("public page bridge remains Cymonkey-only and page-safe", async () => {
-  const page = await source("pkg/browser-ext/entrypoints/cymonkey-main.ts");
+  const page = await source("pkg/browser-ext/entrypoints/cymonkey-page.content.ts");
   const content = await source("pkg/browser-ext/entrypoints/cymonkey.content.ts");
   assert.match(page, /root\.cymonkey/);
+  assert.match(page, /world: 'MAIN'/);
   assert.doesNotMatch(page, /root\.render/);
   assert.doesNotMatch(page, /chrome\.|browser\./);
+  assert.doesNotMatch(content, /injectScript/);
   assert.match(content, /cannot invoke privileged action/);
 });
 
