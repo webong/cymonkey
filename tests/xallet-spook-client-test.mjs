@@ -36,7 +36,7 @@ test("Xallet Spook discovery is optional, authenticated, and re-registers a same
   assert.equal(statuses.at(-1), "unavailable");
   assert.equal(client.acceptsExternalSender("untrusted"), false);
 
-  extensions = [{ id: "xallet-hub", name: "Xallet Hub", enabled: true }];
+  extensions = [{ id: "xallet-hub", name: "Xallet", enabled: true }];
   await client.probe();
   assert.equal(statuses.at(-1), "connected");
   assert.equal(client.acceptsExternalSender("xallet-hub"), true);

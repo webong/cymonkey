@@ -53,7 +53,7 @@ export default defineBackground(() => {
   browser.runtime.onMessageExternal?.addListener((message, sender) => {
     if (!isExtensionControlCall(message)) return undefined;
     if (!spook.acceptsExternalSender(sender.id)) {
-      return Promise.resolve({ ok: false, error: 'external caller is not the registered Xallet Hub' });
+      return Promise.resolve({ ok: false, error: 'external caller is not the registered Xallet browser hub' });
     }
     return handleControlCall(message, 'xallet-spook');
   });

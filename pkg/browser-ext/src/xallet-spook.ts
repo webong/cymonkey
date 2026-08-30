@@ -1,6 +1,6 @@
 import type { XalletSpookState } from './types';
 
-const hubName = 'Xallet Hub';
+const hubName = 'Xallet';
 
 export type XalletSpookBrowser = {
   management: { getAll(): Promise<Array<{ id?: string; name: string; enabled: boolean }>> };

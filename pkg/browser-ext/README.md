@@ -56,7 +56,7 @@ The privileged extension control plane advertises `v1alpha2` with domain
 `jangolova.cymonkey/v1alpha2` contract. Every build
 works standalone and carries the Xallet Spook client. On Chrome, Edge, and
 Firefox, when an enabled
-`Xallet Hub` is discovered, the extension registers with it and accepts
+the `Xallet` browser hub is discovered, the extension registers with it and accepts
 privileged external calls only from that discovered hub ID. No separate Spook
 artifact or installation exists. Safari omits the unsupported discovery and
 external-control permissions, so that integration remains unavailable there.

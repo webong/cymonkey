@@ -257,7 +257,7 @@ The extension consists of:
 - an extension-origin control entry point for the backend handshake.
 
 The single extension build always carries Xallet Spook integration. It detects
-the provider-installed `Xallet Hub` at runtime, registers when found, and
+the provider-installed `Xallet` browser hub at runtime, registers when found, and
 accepts external privileged calls only from that discovered, enabled hub ID.
 When the hub is absent, the same artifact continues to operate standalone.
 
