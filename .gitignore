@@ -1,6 +1,8 @@
 /bin/
 /node_modules/
+**/node_modules/
 /xpost
 /out/
 /.cache/
+**/.build/
 .DS_Store

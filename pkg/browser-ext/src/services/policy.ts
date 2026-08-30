@@ -162,7 +162,11 @@ function unwrapCall(message: Record<string, unknown>) {
 		const capability = String(params.name || '');
 		const input = isRecord(params.input) ? params.input : {};
 		return {capability, effect: capabilityEffects.get(capability) ?? 'external', params, input};
-	}
+  }
+  if (method === 'cymonkey-engine.call') {
+    const input: Record<string, unknown> = {augmentationId: params.augmentationId, target: params.target, sandboxId: params.sandboxId};
+    return {capability: method, effect: 'external' as const, params, input};
+  }
   const effect = method === 'hello' || method === 'capabilities' || method === 'describe' || method === 'events' || method === 'policy.describe'
     ? 'read' as const
     : 'external' as const;
@@ -197,7 +201,7 @@ function escapeRegularExpression(value: string) {
 }
 
 function affectsTab(capability: string) {
-  return /^(document|overlay|script|style|network|cymonkey|cymonkey-engine)\./.test(capability);
+  return /^(document|overlay|script|style|sandbox|network|cymonkey|cymonkey-engine)\./.test(capability);
 }
 
 function safeOrigin(value?: string) {

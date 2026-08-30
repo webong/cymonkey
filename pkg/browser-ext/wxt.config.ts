@@ -14,6 +14,7 @@ export default defineConfig({
       ...(browser === 'safari' ? [] : ['management', 'userScripts']),
     ],
     host_permissions: ['<all_urls>'],
+    sandbox: browser === 'chrome' || browser === 'edge' ? {pages: ['runtime-sandbox.html']} : undefined,
     externally_connectable: browser === 'safari' ? undefined : { ids: ['*'] },
     web_accessible_resources: [
       {

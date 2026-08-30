@@ -14,6 +14,8 @@ const extensionCapabilities = [
   capability('script.unregister', 'Unregister an augmentation content script.', 'external', ['augmentationId', 'id'], 'installation', 'persistent', 'render'),
   capability('style.insert', 'Insert CSS in a target tab.', 'write', ['augmentationId', 'css'], 'surface', 'ephemeral', 'render'),
   capability('style.remove', 'Remove previously inserted CSS from a target tab.', 'write', ['augmentationId', 'css'], 'surface', 'ephemeral', 'render'),
+  capability('sandbox.mount', 'Mount an approved sandbox package in a target tab.', 'write', ['augmentationId', 'id', 'package'], 'surface', 'ephemeral', 'render'),
+  capability('sandbox.unmount', 'Remove a mounted sandbox package from a target tab.', 'write', ['augmentationId', 'id'], 'surface', 'ephemeral', 'render'),
   capability('network.rules.install', 'Install owned declarative network rules.', 'external', ['augmentationId', 'rules']),
   capability('network.rules.remove', 'Remove owned declarative network rules.', 'external', ['augmentationId', 'ruleIds']),
   capability('storage.get', 'Read augmentation-scoped extension storage.', 'read', ['augmentationId', 'keys']),
@@ -33,3 +35,13 @@ export const userscriptCapabilities = [
 export const privilegedCapabilities = [...extensionCapabilities, ...userscriptCapabilities];
 
 export const privilegedCapabilityNames = privilegedCapabilities.map((item) => item.name);
+
+export function sandboxPackagesSupported() {
+  return import.meta.env.BROWSER === 'chrome' || import.meta.env.BROWSER === 'edge';
+}
+
+export function browserPrivilegedCapabilityNames() {
+  return sandboxPackagesSupported()
+    ? privilegedCapabilityNames
+    : privilegedCapabilityNames.filter((name) => !name.startsWith('sandbox.'));
+}

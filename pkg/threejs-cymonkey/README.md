@@ -13,7 +13,9 @@ cymonkey.register({
 cymonkey.installGlobal();
 ```
 
-The Jangolova Browser Extension's private `cymonkey-engine.call` control method
-locates that installed runtime in the target tab's MAIN world. The runtime
+When used in a browser, a product-specific augmentation package bundles this
+runtime and exposes it through Jangolova's generic private
+`cymonkey-engine.call` route, scoped to that augmentation's ID. The Browser
+Extension itself does not import or otherwise know about Three.js. The runtime
 remains protected by stable IDs and per-resource action allowlists; no render
 control is added to the public page API.

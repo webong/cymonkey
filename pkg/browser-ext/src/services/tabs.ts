@@ -25,5 +25,9 @@ export function requireTabID(tab: { id?: number }) {
 }
 
 export async function sendToTab(tabId: number, method: string, params: Record<string, unknown>) {
-  return browser.tabs.sendMessage(tabId, { channel: 'jangolova.cymonkey.control', method, params });
+  return sendToTabChannel(tabId, 'jangolova.cymonkey.control', method, params);
+}
+
+export async function sendToTabChannel(tabId: number, channel: string, method: string, params: Record<string, unknown>) {
+  return browser.tabs.sendMessage(tabId, { channel, method, params });
 }

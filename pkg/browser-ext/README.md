@@ -18,6 +18,21 @@ Jangolova owns extension authentication, policy, packaged script injection,
 namespaced storage, declarative network rules, and the shared cursor event log.
 Neither subsystem exposes raw `chrome.*` or `browser.*` APIs to the page.
 
+## Augmentation packages
+
+The extension is library-neutral. It hosts selected augmentation packages
+under `augmentations/<augmentation-id>/`; it does not import Three.js, Camera
+Kit, or any other application library itself. Packages use the generic
+packaged-script actions and may expose a private Cymonkey runtime endpoint
+through the authenticated `cymonkey-engine.call` route scoped by
+`augmentationId`. See [browser augmentation packages](../../docs/browser-augmentation-packages.md).
+
+Chrome and Edge also provide the generic `sandbox.mount` delivery path for an
+approved package that needs an isolated WebAssembly-capable web runtime. The
+sandbox has no extension APIs and communicates with the content-script-owned
+overlay through a private `MessageChannel`. Firefox and Safari do not advertise
+this capability. See [browser sandbox](../../docs/browser-sandbox.md).
+
 Every privileged call passes the same fine-grained authorization and redacted
 audit layer after transport authentication. The single build supports Xallet
 Spook, extension-origin/CDP control, and an optional caller-configured outbound

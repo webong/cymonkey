@@ -1,10 +1,10 @@
-import { privilegedCapabilities, userscriptCapabilities } from './capabilities';
+import { privilegedCapabilities, sandboxPackagesSupported, userscriptCapabilities } from './capabilities';
 import { readEvents } from './services/events';
 import { changeStyle, executePackagedScripts, registerPackagedScripts, unregisterPackagedScripts } from './services/injection';
 import { installOwnedRules, removeOwnedRules } from './services/network';
 import { requireScopedIdentifier } from './services/policy';
 import { readScopedStorage, writeScopedStorage } from './services/storage';
-import { activeTab, requireTabID, sendToTab, targetTab } from './services/tabs';
+import { activeTab, requireTabID, sendToTab, sendToTabChannel, targetTab } from './services/tabs';
 import { describeRuntime as describeUserscriptRuntime, describeUserscriptManager, dispatchUserscript } from './services/userscripts';
 import { isRecord, type EventQuery } from './types';
 
@@ -19,9 +19,11 @@ export async function dispatchCymonkey(method: string, params: Record<string, un
 
 async function capabilities() {
   const runtime = await describeUserscriptRuntime();
-  if (runtime.status === 'available') return privilegedCapabilities;
   const userscriptNames = new Set(userscriptCapabilities.map((item) => item.name));
-  return privilegedCapabilities.filter((item) => !userscriptNames.has(item.name));
+  return privilegedCapabilities.filter((item) =>
+    (runtime.status === 'available' || !userscriptNames.has(item.name))
+    && (sandboxPackagesSupported() || !item.name.startsWith('sandbox.')),
+  );
 }
 
 function hello() {
@@ -37,6 +39,7 @@ function hello() {
     features: [
       'augmentation', 'jangolova.platform-services', 'events.cursor', 'scripts.packaged',
       'userscripts', 'standalone', 'xallet.spook.runtime-discovery',
+      ...(sandboxPackagesSupported() ? ['sandbox.packages'] : []),
     ],
   };
 }
@@ -80,6 +83,7 @@ async function act(name: string, input: Record<string, unknown>) {
   if (name === 'script.unregister') return unregisterPackagedScripts(augmentationId!, input);
   if (name === 'style.insert') return changeStyle(augmentationId!, input, false);
   if (name === 'style.remove') return changeStyle(augmentationId!, input, true);
+  if (name === 'sandbox.mount' || name === 'sandbox.unmount') return dispatchSandbox(name, input);
   if (name === 'network.rules.install') return installOwnedRules(augmentationId!, input);
   if (name === 'network.rules.remove') return removeOwnedRules(augmentationId!, input);
   if (name === 'storage.get') return readScopedStorage('cymonkey', input);
@@ -89,6 +93,12 @@ async function act(name: string, input: Record<string, unknown>) {
     return sendToTab(requireTabID(tab), 'act', { name, input });
   }
   throw new Error(`unsupported Cymonkey action ${JSON.stringify(name)}`);
+}
+
+async function dispatchSandbox(name: string, input: Record<string, unknown>) {
+  if (!sandboxPackagesSupported()) throw new Error(`sandbox packages are unavailable in the ${import.meta.env.BROWSER} container`);
+  const tab = await targetTab(input.target);
+  return sendToTabChannel(requireTabID(tab), 'jangolova.cymonkey.sandbox', name.slice('sandbox.'.length), input);
 }
 
 function requireAugmentation(input: Record<string, unknown>) {

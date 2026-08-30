@@ -13,6 +13,7 @@ test("browser-ext is the canonical WXT product", async () => {
   assert.doesNotMatch(JSON.stringify(pkg.scripts), /build:spoke|mode spoke/);
   assert.match(config, /Jangolova Browser Extension/);
   assert.match(config, /browser-jangolova@jangolova\.dev/);
+  assert.match(config, /runtime-sandbox\.html/);
 });
 
 test("Jangolova owns extension platform services", async () => {
@@ -31,6 +32,28 @@ test("Jangolova owns extension platform services", async () => {
   assert.match(runtime, /cymonkey\.call/);
   assert.doesNotMatch(runtime, /startsWith\('userscript\.'\)/);
   assert.match(engine, /dispatchUserscript/);
+});
+
+test("the extension hosts generic augmentation packages without library coupling", async () => {
+  const packageManifest = await source("pkg/browser-ext/package.json");
+  const capabilities = await source("pkg/browser-ext/src/capabilities.ts");
+  const injection = await source("pkg/browser-ext/src/services/injection.ts");
+  const runtime = await source("pkg/browser-ext/src/services/cymonkey-engine.ts");
+  const policy = await source("pkg/browser-ext/src/services/policy.ts");
+  const sandbox = await source("pkg/browser-ext/entrypoints/cymonkey.content.ts");
+
+  assert.match(injection, /augmentations\/\$\{augmentationId\}\//);
+  assert.match(runtime, /jangolova\.cymonkey\.augmentation-runtime/);
+  assert.match(runtime, /augmentationId/);
+  assert.match(policy, /method === 'cymonkey-engine\.call'/);
+  assert.match(policy, /augmentationId: params\.augmentationId/);
+  assert.match(capabilities, /sandbox\.mount/);
+  assert.match(runtime, /delivery === 'sandbox'/);
+  assert.match(sandbox, /new MessageChannel\(\)/);
+  assert.match(sandbox, /sandboxPermissions\(input\.permissions\)/);
+  assert.doesNotMatch(packageManifest, /threejs-cymonkey|\"three\"/);
+  assert.doesNotMatch(packageManifest, /camera-kit|@snap\//);
+  assert.doesNotMatch(capabilities, /threejs\./);
 });
 
 test("public page bridge remains Cymonkey-only and page-safe", async () => {

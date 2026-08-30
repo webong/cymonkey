@@ -1,4 +1,4 @@
-import { privilegedCapabilityNames } from './capabilities';
+import { browserPrivilegedCapabilityNames } from './capabilities';
 import { dispatchCymonkey } from './engine';
 import { readEvents } from './services/events';
 import { callCymonkeyEngine } from './services/cymonkey-engine';
@@ -23,7 +23,7 @@ export async function dispatchJangolova(method: string, params: Record<string, u
   if (method === 'cymonkey.call') {
     return dispatchCymonkey(String(params.method || ''), isRecord(params.params) ? params.params : {});
   }
-  if (method === 'cymonkey-engine.call') return callCymonkeyEngine(params.request, params.target);
+  if (method === 'cymonkey-engine.call') return callCymonkeyEngine(params.request, params.target, params.augmentationId, params.delivery, params.sandboxId);
   throw new Error(`unsupported Jangolova extension method ${JSON.stringify(method)}`);
 }
 
@@ -42,7 +42,7 @@ function capabilities() {
       'events.read', 'audit.events', 'injection.packaged', 'network.rules',
       'storage.scoped', 'policy.fine-grained', 'control.websocket.outbound',
     ],
-    cymonkey: privilegedCapabilityNames,
+    cymonkey: browserPrivilegedCapabilityNames(),
     cymonkeyEngine: ['cymonkey-engine.call'],
   };
 }

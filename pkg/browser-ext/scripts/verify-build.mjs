@@ -13,6 +13,12 @@ async function verify(directory) {
   const manifest = JSON.parse(await readFile(new URL('manifest.json', output), 'utf8'));
   assert.equal(manifest.manifest_version, 3, `${directory}: expected MV3`);
   assert.equal(manifest.name, 'Jangolova Browser Extension');
+  const supportsSandbox = directory === 'chrome-mv3' || directory === 'edge-mv3';
+  if (supportsSandbox) {
+    assert.deepEqual(manifest.sandbox?.pages, ['runtime-sandbox.html'], `${directory}: Jangolova sandbox missing`);
+  } else {
+    assert.ok(!manifest.sandbox, `${directory}: unsupported sandbox must be omitted`);
+  }
   if (directory === 'safari-mv3') {
     assert.ok(!manifest.permissions.includes('management'), `${directory}: unsupported management permission must be omitted`);
     assert.ok(!manifest.permissions.includes('userScripts'), `${directory}: unsupported userscript permission must be omitted`);

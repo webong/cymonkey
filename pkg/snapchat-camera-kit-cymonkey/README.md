@@ -1,0 +1,64 @@
+# Snapchat Camera Kit Cymonkey package
+
+This is an optional `render/browser-dom` sandbox augmentation package. It integrates
+Snap Camera Kit Web without adding Snap's SDK, a camera permission, or Snap
+credentials to Jangolova Browser Extension itself.
+
+The package owns a canvas and its Camera Kit session. It exposes only its
+declared Cymonkey actions:
+
+- `camera-kit.overlay.mount`
+- `camera-kit.session.describe`
+- `camera-kit.lens.apply`
+- `camera-kit.lens.remove`
+- `camera-kit.camera.stop`
+- `camera-kit.overlay.unmount`
+
+`camera-kit.overlay.mount` creates an owned overlay containing a **Start
+camera** button. Only that button's user gesture calls `getUserMedia`; an agent
+cannot open the camera through `act` alone. The target owner supplies the Snap
+API token when composing the package and must have Camera Kit Web access and
+Lens IDs from Snap.
+
+## Sandbox deployment
+
+Camera Kit Web downloads its Lens renderer as WebAssembly from Snap. It cannot
+execute in the ordinary MV3 extension or content-script context. Jangolova
+therefore runs this package inside its extension sandbox page: a separate
+extension origin with no WebExtension APIs and a narrowly composed Camera Kit
+Content Security Policy.
+
+Build the composed Chrome/Edge artifact with:
+
+```sh
+npm run build:camera-kit-browser-package
+```
+
+That build puts this package at
+`augmentations/snapchat-camera-kit/sandbox.js`; `pkg/browser-ext` still has no
+Snap dependency. The caller mounts the generic sandbox and then sends normal
+Cymonkey requests through it:
+
+```json
+{
+  "name": "sandbox.mount",
+  "input": {
+    "augmentationId": "my-camera-kit",
+    "id": "camera",
+    "package": "snapchat-camera-kit",
+    "target": {"tabId": 42},
+    "permissions": ["camera"],
+    "configuration": {"apiToken": "supplied-by-target-owner"}
+  }
+}
+```
+
+`cymonkey-engine.call` uses `delivery: "sandbox"`, `augmentationId`, and
+`sandboxId: "camera"` to call the package. The page does not receive the
+token, port, or any extension APIs.
+
+## Consent
+
+The user must click the owned **Start camera** button before the package calls
+`getUserMedia`. An agent may apply or remove an approved Lens only after that
+explicit camera session has started.
