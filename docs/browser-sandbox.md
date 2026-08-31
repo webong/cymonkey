@@ -42,6 +42,11 @@ and `events`), so a caller does not need a library-specific extension API.
 - The sandbox has no WebExtension APIs. Privileged browser work stays in the
   service worker and content script, where Jangolova policy can authorize and
   audit it.
+- Chrome requires the sandbox iframe entrypoint to be a web-accessible
+  resource before an existing site may embed it. That declaration does not
+  grant extension APIs: the manifest sandbox keeps the document in an opaque,
+  non-extension origin, and its only Jangolova connection remains the
+  nonce-bound `MessageChannel` supplied by the isolated content script.
 - A mount must explicitly request its currently supported iframe feature
   permission—for example, `permissions: ["camera"]`. A camera or other
   sensitive browser permission still requires a visible user gesture in the

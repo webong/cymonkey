@@ -14,6 +14,7 @@ test("browser-ext is the canonical WXT product", async () => {
   assert.match(config, /Jangolova Browser Extension/);
   assert.match(config, /browser-jangolova@jangolova\.dev/);
   assert.match(config, /runtime-sandbox\.html/);
+  assert.match(config, /resources: \['runtime-sandbox\.html', 'augmentations\/\*'\]/);
 });
 
 test("Jangolova owns extension platform services", async () => {

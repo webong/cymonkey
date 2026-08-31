@@ -30,6 +30,8 @@ async function verify(directory) {
   }
   assert.ok(manifest.permissions.includes('scripting'));
   assert.ok(manifest.permissions.includes('declarativeNetRequest'));
+  const publicResources = manifest.web_accessible_resources?.flatMap((entry) => entry.resources ?? []) ?? [];
+  assert.ok(publicResources.includes('runtime-sandbox.html'), `${directory}: sandbox iframe entrypoint must be web accessible`);
   const pageBridge = manifest.content_scripts?.find((script) => script.js?.includes('content-scripts/cymonkey-page.js'));
   assert.equal(pageBridge?.world, 'MAIN', `${directory}: page bridge must execute in the page MAIN world`);
   assert.equal(pageBridge?.run_at, 'document_start', `${directory}: page bridge must be available from document start`);

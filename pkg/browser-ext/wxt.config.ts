@@ -18,7 +18,7 @@ export default defineConfig({
     externally_connectable: browser === 'safari' ? undefined : { ids: ['*'] },
     web_accessible_resources: [
       {
-        resources: ['augmentations/*'],
+        resources: ['runtime-sandbox.html', 'augmentations/*'],
         matches: ['<all_urls>'],
       },
     ],
