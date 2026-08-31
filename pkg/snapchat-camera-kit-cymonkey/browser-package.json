@@ -23,6 +23,10 @@
       "camera-kit.camera.stop",
       "camera-kit.overlay.unmount"
     ],
+    "launch": {
+      "name": "camera-kit.overlay.mount",
+      "input": {}
+    },
     "sandbox": {
       "wasm": true,
       "scriptSources": ["https://cf-st.sc-cdn.net", "blob:"],

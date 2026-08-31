@@ -29,6 +29,13 @@ requested iframe permission is declared by the manifest. Merely placing an
 unlisted JavaScript file in the artifact does not make it executable through
 the Jangolova control plane.
 
+The extension popup is also a standalone package manager. It lists only the
+reviewed registry, accepts an ephemeral JSON configuration, targets the active
+tab, and runs the package's declared `launch` action after mounting. The
+configuration remains in popup memory only; Jangolova does not persist tokens
+or copy them into approval or audit records. This path is owned by Jangolova
+and works without Xallet or an outbound control connection.
+
 This restriction matters for SDKs that download executable code themselves.
 For example, Snap Camera Kit Web downloads its Lens renderer as WebAssembly.
 It cannot run in an ordinary MV3 extension or content-script context, but it
@@ -98,6 +105,11 @@ package. The extension policy authorizes the mount and every call before the
 page-side relay sees them. No page script can access the port, the package
 configuration, or extension APIs.
 
+An optional package `launch` entry names the first declared capability that a
+standalone package manager should invoke after the sandbox has connected. It
+does not add a new extension API and cannot name a capability absent from that
+package's manifest.
+
 When the mount requests a sensitive permission such as `camera`, the first
 call returns `status: "approval-required"` with a short-lived approval ID. The
 extension badge indicates a pending request. The user opens Jangolova, reviews
@@ -106,6 +118,12 @@ the package, permission, and target origin, and chooses **Allow once** or
 the approval is consumed and cannot be reused for another package, origin,
 tab, or augmentation. Package configuration, including API tokens, is never
 stored in the approval record.
+
+When the user initiates the mount from Jangolova's own popup, approving it
+automatically retries that exact in-memory request. Calls from an agent control
+plane keep the same explicit retry behavior. Xallet Spook and authenticated
+WebSocket callers are optional integrations; neither is required for the
+standalone popup path.
 
 Sandboxes are currently available in the composed Chrome and Edge artifacts.
 Firefox and Safari builds negotiate the absence of `sandbox.*` rather than

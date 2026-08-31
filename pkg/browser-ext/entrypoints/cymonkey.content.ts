@@ -51,10 +51,15 @@ export default defineContentScript({
 
     window.addEventListener('message', (event) => {
       const value = event.data;
-      if (!isRecord(value) || value.channel !== 'jangolova.cymonkey.sandbox.ready') return;
+      if (!isRecord(value) || !['jangolova.cymonkey.sandbox.ready', 'jangolova.cymonkey.sandbox.connected'].includes(String(value.channel))) return;
       const id = typeof value.id === 'string' ? value.id : '';
       const sandbox = sandboxes.get(id);
       if (!sandbox || event.source !== sandbox.iframe.contentWindow || value.nonce !== sandbox.nonce) return;
+      if (value.channel === 'jangolova.cymonkey.sandbox.connected') {
+        if (value.status === 'connected') sandbox.resolveReady();
+        else sandbox.rejectReady(new Error(typeof value.error === 'string' ? value.error : 'sandbox package failed to connect'));
+        return;
+      }
       if (sandbox.port) return;
       if (value.status !== 'ready') {
         sandbox.rejectReady(new Error(typeof value.error === 'string' ? value.error : 'sandbox package failed to load'));
@@ -67,7 +72,6 @@ export default defineContentScript({
         channel: 'jangolova.cymonkey.sandbox.connect', nonce: sandbox.nonce,
         context: {augmentationId: sandbox.augmentationId, configuration: sandbox.configuration},
       }, '*', [channel.port2]);
-      sandbox.resolveReady();
     });
 
     browser.runtime.onMessage.addListener((message) => {

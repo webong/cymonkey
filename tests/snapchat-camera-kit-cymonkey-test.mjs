@@ -23,14 +23,16 @@ test('Camera Kit declares a target-owned Cymonkey runtime with explicit user con
 });
 
 test('Camera Kit remains outside the browser extension bundle', async () => {
-  const [extensionPackage, packageReadme, packageSource] = await Promise.all([
+  const [extensionPackage, packageReadme, packageSource, tsconfig] = await Promise.all([
     source('pkg/browser-ext/package.json'),
     source('pkg/snapchat-camera-kit-cymonkey/README.md'),
     source('pkg/snapchat-camera-kit-cymonkey/src/index.ts'),
+    source('pkg/snapchat-camera-kit-cymonkey/tsconfig.json'),
   ]);
   assert.doesNotMatch(extensionPackage, /camera-kit|@snap\//);
   assert.match(packageReadme, /extension sandbox page/);
   assert.match(packageSource, /Start camera/);
   assert.match(packageSource, /getUserMedia/);
   assert.match(packageSource, /installGlobal/);
+  assert.deepEqual(JSON.parse(tsconfig).include, ['src/index.ts']);
 });

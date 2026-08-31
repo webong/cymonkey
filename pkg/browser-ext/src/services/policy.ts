@@ -51,6 +51,12 @@ const defaultPolicy: ControlPolicy = {
       capabilities: ['policy.*', 'control.websocket.*'],
     },
     {id: 'default-approval-ui', decision: 'allow', callers: ['extension-origin'], capabilities: ['approval.*']},
+    {
+      id: 'default-standalone-package-ui',
+      decision: 'allow',
+      callers: ['extension-origin'],
+      capabilities: ['sandbox.mount', 'sandbox.unmount', 'cymonkey-engine.call'],
+    },
   ],
 };
 

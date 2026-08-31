@@ -8,6 +8,7 @@ export type BrowserPackageDescription = {
   deliveries: Array<{kind: 'sandbox'; entrypoint: string; browsers: string[]}>;
   permissions: string[];
   capabilities: string[];
+  launch?: {name: string; input: Record<string, unknown>};
 };
 
 type RegistryEntry = {id: string; manifest: string};
@@ -78,7 +79,17 @@ function validatePackageManifest(value: unknown): BrowserPackageDescription {
   });
   const permissions = validatePermissions(value.spec.permissions);
   const capabilities = stringArray(value.spec.capabilities, 'package capabilities', 256);
-  return {id, name, version, deliveries, permissions, capabilities};
+  const launch = validateLaunch(value.spec.launch, capabilities, id);
+  return {id, name, version, deliveries, permissions, capabilities, ...(launch ? {launch} : {})};
+}
+
+function validateLaunch(value: unknown, capabilities: string[], packageId: string) {
+  if (value === undefined) return undefined;
+  if (!isRecord(value) || typeof value.name !== 'string' || !capabilities.includes(value.name)
+    || (value.input !== undefined && !isRecord(value.input))) {
+    throw new Error(`browser package ${packageId} has an invalid launch action`);
+  }
+  return {name: value.name, input: isRecord(value.input) ? value.input : {}};
 }
 
 function validatePermissions(value: unknown) {

@@ -83,6 +83,7 @@ function validatePackage(value) {
   if (value.spec.capabilities.some((capability) => typeof capability !== 'string' || !/^[a-z][a-z0-9.-]{0,127}$/.test(capability))) {
     throw new Error(`browser package ${value.metadata.id} has an invalid capability`);
   }
+  const launch = value.spec.launch === undefined ? undefined : validateLaunch(value.spec.launch, value.spec.capabilities, value.metadata.id);
   for (const list of [sandbox.scriptSources ?? [], sandbox.connectSources ?? []]) {
     if (!Array.isArray(list) || list.some((source) => !safeCSPSource(source))) throw new Error(`browser package ${value.metadata.id} has an invalid CSP source`);
   }
@@ -93,9 +94,18 @@ function validatePackage(value) {
       deliveries,
       permissions: [...new Set(value.spec.permissions)],
       capabilities: [...new Set(value.spec.capabilities)],
+      ...(launch ? {launch} : {}),
       sandbox: {wasm: sandbox.wasm === true, scriptSources: sandbox.scriptSources ?? [], connectSources: sandbox.connectSources ?? []},
     },
   };
+}
+
+function validateLaunch(value, capabilities, packageId) {
+  if (!record(value) || typeof value.name !== 'string' || !/^[a-z][a-z0-9.-]{0,127}$/.test(value.name)
+    || value.input !== undefined && !record(value.input) || !capabilities.includes(value.name)) {
+    throw new Error(`browser package ${packageId} has an invalid launch action`);
+  }
+  return {name: value.name, input: value.input ?? {}};
 }
 
 function sandboxCSP(manifests) {

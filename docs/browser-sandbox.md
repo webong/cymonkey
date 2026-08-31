@@ -19,6 +19,10 @@ content script ── closed Shadow DOM ── sandboxed extension iframe
 existing target tab
 ```
 
+The control plane may be Jangolova's standalone popup, an authenticated
+outbound WebSocket, or an installed provider integration such as Xallet Spook.
+The popup path is first-class and does not wait for either optional integration.
+
 The content script owns the overlay, the iframe, and the message-port endpoint.
 The sandbox page owns a package runtime. The page owns neither. A package uses
 the normal Cymonkey request shape (`hello`, `capabilities`, `describe`, `act`,
@@ -32,6 +36,9 @@ and `events`), so a caller does not need a library-specific extension API.
 - A random nonce binds the iframe-ready signal to the specific sandbox instance.
   The iframe receives exactly one `MessagePort`; requests are private to that
   port and scoped to the mounting augmentation.
+- Mount completion waits for the packaged runtime to accept its configuration;
+  a missing token or failed package connection is returned to the caller instead
+  of leaving a half-connected iframe behind.
 - The sandbox has no WebExtension APIs. Privileged browser work stays in the
   service worker and content script, where Jangolova policy can authorize and
   audit it.

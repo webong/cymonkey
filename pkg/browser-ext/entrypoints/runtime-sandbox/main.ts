@@ -24,12 +24,19 @@ window.addEventListener('message', (event) => {
   const [port] = event.ports;
   if (!port || !record(context) || context.augmentationId !== undefined && typeof context.augmentationId !== 'string') return;
   const registration = window.jangolovaSandboxPackage;
-  if (!registration) return;
-  void registration.connect({
-    augmentationId: String(context.augmentationId || ''),
-    configuration: record(context.configuration) ? context.configuration : {},
-  }, port);
+  if (!registration) return reportConnection('failed', 'sandbox package is not registered');
+  void Promise.resolve(registration.connect({
+      augmentationId: String(context.augmentationId || ''),
+      configuration: record(context.configuration) ? context.configuration : {},
+    }, port)).then(
+      () => reportConnection('connected'),
+      (error) => reportConnection('failed', message(error)),
+    );
 });
+
+function reportConnection(status: 'connected' | 'failed', error?: string) {
+  window.parent.postMessage({channel: 'jangolova.cymonkey.sandbox.connected', id: sandboxID, nonce, status, ...(error ? {error} : {})}, '*');
+}
 
 async function loadPackage() {
   await new Promise<void>((resolve, reject) => {

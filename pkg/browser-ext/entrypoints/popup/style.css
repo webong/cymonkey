@@ -7,7 +7,7 @@
 
 body {
   margin: 0;
-  min-width: 280px;
+  min-width: 340px;
 }
 
 main {
@@ -89,6 +89,29 @@ article {
   gap: 8px;
 }
 
+.package-capabilities {
+  overflow-wrap: anywhere;
+}
+
+textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 72px;
+  resize: vertical;
+  border: 1px solid #394970;
+  border-radius: 7px;
+  padding: 8px;
+  background: #080d1b;
+  color: #f5f7ff;
+  font: 11px ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.package-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 button {
   border: 0;
   border-radius: 7px;
@@ -101,7 +124,11 @@ button.approve {
   background: #3157d5;
 }
 
-button.deny {
+button.mount {
+  background: #3157d5;
+}
+
+button.deny, button.unmount {
   background: #4b556f;
 }
 

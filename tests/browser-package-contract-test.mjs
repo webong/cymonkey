@@ -16,6 +16,7 @@ test('reviewed package manifests constrain delivery, permissions, and CSP', asyn
   assert.equal(JSON.parse(manifestSchema).properties.kind.const, 'BrowserAugmentationPackage');
   assert.equal(JSON.parse(productSchema).properties.kind.const, 'BrowserExtensionProduct');
   assert.deepEqual(JSON.parse(packageManifest).spec.permissions, ['camera']);
+  assert.equal(JSON.parse(packageManifest).spec.launch.name, 'camera-kit.overlay.mount');
   assert.deepEqual(JSON.parse(product).spec.browsers, ['chrome', 'edge']);
   assert.match(builder, /safeRepositoryPath/);
   assert.match(builder, /safeCSPSource/);
@@ -36,6 +37,11 @@ test('sensitive package mounts require one-time extension UI approval', async ()
   assert.doesNotMatch(approvals, /configuration|apiToken|token/);
   assert.match(background, /source !== 'extension-origin'/);
   assert.match(policy, /default-approval-ui/);
+  assert.match(policy, /default-standalone-package-ui/);
   assert.match(popup, /Allow once/);
   assert.match(popup, /approval\.resolve/);
+  assert.match(popup, /packages\.list/);
+  assert.match(popup, /sandbox\.mount/);
+  assert.match(popup, /cymonkey-engine\.call/);
+  assert.match(popup, /Configuration stays in this popup|configuration must be a JSON object/);
 });

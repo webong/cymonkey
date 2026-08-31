@@ -53,6 +53,7 @@ test("the extension hosts generic augmentation packages without library coupling
   assert.match(capabilities, /sandbox\.mount/);
   assert.match(runtime, /delivery === 'sandbox'/);
   assert.match(sandbox, /new MessageChannel\(\)/);
+  assert.match(sandbox, /jangolova\.cymonkey\.sandbox\.connected/);
   assert.match(sandbox, /sandboxPermissions\(input\.permissions\)/);
   assert.match(packages, /browser package registry is invalid/);
   assert.match(packages, /did not declare permission/);
@@ -87,10 +88,12 @@ test("private control plane uses one Jangolova control envelope", async () => {
   assert.match(control, /cymonkeyDispatch/);
 });
 
-test("popup reports the single distribution and live Xallet Spook state", async () => {
+test("popup reports standalone state and optional Xallet Spook state", async () => {
   const popup = await source("pkg/browser-ext/entrypoints/popup/main.ts");
   const runtime = await source("pkg/browser-ext/src/runtime.ts");
   assert.match(popup, /jangolova\.extension\.control/);
   assert.match(popup, /xalletSpook/);
+  assert.match(popup, /Mount on active tab/);
+  assert.match(popup, /packages\.list/);
   assert.match(runtime, /integrations: \{ xalletSpook: \{ status: xalletSpook \}, outboundControl: \{ status: outboundControl \} \}/);
 });
