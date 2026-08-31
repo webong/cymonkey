@@ -14,6 +14,7 @@ type SandboxRecord = {
   resolveReady(): void;
   rejectReady(error: Error): void;
   pending: Map<string, SandboxPending>;
+  mediaSessions: Set<string>;
   timer: number;
 };
 type PageEvent = {
@@ -67,7 +68,7 @@ export default defineContentScript({
       }
       const channel = new MessageChannel();
       sandbox.port = channel.port1;
-      sandbox.port.onmessage = (portEvent) => receiveSandboxMessage(sandbox, portEvent.data);
+      sandbox.port.onmessage = (portEvent) => void receiveSandboxMessage(sandbox, portEvent.data);
       sandbox.iframe.contentWindow?.postMessage({
         channel: 'jangolova.cymonkey.sandbox.connect', nonce: sandbox.nonce,
         context: {augmentationId: sandbox.augmentationId, configuration: sandbox.configuration},
@@ -221,7 +222,8 @@ export default defineContentScript({
       const ready = new Promise<void>((resolve, reject) => { resolveReady = resolve; rejectReady = reject; });
       const sandbox: SandboxRecord = {
         augmentationId, host, iframe, nonce, configuration, port: null, ready, resolveReady, rejectReady,
-        pending: new Map(), timer: window.setTimeout(() => rejectReady(new Error('sandbox package did not become ready')), 10_000),
+        pending: new Map(), mediaSessions: new Set(),
+        timer: window.setTimeout(() => rejectReady(new Error('sandbox package did not become ready')), 10_000),
       };
       sandboxes.set(id, sandbox);
       (document.documentElement || document).append(host);
@@ -263,13 +265,45 @@ export default defineContentScript({
       });
     }
 
-    function receiveSandboxMessage(sandbox: SandboxRecord, value: unknown) {
-      if (!isRecord(value) || value.channel !== 'jangolova.cymonkey.sandbox.response' || typeof value.id !== 'string') return;
+    async function receiveSandboxMessage(sandbox: SandboxRecord, value: unknown) {
+      if (!isRecord(value) || typeof value.id !== 'string') return;
+      if (value.channel === 'jangolova.cymonkey.media.request') {
+        await handleSandboxMediaRequest(sandbox, value);
+        return;
+      }
+      if (value.channel !== 'jangolova.cymonkey.sandbox.response') return;
       const pending = sandbox.pending.get(value.id);
       if (!pending) return;
       sandbox.pending.delete(value.id);
       window.clearTimeout(pending.timer);
       if (value.error) pending.reject(new Error(String(value.error))); else pending.resolve(value.result);
+    }
+
+    async function handleSandboxMediaRequest(sandbox: SandboxRecord, value: Record<string, unknown>) {
+      const requestId = String(value.id);
+      const method = String(value.method || '');
+      const params = isRecord(value.params) ? value.params : {};
+      let sessionId = '';
+      try {
+        if (method !== 'camera.open' && method !== 'camera.close') throw new Error('sandbox requested an unsupported media operation');
+        sessionId = requireIdentifier(params.sessionId, 'media session id');
+        if (method === 'camera.open' && sandbox.mediaSessions.has(sessionId)) throw new Error('media session already exists');
+        const result = await browser.runtime.sendMessage({
+          channel: 'jangolova.media-broker', method,
+          params: {...params, sessionId},
+        });
+        if (method === 'camera.open') sandbox.mediaSessions.add(sessionId);
+        else sandbox.mediaSessions.delete(sessionId);
+        sandbox.port?.postMessage({channel: 'jangolova.cymonkey.media.response', id: requestId, result});
+        publishEvent(method === 'camera.open' ? 'sandbox.media.opened' : 'sandbox.media.closed', {
+          augmentationId: sandbox.augmentationId, sessionId,
+        });
+      } catch (error) {
+        sandbox.port?.postMessage({
+          channel: 'jangolova.cymonkey.media.response', id: requestId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
 
     function removeSandbox(id: string, sandbox: SandboxRecord) {
@@ -280,6 +314,12 @@ export default defineContentScript({
         pending.reject(new Error('sandbox was removed'));
       }
       sandbox.pending.clear();
+      for (const sessionId of sandbox.mediaSessions) {
+        void browser.runtime.sendMessage({
+          channel: 'jangolova.media-broker', method: 'camera.close', params: {sessionId},
+        }).catch(() => undefined);
+      }
+      sandbox.mediaSessions.clear();
       sandbox.host.remove();
       sandboxes.delete(id);
     }

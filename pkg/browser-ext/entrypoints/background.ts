@@ -8,6 +8,7 @@ import { errorMessage, isRecord, type XalletSpookState } from '../src/types';
 import { XalletSpookClient } from '../src/xallet-spook';
 import { reconcileUserscripts } from '../src/services/userscripts';
 import { listPackageApprovals, resolvePackageApproval } from '../src/services/approvals';
+import {dispatchMediaBroker} from '../src/services/media-broker';
 
 export default defineBackground(() => {
   const policy = new ControlPolicyService();
@@ -60,6 +61,9 @@ export default defineBackground(() => {
 
   async function handleMessage(message: unknown, senderTabId?: number) {
     if (!isRecord(message)) return undefined;
+    if (message.channel === 'jangolova.media-broker') {
+      return dispatchMediaBroker(String(message.method || ''), isRecord(message.params) ? message.params : {}, senderTabId);
+    }
     if (message.channel === 'jangolova.cymonkey.event') {
       const event = isRecord(message.event) ? message.event : {};
       return publishCymonkeyEvent(

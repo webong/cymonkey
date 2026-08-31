@@ -16,8 +16,10 @@ async function verify(directory) {
   const supportsSandbox = directory === 'chrome-mv3' || directory === 'edge-mv3';
   if (supportsSandbox) {
     assert.deepEqual(manifest.sandbox?.pages, ['runtime-sandbox.html'], `${directory}: Jangolova sandbox missing`);
+    assert.ok(manifest.permissions.includes('offscreen'), `${directory}: sandbox media broker permission missing`);
   } else {
     assert.ok(!manifest.sandbox, `${directory}: unsupported sandbox must be omitted`);
+    assert.ok(!manifest.permissions.includes('offscreen'), `${directory}: unsupported media broker permission must be omitted`);
   }
   if (directory === 'safari-mv3') {
     assert.ok(!manifest.permissions.includes('management'), `${directory}: unsupported management permission must be omitted`);
@@ -35,7 +37,7 @@ async function verify(directory) {
   const pageBridge = manifest.content_scripts?.find((script) => script.js?.includes('content-scripts/cymonkey-page.js'));
   assert.equal(pageBridge?.world, 'MAIN', `${directory}: page bridge must execute in the page MAIN world`);
   assert.equal(pageBridge?.run_at, 'document_start', `${directory}: page bridge must be available from document start`);
-  for (const path of ['background.js', 'control.html', 'popup.html', 'content-scripts/cymonkey-page.js', 'content-scripts/cymonkey.js', 'augmentations/registry.json']) {
+  for (const path of ['background.js', 'control.html', 'media-broker.html', 'popup.html', 'content-scripts/cymonkey-page.js', 'content-scripts/cymonkey.js', 'augmentations/registry.json']) {
     await access(new URL(path, output));
   }
   const registry = JSON.parse(await readFile(new URL('augmentations/registry.json', output), 'utf8'));

@@ -14,7 +14,10 @@ Jangolova control plane
         ▼
 content script ── closed Shadow DOM ── sandboxed extension iframe
         │              MessageChannel              │
-        │                                           └─ reviewed package runtime
+        │                                           ├─ reviewed package runtime
+        │                                           └─ local WebRTC receiver
+        ├─ service worker signaling
+        └─ offscreen media broker ── user-approved camera
         ▼
 existing target tab
 ```
@@ -61,6 +64,12 @@ and `events`), so a caller does not need a library-specific extension API.
   package UI. `sandbox.mount` alone does not grant it.
 - Sensitive approvals are single-use and bound to the package, augmentation,
   tab, origin, and exact permission set. They expire after five minutes.
+- Opaque sandbox documents cannot invoke `getUserMedia`, and the extension is
+  not permitted to weaken them with `allow-same-origin`. For Chrome and Edge,
+  Jangolova acquires approved camera media in an extension offscreen document
+  and relays the track over a local peer connection. Signaling is private
+  extension messaging; no signaling server or target-page media access exists.
+  Closing the camera or sandbox stops the source tracks and peer connection.
 
 ## Why a sandbox exists
 

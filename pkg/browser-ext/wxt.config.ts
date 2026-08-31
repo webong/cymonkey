@@ -11,6 +11,7 @@ export default defineConfig({
       'scripting',
       'storage',
       'tabs',
+      ...(browser === 'chrome' || browser === 'edge' ? ['offscreen'] : []),
       ...(browser === 'safari' ? [] : ['management', 'userScripts']),
     ],
     host_permissions: ['<all_urls>'],

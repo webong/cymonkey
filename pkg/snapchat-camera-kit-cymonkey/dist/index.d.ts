@@ -11,6 +11,11 @@ export type CameraKitCymonkeyOptions = {
     augmentationId: string;
     apiToken: string;
     title?: string;
+    mediaProvider?: CameraMediaProvider;
+};
+export type CameraMediaProvider = {
+    openCamera(): Promise<MediaStream>;
+    closeCamera(): Promise<void>;
 };
 export declare class CameraKitCymonkey {
     #private;
@@ -18,6 +23,7 @@ export declare class CameraKitCymonkey {
     readonly augmentationId: string;
     readonly apiToken: string;
     readonly title: string;
+    readonly mediaProvider: CameraMediaProvider;
     constructor(options: CameraKitCymonkeyOptions);
     installGlobal(target?: Record<PropertyKey, unknown>): () => void;
     hello(): {

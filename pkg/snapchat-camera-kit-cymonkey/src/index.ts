@@ -11,6 +11,12 @@ export type CameraKitCymonkeyOptions = {
   augmentationId: string;
   apiToken: string;
   title?: string;
+  mediaProvider?: CameraMediaProvider;
+};
+
+export type CameraMediaProvider = {
+  openCamera(): Promise<MediaStream>;
+  closeCamera(): Promise<void>;
 };
 
 type Session = {
@@ -49,6 +55,7 @@ export class CameraKitCymonkey {
   readonly augmentationId: string;
   readonly apiToken: string;
   readonly title: string;
+  readonly mediaProvider: CameraMediaProvider;
   #overlay: MountedOverlay | null = null;
   #cameraKit: CameraKit | null = null;
   #revision = 0;
@@ -58,6 +65,10 @@ export class CameraKitCymonkey {
     if (!options.apiToken.trim()) throw new Error('Camera Kit API token is required');
     this.apiToken = options.apiToken;
     this.title = options.title || 'Camera Kit';
+    this.mediaProvider = options.mediaProvider ?? {
+      openCamera: () => navigator.mediaDevices.getUserMedia({video: true, audio: false}),
+      closeCamera: async () => undefined,
+    };
   }
 
   // A target-owned web application installs this after it has imported this
@@ -177,6 +188,7 @@ export class CameraKitCymonkey {
     if (!overlay?.started) return {ok: true, stopped: false};
     await overlay.session?.pause?.();
     overlay.stream?.getTracks().forEach((track) => track.stop());
+    await this.mediaProvider.closeCamera();
     overlay.stream = null;
     overlay.started = false;
     this.#revision += 1;
@@ -200,7 +212,7 @@ export class CameraKitCymonkey {
     notice.textContent = 'Requesting camera permission…';
     let stream: MediaStream | null = null;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({video: true, audio: false});
+      stream = await this.mediaProvider.openCamera();
       const cameraKit = await this.loadCameraKit();
       const session = await cameraKit.createSession({liveRenderTarget: overlay.canvas});
       await session.setSource(createMediaStreamSource(stream));
@@ -213,6 +225,7 @@ export class CameraKitCymonkey {
       button.hidden = true;
     } catch (error) {
       stream?.getTracks().forEach((track) => track.stop());
+      await this.mediaProvider.closeCamera().catch(() => undefined);
       notice.textContent = `Camera unavailable: ${errorMessage(error)}`;
       button.disabled = false;
     }

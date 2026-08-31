@@ -15,8 +15,8 @@ declared Cymonkey actions:
 - `camera-kit.overlay.unmount`
 
 `camera-kit.overlay.mount` creates an owned overlay containing a **Start
-camera** button. Only that button's user gesture calls `getUserMedia`; an agent
-cannot open the camera through `act` alone. The target owner supplies the Snap
+camera** button. Only that button asks the configured media provider for a
+camera stream; an agent cannot open the camera through `act` alone. The target owner supplies the Snap
 API token when composing the package and must have Camera Kit Web access and
 Lens IDs from Snap.
 
@@ -64,6 +64,10 @@ token, port, or any extension APIs.
 
 ## Consent
 
-The user must click the owned **Start camera** button before the package calls
-`getUserMedia`. An agent may apply or remove an approved Lens only after that
-explicit camera session has started.
+The user must click the owned **Start camera** button before capture begins. A
+target-owned standalone runtime uses `getUserMedia` directly. The browser
+extension uses Jangolova's generic offscreen media broker and a local WebRTC
+track because an opaque extension sandbox cannot call `getUserMedia`, and an
+arbitrary target site's Permissions Policy must not decide whether an approved
+extension package can acquire media. An agent may apply or remove an approved
+Lens only after that explicit camera session has started.

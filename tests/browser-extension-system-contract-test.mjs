@@ -46,6 +46,9 @@ test("the extension hosts generic augmentation packages without library coupling
   const approvals = await source("pkg/browser-ext/src/services/approvals.ts");
   const popup = await source("pkg/browser-ext/entrypoints/popup/main.ts");
   const tabs = await source("pkg/browser-ext/src/services/tabs.ts");
+  const mediaBroker = await source("pkg/browser-ext/src/services/media-broker.ts");
+  const offscreen = await source("pkg/browser-ext/entrypoints/media-broker/main.ts");
+  const config = await source("pkg/browser-ext/wxt.config.ts");
 
   assert.match(injection, /augmentations\/\$\{augmentationId\}\//);
   assert.match(runtime, /jangolova\.cymonkey\.augmentation-runtime/);
@@ -66,6 +69,12 @@ test("the extension hosts generic augmentation packages without library coupling
   assert.match(tabs, /content-scripts\/cymonkey-page\.js/);
   assert.match(tabs, /content-scripts\/cymonkey\.js/);
   assert.match(tabs, /ordinary HTTP\(S\) pages/);
+  assert.match(config, /\['offscreen'\]/);
+  assert.match(mediaBroker, /USER_MEDIA/);
+  assert.match(mediaBroker, /WEB_RTC/);
+  assert.match(offscreen, /getUserMedia/);
+  assert.match(offscreen, /RTCPeerConnection/);
+  assert.match(sandbox, /jangolova\.media-broker/);
   assert.doesNotMatch(packageManifest, /threejs-cymonkey|\"three\"/);
   assert.doesNotMatch(packageManifest, /camera-kit|@snap\//);
   assert.doesNotMatch(capabilities, /threejs\./);
