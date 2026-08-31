@@ -29,5 +29,36 @@ export async function sendToTab(tabId: number, method: string, params: Record<st
 }
 
 export async function sendToTabChannel(tabId: number, channel: string, method: string, params: Record<string, unknown>) {
-  return browser.tabs.sendMessage(tabId, { channel, method, params });
+  const message = { channel, method, params };
+  try {
+    return await browser.tabs.sendMessage(tabId, message);
+  } catch (error) {
+    if (!missingReceiver(error)) throw error;
+    await attachTabRuntime(tabId);
+    return browser.tabs.sendMessage(tabId, message);
+  }
+}
+
+async function attachTabRuntime(tabId: number) {
+  const tab = await browser.tabs.get(tabId);
+  let protocol = '';
+  try { protocol = tab.url ? new URL(tab.url).protocol : ''; } catch { /* handled below */ }
+  if (protocol !== 'http:' && protocol !== 'https:') {
+    throw new Error('Jangolova can attach only to ordinary HTTP(S) pages; browser settings and extension pages are protected');
+  }
+  try {
+    await browser.scripting.executeScript({
+      target: {tabId}, files: ['content-scripts/cymonkey-page.js'], world: 'MAIN',
+    } as unknown as Parameters<typeof browser.scripting.executeScript>[0]);
+    await browser.scripting.executeScript({
+      target: {tabId}, files: ['content-scripts/cymonkey.js'], world: 'ISOLATED',
+    } as unknown as Parameters<typeof browser.scripting.executeScript>[0]);
+  } catch {
+    throw new Error('Jangolova could not attach to the target page; confirm site access is enabled for this extension');
+  }
+}
+
+function missingReceiver(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /Receiving end does not exist|Could not establish connection|No matching message handler/i.test(message);
 }

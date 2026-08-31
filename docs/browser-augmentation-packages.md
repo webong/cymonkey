@@ -36,6 +36,11 @@ configuration remains in popup memory only; Jangolova does not persist tokens
 or copy them into approval or audit records. This path is owned by Jangolova
 and works without Xallet or an outbound control connection.
 
+If the selected HTTP(S) tab predates extension installation or reload,
+Jangolova attaches its packaged MAIN-world bridge and isolated runtime before
+retrying the request. Protected browser settings, extension pages, and other
+non-web schemes are rejected with an explicit target error.
+
 This restriction matters for SDKs that download executable code themselves.
 For example, Snap Camera Kit Web downloads its Lens renderer as WebAssembly.
 It cannot run in an ordinary MV3 extension or content-script context, but it

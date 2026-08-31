@@ -44,6 +44,7 @@ test("the extension hosts generic augmentation packages without library coupling
   const packages = await source("pkg/browser-ext/src/services/packages.ts");
   const approvals = await source("pkg/browser-ext/src/services/approvals.ts");
   const popup = await source("pkg/browser-ext/entrypoints/popup/main.ts");
+  const tabs = await source("pkg/browser-ext/src/services/tabs.ts");
 
   assert.match(injection, /augmentations\/\$\{augmentationId\}\//);
   assert.match(runtime, /jangolova\.cymonkey\.augmentation-runtime/);
@@ -61,6 +62,9 @@ test("the extension hosts generic augmentation packages without library coupling
   assert.match(approvals, /package mount was denied by the user/);
   assert.match(popup, /Allow once/);
   assert.match(popup, /approval\.resolve/);
+  assert.match(tabs, /content-scripts\/cymonkey-page\.js/);
+  assert.match(tabs, /content-scripts\/cymonkey\.js/);
+  assert.match(tabs, /ordinary HTTP\(S\) pages/);
   assert.doesNotMatch(packageManifest, /threejs-cymonkey|\"three\"/);
   assert.doesNotMatch(packageManifest, /camera-kit|@snap\//);
   assert.doesNotMatch(capabilities, /threejs\./);
