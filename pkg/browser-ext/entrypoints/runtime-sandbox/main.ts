@@ -1,3 +1,5 @@
+import {installEphemeralWebStorage} from '../../src/sandbox-storage.js';
+
 type SandboxPackage = {
   id: string;
   connect(context: {augmentationId: string; configuration: Record<string, unknown>}, port: MessagePort): void | Promise<void>;
@@ -6,6 +8,8 @@ type SandboxPackage = {
 declare global {
   interface Window { jangolovaSandboxPackage?: SandboxPackage }
 }
+
+installEphemeralWebStorage(window);
 
 const params = new URL(location.href).searchParams;
 const packageID = identifier(params.get('package'), 'package');

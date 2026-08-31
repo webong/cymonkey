@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
+import {installEphemeralWebStorage} from '../pkg/browser-ext/src/sandbox-storage.js';
 
 const root = new URL('../', import.meta.url);
 const source = (path) => readFile(new URL(path, root), 'utf8');
@@ -44,4 +45,20 @@ test('sensitive package mounts require one-time extension UI approval', async ()
   assert.match(popup, /sandbox\.mount/);
   assert.match(popup, /cymonkey-engine\.call/);
   assert.match(popup, /Configuration stays in this popup|configuration must be a JSON object/);
+});
+
+test('opaque sandbox storage is ephemeral and does not weaken the origin boundary', () => {
+  const target = {};
+  for (const name of ['localStorage', 'sessionStorage']) {
+    Object.defineProperty(target, name, {
+      configurable: true,
+      get() { throw new DOMException('opaque origin', 'SecurityError'); },
+    });
+  }
+  installEphemeralWebStorage(target);
+  target.sessionStorage.setItem('camera-kit', 42);
+  assert.equal(target.sessionStorage.getItem('camera-kit'), '42');
+  assert.equal(target.sessionStorage.length, 1);
+  assert.equal(target.localStorage.length, 0);
+  assert.equal(Object.getPrototypeOf(target.sessionStorage), Object.prototype);
 });

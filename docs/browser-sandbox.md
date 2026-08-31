@@ -46,6 +46,10 @@ and `events`), so a caller does not need a library-specific extension API.
 - The sandbox has no WebExtension APIs. Privileged browser work stays in the
   service worker and content script, where Jangolova policy can authorize and
   audit it.
+- Because Chrome requires extension sandboxes to keep a unique opaque origin,
+  native `localStorage` and `sessionStorage` are unavailable. The host supplies
+  per-iframe in-memory implementations for SDK compatibility. They disappear
+  on unmount and never expose the target site's or extension's stored data.
 - Chrome requires the sandbox iframe entrypoint to be a web-accessible
   resource before an existing site may embed it. That declaration does not
   grant extension APIs: the manifest sandbox keeps the document in an opaque,
