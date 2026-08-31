@@ -39,6 +39,10 @@ and `events`), so a caller does not need a library-specific extension API.
 - Mount completion waits for the packaged runtime to accept its configuration;
   a missing token or failed package connection is returned to the caller instead
   of leaving a half-connected iframe behind.
+- Package registration must be a lightweight synchronous bootstrap. Large SDKs
+  initialize only after the private channel connects, so an SDK startup failure
+  is reported as a connection error rather than being misdiagnosed as a missing
+  package.
 - The sandbox has no WebExtension APIs. Privileged browser work stays in the
   service worker and content script, where Jangolova policy can authorize and
   audit it.

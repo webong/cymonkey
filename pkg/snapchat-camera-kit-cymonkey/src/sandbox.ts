@@ -1,7 +1,7 @@
-import { CameraKitCymonkey, type CymonkeyRequest } from './index.js';
+import type { CymonkeyRequest } from './index.js';
 
 type Context = {augmentationId: string; configuration: Record<string, unknown>};
-type SandboxPackage = {id: string; connect(context: Context, port: MessagePort): void};
+type SandboxPackage = {id: string; connect(context: Context, port: MessagePort): Promise<void>};
 
 declare global {
   interface Window { jangolovaSandboxPackage?: SandboxPackage }
@@ -11,8 +11,12 @@ if (window.jangolovaSandboxPackage) throw new Error('a Jangolova sandbox package
 
 window.jangolovaSandboxPackage = {
   id: 'snapchat-camera-kit',
-  connect(context, port) {
+  async connect(context, port) {
     const apiToken = string(context.configuration.apiToken, 'Camera Kit apiToken');
+    // Publish the lightweight package registration before evaluating Camera
+    // Kit. The SDK may fail to initialize in a particular browser, but that is
+    // a connection error—not a missing-package error.
+    const {CameraKitCymonkey} = await import('./index.js');
     const runtime = new CameraKitCymonkey({
       augmentationId: context.augmentationId,
       apiToken,

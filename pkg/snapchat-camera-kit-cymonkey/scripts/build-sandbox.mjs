@@ -6,6 +6,7 @@ await build({
   format: 'esm',
   platform: 'browser',
   target: 'es2022',
+  minify: true,
   legalComments: 'none',
   outfile: 'dist/sandbox.js',
 });
