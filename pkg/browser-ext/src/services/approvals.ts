@@ -2,6 +2,7 @@ import { appendEvent } from './events';
 import { requireScopedIdentifier } from './policy';
 
 export type PackageApproval = {
+  kind: 'package';
   id: string;
   status: 'pending' | 'approved' | 'denied';
   createdAt: string;
@@ -14,7 +15,7 @@ export type PackageApproval = {
   origin: string;
 };
 
-type MountApprovalInput = Omit<PackageApproval, 'id' | 'status' | 'createdAt' | 'expiresAt'> & {approvalId?: unknown};
+type MountApprovalInput = Omit<PackageApproval, 'kind' | 'id' | 'status' | 'createdAt' | 'expiresAt'> & {approvalId?: unknown};
 
 const storageKey = 'jangolova.packageApprovals.v1';
 const lifetimeMilliseconds = 5 * 60 * 1000;
@@ -43,6 +44,7 @@ export async function authorizePackageMount(input: MountApprovalInput) {
   if (existing) return {approved: false as const, approval: publicApproval(existing)};
   const createdAt = new Date();
   const approval: PackageApproval = {
+    kind: 'package',
     id: `approval-${randomID()}`,
     status: 'pending',
     createdAt: createdAt.toISOString(),
@@ -120,7 +122,7 @@ function approvalEvent(approval: PackageApproval) {
 function validApproval(value: unknown): value is PackageApproval {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
   const item = value as Partial<PackageApproval>;
-  return typeof item.id === 'string' && (item.status === 'pending' || item.status === 'approved' || item.status === 'denied')
+  return item.kind === 'package' && typeof item.id === 'string' && (item.status === 'pending' || item.status === 'approved' || item.status === 'denied')
     && typeof item.createdAt === 'string' && typeof item.expiresAt === 'string'
     && typeof item.packageId === 'string' && typeof item.packageName === 'string'
     && Array.isArray(item.permissions) && item.permissions.every((permission) => typeof permission === 'string')

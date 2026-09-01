@@ -32,14 +32,28 @@
   },
   "$defs": {
     "delivery": {
-      "type": "object",
-      "required": ["kind", "entrypoint", "browsers"],
-      "properties": {
-        "kind": {"const": "sandbox"},
-        "entrypoint": {"const": "sandbox.js"},
-        "browsers": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["chrome", "edge"]}}
-      },
-      "additionalProperties": false
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind", "entrypoint", "browsers"],
+          "properties": {
+            "kind": {"const": "augmentation-package"},
+            "entrypoint": {"const": "content.js"},
+            "browsers": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["chrome", "edge", "firefox", "safari"]}}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind", "entrypoint", "browsers"],
+          "properties": {
+            "kind": {"const": "sandbox"},
+            "entrypoint": {"const": "sandbox.js"},
+            "browsers": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["chrome", "edge"]}}
+          },
+          "additionalProperties": false
+        }
+      ]
     },
     "sandbox": {
       "type": "object",

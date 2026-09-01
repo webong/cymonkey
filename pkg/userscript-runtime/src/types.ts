@@ -57,5 +57,6 @@ export type BrowserRegistration = {
   js: Array<{code: string}>;
   runAt: RunAt;
   world: ExecutionWorld;
+  worldId?: string;
   allFrames: boolean;
 };

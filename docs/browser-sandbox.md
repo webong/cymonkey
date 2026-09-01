@@ -9,7 +9,7 @@ not exposed to the target page.
 
 ```text
 Jangolova control plane
-        │ policy-authorized sandbox.mount / cymonkey-engine.call
+        │ policy-authorized augmentation.mount / cymonkey-engine.call
         │ sensitive permission → popup approval → retry
         ▼
 content script ── closed Shadow DOM ── sandboxed extension iframe
@@ -61,7 +61,7 @@ and `events`), so a caller does not need a library-specific extension API.
 - A mount must explicitly request its currently supported iframe feature
   permission—for example, `permissions: ["camera"]`. A camera or other
   sensitive browser permission still requires a visible user gesture in the
-  package UI. `sandbox.mount` alone does not grant it.
+  package UI. `augmentation.mount` alone does not grant it.
 - Sensitive approvals are single-use and bound to the package, augmentation,
   tab, origin, and exact permission set. They expire after five minutes.
 - Opaque sandbox documents cannot invoke `getUserMedia`, and the extension is
@@ -98,9 +98,9 @@ base extension dependency graph.
 
 ## Browser availability
 
-Chrome and Edge expose the extension sandbox used by this design. The current
-Firefox and Safari builds do not advertise `sandbox.mount` or
-`sandbox.unmount`. Their deliberate alternative is a target-owned
+Chrome and Edge expose the extension sandbox used by this design. Firefox and
+Safari still advertise the delivery-neutral `augmentation.mount` and
+`augmentation.unmount` actions, but a sandbox-only package is not included in
+their product artifact. Their available alternative is a target-owned
 `page-runtime` or an ordinary reviewed `augmentation-package` that does not
-need sandboxed remote WebAssembly. Product composition leaves incompatible
-sandbox packages out of those artifacts instead of weakening their boundary.
+need sandboxed remote WebAssembly.

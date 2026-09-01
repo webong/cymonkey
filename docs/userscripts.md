@@ -15,6 +15,7 @@ payloads under `spec.web.userscripts`.
 
 The initial Cymonkey capabilities are:
 
+- `userscript.prepare`
 - `userscript.install`
 - `userscript.update`
 - `userscript.uninstall`
@@ -30,8 +31,8 @@ Callers discover these through Cymonkey `capabilities` and invoke them through
 {
   "method": "act",
   "params": {
-    "name": "userscript.install",
-    "input": {"manifest": {}, "approved": true}
+    "name": "userscript.prepare",
+    "input": {"id": "example-enhancer", "name": "Example Enhancer", "matches": ["https://example.com/*"], "code": "document.documentElement.dataset.enhanced = 'true';"}
   }
 }
 ```
@@ -39,8 +40,8 @@ Callers discover these through Cymonkey `capabilities` and invoke them through
 Cymonkey `describe` returns manager availability and source-free installed
 script descriptions. Lifecycle notifications use Cymonkey `events`.
 
-Installation accepts a manifest plus source. It never accepts browser API
-objects or a request to bypass extension policy. A script has a stable ID,
+Installation accepts a versioned manifest plus source. It never accepts browser
+API objects or a request to bypass extension policy. A script has a stable ID,
 revision, display name, match/exclude patterns, run timing, execution world,
 declared grants, source provenance, and enabled state.
 
@@ -51,9 +52,73 @@ access are not inferred from source text.
 
 ## Installation and consent
 
-Arbitrary userscript source is privileged. Installation therefore requires an
-authenticated Cymonkey control-plane caller plus explicit approval, or a direct
-user gesture in Jangolova UI. The page-safe projection of
+Arbitrary userscript source is privileged. `userscript.prepare` turns a bounded
+agent-authored script body into the standard manifest and metadata header; it
+does not store, register, or execute anything. It rejects a supplied metadata
+block so the prepared match patterns, execution world, and `@grant none`
+declaration are the values the user sees.
+
+The caller then sends that exact manifest to `userscript.install` (or
+`userscript.update`). Jangolova returns an approval request rather than trusting
+an `approved: true` field from the caller. The extension popup displays a
+source-free summary, and the user may approve it once. The caller retries with
+the returned approval ID and the unchanged manifest; the approval is consumed
+only when its operation, script ID, revision, and public permissions match.
+Updates always require a new approval because their source revision changes.
+
+In other words, the control-plane exchange is deliberately two-phase:
+
+```text
+userscript.prepare(draft)              -> manifest (no execution)
+userscript.install({manifest})         -> approval-required + approval.id
+user approves that item in popup       -> approval becomes usable once
+userscript.install({manifest, approvalId}) -> registered userscript
+```
+
+The final request must reuse the manifest byte-for-byte. Changing its source,
+matches, world, or other reviewed metadata produces a different revision or
+approval scope and requires another review.
+
+## Managed script runtime
+
+Scripts prepared by `userscript.prepare` receive a small, page-local
+`globalThis.cymonkey.jangolova` helper. It is not a browser-extension API and
+does not expose storage, network, tabs, or privileged extension methods. Its
+purpose is to let the script explicitly describe the semantic operations that
+an agent may request and the events it may emit:
+
+```js
+globalThis.cymonkey.jangolova.register({
+  'notice.set': ({text}) => {
+    document.documentElement.dataset.agentNotice = String(text);
+    return {shown: true};
+  },
+});
+
+globalThis.cymonkey.jangolova.emit('notice.ready', {location: location.href});
+```
+
+The authenticated control plane discovers a connected script with
+`userscript.runtime.describe` and calls its declared operation through
+`userscript.call`. Each call is routed to the script in the specified tab and
+returns only the script's own result. This is how an agent controls a custom
+augmentation after installation; it never gets raw extension privileges.
+
+Managed control is available only for `USER_SCRIPT` scripts on browsers that
+support the native `userScripts` messaging world. A `MAIN` world script remains
+an approved, page-visible script, but cannot receive this private Cymonkey
+control channel because pages may observe or interfere with that world.
+
+This gives an agent two deliberate augmentation paths:
+
+1. For lightweight, page-local behavior, prepare a userscript, get one-time
+   user approval, and install it through the browser-native `userScripts` API.
+2. For a stateful runtime or bundled dependency such as Three.js, create a
+   reviewed augmentation package, include it in the Jangolova product build,
+   and mount that package under its declared permissions.
+
+Neither path permits a page or an external caller to bypass the extension's
+approval and control policy. The page-safe projection of
 `window.jangolova.cymonkey` does not advertise userscript capabilities.
 
 Before enabling a script, the UI must show:

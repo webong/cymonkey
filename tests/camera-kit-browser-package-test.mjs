@@ -16,6 +16,7 @@ test('Camera Kit is composed only into Chrome-family sandbox builds', async () =
   assert.match(productBuilder, /browser-package\.json/);
   for (const target of ['chrome-mv3', 'edge-mv3']) {
     const manifest = JSON.parse(await source(`pkg/browser-ext/.output/${target}/manifest.json`));
+    assert.equal(manifest.name, 'Jangolova Camera Kit Browser Extension');
     assert.deepEqual(manifest.sandbox?.pages, ['runtime-sandbox.html']);
     assert.match(manifest.content_security_policy?.sandbox || '', /cf-st\.sc-cdn\.net/);
     assert.match(manifest.content_security_policy?.sandbox || '', /snapar\.com/);

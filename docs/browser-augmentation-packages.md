@@ -55,11 +55,30 @@ target, requested permissions, and lifecycle. Its implementation uses
 `script.execute` for a one-time action or `script.register` for a persistent
 matching content script.
 
-If the package exposes a richer runtime, its content script listens on the
-private extension channel `jangolova.cymonkey.augmentation-runtime` and rejects
-messages whose `augmentationId` is not its own. It receives only a standard
-Cymonkey request (`hello`, `capabilities`, `describe`, `act`, or `events`) and
-returns only its declared semantic result.
+If the package exposes a richer runtime, its reviewed `content.js` registers a
+factory in Jangolova's private isolated world. The generic content host mounts
+one factory result per `augmentationId` and routes the private channel
+`jangolova.cymonkey.augmentation-runtime` to it. The package receives only a
+standard Cymonkey request (`hello`, `capabilities`, `describe`, `act`, or
+`events`) and returns only its declared semantic result.
+
+Both ordinary and sandbox deliveries mount through the same semantic action:
+
+```json
+{
+  "name": "augmentation.mount",
+  "input": {
+    "augmentationId": "example-overlay",
+    "package": "example",
+    "target": {"tabId": 42},
+    "configuration": {}
+  }
+}
+```
+
+The reviewed package manifest selects `augmentation-package`/`content.js` or
+`sandbox`/`sandbox.js` for the current browser. Callers do not select a
+library-specific extension action.
 
 Jangolova routes that request with:
 
@@ -92,7 +111,7 @@ The package mounts through the generic semantic action:
 
 ```json
 {
-  "name": "sandbox.mount",
+  "name": "augmentation.mount",
   "input": {
     "augmentationId": "camera-overlay",
     "id": "camera",
@@ -130,9 +149,9 @@ plane keep the same explicit retry behavior. Xallet Spook and authenticated
 WebSocket callers are optional integrations; neither is required for the
 standalone popup path.
 
-Sandboxes are currently available in the composed Chrome and Edge artifacts.
-Firefox and Safari builds negotiate the absence of `sandbox.*` rather than
-pretend to offer it.
+Sandboxes are currently available in composed Chrome and Edge artifacts.
+Firefox and Safari may still mount ordinary reviewed augmentation packages;
+they simply exclude package manifests that only provide a sandbox delivery.
 
 ## Examples
 
@@ -158,9 +177,15 @@ A browser product is declared in `products/browser/*.json` and built with:
 
 ```sh
 npm run build:browser-product -- products/browser/camera-kit.json
+npm run build:threejs-browser-package
 ```
 
 The product builder compiles its packages, builds each selected browser,
 copies reviewed manifests and artifacts, writes the per-browser registry, and
 derives the sandbox CSP from the included package manifests. It refuses
 repository-escaping paths and unrecognized CSP sources.
+
+The composed artifact also uses the product manifest's display name in the
+browser and popup. This makes two locally loaded reviewed products visibly
+distinct—for example, **Jangolova Three.js Browser Extension** versus
+**Jangolova Camera Kit Browser Extension**.

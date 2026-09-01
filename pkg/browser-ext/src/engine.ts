@@ -1,12 +1,12 @@
 import { privilegedCapabilities, sandboxPackagesSupported, userscriptCapabilities } from './capabilities';
-import { authorizePackageMount } from './services/approvals';
+import {mountReviewedAugmentation, unmountReviewedAugmentation} from './services/augmentations';
 import { readEvents } from './services/events';
 import { changeStyle, executePackagedScripts, registerPackagedScripts, unregisterPackagedScripts } from './services/injection';
 import { installOwnedRules, removeOwnedRules } from './services/network';
-import { listReviewedPackages, requireSandboxPackage } from './services/packages';
-import { requireScopedIdentifier } from './services/policy';
+import { listReviewedPackages } from './services/packages';
+import {requireScopedIdentifier} from './services/policy';
 import { readScopedStorage, writeScopedStorage } from './services/storage';
-import { activeTab, requireTabID, sendToTab, sendToTabChannel, targetTab } from './services/tabs';
+import { activeTab, requireTabID, sendToTab, targetTab } from './services/tabs';
 import { describeRuntime as describeUserscriptRuntime, describeUserscriptManager, dispatchUserscript } from './services/userscripts';
 import { isRecord, type EventQuery } from './types';
 
@@ -22,10 +22,7 @@ export async function dispatchCymonkey(method: string, params: Record<string, un
 async function capabilities() {
   const runtime = await describeUserscriptRuntime();
   const userscriptNames = new Set(userscriptCapabilities.map((item) => item.name));
-  return privilegedCapabilities.filter((item) =>
-    (runtime.status === 'available' || !userscriptNames.has(item.name))
-    && (sandboxPackagesSupported() || !item.name.startsWith('sandbox.')),
-  );
+  return privilegedCapabilities.filter((item) => runtime.status === 'available' || !userscriptNames.has(item.name));
 }
 
 function hello() {
@@ -86,7 +83,8 @@ async function act(name: string, input: Record<string, unknown>) {
   if (name === 'script.unregister') return unregisterPackagedScripts(augmentationId!, input);
   if (name === 'style.insert') return changeStyle(augmentationId!, input, false);
   if (name === 'style.remove') return changeStyle(augmentationId!, input, true);
-  if (name === 'sandbox.mount' || name === 'sandbox.unmount') return dispatchSandbox(name, input);
+  if (name === 'augmentation.mount') return mountReviewedAugmentation(input);
+  if (name === 'augmentation.unmount') return unmountReviewedAugmentation(input);
   if (name === 'network.rules.install') return installOwnedRules(augmentationId!, input);
   if (name === 'network.rules.remove') return removeOwnedRules(augmentationId!, input);
   if (name === 'storage.get') return readScopedStorage('cymonkey', input);
@@ -96,31 +94,6 @@ async function act(name: string, input: Record<string, unknown>) {
     return sendToTab(requireTabID(tab), 'act', { name, input });
   }
   throw new Error(`unsupported Cymonkey action ${JSON.stringify(name)}`);
-}
-
-async function dispatchSandbox(name: string, input: Record<string, unknown>) {
-  if (!sandboxPackagesSupported()) throw new Error(`sandbox packages are unavailable in the ${import.meta.env.BROWSER} container`);
-  const tab = await targetTab(input.target);
-  if (name === 'sandbox.mount') {
-    const packageValue = await requireSandboxPackage(input.package, input.permissions);
-    const augmentationId = requireScopedIdentifier(input.augmentationId, 'augmentationId');
-    const approval = await authorizePackageMount({
-      approvalId: input.approvalId,
-      packageId: packageValue.description.id,
-      packageName: packageValue.description.name,
-      permissions: packageValue.permissions,
-      augmentationId,
-      tabId: requireTabID(tab),
-      origin: safeOrigin(tab.url),
-    });
-    if (!approval.approved) return {ok: false, status: 'approval-required', approval: approval.approval};
-  }
-  return sendToTabChannel(requireTabID(tab), 'jangolova.cymonkey.sandbox', name.slice('sandbox.'.length), input);
-}
-
-function safeOrigin(value?: string) {
-  if (!value) return 'unknown';
-  try { return new URL(value).origin; } catch { return 'unknown'; }
 }
 
 function requireAugmentation(input: Record<string, unknown>) {

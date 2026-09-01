@@ -41,7 +41,7 @@ Cymonkey requests through it:
 
 ```json
 {
-  "name": "sandbox.mount",
+  "name": "augmentation.mount",
   "input": {
     "augmentationId": "my-camera-kit",
     "id": "camera",

@@ -27,11 +27,12 @@ packaged-script actions and may expose a private Cymonkey runtime endpoint
 through the authenticated `cymonkey-engine.call` route scoped by
 `augmentationId`. See [browser augmentation packages](../../docs/browser-augmentation-packages.md).
 
-Chrome and Edge also provide the generic `sandbox.mount` delivery path for an
-approved package that needs an isolated WebAssembly-capable web runtime. The
-sandbox has no extension APIs and communicates with the content-script-owned
-overlay through a private `MessageChannel`. Firefox and Safari do not advertise
-this capability. See [browser sandbox](../../docs/browser-sandbox.md).
+All browsers expose `augmentation.mount` and `augmentation.unmount`. The
+reviewed manifest selects an ordinary isolated-world `augmentation-package` or,
+on Chrome and Edge, a `sandbox` delivery for a package that needs an isolated
+WebAssembly-capable web runtime. The sandbox has no extension APIs and
+communicates with the content-script-owned overlay through a private
+`MessageChannel`. See [browser sandbox](../../docs/browser-sandbox.md).
 
 Each product build has a reviewed augmentation registry. Sensitive sandbox
 permissions use single-use popup approvals bound to the requesting package,

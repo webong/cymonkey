@@ -3,11 +3,14 @@ module jangolova
 go 1.26.5
 
 require (
+	github.com/akive/grimoire v0.0.0
 	github.com/google/go-cmp v0.7.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/yalue/onnxruntime_go v1.35.0
 	gopkg.in/yaml.v3 v3.0.1
 )
+
+replace github.com/akive/grimoire => ../grimoire
 
 require (
 	github.com/kr/pretty v0.3.1 // indirect

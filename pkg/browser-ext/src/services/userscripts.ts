@@ -1,9 +1,10 @@
 import {
+  createManifest,
   permissionIncrease,
   publicDescription,
   registrationID,
   registrationPlan,
-  requiresRenewedApproval,
+  registrationWorldID,
   sourceRevision,
   validateManifest,
   type BrowserRegistration,
@@ -11,6 +12,8 @@ import {
 } from '@jangolova/userscript-runtime';
 import { publishCymonkeyEvent } from './events';
 import { isRecord } from '../types';
+import { authorizeUserscriptMutation } from './userscript-approvals';
+import { callUserscriptRuntime, describeUserscriptRuntime } from './userscript-runtime';
 
 const storageKey = 'jangolova.userscripts.v1';
 
@@ -19,9 +22,13 @@ type NativeUserScripts = {
   register(scripts: BrowserRegistration[]): Promise<void>;
   update(scripts: BrowserRegistration[]): Promise<void>;
   unregister(filter?: {ids?: string[]}): Promise<void>;
+  configureWorld?(properties: {worldId?: string; messaging?: boolean}): Promise<void>;
 };
 
 export async function dispatchUserscript(method: string, input: Record<string, unknown>) {
+  if (method === 'userscript.prepare') return prepareUserscript(input);
+  if (method === 'userscript.call') return callUserscriptRuntime(input);
+  if (method === 'userscript.runtime.describe') return describeUserscriptRuntime(input);
   if (method === 'userscript.list') return listUserscripts();
   if (method === 'userscript.describe') return describeUserscript(requireID(input.id));
   if (method === 'userscript.install') return installUserscript(input);
@@ -63,7 +70,10 @@ export async function reconcileUserscripts() {
     if (orphaned.length) await api.unregister({ids: orphaned});
     const actual = new Set(registered.map((value) => value.id));
     const missing = expected.filter((value) => !actual.has(registrationID(value.metadata.id)));
-    if (missing.length) await api.register(missing.map(registrationPlan));
+    if (missing.length) {
+      for (const value of missing) await configureManagedWorld(api, value);
+      await api.register(missing.map(registrationPlan));
+    }
     return {status: 'available', registered: expectedIDs.size, restored: missing.length, removed: orphaned.length};
   } catch {
     return {status: 'unavailable', reason: 'userscript runtime reconciliation failed'};
@@ -71,10 +81,11 @@ export async function reconcileUserscripts() {
 }
 
 async function installUserscript(input: Record<string, unknown>) {
-  if (input.approved !== true) throw new Error('userscript installation requires explicit approval');
-  const manifest = await requireManifest(input.manifest, input.approveMainWorld === true);
+  const manifest = await requireManifest(input.manifest);
   const records = await readRecords();
   if (records[manifest.metadata.id]) throw new Error('userscript is already installed');
+  const authorization = await authorizeUserscriptMutation('install', manifest, input.approvalId);
+  if (!authorization.approved) return {ok: false, status: 'approval-required', approval: authorization.approval};
   if (manifest.spec.enabled) await register(manifest);
   records[manifest.metadata.id] = manifest;
   await writeRecords(records);
@@ -83,14 +94,13 @@ async function installUserscript(input: Record<string, unknown>) {
 }
 
 async function updateUserscript(input: Record<string, unknown>) {
-  const manifest = await requireManifest(input.manifest, input.approveMainWorld === true);
+  const manifest = await requireManifest(input.manifest);
   const records = await readRecords();
   const previous = records[manifest.metadata.id];
   if (!previous) throw new Error('userscript is not installed');
   const increase = permissionIncrease(previous, manifest);
-  if (requiresRenewedApproval(increase) && input.approvedPermissionIncrease !== true) {
-    throw new Error('userscript update requires renewed permission approval');
-  }
+  const authorization = await authorizeUserscriptMutation('update', manifest, input.approvalId);
+  if (!authorization.approved) return {ok: false, status: 'approval-required', approval: authorization.approval};
   if (previous.spec.enabled && manifest.spec.enabled) await updateRegistration(manifest);
   else if (previous.spec.enabled) await unregister(manifest.metadata.id);
   else if (manifest.spec.enabled) await register(manifest);
@@ -137,20 +147,42 @@ async function describeUserscript(id: string) {
   return publicDescription(value);
 }
 
-async function requireManifest(value: unknown, allowMainWorld: boolean) {
+async function prepareUserscript(input: Record<string, unknown>) {
+  return createManifest({
+    id: requireID(input.id),
+    name: requireText(input.name, 'userscript name', 128),
+    matches: requireStrings(input.matches, 'userscript matches'),
+    code: requireText(input.code, 'userscript code', 1024 * 1024),
+    ...(input.namespace === undefined ? {} : {namespace: requireText(input.namespace, 'userscript namespace', 512)}),
+    ...(input.version === undefined ? {} : {version: requireText(input.version, 'userscript version', 128)}),
+    ...(input.description === undefined ? {} : {description: requireText(input.description, 'userscript description', 1024)}),
+    ...(input.excludeMatches === undefined ? {} : {excludeMatches: requireStrings(input.excludeMatches, 'userscript exclude matches')}),
+    ...(input.runAt === undefined ? {} : {runAt: requireRunAt(input.runAt)}),
+    ...(input.world === undefined ? {} : {world: requireWorld(input.world)}),
+    ...(input.allFrames === undefined ? {} : {allFrames: requireBoolean(input.allFrames, 'userscript allFrames')}),
+    ...(input.enabled === undefined ? {} : {enabled: requireBoolean(input.enabled, 'userscript enabled')}),
+    ...(input.updateUrl === undefined ? {} : {updateUrl: requireText(input.updateUrl, 'userscript update URL', 2048)}),
+  });
+}
+
+async function requireManifest(value: unknown) {
   if (!isRecord(value)) throw new Error('userscript manifest is required');
-  const manifest = validateManifest(value as unknown as UserScriptManifest, {allowMainWorld});
+  // This parses a prospective MAIN-world manifest for review; registration only
+  // occurs after the popup has approved this exact revision.
+  const manifest = validateManifest(value as unknown as UserScriptManifest, {allowMainWorld: true});
   if (await sourceRevision(manifest.source.code) !== manifest.metadata.revision) throw new Error('userscript source does not match its revision');
   return manifest;
 }
 
 async function register(value: UserScriptManifest) {
   const api = await requireNativeAPI();
+  await configureManagedWorld(api, value);
   await api.register([registrationPlan(value)]);
 }
 
 async function updateRegistration(value: UserScriptManifest) {
   const api = await requireNativeAPI();
+  await configureManagedWorld(api, value);
   await api.update([registrationPlan(value)]);
 }
 
@@ -164,6 +196,14 @@ async function requireNativeAPI() {
   if (!api) throw new Error('browser userscript runtime is unavailable');
   try { await api.getScripts(); } catch { throw new Error('browser userscript permission or user setting is disabled'); }
   return api;
+}
+
+async function configureManagedWorld(api: NativeUserScripts, value: UserScriptManifest) {
+  if (value.spec.world !== 'USER_SCRIPT' || !value.source.code.includes('jangolova.cymonkey.userscript/v1alpha1')) return;
+  if (!api.configureWorld) return;
+  // Messaging is an optional refinement. The reviewed script still runs as a
+  // normal userscript when a browser lacks the managed user-script channel.
+  try { await api.configureWorld({worldId: registrationWorldID(value.metadata.id), messaging: true}); } catch { /* unavailable */ }
 }
 
 function nativeAPI(): NativeUserScripts | undefined {
@@ -207,6 +247,33 @@ async function syncNativeCatalog(value: Record<string, UserScriptManifest>) {
 function requireID(value: unknown) {
   if (typeof value !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(value)) throw new Error('valid userscript id is required');
   return value;
+}
+
+function requireText(value: unknown, name: string, maximum: number) {
+  if (typeof value !== 'string' || !value.trim() || value.length > maximum) throw new Error(`${name} must be a bounded non-empty string`);
+  return value;
+}
+
+function requireStrings(value: unknown, name: string) {
+  if (!Array.isArray(value) || value.length === 0 || value.length > 128 || value.some((item) => typeof item !== 'string' || !item)) {
+    throw new Error(`${name} must be a bounded non-empty string array`);
+  }
+  return [...value] as string[];
+}
+
+function requireBoolean(value: unknown, name: string) {
+  if (typeof value !== 'boolean') throw new Error(`${name} must be boolean`);
+  return value;
+}
+
+function requireRunAt(value: unknown): 'document_start' | 'document_end' | 'document_idle' {
+  if (value === 'document_start' || value === 'document_end' || value === 'document_idle') return value;
+  throw new Error('userscript runAt is invalid');
+}
+
+function requireWorld(value: unknown): 'USER_SCRIPT' | 'MAIN' {
+  if (value === 'USER_SCRIPT' || value === 'MAIN') return value;
+  throw new Error('userscript world is invalid');
 }
 
 function eventData(value: UserScriptManifest) {

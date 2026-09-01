@@ -5,7 +5,7 @@ export type BrowserPackageDescription = {
   id: string;
   name: string;
   version: string;
-  deliveries: Array<{kind: 'sandbox'; entrypoint: string; browsers: string[]}>;
+  deliveries: Array<{kind: 'augmentation-package' | 'sandbox'; entrypoint: 'content.js' | 'sandbox.js'; browsers: string[]}>;
   permissions: string[];
   capabilities: string[];
   launch?: {name: string; input: Record<string, unknown>};
@@ -37,19 +37,17 @@ export async function describeReviewedPackage(idValue: unknown) {
   return description;
 }
 
-export async function requireSandboxPackage(idValue: unknown, requestedPermissions: unknown) {
+export async function requireBrowserPackage(idValue: unknown, requestedPermissions: unknown) {
   const description = await describeReviewedPackage(idValue);
-  const delivery = description.deliveries.find((item) => item.kind === 'sandbox' && item.browsers.includes(import.meta.env.BROWSER));
-  if (!delivery || delivery.entrypoint !== 'sandbox.js') {
-    throw new Error(`browser package ${JSON.stringify(description.id)} does not provide a sandbox for ${import.meta.env.BROWSER}`);
-  }
+  const delivery = description.deliveries.find((item) => item.browsers.includes(import.meta.env.BROWSER));
+  if (!delivery) throw new Error(`browser package ${JSON.stringify(description.id)} does not support ${import.meta.env.BROWSER}`);
   const permissions = validatePermissions(requestedPermissions);
   for (const permission of permissions) {
     if (!description.permissions.includes(permission)) {
       throw new Error(`browser package ${JSON.stringify(description.id)} did not declare permission ${JSON.stringify(permission)}`);
     }
   }
-  return {description, permissions};
+  return {description, delivery, permissions};
 }
 
 function validateRegistryEntry(value: unknown): RegistryEntry {
@@ -70,12 +68,18 @@ function validatePackageManifest(value: unknown): BrowserPackageDescription {
   const version = boundedString(value.metadata.version, 'package version', 64);
   if (!Array.isArray(value.spec.deliveries) || value.spec.deliveries.length === 0) throw new Error(`browser package ${id} has no delivery`);
   const deliveries = value.spec.deliveries.map((delivery) => {
-    if (!isRecord(delivery) || delivery.kind !== 'sandbox' || delivery.entrypoint !== 'sandbox.js'
-      || !Array.isArray(delivery.browsers) || delivery.browsers.length === 0
-      || delivery.browsers.some((browserName) => browserName !== 'chrome' && browserName !== 'edge')) {
-      throw new Error(`browser package ${id} has an invalid sandbox delivery`);
+    if (!isRecord(delivery) || !Array.isArray(delivery.browsers) || delivery.browsers.length === 0) {
+      throw new Error(`browser package ${id} has an invalid delivery`);
     }
-    return {kind: 'sandbox' as const, entrypoint: 'sandbox.js', browsers: [...new Set(delivery.browsers as string[])]};
+    const kind = delivery.kind;
+    const entrypoint = delivery.entrypoint;
+    const supported = kind === 'sandbox' ? ['chrome', 'edge'] : ['chrome', 'edge', 'firefox', 'safari'];
+    if ((kind !== 'sandbox' && kind !== 'augmentation-package')
+      || (kind === 'sandbox' ? entrypoint !== 'sandbox.js' : entrypoint !== 'content.js')
+      || delivery.browsers.some((browserName) => typeof browserName !== 'string' || !supported.includes(browserName))) {
+      throw new Error(`browser package ${id} has an invalid ${String(kind)} delivery`);
+    }
+    return {kind, entrypoint, browsers: [...new Set(delivery.browsers as string[])]} as BrowserPackageDescription['deliveries'][number];
   });
   const permissions = validatePermissions(value.spec.permissions);
   const capabilities = stringArray(value.spec.capabilities, 'package capabilities', 256);
@@ -93,9 +97,9 @@ function validateLaunch(value: unknown, capabilities: string[], packageId: strin
 }
 
 function validatePermissions(value: unknown) {
-  const permissions = stringArray(value ?? [], 'sandbox permissions', 16);
+  const permissions = stringArray(value ?? [], 'package permissions', 16);
   if (permissions.some((permission) => permission !== 'camera')) {
-    throw new Error('sandbox permissions currently supports only camera');
+    throw new Error('browser package permissions currently support only camera');
   }
   return permissions;
 }

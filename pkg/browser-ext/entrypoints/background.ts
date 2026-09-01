@@ -7,7 +7,9 @@ import { ControlPolicyService, isExtensionControlCall, type AuthorizationResult,
 import { errorMessage, isRecord, type XalletSpookState } from '../src/types';
 import { XalletSpookClient } from '../src/xallet-spook';
 import { reconcileUserscripts } from '../src/services/userscripts';
+import { startUserscriptRuntime } from '../src/services/userscript-runtime';
 import { listPackageApprovals, resolvePackageApproval } from '../src/services/approvals';
+import { listUserscriptApprovals, resolveUserscriptApproval } from '../src/services/userscript-approvals';
 import {dispatchMediaBroker} from '../src/services/media-broker';
 
 export default defineBackground(() => {
@@ -41,6 +43,7 @@ export default defineBackground(() => {
   );
   spook.start();
   void outbound.start();
+  startUserscriptRuntime();
   void reconcileUserscripts();
 
   browser.runtime.onInstalled.addListener(() => {
@@ -127,8 +130,14 @@ export default defineBackground(() => {
   async function dispatchAuthorized(message: Record<string, unknown>, method: string, params: Record<string, unknown>, source: ControlSource) {
 	if (method === 'cymonkey.call') return dispatchCymonkey(String(params.method || ''), isRecord(params.params) ? params.params : {});
     if (method === 'approval.list' || method === 'approval.resolve') {
-      if (source !== 'extension-origin') throw new Error('package approvals are available only in Jangolova extension UI');
-      return method === 'approval.list' ? listPackageApprovals() : resolvePackageApproval(params.id, params.decision);
+      if (source !== 'extension-origin') throw new Error('approvals are available only in Jangolova extension UI');
+      if (method === 'approval.list') {
+        const [packages, userscripts] = await Promise.all([listPackageApprovals(), listUserscriptApprovals()]);
+        return [...packages, ...userscripts].sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+      }
+      return typeof params.id === 'string' && params.id.startsWith('userscript-approval-')
+        ? resolveUserscriptApproval(params.id, params.decision)
+        : resolvePackageApproval(params.id, params.decision);
     }
     if (method === 'policy.describe') return policy.describe();
     if (method === 'policy.replace') return policy.replace(params.policy);

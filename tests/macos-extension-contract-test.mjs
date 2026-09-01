@@ -16,8 +16,10 @@ test('userscripts use one bounded versioned contract', async () => {
   assert.match(schema, /jangolova\.cymonkey\.userscript\/v1alpha1/);
   assert.match(augmentationSchema, /userscript\/v1alpha1\/userscript\.schema\.json/);
   assert.match(docs, /MVP accepts `@grant none` only/);
-  assert.match(service, /explicit approval/);
-  assert.match(service, /approvedPermissionIncrease/);
+  assert.match(service, /authorizeUserscriptMutation/);
+  assert.match(service, /approval-required/);
+  assert.match(service, /userscript\.prepare/);
+  assert.doesNotMatch(service, /approvedPermissionIncrease|approveMainWorld|input\.approved/);
   assert.match(service, /browser\.storage\.local/);
   assert.match(runtime, /supports @grant none only/);
   assert.doesNotMatch(service, /\beval\s*\(|new Function|Function\s*\(/);
@@ -43,6 +45,7 @@ test('browser builds probe native userscripts and reduce Safari permissions', as
   assert.match(engine, /userscripts: await describeUserscriptManager\(\)/);
   assert.match(engine, /runtime\.status === 'available'/);
   assert.match(capabilities, /userscript\.install/);
+  assert.match(capabilities, /userscript\.prepare/);
   assert.doesNotMatch(pageBridge, /userscript\.install/);
   assert.doesNotMatch(extensionRuntime, /method\.startsWith\('userscript\.'\)/);
   assert.doesNotMatch(extensionRuntime, /subsystems: \['cymonkey', 'render', 'userscripts'\]/);

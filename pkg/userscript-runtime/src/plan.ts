@@ -4,6 +4,10 @@ export function registrationID(id: string) {
   return `jg-us-${id}`;
 }
 
+export function registrationWorldID(id: string) {
+  return `jangolova-${id}`;
+}
+
 export function registrationPlan(value: UserScriptManifest): BrowserRegistration {
   return {
     id: registrationID(value.metadata.id),
@@ -12,6 +16,7 @@ export function registrationPlan(value: UserScriptManifest): BrowserRegistration
     js: [{code: value.source.code}],
     runAt: value.spec.runAt,
     world: value.spec.world,
+    ...(value.spec.world === 'USER_SCRIPT' ? {worldId: registrationWorldID(value.metadata.id)} : {}),
     allFrames: value.spec.allFrames,
   };
 }

@@ -1,6 +1,8 @@
 const statusElement = requireElement('status');
+requireElement('product-name').textContent = browser.runtime.getManifest().name;
 
-type Approval = {
+type PackageApproval = {
+  kind?: 'package';
   id: string;
   packageName: string;
   packageId: string;
@@ -9,12 +11,36 @@ type Approval = {
   expiresAt: string;
 };
 
+type UserscriptApproval = {
+  kind: 'userscript';
+  id: string;
+  operation: 'install' | 'update';
+  scriptId: string;
+  scriptName: string;
+  scriptNamespace?: string;
+  scriptVersion?: string;
+  scriptDescription?: string;
+  revision: string;
+  matches: string[];
+  excludeMatches: string[];
+  world: 'USER_SCRIPT' | 'MAIN';
+  runAt: string;
+  grants: string[];
+  sourceOrigin: string;
+  sourceBytes: number;
+  updateUrl?: string;
+  expiresAt: string;
+};
+
+type Approval = PackageApproval | UserscriptApproval;
+
 type ReviewedPackage = {
   id: string;
   name: string;
   version: string;
   permissions: string[];
   capabilities: string[];
+  deliveries: Array<{kind: 'augmentation-package' | 'sandbox'; entrypoint: string; browsers: string[]}>;
   launch?: {name: string; input: Record<string, unknown>};
 };
 
@@ -80,8 +106,8 @@ function renderPackages(packages: ReviewedPackage[]) {
       await mountPackage(packageValue, createMountInput(packageValue, parseConfiguration(configuration.value)));
     }));
     unmount.addEventListener('click', () => void runButton(unmount, async () => {
-      await cymonkeyAct('sandbox.unmount', {
-        augmentationId: augmentationID(packageValue), id: sandboxID(packageValue),
+      await cymonkeyAct('augmentation.unmount', {
+        augmentationId: augmentationID(packageValue), id: packageInstanceID(packageValue), package: packageValue.id,
       });
       statusElement.textContent = `${packageValue.name} unmounted.`;
     }));
@@ -113,7 +139,7 @@ async function runButton(button: HTMLButtonElement, operation: () => Promise<voi
 function createMountInput(packageValue: ReviewedPackage, configuration: Record<string, unknown>) {
   return {
     augmentationId: augmentationID(packageValue),
-    id: sandboxID(packageValue),
+    id: packageInstanceID(packageValue),
     package: packageValue.id,
     permissions: packageValue.permissions,
     configuration,
@@ -122,7 +148,7 @@ function createMountInput(packageValue: ReviewedPackage, configuration: Record<s
 }
 
 async function mountPackage(packageValue: ReviewedPackage, input: Record<string, unknown>, approvalId?: string) {
-  const result = await cymonkeyAct('sandbox.mount', {...input, ...(approvalId ? {approvalId} : {})}) as {
+  const result = await cymonkeyAct('augmentation.mount', {...input, ...(approvalId ? {approvalId} : {})}) as {
     ok?: boolean;
     status?: string;
     approval?: Approval;
@@ -134,10 +160,11 @@ async function mountPackage(packageValue: ReviewedPackage, input: Record<string,
     return;
   }
   if (packageValue.launch) {
+    const delivery = deliveryForCurrentBrowser(packageValue);
     await extensionCall('cymonkey-engine.call', {
       augmentationId: augmentationID(packageValue),
-      sandboxId: sandboxID(packageValue),
-      delivery: 'sandbox',
+      sandboxId: delivery.kind === 'sandbox' ? packageInstanceID(packageValue) : undefined,
+      delivery: delivery.kind,
       request: {method: 'act', params: {name: packageValue.launch.name, input: packageValue.launch.input}},
     });
   }
@@ -160,7 +187,13 @@ function parseConfiguration(source: string) {
 }
 
 function augmentationID(packageValue: ReviewedPackage) { return `standalone.${packageValue.id}`; }
-function sandboxID(packageValue: ReviewedPackage) { return `standalone-${packageValue.id}`; }
+function packageInstanceID(packageValue: ReviewedPackage) { return `standalone-${packageValue.id}`; }
+
+function deliveryForCurrentBrowser(packageValue: ReviewedPackage) {
+  const delivery = packageValue.deliveries.find((item) => item.browsers.includes(import.meta.env.BROWSER));
+  if (!delivery) throw new Error(`${packageValue.name} does not support this browser`);
+  return delivery;
+}
 
 function renderApprovals(approvals: Approval[]) {
   const container = requireElement('approvals');
@@ -170,15 +203,24 @@ function renderApprovals(approvals: Approval[]) {
   for (const approval of approvals) {
     const article = document.createElement('article');
     const title = document.createElement('h3');
-    title.textContent = approval.packageName;
+    title.textContent = approval.kind === 'userscript' ? approval.scriptName : approval.packageName;
     const detail = document.createElement('p');
-    detail.textContent = `${approval.permissions.join(', ')} on ${approval.origin}`;
+    detail.textContent = approval.kind === 'userscript'
+      ? userscriptApprovalSummary(approval)
+      : `${approval.permissions.join(', ')} on ${approval.origin}`;
     const actions = document.createElement('div');
     actions.className = 'approval-actions';
     actions.append(approvalButton('Allow once', 'approve', approval), approvalButton('Deny', 'deny', approval));
     article.append(title, detail, actions);
     container.append(article);
   }
+}
+
+function userscriptApprovalSummary(approval: UserscriptApproval) {
+  const identity = [approval.scriptNamespace, approval.scriptVersion].filter(Boolean).join(' · ');
+  const excludes = approval.excludeMatches.length ? ` Excludes: ${approval.excludeMatches.join(', ')}.` : '';
+  const update = approval.updateUrl ? ' Includes an HTTPS update URL.' : '';
+  return `${approval.operation} ${approval.world} script${identity ? ` (${identity})` : ''} on ${approval.matches.join(', ')}. ${approval.runAt}; ${approval.grants.join(', ')}; ${approval.sourceOrigin} source, ${approval.sourceBytes} bytes.${excludes}${update}${approval.scriptDescription ? ` ${approval.scriptDescription}` : ''}`;
 }
 
 function approvalButton(label: string, decision: 'approve' | 'deny', approval: Approval) {
@@ -190,7 +232,7 @@ function approvalButton(label: string, decision: 'approve' | 'deny', approval: A
     button.disabled = true;
     try {
       await browser.runtime.sendMessage({channel: 'jangolova.extension.control', method: 'approval.resolve', params: {id: approval.id, decision}});
-      const pending = pendingMounts.get(approval.id);
+      const pending = approval.kind === 'userscript' ? undefined : pendingMounts.get(approval.id);
       pendingMounts.delete(approval.id);
       renderApprovals(await readApprovals());
       if (decision === 'approve' && pending) {

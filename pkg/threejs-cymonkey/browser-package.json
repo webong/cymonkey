@@ -1,0 +1,34 @@
+{
+  "apiVersion": "jangolova.browser-package/v1alpha1",
+  "kind": "BrowserAugmentationPackage",
+  "metadata": {
+    "id": "threejs",
+    "name": "Three.js Scene",
+    "version": "0.2.0"
+  },
+  "spec": {
+    "deliveries": [
+      {
+        "kind": "augmentation-package",
+        "entrypoint": "content.js",
+        "browsers": ["chrome", "edge", "firefox", "safari"]
+      }
+    ],
+    "permissions": [],
+    "capabilities": [
+      "threejs.overlay.mount",
+      "threejs.overlay.unmount",
+      "threejs.object.add",
+      "threejs.object.remove",
+      "resource.describe",
+      "object.visibility.set",
+      "object.transform.set",
+      "camera.projection.set",
+      "material.property.set"
+    ],
+    "launch": {
+      "name": "threejs.overlay.mount",
+      "input": {}
+    }
+  }
+}

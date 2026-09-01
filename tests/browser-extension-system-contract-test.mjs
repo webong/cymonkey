@@ -55,7 +55,9 @@ test("the extension hosts generic augmentation packages without library coupling
   assert.match(runtime, /augmentationId/);
   assert.match(policy, /method === 'cymonkey-engine\.call'/);
   assert.match(policy, /augmentationId: params\.augmentationId/);
-  assert.match(capabilities, /sandbox\.mount/);
+  assert.match(capabilities, /augmentation\.mount/);
+  assert.match(sandbox, /jangolova\.cymonkey\.browser-package\.factories/);
+  assert.match(sandbox, /mountAugmentationRuntime/);
   assert.match(runtime, /delivery === 'sandbox'/);
   assert.match(sandbox, /new MessageChannel\(\)/);
   assert.match(sandbox, /jangolova\.cymonkey\.sandbox\.connected/);

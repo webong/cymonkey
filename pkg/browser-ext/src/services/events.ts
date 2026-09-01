@@ -50,7 +50,7 @@ export const publishAuditEvent = (phase: 'requested' | 'succeeded' | 'denied' | 
   appendEvent(`audit.control.${phase}`, data);
 
 function cymonkeyEventDomain(type: string): CymonkeyDomain {
-  return /^(document|overlay|script|style|sandbox)\./.test(type) ? 'render' : 'viewer';
+  return /^(augmentation|document|overlay|script|style|sandbox)\./.test(type) ? 'render' : 'viewer';
 }
 
 export async function readEvents(query: EventQuery = {}) {

@@ -1,11 +1,15 @@
 {
   "name": "@jangolova/threejs-cymonkey",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Explicit-registration Cymonkey semantic runtime for Three.js",
   "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
-  "files": ["dist", "README.md"],
-  "scripts": { "build": "tsc -p tsconfig.json", "compile": "tsc -p tsconfig.json --noEmit" },
+  "files": ["dist", "README.md", "browser-package.json"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:browser": "node scripts/build-content.mjs",
+    "compile": "tsc -p tsconfig.json --noEmit"
+  },
   "peerDependencies": { "three": ">=0.160.0" },
-  "devDependencies": { "typescript": "^5.9.3" }
+  "devDependencies": { "@types/three": "^0.180.0", "esbuild": "^0.25.0", "three": "^0.185.1", "typescript": "^5.9.3" }
 }

@@ -19,3 +19,22 @@ runtime and exposes it through Jangolova's generic private
 Extension itself does not import or otherwise know about Three.js. The runtime
 remains protected by stable IDs and per-resource action allowlists; no render
 control is added to the public page API.
+
+## Existing-tab augmentation package
+
+This package also ships a reviewed `augmentation-package` delivery. It creates
+and owns a closed-shadow overlay, canvas, Three.js scene, camera, lights, and
+objects on an eligible existing HTTP(S) tab. The default launch action mounts
+a visible rotating cube; semantic calls can then describe resources, add or
+remove boxes and spheres, and modify only explicitly registered objects,
+materials, and the camera.
+
+Build the composed extension for Chrome, Edge, Firefox, and Safari with:
+
+```sh
+npm run build:threejs-browser-package
+```
+
+The resulting extension artifacts contain
+`augmentations/threejs/content.js`. The base Browser Extension package still
+contains no Three.js dependency or Three.js-specific action.

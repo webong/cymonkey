@@ -2,6 +2,16 @@ import { pageCapabilities } from '../src/capabilities';
 import { isRecord } from '../src/types';
 
 type OverlayRecord = { host: HTMLElement; shadow: ShadowRoot };
+type AugmentationRuntime = {
+  packageId: string;
+  dispatch(request: unknown): unknown | Promise<unknown>;
+  unmount(): void | Promise<void>;
+};
+type AugmentationFactory = (context: {
+  packageId: string;
+  augmentationId: string;
+  configuration: Record<string, unknown>;
+}) => AugmentationRuntime | Promise<AugmentationRuntime>;
 type SandboxPending = { resolve(value: unknown): void; reject(error: Error): void; timer: number };
 type SandboxRecord = {
   augmentationId: string;
@@ -27,12 +37,15 @@ type PageEvent = {
   data: Record<string, unknown>;
 };
 
+const packageFactoriesSymbol = Symbol.for('jangolova.cymonkey.browser-package.factories');
+
 export default defineContentScript({
   matches: ['<all_urls>'],
   runAt: 'document_start',
   async main() {
     const overlays = new Map<string, OverlayRecord>();
     const sandboxes = new Map<string, SandboxRecord>();
+    const augmentationRuntimes = new Map<string, AugmentationRuntime>();
     const events: PageEvent[] = [];
     const allowedPageActions = new Set(pageCapabilities.map((item) => item.name));
     let eventSequence = 0;
@@ -79,6 +92,9 @@ export default defineContentScript({
       if (!isRecord(message)) return undefined;
       if (message.channel === 'jangolova.cymonkey.sandbox') {
         return dispatchSandbox(String(message.method || ''), isRecord(message.params) ? message.params : {});
+      }
+      if (message.channel === 'jangolova.cymonkey.augmentation-runtime') {
+        return dispatchAugmentationRuntime(String(message.method || ''), isRecord(message.params) ? message.params : {});
       }
       if (message.channel !== 'jangolova.cymonkey.control') return undefined;
       return dispatch(String(message.method || ''), isRecord(message.params) ? message.params : {});
@@ -192,6 +208,52 @@ export default defineContentScript({
       if (method === 'unmount') return unmountSandbox(input);
       if (method === 'call') return callSandbox(input);
       throw new Error(`unsupported Cymonkey sandbox method ${JSON.stringify(method)}`);
+    }
+
+    async function dispatchAugmentationRuntime(method: string, input: Record<string, unknown>) {
+      if (method === 'mount') return mountAugmentationRuntime(input);
+      if (method === 'unmount') return unmountAugmentationRuntime(input);
+      if (method === 'dispatch') return callAugmentationRuntime(input);
+      throw new Error(`unsupported Cymonkey augmentation runtime method ${JSON.stringify(method)}`);
+    }
+
+    async function mountAugmentationRuntime(input: Record<string, unknown>) {
+      const packageId = requireIdentifier(input.package, 'package');
+      const augmentationId = requireIdentifier(input.augmentationId, 'augmentationId');
+      if (augmentationRuntimes.has(augmentationId)) throw new Error(`augmentation ${JSON.stringify(augmentationId)} already exists`);
+      const factories = (globalThis as Record<PropertyKey, unknown>)[packageFactoriesSymbol];
+      if (!(factories instanceof Map)) throw new Error(`augmentation package ${JSON.stringify(packageId)} did not register`);
+      const factory = factories.get(packageId);
+      if (typeof factory !== 'function') throw new Error(`augmentation package ${JSON.stringify(packageId)} did not register`);
+      const runtime = await (factory as AugmentationFactory)({
+        packageId,
+        augmentationId,
+        configuration: isRecord(input.configuration) ? input.configuration : {},
+      });
+      if (!runtime || runtime.packageId !== packageId || typeof runtime.dispatch !== 'function' || typeof runtime.unmount !== 'function') {
+        throw new Error(`augmentation package ${JSON.stringify(packageId)} returned an invalid runtime`);
+      }
+      augmentationRuntimes.set(augmentationId, runtime);
+      publishEvent('augmentation.mounted', {package: packageId, augmentationId, delivery: 'augmentation-package'});
+      return {ok: true, package: packageId, augmentationId, delivery: 'augmentation-package'};
+    }
+
+    async function unmountAugmentationRuntime(input: Record<string, unknown>) {
+      const augmentationId = requireIdentifier(input.augmentationId, 'augmentationId');
+      const runtime = augmentationRuntimes.get(augmentationId);
+      if (!runtime) throw new Error(`augmentation ${JSON.stringify(augmentationId)} does not exist`);
+      if (typeof input.package === 'string' && input.package !== runtime.packageId) throw new Error('augmentation belongs to a different package');
+      await runtime.unmount();
+      augmentationRuntimes.delete(augmentationId);
+      publishEvent('augmentation.unmounted', {package: runtime.packageId, augmentationId, delivery: 'augmentation-package'});
+      return {ok: true, package: runtime.packageId, augmentationId};
+    }
+
+    async function callAugmentationRuntime(input: Record<string, unknown>) {
+      const augmentationId = requireIdentifier(input.augmentationId, 'augmentationId');
+      const runtime = augmentationRuntimes.get(augmentationId);
+      if (!runtime) throw new Error(`augmentation ${JSON.stringify(augmentationId)} does not exist`);
+      return runtime.dispatch(input.request);
     }
 
     async function mountSandbox(input: Record<string, unknown>) {

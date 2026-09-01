@@ -25,14 +25,14 @@ test('reviewed package manifests constrain delivery, permissions, and CSP', asyn
 });
 
 test('sensitive package mounts require one-time extension UI approval', async () => {
-  const [approvals, engine, background, popup, policy] = await Promise.all([
+  const [approvals, augmentations, background, popup, policy] = await Promise.all([
     source('pkg/browser-ext/src/services/approvals.ts'),
-    source('pkg/browser-ext/src/engine.ts'),
+    source('pkg/browser-ext/src/services/augmentations.ts'),
     source('pkg/browser-ext/entrypoints/background.ts'),
     source('pkg/browser-ext/entrypoints/popup/main.ts'),
     source('pkg/browser-ext/src/services/policy.ts'),
   ]);
-  assert.match(engine, /status: 'approval-required'/);
+  assert.match(augmentations, /status: 'approval-required'/);
   assert.match(approvals, /lifetimeMilliseconds = 5 \* 60 \* 1000/);
   assert.match(approvals, /approvals\.splice\(index, 1\)/);
   assert.doesNotMatch(approvals, /configuration|apiToken|token/);
@@ -42,9 +42,35 @@ test('sensitive package mounts require one-time extension UI approval', async ()
   assert.match(popup, /Allow once/);
   assert.match(popup, /approval\.resolve/);
   assert.match(popup, /packages\.list/);
-  assert.match(popup, /sandbox\.mount/);
+  assert.match(popup, /augmentation\.mount/);
   assert.match(popup, /cymonkey-engine\.call/);
   assert.match(popup, /Configuration stays in this popup|configuration must be a JSON object/);
+});
+
+test('agent-authored userscripts receive revision-bound popup approval', async () => {
+  const [runtime, service, managedRuntime, approvals, background, popup, docs] = await Promise.all([
+    source('pkg/userscript-runtime/src/create.ts'),
+    source('pkg/browser-ext/src/services/userscripts.ts'),
+    source('pkg/browser-ext/src/services/userscript-runtime.ts'),
+    source('pkg/browser-ext/src/services/userscript-approvals.ts'),
+    source('pkg/browser-ext/entrypoints/background.ts'),
+    source('pkg/browser-ext/entrypoints/popup/main.ts'),
+    source('docs/userscripts.md'),
+  ]);
+  assert.match(runtime, /draft\.code\.includes\('==UserScript=='\)/);
+  assert.match(runtime, /source: \{origin: 'user', code\}/);
+  assert.match(service, /userscript\.prepare/);
+  assert.match(service, /authorizeUserscriptMutation\('install'/);
+  assert.match(service, /configureManagedWorld/);
+  assert.doesNotMatch(service, /approvedPermissionIncrease|approveMainWorld|input\.approved/);
+  assert.match(approvals, /userscript-approval-/);
+  assert.match(approvals, /left\.revision === right\.revision/);
+  assert.match(approvals, /publicDescription\(manifest\)/);
+  assert.match(managedRuntime, /onUserScriptConnect/);
+  assert.match(managedRuntime, /userscript action timed out/);
+  assert.match(background, /listUserscriptApprovals/);
+  assert.match(popup, /UserscriptApproval/);
+  assert.match(docs, /userscript\.prepare/);
 });
 
 test('opaque sandbox storage is ephemeral and does not weaken the origin boundary', () => {

@@ -55,7 +55,7 @@ const defaultPolicy: ControlPolicy = {
       id: 'default-standalone-package-ui',
       decision: 'allow',
       callers: ['extension-origin'],
-      capabilities: ['sandbox.mount', 'sandbox.unmount', 'cymonkey-engine.call'],
+      capabilities: ['augmentation.mount', 'augmentation.unmount', 'cymonkey-engine.call'],
     },
   ],
 };
@@ -209,7 +209,7 @@ function escapeRegularExpression(value: string) {
 }
 
 function affectsTab(capability: string) {
-  return /^(document|overlay|script|style|sandbox|network|cymonkey|cymonkey-engine)\./.test(capability);
+  return /^(augmentation|document|overlay|script|style|sandbox|network|cymonkey|cymonkey-engine)\./.test(capability);
 }
 
 function safeOrigin(value?: string) {

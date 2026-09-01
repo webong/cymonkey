@@ -14,8 +14,8 @@ const extensionCapabilities = [
   capability('script.unregister', 'Unregister an augmentation content script.', 'external', ['augmentationId', 'id'], 'installation', 'persistent', 'render'),
   capability('style.insert', 'Insert CSS in a target tab.', 'write', ['augmentationId', 'css'], 'surface', 'ephemeral', 'render'),
   capability('style.remove', 'Remove previously inserted CSS from a target tab.', 'write', ['augmentationId', 'css'], 'surface', 'ephemeral', 'render'),
-  capability('sandbox.mount', 'Mount an approved sandbox package in a target tab.', 'write', ['augmentationId', 'id', 'package'], 'surface', 'ephemeral', 'render'),
-  capability('sandbox.unmount', 'Remove a mounted sandbox package from a target tab.', 'write', ['augmentationId', 'id'], 'surface', 'ephemeral', 'render'),
+  capability('augmentation.mount', 'Mount an approved reviewed augmentation package in a target tab.', 'write', ['augmentationId', 'package'], 'surface', 'ephemeral', 'render'),
+  capability('augmentation.unmount', 'Remove a mounted reviewed augmentation package from a target tab.', 'write', ['augmentationId', 'package'], 'surface', 'ephemeral', 'render'),
   capability('network.rules.install', 'Install owned declarative network rules.', 'external', ['augmentationId', 'rules']),
   capability('network.rules.remove', 'Remove owned declarative network rules.', 'external', ['augmentationId', 'ruleIds']),
   capability('storage.get', 'Read augmentation-scoped extension storage.', 'read', ['augmentationId', 'keys']),
@@ -23,8 +23,11 @@ const extensionCapabilities = [
 ];
 
 export const userscriptCapabilities = [
-  capability('userscript.install', 'Install an explicitly approved userscript manifest.', 'external', ['manifest', 'approved']),
-  capability('userscript.update', 'Update an installed userscript after permission checks.', 'external', ['manifest']),
+  capability('userscript.prepare', 'Prepare a reviewable grant-none userscript manifest from an agent-authored script body.', 'external', ['id', 'name', 'matches', 'code']),
+  capability('userscript.call', 'Call a declared action in a connected managed userscript.', 'external', ['id', 'target', 'request']),
+  capability('userscript.runtime.describe', 'Describe declared actions for a managed userscript in a target tab.', 'read', ['id', 'target'], 'call', 'ephemeral'),
+  capability('userscript.install', 'Request installation of a userscript manifest; the popup approves the exact revision once.', 'external', ['manifest']),
+  capability('userscript.update', 'Request an update of an installed userscript; the popup approves the new revision once.', 'external', ['manifest']),
   capability('userscript.uninstall', 'Remove an installed userscript.', 'external', ['id']),
   capability('userscript.enable', 'Enable an installed userscript when native execution is available.', 'external', ['id']),
   capability('userscript.disable', 'Disable an installed userscript.', 'external', ['id']),
@@ -41,7 +44,5 @@ export function sandboxPackagesSupported() {
 }
 
 export function browserPrivilegedCapabilityNames() {
-  return sandboxPackagesSupported()
-    ? privilegedCapabilityNames
-    : privilegedCapabilityNames.filter((name) => !name.startsWith('sandbox.'));
+  return privilegedCapabilityNames;
 }
