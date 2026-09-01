@@ -1,14 +1,20 @@
-# Jangolova
+# Cymonkey
 
-Jangolova is a deployment-neutral interaction and presentation engine toolkit.
-It uses Playwright, Puppeteer, Three.js, Unity, Unreal, and cooperative bridge
-integrations to observe, operate, and present through caller-owned targets.
+Cymonkey is a deployment-neutral interaction, presentation, and observation
+platform. It contains Jangolova, the direct interaction and presentation tool
+server, and Blockade, the read-only visual observation subsystem. Together they
+use Playwright, Puppeteer, Three.js, Unity, Unreal, and cooperative bridge
+integrations to work through caller-owned targets.
+
+Jangolova remains the current executable, protocol, and package identity during
+the compatibility-first naming migration. See
+[Cymonkey naming migration](docs/naming-migration.md).
 
 Its product goal has two equal parts: operate existing interfaces—including
 clicking and typing through semantic or display-level contracts—and create
 dynamic 2D/3D interfaces that agents can present and update.
 
-Jangolova is not an agent or model gateway. Any external agent, IDE, or
+Neither Cymonkey nor Jangolova is an agent or model gateway. Any external agent, IDE, or
 deterministic application supplies planning and reasoning; Jangolova supplies
 the attached, policy-governed observation and action tools through HTTP and
 MCP.
@@ -18,9 +24,14 @@ containers, VMs, networking, or credentials. Xallet owns those concerns when
 the products run together; a native user or another operator can provide the
 same target endpoints and handles without Xallet.
 
-## Included interaction engines
+## Platform components
 
-- **Cymonkey Master Control Plane (`jangolova.cymonkey/v1alpha2`)**: Runtime-agnostic control plane engine governing automation, interaction, and 2D/3D presentation across caller-owned targets.
+- **Jangolova Tool Server**: Direct HTTP and MCP tools for attaching to targets,
+  negotiating capabilities, enforcing policy and approvals, and executing
+  interaction or presentation calls.
+- **Cymonkey Master Control Plane (`jangolova.cymonkey/v1alpha2`)**:
+  Runtime-agnostic control plane governing automation, interaction, and 2D/3D
+  presentation across caller-owned targets.
   - **Automation Drivers**: Integrated Playwright and Puppeteer CDP/WebDriver BiDi drivers for generic window primitives (`window.navigate`, `window.click`, `window.fill`, `window.press`, `window.evaluate`, `window.screenshot`).
   - **Web & Extension Drivers**: Jangolova WebExtension control plane, Cymonkey augmented browsing, userscripts runtime (`jangolova.cymonkey.userscript/v1alpha1`), and Safari MCP relay.
   - **Viewer Domain Drivers**: Browser and bounded macOS application operations via WebExtension, CDP/BiDi, Apple Events, and Accessibility.
@@ -28,10 +39,14 @@ same target endpoints and handles without Xallet.
   - **Player Domain**: Reserved for negotiated, typed content-session controls; it never transfers player lifecycle ownership to Jangolova.
 - WebDriver Classic attachment to an existing caller-owned session, including Safari's `safaridriver`.
 - Named WebKit WebDriver attachment for WebKitGTK, WPE WebKit, and Safari.
-- Blockade pixel observation contract and external/managed YOLO/SAM vision workers.
+- **Blockade**: Pixel observation contract and external/managed YOLO/SAM vision
+  workers, with native ONNX support.
 - Target-preserving disconnect, active health, and lifecycle events.
 
 ## Commands
+
+The command is still named `jangolova` while the Cymonkey-facing command and
+distribution aliases are introduced.
 
 Discover installed interaction engines:
 

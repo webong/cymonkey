@@ -1,9 +1,9 @@
 # Blockade
 
-Blockade is a read-only visual observation subsystem used by Jangolova and
-available standalone. It runs local or caller-owned pixel-oriented models and
-returns normalized detections, regions, masks, and confidence. It does not
-plan, interact with targets, or host an agent.
+Blockade is Cymonkey's read-only visual observation subsystem, used by
+Jangolova and available standalone. It runs local or caller-owned
+pixel-oriented models and returns normalized detections, regions, masks, and
+confidence. It does not plan, interact with targets, or host an agent.
 
 ## Ownership boundary
 
@@ -30,7 +30,7 @@ Blockade has no Cymonkey dependency. It does not know whether a supplied image
 came from a browser, desktop application, renderer, file, or camera, and it
 never initiates an action from an observation.
 
-## Jangolova composition
+## Cymonkey/Jangolova composition
 
 When an external agent uses Blockade through Jangolova, Jangolova is the
 context switcher:
