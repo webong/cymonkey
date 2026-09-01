@@ -18,6 +18,17 @@ docker build -f deploy/blockade/Containerfile -t jangolova/blockade:yolo-sam .
 docker run --rm -p 127.0.0.1:8091:8091 jangolova/blockade:yolo-sam
 ```
 
+Blockade also has a standalone Go executable for the same contract. It can
+run a configured local engine directly and expose the HTTP service without the
+Python FastAPI container:
+
+```sh
+go build -o .cache/bin/blockade ./cmd/blockade
+.cache/bin/blockade serve \
+  --config infra/deploy/blockade/blockade.example.yaml \
+  --bind 127.0.0.1:8091
+```
+
 For a reproducible local fixture with read-only model mounts:
 
 ```sh

@@ -1,0 +1,25 @@
+apiVersion: cymonkey.config/v1alpha1
+kind: CymonkeyHost
+
+# Cymonkey composes standalone subsystem executables. Build and place
+# `jangolova` and `blockade` on PATH, or replace these commands with absolute
+# paths from the deployment image.
+components:
+  - id: blockade
+    command:
+      - blockade
+      - serve
+      - --config
+      - infra/deploy/blockade/blockade.example.yaml
+      - --bind
+      - 127.0.0.1:8091
+
+  - id: jangolova
+    command:
+      - jangolova
+      - serve-mcp
+      - --bind
+      - 127.0.0.1:7393
+    environment:
+      JANGOLOVA_PROVIDER_TOKEN: replace-with-a-random-secret
+      JANGOLOVA_BLOCKADE_ENDPOINT: http://127.0.0.1:8091

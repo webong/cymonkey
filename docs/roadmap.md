@@ -9,6 +9,10 @@
 - [x] Add a direct MCP tool server over the same Engine Provider operations.
 - [x] Record requested, denied, failed, and completed action audit events at
   the execution boundary.
+- [x] Add the standalone `blockade` executable and the initial `cymonkey`
+  host that composes standalone Jangolova and Blockade processes.
+- [ ] Add host-level component health, discovery, restart policy, and
+  coordinated routing.
 
 ## Phase 1: Correct interaction boundary
 

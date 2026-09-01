@@ -32,6 +32,16 @@ never initiates an action from an observation.
 
 ## Cymonkey/Jangolova composition
 
+Cymonkey may supervise the standalone `blockade` executable alongside the
+standalone `jangolova` tool server. Blockade remains usable without Cymonkey:
+
+```sh
+blockade serve --config infra/deploy/blockade/blockade.example.yaml
+```
+
+The host only manages process lifecycle and composition. It does not absorb
+Blockade's model configuration or provider-specific inference behavior.
+
 When an external agent uses Blockade through Jangolova, Jangolova is the
 context switcher:
 

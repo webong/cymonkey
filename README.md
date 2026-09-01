@@ -1,10 +1,10 @@
 # Cymonkey
 
-Cymonkey is a deployment-neutral interaction, presentation, and observation
-platform. It contains Jangolova, the direct interaction and presentation tool
-server, and Blockade, the read-only visual observation subsystem. Together they
-use Playwright, Puppeteer, Three.js, Unity, Unreal, and cooperative bridge
-integrations to work through caller-owned targets.
+Cymonkey is a deployment-neutral operator and host for two independently
+executable subsystems: Jangolova, the direct interaction and presentation tool
+server, and Blockade, the read-only visual observation subsystem. Cymonkey
+composes them through a host manifest and coordinates their lifecycle without
+embedding either subsystem.
 
 Jangolova remains the current executable, protocol, and package identity during
 the compatibility-first naming migration. See
@@ -26,6 +26,8 @@ same target endpoints and handles without Xallet.
 
 ## Platform components
 
+- **Cymonkey Host**: Starts, supervises, and stops standalone subsystem
+  processes from a `cymonkey.config/v1alpha1` manifest.
 - **Jangolova Tool Server**: Direct HTTP and MCP tools for attaching to targets,
   negotiating capabilities, enforcing policy and approvals, and executing
   interaction or presentation calls.
@@ -45,8 +47,20 @@ same target endpoints and handles without Xallet.
 
 ## Commands
 
-The command is still named `jangolova` while the Cymonkey-facing command and
-distribution aliases are introduced.
+`cymonkey`, `jangolova`, and `blockade` are separate executable surfaces.
+
+Build and run the host with standalone subsystem binaries on `PATH`:
+
+```bash
+go build -o .cache/bin/cymonkey ./cmd/cymonkey
+go build -o .cache/bin/jangolova ./cmd/jangolova
+go build -o .cache/bin/blockade ./cmd/blockade
+PATH="$PWD/.cache/bin:$PATH" cymonkey run \
+  --config infra/deploy/cymonkey/cymonkey.example.yaml
+```
+
+The existing `jangolova` command remains independently usable, including its
+compatibility `jangolova blockade` subcommand.
 
 Discover installed interaction engines:
 
@@ -121,12 +135,13 @@ without restarting that target or replaying semantic actions; see
 ## Ownership boundary
 
 ```text
-Agent -> Jangolova interaction engine -> caller-owned target
+Agent -> Cymonkey MCP tools -> Jangolova interaction engine -> caller-owned target
              Playwright --- CDP ---------- Chromium
              Puppeteer ---- CDP/BiDi ----- Chromium/Firefox
              WebDriver ---- existing ----- WebKitGTK/WPE/Safari
              Safari MCP --- MCP relay ---- Safari 27 beta/STP
              Three.js/Unity/Unreal ------- presentation target
+             screenshot ------------------ Blockade observation
 ```
 
 The repository boundary test prevents Chromium launch, native-process launch,
@@ -135,6 +150,7 @@ from returning to Jangolova product code. Test fixtures may create temporary
 targets solely to verify attachment portability.
 
 See [Architecture](docs/architecture.md), [Interaction provider](docs/engine-provider.md),
+[Cymonkey host](docs/cymonkey-host.md),
 [Deployment modes](docs/deployment-modes.md), [Bridge protocol](docs/bridge-protocol.md),
 [the headless engine test server runbook](docs/headless-engine-server.md),
 [Cymonkey runtime-agnostic augmentation](docs/cymonkey-runtime.md),

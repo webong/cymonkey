@@ -1,21 +1,28 @@
 # Cymonkey architecture
 
-Cymonkey is the umbrella platform. Jangolova is its direct interaction,
-presentation, and MCP tool-server layer; Blockade is its read-only visual
-observation layer. This repository is migrating the public product identity to
-Cymonkey while preserving existing Jangolova executable, package, environment,
+Cymonkey is the operator and host. Jangolova is its standalone interaction,
+presentation, and MCP tool-server subsystem; Blockade is its standalone
+read-only visual observation subsystem. Cymonkey composes and supervises their
+processes while preserving existing Jangolova executable, package, environment,
 and protocol identifiers for compatibility. See
 [Cymonkey naming migration](naming-migration.md).
+
+The host boundary is executable-oriented: it starts standalone `jangolova` and
+`blockade` processes from a `cymonkey.config/v1alpha1` manifest. It may
+coordinate their endpoints, but it does not embed their implementation or
+transfer target ownership to either subsystem. See
+[Cymonkey host and operator](cymonkey-host.md).
 
 Unity, Unreal, Godot, and Three.js semantic presentation use the Cymonkey
 `render` domain: Jangolova dials a caller-owned semantic endpoint while the
 engine keeps rendering and the supervisor separately owns target and display
 lifecycle.
 
-Jangolova is the interaction and presentation toolbox inside Cymonkey, not an
-agent. External agents, IDEs, and applications own planning and decisions;
+Jangolova is the interaction and presentation toolbox hosted by Cymonkey, not
+an agent. External agents, IDEs, and applications own planning and decisions;
 Xallet, a native host, or another operator owns the target runtimes with which
-Jangolova interacts.
+Jangolova interacts. Blockade is the separate observation process that receives
+pixels and returns normalized visual results.
 
 Interaction includes operating semantic browser/application interfaces and
 requesting display-level pointer/keyboard actions. Presentation includes
