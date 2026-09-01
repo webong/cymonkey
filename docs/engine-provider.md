@@ -294,7 +294,7 @@ adds its configuration path and launches its signed helper:
     "environment": {
       "JANGOLOVA_CYMONKEY_CONTROL_URL": "ws://127.0.0.1:49152/bridge",
       "JANGOLOVA_CYMONKEY_CONTROL_TOKEN": "ephemeral-secret",
-      "JANGOLOVA_CYMONKEY_PROTOCOL": "jangolova.cymonkey/v1alpha2"
+      "JANGOLOVA_CYMONKEY_PROTOCOL": "cymonkey/v1alpha1"
     }
   }
 }

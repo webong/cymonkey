@@ -2,12 +2,12 @@
 
 Userscripts are user-installed JavaScript programs that run on matching web
 documents. Cymonkey owns their semantic lifecycle as a high-trust augmentation
-form. They are not a separate Jangolova subsystem, ordinary packaged scripts,
+form. They are not a separate Cymonkey subsystem, ordinary packaged scripts,
 or a raw extension API.
 
-The manifest payload is `jangolova.cymonkey.userscript/v1alpha1`. Its shared
+The manifest payload is `cymonkey.userscript/v1alpha1`. Its shared
 validation and registration planning live in `pkg/userscript-runtime` and are
-consumed by the Jangolova extension manager in WXT and the Safari WebExtension
+consumed by the Cymonkey extension manager in WXT and the Safari WebExtension
 embedded in `pkg/macos-ext`. Cymonkey augmentation manifests may carry these
 payloads under `spec.web.userscripts`.
 
@@ -46,7 +46,7 @@ revision, display name, match/exclude patterns, run timing, execution world,
 declared grants, source provenance, and enabled state.
 
 The MVP accepts `@grant none` only. Brokered Greasemonkey/Tampermonkey-style
-grants require separate, schema-described Jangolova capabilities in a later
+grants require separate, schema-described Cymonkey capabilities in a later
 version. Undeclared network, storage, native messaging, and extension API
 access are not inferred from source text.
 
@@ -59,7 +59,7 @@ block so the prepared match patterns, execution world, and `@grant none`
 declaration are the values the user sees.
 
 The caller then sends that exact manifest to `userscript.install` (or
-`userscript.update`). Jangolova returns an approval request rather than trusting
+`userscript.update`). Cymonkey returns an approval request rather than trusting
 an `approved: true` field from the caller. The extension popup displays a
 source-free summary, and the user may approve it once. The caller retries with
 the returned approval ID and the unchanged manifest; the approval is consumed
@@ -114,12 +114,12 @@ This gives an agent two deliberate augmentation paths:
 1. For lightweight, page-local behavior, prepare a userscript, get one-time
    user approval, and install it through the browser-native `userScripts` API.
 2. For a stateful runtime or bundled dependency such as Three.js, create a
-   reviewed augmentation package, include it in the Jangolova product build,
+   reviewed augmentation package, include it in the Cymonkey product build,
    and mount that package under its declared permissions.
 
 Neither path permits a page or an external caller to bypass the extension's
 approval and control policy. The page-safe projection of
-`window.jangolova.cymonkey` does not advertise userscript capabilities.
+`window.cymonkey.jangolova` does not advertise userscript capabilities.
 
 Before enabling a script, the UI must show:
 
@@ -139,7 +139,7 @@ The shared package parses, validates, normalizes, compares permissions, and
 produces a browser-neutral registration plan. It does not call WebExtension
 APIs itself.
 
-The Jangolova extension supplies the browser manager/backend. Its preferred
+The Cymonkey extension supplies the browser manager/backend. Its preferred
 runtime adapter is the MV3
 `userScripts` API, which is designed for user-provided arbitrary code. The
 extension advertises userscript execution only after probing the API with a
@@ -154,12 +154,12 @@ or installing an enabled script fails safely and no source is executed.
 
 Chrome requires the `userScripts` permission and a user-controlled setting.
 Firefox MV3 also provides a dedicated `userScripts` API. Safari support is
-capability-probed in the embedded WebExtension; Jangolova does not infer it
+capability-probed in the embedded WebExtension; Cymonkey does not infer it
 from generic `scripting` support.
 
 ## Storage and lifecycle
 
-The canonical extension-side record is stored under a Jangolova-owned
+The canonical extension-side record is stored under a Cymonkey-owned
 namespace in `browser.storage.local`. Source is size-bounded and never copied
 into events or descriptions. Descriptions return source metadata and hashes,
 not source code, unless an authenticated caller explicitly requests a source
@@ -176,7 +176,7 @@ changes. Event payloads omit source and credentials.
 ## Ownership boundary
 
 Cymonkey owns the programmatic contract: install, update, uninstall,
-enable/disable, list, describe, and lifecycle events. The Jangolova extension
+enable/disable, list, describe, and lifecycle events. The Cymonkey extension
 manager implements browser-native approval, persistence, registration,
 reconciliation, and the Safari native metadata bridge. Cymonkey never exposes
 that manager's raw `chrome.*`, `browser.*`, or Safari APIs.

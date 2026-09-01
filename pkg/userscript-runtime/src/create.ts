@@ -59,8 +59,8 @@ function managedRuntimePrelude(id: string, world: ExecutionWorld) {
   if (!runtime?.connect) return;
   const scriptId = ${JSON.stringify(id)};
   const handlers = new Map();
-  const port = runtime.connect({name: 'jangolova.cymonkey.userscript/v1alpha1'});
-  const send = (value) => { try { port.postMessage({channel: 'jangolova.cymonkey.userscript/v1alpha1', scriptId, ...value}); } catch {} };
+  const port = runtime.connect({name: 'cymonkey.userscript/v1alpha1'});
+  const send = (value) => { try { port.postMessage({channel: 'cymonkey.userscript/v1alpha1', scriptId, ...value}); } catch {} };
   const bridge = Object.freeze({
     register(actions) {
       if (!actions || typeof actions !== 'object' || Array.isArray(actions)) throw new Error('userscript actions must be an object');
@@ -79,7 +79,7 @@ function managedRuntimePrelude(id: string, world: ExecutionWorld) {
   Object.defineProperty(cymonkey, 'jangolova', {value: bridge, configurable: false, writable: false});
   Object.defineProperty(globalThis, 'cymonkey', {value: cymonkey, configurable: false, writable: false});
   port.onMessage.addListener(async (message) => {
-    if (!message || message.channel !== 'jangolova.cymonkey.userscript/v1alpha1' || message.type !== 'call' || typeof message.requestId !== 'string') return;
+    if (!message || message.channel !== 'cymonkey.userscript/v1alpha1' || message.type !== 'call' || typeof message.requestId !== 'string') return;
     const request = message.request;
     const name = request?.method === 'act' ? request.params?.name : undefined;
     const input = request?.method === 'act' && request.params?.input && typeof request.params.input === 'object' && !Array.isArray(request.params.input) ? request.params.input : {};

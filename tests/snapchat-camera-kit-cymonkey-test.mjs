@@ -35,8 +35,8 @@ test('Camera Kit remains outside the browser extension bundle', async () => {
   assert.match(packageSource, /Start camera/);
   assert.match(packageSource, /getUserMedia/);
   assert.match(packageSource, /mediaProvider/);
-  assert.match(sandboxSource, /jangolova\.cymonkey\.media\.request/);
+  assert.match(sandboxSource, /cymonkey\.jangolova\.media\.request/);
   assert.match(sandboxSource, /RTCPeerConnection/);
   assert.match(packageSource, /installGlobal/);
-  assert.deepEqual(JSON.parse(tsconfig).include, ['src/index.ts']);
+  assert.deepEqual(JSON.parse(tsconfig).include, ['src/index.ts', 'src/sandbox.ts']);
 });

@@ -1,7 +1,7 @@
 import Foundation
 
 public actor UserscriptCatalog {
-    public static let recordKey = "jangolova.userscripts.catalog.v1"
+    public static let recordKey = "cymonkey.userscripts.catalog.v1"
     private let defaults: UserDefaults
 
     public init(appGroup: String? = nil) {

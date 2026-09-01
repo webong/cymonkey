@@ -4,11 +4,11 @@ type Context = {
 };
 type SandboxPackage = {
     id: string;
-    connect(context: Context, port: MessagePort): void;
+    connect(context: Context, port: MessagePort): Promise<void>;
 };
 declare global {
     interface Window {
-        jangolovaSandboxPackage?: SandboxPackage;
+        cymonkeySandboxPackage?: SandboxPackage;
     }
 }
 export {};

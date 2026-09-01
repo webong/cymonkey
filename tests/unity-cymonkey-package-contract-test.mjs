@@ -10,11 +10,11 @@ const host = await readFile(new URL("Runtime/CymonkeyWebSocketHost.cs", root), "
 const transport = await readFile(new URL("Runtime/ICymonkeyTransportHost.cs", root), "utf8");
 const goProtocol = await readFile(new URL("../internal/cymonkey/protocol.go", import.meta.url), "utf8");
 
-assert.equal(manifest.name, "com.jangolova.cymonkey");
+assert.equal(manifest.name, "com.cymonkey.jangolova");
 assert.equal(manifest.unity, "2022.3");
 const unityVersion = protocol.match(/Version = "([^"]+)"/)?.[1];
 const goVersion = goProtocol.match(/ProtocolVersion\s+= "([^"]+)"/)?.[1];
-assert.equal(unityVersion, "jangolova.cymonkey/v1alpha2");
+assert.equal(unityVersion, "cymonkey/v1alpha1");
 assert.equal(unityVersion, goVersion);
 for (const method of ["hello", "capabilities", "describe", "act", "events", "health"]) assert.ok(bridge.includes(`"${method}"`));
 for (const kind of ["scene", "object", "ui", "camera", "material", "animation", "timeline", "artifact", "event"]) assert.ok(protocol.includes(kind));

@@ -1,6 +1,6 @@
 # Cymonkey v1alpha2 Protocol Bindings
 
-Generated Go bindings for the `jangolova.cymonkey/v1alpha2` protocol.
+Generated Go bindings for the `cymonkey/v1alpha1` protocol.
 
 ## Regeneration
 

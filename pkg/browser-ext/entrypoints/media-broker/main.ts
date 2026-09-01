@@ -5,7 +5,7 @@ type BrokerSession = {peer: RTCPeerConnection; stream: MediaStream};
 const sessions = new Map<string, BrokerSession>();
 
 browser.runtime.onMessage.addListener((message) => {
-  if (!isRecord(message) || message.target !== 'jangolova.media-broker.offscreen') return undefined;
+  if (!isRecord(message) || message.target !== 'cymonkey.jangolova.media-broker.offscreen') return undefined;
   return dispatch(String(message.method || ''), isRecord(message.params) ? message.params : {});
 });
 

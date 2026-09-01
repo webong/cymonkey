@@ -19,7 +19,7 @@ else
   /bin/mkdir -p "${project_dir}"
   /usr/bin/xcrun safari-web-extension-converter "${web_extension_dir}" \
     --project-location "${project_dir}" \
-    --app-name "Jangolova" \
+    --app-name "Cymonkey" \
     --bundle-identifier "dev.jangolova.macos" \
     --swift --macos-only --copy-resources --no-open --no-prompt
 fi

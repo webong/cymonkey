@@ -2,7 +2,7 @@
 
 This is an optional `render/browser-dom` sandbox augmentation package. It integrates
 Snap Camera Kit Web without adding Snap's SDK, a camera permission, or Snap
-credentials to Jangolova Browser Extension itself.
+credentials to Cymonkey Browser Extension itself.
 
 The package owns a canvas and its Camera Kit session. It exposes only its
 declared Cymonkey actions:
@@ -23,7 +23,7 @@ Lens IDs from Snap.
 ## Sandbox deployment
 
 Camera Kit Web downloads its Lens renderer as WebAssembly from Snap. It cannot
-execute in the ordinary MV3 extension or content-script context. Jangolova
+execute in the ordinary MV3 extension or content-script context. Cymonkey
 therefore runs this package inside its extension sandbox page: a separate
 extension origin with no WebExtension APIs and a narrowly composed Camera Kit
 Content Security Policy.
@@ -54,7 +54,7 @@ Cymonkey requests through it:
 ```
 
 The first camera-permission mount returns a short-lived `approvalId`. The user
-reviews it in the Jangolova extension popup and chooses **Allow once**. The
+reviews it in the Cymonkey extension popup and chooses **Allow once**. The
 caller then retries the identical input with that `approvalId`; successful
 mounting consumes it.
 
@@ -66,7 +66,7 @@ token, port, or any extension APIs.
 
 The user must click the owned **Start camera** button before capture begins. A
 target-owned standalone runtime uses `getUserMedia` directly. The browser
-extension uses Jangolova's generic offscreen media broker and a local WebRTC
+extension uses Cymonkey's generic offscreen media broker and a local WebRTC
 track because an opaque extension sandbox cannot call `getUserMedia`, and an
 arbitrary target site's Permissions Policy must not decide whether an approved
 extension package can acquire media. An agent may apply or remove an approved

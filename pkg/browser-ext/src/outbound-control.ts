@@ -1,4 +1,4 @@
-const configurationKey = 'jangolova.outboundControl.v1';
+const configurationKey = 'cymonkey.outboundControl.v1';
 
 type ControlSource = 'xallet-spook' | 'authenticated-websocket' | 'extension-origin';
 
@@ -102,8 +102,8 @@ export class OutboundControlClient {
       if (this.socket !== socket || !this.configuration) return;
       this.setStatus('authenticating');
       socket.send(JSON.stringify({
-        type: 'JANGOLOVA_EXTENSION_AUTH',
-        protocolVersion: 'jangolova.browser-extension/v1alpha1',
+        type: 'CYMONKEY_EXTENSION_AUTH',
+        protocolVersion: 'cymonkey.browser-extension/v1alpha1',
         token: this.configuration.token,
       }));
     });
@@ -117,7 +117,7 @@ export class OutboundControlClient {
     let value: unknown;
     try { value = JSON.parse(raw); } catch { return; }
     if (!isRecord(value)) return;
-    if (value.type === 'JANGOLOVA_EXTENSION_AUTHENTICATED') {
+    if (value.type === 'CYMONKEY_EXTENSION_AUTHENTICATED') {
       this.retry = 0;
       this.setStatus('connected');
       this.startHeartbeat(socket);
@@ -127,9 +127,9 @@ export class OutboundControlClient {
     const id = typeof value.id === 'string' || typeof value.id === 'number' ? value.id : null;
     try {
       const response = await this.handleControl(value, 'authenticated-websocket');
-      socket.send(JSON.stringify({type: 'JANGOLOVA_EXTENSION_RESPONSE', id, ...response}));
+      socket.send(JSON.stringify({type: 'CYMONKEY_EXTENSION_RESPONSE', id, ...response}));
     } catch (error) {
-      socket.send(JSON.stringify({type: 'JANGOLOVA_EXTENSION_RESPONSE', id, ok: false, error: errorMessage(error)}));
+      socket.send(JSON.stringify({type: 'CYMONKEY_EXTENSION_RESPONSE', id, ok: false, error: errorMessage(error)}));
     }
   }
 
@@ -137,7 +137,7 @@ export class OutboundControlClient {
     if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
     this.heartbeatTimer = setInterval(() => {
       if (this.socket === socket && socket.readyState === 1) {
-        socket.send(JSON.stringify({type: 'JANGOLOVA_EXTENSION_PING', occurredAt: new Date().toISOString()}));
+        socket.send(JSON.stringify({type: 'CYMONKEY_EXTENSION_PING', occurredAt: new Date().toISOString()}));
       }
     }, 20_000);
   }
@@ -165,7 +165,7 @@ export class OutboundControlClient {
     this.heartbeatTimer = undefined;
     const socket = this.socket;
     this.socket = null;
-    socket?.close(1000, 'Jangolova control reconfigured');
+    socket?.close(1000, 'Cymonkey control reconfigured');
   }
 
   private setStatus(status: OutboundControlStatus) {
@@ -194,7 +194,7 @@ export function validateOutboundConfiguration(value: unknown): OutboundControlCo
 }
 
 function isExtensionControlCall(message: unknown): message is Record<string, unknown> {
-  return isRecord(message) && message.type === 'JANGOLOVA_EXTENSION_CALL';
+  return isRecord(message) && message.type === 'CYMONKEY_EXTENSION_CALL';
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

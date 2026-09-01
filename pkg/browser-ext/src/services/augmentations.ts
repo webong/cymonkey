@@ -20,7 +20,7 @@ export async function mountReviewedAugmentation(input: Record<string, unknown>) 
   if (!approval.approved) return {ok: false, status: 'approval-required', approval: approval.approval};
 
   if (packageValue.delivery.kind === 'sandbox') {
-    return sendToTabChannel(tabId, 'jangolova.cymonkey.sandbox', 'mount', input);
+    return sendToTabChannel(tabId, 'cymonkey.jangolova.sandbox', 'mount', input);
   }
 
   await sendToTab(tabId, 'describe', {});
@@ -29,7 +29,7 @@ export async function mountReviewedAugmentation(input: Record<string, unknown>) 
     files: [`augmentations/${packageValue.description.id}/${packageValue.delivery.entrypoint}`],
     world: 'ISOLATED',
   } as unknown as Parameters<typeof browser.scripting.executeScript>[0]);
-  return sendToTabChannel(tabId, 'jangolova.cymonkey.augmentation-runtime', 'mount', {
+  return sendToTabChannel(tabId, 'cymonkey.jangolova.augmentation-runtime', 'mount', {
     ...input,
     package: packageValue.description.id,
     augmentationId,
@@ -41,8 +41,8 @@ export async function unmountReviewedAugmentation(input: Record<string, unknown>
   const augmentationId = requireScopedIdentifier(input.augmentationId, 'augmentationId');
   const tabId = requireTabID(await targetTab(input.target));
   const channel = packageValue.delivery.kind === 'sandbox'
-    ? 'jangolova.cymonkey.sandbox'
-    : 'jangolova.cymonkey.augmentation-runtime';
+    ? 'cymonkey.jangolova.sandbox'
+    : 'cymonkey.jangolova.augmentation-runtime';
   return sendToTabChannel(tabId, channel, 'unmount', {...input, augmentationId});
 }
 

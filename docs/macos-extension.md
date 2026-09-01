@@ -1,6 +1,6 @@
-# Jangolova macOS Extension
+# Cymonkey macOS Extension
 
-`pkg/macos-ext` is the user-facing Jangolova host for macOS. It is a menu-bar
+`pkg/macos-ext` is the user-facing Cymonkey host for macOS. It is a menu-bar
 application with an embedded Safari WebExtension. It imports the reusable
 `CymonkeyMacOSRuntime` library from `pkg/macos-cymonkey-helper`; the distinct
 headless helper executable remains available for remote, server, and
@@ -10,7 +10,7 @@ provider-owned attachment.
 
 The menu-bar application presents:
 
-- Jangolova and Cymonkey connection state;
+- Cymonkey and Jangolova connection state;
 - start/stop controls for local managed Cymonkey attachment;
 - Automation and Accessibility permission state;
 - installed userscript status, with enable/disable controls only when the
@@ -18,7 +18,7 @@ The menu-bar application presents:
 - Safari WebExtension state and a shortcut to Safari extension preferences;
 - access to logs containing semantic status only, never script source,
   credentials, Apple Event payloads, or Accessibility values;
-- Quit, which stops Jangolova-owned attachment work but never quits augmented
+- Quit, which stops Cymonkey-owned attachment work but never quits augmented
   applications.
 
 ## Helper modes
@@ -27,11 +27,11 @@ The macOS Cymonkey configuration supports:
 
 | Mode | Ownership |
 | --- | --- |
-| `external` | Jangolova returns one-time launch material; another owner launches the distinct helper executable. |
+| `external` | Cymonkey returns one-time launch material; another owner launches the distinct helper executable. |
 | `managed` | The menu-bar app hosts `CymonkeyMacOSRuntime` in-process and supervises its control connection. |
 | `auto` | Use the managed runtime when the local signed app is available; otherwise use external attachment. |
 
-`auto` is the menu-bar product default. Headless Jangolova keeps `external` as
+`auto` is the menu-bar product default. Headless Cymonkey keeps `external` as
 its conservative default. Managed mode owns only the Cymonkey helper/runtime,
 not Finder, Safari, Music, or another augmented application.
 
@@ -80,7 +80,7 @@ extension-owned storage unless the user performs an explicit export.
 - The user installs and signs/receives the containing app and Safari extension.
 - macOS owns Automation, Accessibility, App Sandbox, and website-access consent.
 - Safari owns per-site extension access.
-- Cymonkey owns userscript lifecycle semantics. The Jangolova extension owns
+- Cymonkey owns userscript lifecycle semantics. The Cymonkey extension owns
   approval UI, persistence, runtime probing, native registration, and its
   control connection.
 - Target applications and Safari tabs remain caller/user-owned.

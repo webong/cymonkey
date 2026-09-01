@@ -14,7 +14,7 @@ final class CoreTests: XCTestCase {
         let value = try ManagedRuntimeConfiguration(environment: [
             "JANGOLOVA_CYMONKEY_CONTROL_URL": "ws://127.0.0.1:7394/bridge",
             "JANGOLOVA_CYMONKEY_CONTROL_TOKEN": "secret",
-            "JANGOLOVA_CYMONKEY_PROTOCOL": "jangolova.cymonkey/v1alpha2",
+            "JANGOLOVA_CYMONKEY_PROTOCOL": "cymonkey/v1alpha1",
             "JANGOLOVA_CYMONKEY_CONFIG": "/tmp/cymonkey.json",
         ])
         XCTAssertEqual(value.endpoint.host, "127.0.0.1")

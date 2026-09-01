@@ -1,6 +1,6 @@
 import Foundation
 
-public let cymonkeyProtocolVersion = "jangolova.cymonkey/v1alpha2"
+public let cymonkeyProtocolVersion = "cymonkey/v1alpha1"
 
 public enum JSONValue: Codable, Equatable, Sendable {
     case null

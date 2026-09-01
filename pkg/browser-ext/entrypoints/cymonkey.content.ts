@@ -37,7 +37,7 @@ type PageEvent = {
   data: Record<string, unknown>;
 };
 
-const packageFactoriesSymbol = Symbol.for('jangolova.cymonkey.browser-package.factories');
+const packageFactoriesSymbol = Symbol.for('cymonkey.jangolova.browser-package.factories');
 
 export default defineContentScript({
   matches: ['<all_urls>'],
@@ -52,11 +52,11 @@ export default defineContentScript({
     let sandboxSequence = 0;
 
     window.addEventListener('message', (event) => {
-      if (event.source !== window || event.data?.channel !== 'jangolova.cymonkey.request') return;
+      if (event.source !== window || event.data?.channel !== 'cymonkey.jangolova.request') return;
       void handlePageRequest(event.data).then(
-        (result) => window.postMessage({ channel: 'jangolova.cymonkey.response', id: event.data.id, result }, '*'),
+        (result) => window.postMessage({ channel: 'cymonkey.jangolova.response', id: event.data.id, result }, '*'),
         (error) => window.postMessage({
-          channel: 'jangolova.cymonkey.response',
+          channel: 'cymonkey.jangolova.response',
           id: event.data.id,
           error: error instanceof Error ? error.message : String(error),
         }, '*'),
@@ -65,11 +65,11 @@ export default defineContentScript({
 
     window.addEventListener('message', (event) => {
       const value = event.data;
-      if (!isRecord(value) || !['jangolova.cymonkey.sandbox.ready', 'jangolova.cymonkey.sandbox.connected'].includes(String(value.channel))) return;
+      if (!isRecord(value) || !['cymonkey.jangolova.sandbox.ready', 'cymonkey.jangolova.sandbox.connected'].includes(String(value.channel))) return;
       const id = typeof value.id === 'string' ? value.id : '';
       const sandbox = sandboxes.get(id);
       if (!sandbox || event.source !== sandbox.iframe.contentWindow || value.nonce !== sandbox.nonce) return;
-      if (value.channel === 'jangolova.cymonkey.sandbox.connected') {
+      if (value.channel === 'cymonkey.jangolova.sandbox.connected') {
         if (value.status === 'connected') sandbox.resolveReady();
         else sandbox.rejectReady(new Error(typeof value.error === 'string' ? value.error : 'sandbox package failed to connect'));
         return;
@@ -83,20 +83,20 @@ export default defineContentScript({
       sandbox.port = channel.port1;
       sandbox.port.onmessage = (portEvent) => void receiveSandboxMessage(sandbox, portEvent.data);
       sandbox.iframe.contentWindow?.postMessage({
-        channel: 'jangolova.cymonkey.sandbox.connect', nonce: sandbox.nonce,
+        channel: 'cymonkey.jangolova.sandbox.connect', nonce: sandbox.nonce,
         context: {augmentationId: sandbox.augmentationId, configuration: sandbox.configuration},
       }, '*', [channel.port2]);
     });
 
     browser.runtime.onMessage.addListener((message) => {
       if (!isRecord(message)) return undefined;
-      if (message.channel === 'jangolova.cymonkey.sandbox') {
+      if (message.channel === 'cymonkey.jangolova.sandbox') {
         return dispatchSandbox(String(message.method || ''), isRecord(message.params) ? message.params : {});
       }
-      if (message.channel === 'jangolova.cymonkey.augmentation-runtime') {
+      if (message.channel === 'cymonkey.jangolova.augmentation-runtime') {
         return dispatchAugmentationRuntime(String(message.method || ''), isRecord(message.params) ? message.params : {});
       }
-      if (message.channel !== 'jangolova.cymonkey.control') return undefined;
+      if (message.channel !== 'cymonkey.jangolova.control') return undefined;
       return dispatch(String(message.method || ''), isRecord(message.params) ? message.params : {});
     });
 
@@ -123,9 +123,9 @@ export default defineContentScript({
 
     function hello() {
       return {
-        protocolVersion: 'jangolova.cymonkey/v1alpha2',
+        protocolVersion: 'cymonkey/v1alpha1',
         implementation: {
-          name: 'jangolova-cymonkey-page',
+          name: 'cymonkey-page',
           version: browser.runtime.getManifest().version,
         },
         domains: ['render'],
@@ -174,7 +174,7 @@ export default defineContentScript({
       if (!replace && record) throw new Error(`overlay ${JSON.stringify(id)} already exists`);
       if (!record) {
         const host = document.createElement('div');
-        host.dataset.jangolovaCymonkeyOverlay = id;
+        host.dataset.cymonkeyOverlay = id;
         const shadow = host.attachShadow({ mode: 'closed' });
         (document.documentElement || document).append(host);
         record = { host, shadow };
@@ -262,7 +262,7 @@ export default defineContentScript({
       const augmentationId = requireIdentifier(input.augmentationId, 'augmentationId');
       if (sandboxes.has(id)) throw new Error(`sandbox ${JSON.stringify(id)} already exists`);
       const host = document.createElement('div');
-      host.dataset.jangolovaCymonkeySandbox = id;
+      host.dataset.cymonkeySandbox = id;
       const shadow = host.attachShadow({mode: 'closed'});
       const iframe = document.createElement('iframe');
       const nonce = randomNonce();
@@ -270,7 +270,7 @@ export default defineContentScript({
       iframe.src = `${sandboxURL}?package=${encodeURIComponent(packageId)}&id=${encodeURIComponent(id)}&nonce=${encodeURIComponent(nonce)}`;
       const permissions = sandboxPermissions(input.permissions);
       iframe.allow = permissions.join('; ');
-      iframe.title = typeof input.title === 'string' ? input.title.slice(0, 128) : 'Jangolova sandbox';
+      iframe.title = typeof input.title === 'string' ? input.title.slice(0, 128) : 'Cymonkey sandbox';
       iframe.referrerPolicy = 'no-referrer';
       Object.assign(iframe.style, {border: '0', display: 'block', width: '100%', height: '100%'});
       shadow.append(iframe);
@@ -323,17 +323,17 @@ export default defineContentScript({
           reject(new Error('sandbox Cymonkey request timed out'));
         }, 30_000);
         sandbox.pending.set(requestId, {resolve, reject, timer});
-        sandbox.port!.postMessage({channel: 'jangolova.cymonkey.sandbox.request', id: requestId, request: input.request});
+        sandbox.port!.postMessage({channel: 'cymonkey.jangolova.sandbox.request', id: requestId, request: input.request});
       });
     }
 
     async function receiveSandboxMessage(sandbox: SandboxRecord, value: unknown) {
       if (!isRecord(value) || typeof value.id !== 'string') return;
-      if (value.channel === 'jangolova.cymonkey.media.request') {
+      if (value.channel === 'cymonkey.jangolova.media.request') {
         await handleSandboxMediaRequest(sandbox, value);
         return;
       }
-      if (value.channel !== 'jangolova.cymonkey.sandbox.response') return;
+      if (value.channel !== 'cymonkey.jangolova.sandbox.response') return;
       const pending = sandbox.pending.get(value.id);
       if (!pending) return;
       sandbox.pending.delete(value.id);
@@ -351,18 +351,18 @@ export default defineContentScript({
         sessionId = requireIdentifier(params.sessionId, 'media session id');
         if (method === 'camera.open' && sandbox.mediaSessions.has(sessionId)) throw new Error('media session already exists');
         const result = await browser.runtime.sendMessage({
-          channel: 'jangolova.media-broker', method,
+          channel: 'cymonkey.jangolova.media-broker', method,
           params: {...params, sessionId},
         });
         if (method === 'camera.open') sandbox.mediaSessions.add(sessionId);
         else sandbox.mediaSessions.delete(sessionId);
-        sandbox.port?.postMessage({channel: 'jangolova.cymonkey.media.response', id: requestId, result});
+        sandbox.port?.postMessage({channel: 'cymonkey.jangolova.media.response', id: requestId, result});
         publishEvent(method === 'camera.open' ? 'sandbox.media.opened' : 'sandbox.media.closed', {
           augmentationId: sandbox.augmentationId, sessionId,
         });
       } catch (error) {
         sandbox.port?.postMessage({
-          channel: 'jangolova.cymonkey.media.response', id: requestId,
+          channel: 'cymonkey.jangolova.media.response', id: requestId,
           error: error instanceof Error ? error.message : String(error),
         });
       }
@@ -378,7 +378,7 @@ export default defineContentScript({
       sandbox.pending.clear();
       for (const sessionId of sandbox.mediaSessions) {
         void browser.runtime.sendMessage({
-          channel: 'jangolova.media-broker', method: 'camera.close', params: {sessionId},
+          channel: 'cymonkey.jangolova.media-broker', method: 'camera.close', params: {sessionId},
         }).catch(() => undefined);
       }
       sandbox.mediaSessions.clear();
@@ -394,7 +394,7 @@ export default defineContentScript({
       };
       events.push(event);
       if (events.length > 256) events.splice(0, events.length - 256);
-      void browser.runtime.sendMessage({ channel: 'jangolova.cymonkey.event', event }).catch(() => undefined);
+      void browser.runtime.sendMessage({ channel: 'cymonkey.jangolova.event', event }).catch(() => undefined);
     }
 
     function readEvents(query: Record<string, unknown>) {

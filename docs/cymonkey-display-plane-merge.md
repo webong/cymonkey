@@ -22,7 +22,7 @@ scene resources. A goal may coordinate all of them.
 
 ## Consolidated contract
 
-`jangolova.cymonkey/v1alpha2` supplies the same five operations everywhere:
+`cymonkey/v1alpha1` supplies the same five operations everywhere:
 
 ```
 hello → capabilities → describe → act → events

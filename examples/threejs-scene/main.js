@@ -285,7 +285,7 @@ function readEvents({ after = "0", types = [], limit = 100 } = {}) {
   };
 }
 
-window.jangolova = {
+(window.cymonkey ??= {}).jangolova = {
   hello: () => ({
     protocolVersion: "jangolova.bridge/v1alpha1",
     implementation: {

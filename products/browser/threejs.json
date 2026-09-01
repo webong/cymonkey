@@ -1,9 +1,9 @@
 {
-  "apiVersion": "jangolova.browser-package/v1alpha1",
+  "apiVersion": "cymonkey.browser-package/v1alpha1",
   "kind": "BrowserExtensionProduct",
   "metadata": {
     "id": "threejs",
-    "name": "Jangolova Three.js Browser Extension"
+    "name": "Cymonkey Three.js Browser Extension"
   },
   "spec": {
     "browsers": ["chrome", "edge", "firefox", "safari"],

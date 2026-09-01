@@ -12,10 +12,10 @@ async function verify(directory) {
   const output = new URL(`${directory}/`, root);
   const manifest = JSON.parse(await readFile(new URL('manifest.json', output), 'utf8'));
   assert.equal(manifest.manifest_version, 3, `${directory}: expected MV3`);
-  assert.equal(manifest.name, 'Jangolova Browser Extension');
+  assert.equal(manifest.name, 'Cymonkey Browser Extension');
   const supportsSandbox = directory === 'chrome-mv3' || directory === 'edge-mv3';
   if (supportsSandbox) {
-    assert.deepEqual(manifest.sandbox?.pages, ['runtime-sandbox.html'], `${directory}: Jangolova sandbox missing`);
+    assert.deepEqual(manifest.sandbox?.pages, ['runtime-sandbox.html'], `${directory}: Cymonkey sandbox missing`);
     assert.ok(manifest.permissions.includes('offscreen'), `${directory}: sandbox media broker permission missing`);
   } else {
     assert.ok(!manifest.sandbox, `${directory}: unsupported sandbox must be omitted`);
@@ -44,4 +44,4 @@ async function verify(directory) {
   assert.deepEqual(registry.packages, [], `${directory}: base extension registry must be empty`);
 }
 
-console.log('verified Jangolova builds for Chrome, Edge, Firefox, and the capability-limited Safari container');
+console.log('verified Cymonkey builds for Chrome, Edge, Firefox, and the capability-limited Safari container');

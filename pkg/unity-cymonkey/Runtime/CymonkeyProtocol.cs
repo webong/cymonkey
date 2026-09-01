@@ -6,7 +6,7 @@ namespace Jangolova.Cymonkey
 {
     public static class CymonkeyProtocol
     {
-        public const string Version = "jangolova.cymonkey/v1alpha2";
+        public const string Version = "cymonkey/v1alpha1";
         public const string DomainRender = "render";
         public const string RuntimeUnity = "unity";
         public const string DriverWebSocket = "websocket";

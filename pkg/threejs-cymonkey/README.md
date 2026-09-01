@@ -1,7 +1,7 @@
 # Three.js Cymonkey
 
 `@jangolova/threejs-cymonkey` implements the `render` domain of
-`jangolova.cymonkey/v1alpha2` for explicitly registered Three.js resources. It
+`cymonkey/v1alpha1` for explicitly registered Three.js resources. It
 never scans a scene, global variables, or the page for objects.
 
 ```ts
@@ -14,7 +14,7 @@ cymonkey.installGlobal();
 ```
 
 When used in a browser, a product-specific augmentation package bundles this
-runtime and exposes it through Jangolova's generic private
+runtime and exposes it through Cymonkey's generic private
 `cymonkey-engine.call` route, scoped to that augmentation's ID. The Browser
 Extension itself does not import or otherwise know about Three.js. The runtime
 remains protected by stable IDs and per-resource action allowlists; no render

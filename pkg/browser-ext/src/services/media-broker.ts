@@ -20,7 +20,7 @@ export async function dispatchMediaBroker(method: string, params: Record<string,
     const offer = description(params.offer, 'offer');
     await ensureMediaBroker();
     const result = await browser.runtime.sendMessage({
-      target: 'jangolova.media-broker.offscreen', method: 'camera.open',
+      target: 'cymonkey.jangolova.media-broker.offscreen', method: 'camera.open',
       params: {sessionKey, offer},
     });
     if (!isRecord(result) || result.ok !== true) throw new Error(isRecord(result) ? String(result.error || 'camera broker failed') : 'camera broker did not respond');
@@ -29,7 +29,7 @@ export async function dispatchMediaBroker(method: string, params: Record<string,
   if (method === 'camera.close') {
     if (!await mediaBrokerExists()) return {ok: true, closed: false};
     const result = await browser.runtime.sendMessage({
-      target: 'jangolova.media-broker.offscreen', method: 'camera.close',
+      target: 'cymonkey.jangolova.media-broker.offscreen', method: 'camera.close',
       params: {sessionKey},
     });
     if (!isRecord(result) || result.ok !== true) throw new Error(isRecord(result) ? String(result.error || 'camera broker failed') : 'camera broker did not respond');

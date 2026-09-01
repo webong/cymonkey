@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://jangolova.dev/protocol/browser-package/v1alpha1/product.schema.json",
-  "title": "Jangolova Browser Extension product composition",
+  "$id": "https://cymonkey.dev/protocol/browser-package/v1alpha1/product.schema.json",
+  "title": "Cymonkey Browser Extension product composition",
   "type": "object",
   "required": ["apiVersion", "kind", "metadata", "spec"],
   "properties": {
-    "apiVersion": {"const": "jangolova.browser-package/v1alpha1"},
+    "apiVersion": {"const": "cymonkey.browser-package/v1alpha1"},
     "kind": {"const": "BrowserExtensionProduct"},
     "metadata": {
       "type": "object",

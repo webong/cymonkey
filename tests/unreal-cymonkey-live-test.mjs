@@ -40,7 +40,7 @@ function call(method, params = {}) {
 
 const hello = await call("hello");
 assert.equal(hello.implementation.engine, "unreal");
-assert.equal(hello.protocolVersion, "jangolova.cymonkey/v1alpha2");
+assert.equal(hello.protocolVersion, "cymonkey/v1alpha1");
 const capabilities = await call("capabilities");
 assert.ok(capabilities.some((capability) => capability.name === "object.visibility.set"));
 const description = await call("describe");

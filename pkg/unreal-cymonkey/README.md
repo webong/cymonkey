@@ -30,7 +30,7 @@ engine version or platform should build the source plugin with that engine's
 `RunUAT.sh BuildPlugin` command instead.
 
 `JangolovaCymonkey` is the Unreal Engine implementation of
-the `render` domain of `jangolova.cymonkey/v1alpha2`. It exposes semantic control of explicitly
+the `render` domain of `cymonkey/v1alpha1`. It exposes semantic control of explicitly
 registered Unreal objects while Unreal continues to own rendering and
 application lifecycle.
 

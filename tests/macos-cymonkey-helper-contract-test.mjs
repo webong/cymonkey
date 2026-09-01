@@ -5,7 +5,7 @@ import test from 'node:test';
 const root = new URL('../pkg/macos-cymonkey-helper/', import.meta.url);
 const source = async (path) => readFile(new URL(path, root), 'utf8');
 
-test('macOS helper is caller-owned and consumes Cymonkey v1alpha2', async () => {
+test('macOS helper is caller-owned and consumes Cymonkey v1alpha1', async () => {
   const [readme, models, main, client, signing] = await Promise.all([
     source('README.md'),
     source('Sources/CymonkeyMacOSRuntime/Models.swift'),
@@ -14,7 +14,7 @@ test('macOS helper is caller-owned and consumes Cymonkey v1alpha2', async () => 
     source('scripts/build-and-sign.sh'),
   ]);
   assert.match(readme, /Jangolova never launches or terminates it/);
-  assert.match(models, /jangolova\.cymonkey\/v1alpha2/);
+  assert.match(models, /cymonkey\/v1alpha1/);
   assert.match(main, /JANGOLOVA_CYMONKEY_CONTROL_URL/);
   assert.match(main, /JANGOLOVA_CYMONKEY_CONTROL_TOKEN/);
   assert.match(client, /Authorization/);

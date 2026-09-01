@@ -1,7 +1,7 @@
 import type { CymonkeyDomain, CymonkeyEvent, EventQuery } from '../types';
 
-const sequenceKey = 'jangolova.eventSequence';
-const eventsKey = 'jangolova.events';
+const sequenceKey = 'cymonkey.eventSequence';
+const eventsKey = 'cymonkey.events';
 let eventChain = Promise.resolve<unknown>(undefined);
 
 function eventStorage() {

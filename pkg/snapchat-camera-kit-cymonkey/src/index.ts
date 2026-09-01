@@ -1,9 +1,9 @@
 import { bootstrapCameraKit, createMediaStreamSource } from '@snap/camera-kit';
 
-export const CYMONKEY_PROTOCOL_VERSION = 'jangolova.cymonkey/v1alpha2';
+export const CYMONKEY_PROTOCOL_VERSION = 'cymonkey/v1alpha1';
 export const CAMERA_KIT_RUNTIME = 'snapchat-camera-kit';
 export const CAMERA_KIT_DRIVER = 'sandbox';
-export const CYMONKEY_RUNTIME_SYMBOL = Symbol.for('jangolova.cymonkey.runtime');
+export const CYMONKEY_RUNTIME_SYMBOL = Symbol.for('cymonkey.jangolova.runtime');
 
 export type CymonkeyRequest = { id?: unknown; method: string; params?: Record<string, unknown> };
 
@@ -72,7 +72,7 @@ export class CameraKitCymonkey {
   }
 
   // A target-owned web application installs this after it has imported this
-  // package itself. Jangolova can then attach through its generic page-runtime
+  // package itself. Cymonkey can then attach through its generic page-runtime
   // route without Browser Extension importing Camera Kit.
   installGlobal(target: Record<PropertyKey, unknown> = globalThis as Record<PropertyKey, unknown>) {
     if (target[CYMONKEY_RUNTIME_SYMBOL] && target[CYMONKEY_RUNTIME_SYMBOL] !== this) {
@@ -85,7 +85,7 @@ export class CameraKitCymonkey {
   hello() {
     return {
       protocolVersion: this.protocolVersion,
-      implementation: {name: 'jangolova-snapchat-camera-kit-cymonkey', version: '0.1.0'},
+      implementation: {name: 'cymonkey-snapchat-camera-kit', version: '0.1.0'},
       domains: ['render'], runtimes: [CAMERA_KIT_RUNTIME], drivers: [CAMERA_KIT_DRIVER],
       features: ['explicit-user-camera-consent', 'owned-canvas', 'lens-control'],
     };

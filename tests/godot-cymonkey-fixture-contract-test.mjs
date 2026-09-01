@@ -37,7 +37,7 @@ for (const action of ["object.transform.set", "material.color.set", "camera.tran
 for (const node of ["House", "Door", "WindowLeft", "WindowRight", "InteriorLight", "Hero", "Status", "CameraMain"]) assert.match(scene, new RegExp(`name=\\"${node}\\"`));
 assert.match(fixture, /object\.visible\.set/);
 assert.match(fixture, /JANGOLOVA_CAPTURE_PATH/);
-assert.equal(scenePlan.apiVersion, "jangolova.cymonkey.scene/v1alpha1");
+assert.equal(scenePlan.apiVersion, "cymonkey.scene/v1alpha1");
 assert.equal(scenePlan.name, "midnight-house");
 assert.equal(scenePlan.actions.length, 5);
 assert.ok(scenePlan.requires.some((resource) => resource.id === "material:interior-light"));

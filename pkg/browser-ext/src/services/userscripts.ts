@@ -15,7 +15,7 @@ import { isRecord } from '../types';
 import { authorizeUserscriptMutation } from './userscript-approvals';
 import { callUserscriptRuntime, describeUserscriptRuntime } from './userscript-runtime';
 
-const storageKey = 'jangolova.userscripts.v1';
+const storageKey = 'cymonkey.userscripts.v1';
 
 type NativeUserScripts = {
   getScripts(filter?: {ids?: string[]}): Promise<Array<{id: string}>>;
@@ -199,7 +199,7 @@ async function requireNativeAPI() {
 }
 
 async function configureManagedWorld(api: NativeUserScripts, value: UserScriptManifest) {
-  if (value.spec.world !== 'USER_SCRIPT' || !value.source.code.includes('jangolova.cymonkey.userscript/v1alpha1')) return;
+  if (value.spec.world !== 'USER_SCRIPT' || !value.source.code.includes('cymonkey.userscript/v1alpha1')) return;
   if (!api.configureWorld) return;
   // Messaging is an optional refinement. The reviewed script still runs as a
   // normal userscript when a browser lacks the managed user-script channel.

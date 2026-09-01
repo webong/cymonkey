@@ -5,7 +5,7 @@ domain with runtime `macos-app`. It is a Swift executable that a native host bui
 and launches. Jangolova never launches or terminates it.
 
 The helper connects outward to an authenticated WebSocket control endpoint and
-implements the same five `jangolova.cymonkey/v1alpha2` operations used by other
+implements the same five `cymonkey/v1alpha1` operations used by other
 Cymonkey domains: `hello`, `capabilities`, `describe`, `act`, and `events`.
 
 It exposes only:
@@ -59,7 +59,7 @@ semantic-to-native mappings, never credentials. The launcher provides:
 - `JANGOLOVA_CYMONKEY_CONTROL_URL`: an absolute `ws://` loopback or `wss://`
   control endpoint;
 - `JANGOLOVA_CYMONKEY_CONTROL_TOKEN`: a short-lived bearer token;
-- `JANGOLOVA_CYMONKEY_PROTOCOL`: exactly `jangolova.cymonkey/v1alpha2`;
+- `JANGOLOVA_CYMONKEY_PROTOCOL`: exactly `cymonkey/v1alpha1`;
 - `JANGOLOVA_CYMONKEY_CONFIG`: an absolute path to the helper configuration.
 
 Non-loopback plaintext WebSocket endpoints and credentials embedded in URLs

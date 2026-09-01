@@ -15,8 +15,8 @@ const extensionMethods = conditions[0].then.properties.method.enum;
 const typescript = `// Code generated from protocol/browser-extension/v1alpha1/protocol.schema.json; DO NOT EDIT.
 // Schema SHA-256: ${digest}
 
-export const browserExtensionProtocolVersion = 'jangolova.browser-extension/v1alpha1' as const;
-export type ExtensionCallType = 'JANGOLOVA_EXTENSION_CALL';
+export const browserExtensionProtocolVersion = 'cymonkey.browser-extension/v1alpha1' as const;
+export type ExtensionCallType = 'CYMONKEY_EXTENSION_CALL';
 export type ExtensionMethod = ${union(extensionMethods)};
 export type ControlMethod = ExtensionMethod;
 export type ControlCaller = 'xallet-spook' | 'authenticated-websocket' | 'extension-origin';
@@ -54,13 +54,13 @@ export interface OutboundControlConfiguration {
 }
 
 export interface AuthRequest {
-  type: 'JANGOLOVA_EXTENSION_AUTH';
+  type: 'CYMONKEY_EXTENSION_AUTH';
   protocolVersion: typeof browserExtensionProtocolVersion;
   token: string;
 }
 
 export interface ControlResponse {
-  type: 'JANGOLOVA_EXTENSION_RESPONSE';
+  type: 'CYMONKEY_EXTENSION_RESPONSE';
   id?: string | number | null;
   ok: boolean;
   result?: unknown;
@@ -92,12 +92,12 @@ import (
 	"encoding/json"
 )
 
-const ProtocolVersion = "jangolova.browser-extension/v1alpha1"
+const ProtocolVersion = "cymonkey.browser-extension/v1alpha1"
 
 type CallType string
 
 const (
-	CallTypeJangolova CallType = "JANGOLOVA_EXTENSION_CALL"
+	CallTypeCymonkey CallType = "CYMONKEY_EXTENSION_CALL"
 )
 
 type Method string

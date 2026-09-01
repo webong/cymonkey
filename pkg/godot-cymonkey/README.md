@@ -1,7 +1,7 @@
 # Jangolova Cymonkey for Godot
 
 `godot-cymonkey` is the license-free reference runtime for the `render` domain
-of `jangolova.cymonkey/v1alpha2`. It is a small Godot 4 GDScript package that keeps
+of `cymonkey/v1alpha1`. It is a small Godot 4 GDScript package that keeps
 semantic registration separate from rendering and application lifecycle.
 
 Add `CymonkeyRegistry` to a scene and populate `registrations` explicitly. Each

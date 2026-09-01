@@ -5,12 +5,12 @@ type SandboxPackage = {id: string; connect(context: Context, port: MessagePort):
 type PendingMediaRequest = {resolve(value: Record<string, unknown>): void; reject(error: Error): void; timer: number};
 
 declare global {
-  interface Window { jangolovaSandboxPackage?: SandboxPackage }
+  interface Window { cymonkeySandboxPackage?: SandboxPackage }
 }
 
-if (window.jangolovaSandboxPackage) throw new Error('a Jangolova sandbox package is already installed');
+if (window.cymonkeySandboxPackage) throw new Error('a Cymonkey sandbox package is already installed');
 
-window.jangolovaSandboxPackage = {
+window.cymonkeySandboxPackage = {
   id: 'snapchat-camera-kit',
   async connect(context, port) {
     const apiToken = string(context.configuration.apiToken, 'Camera Kit apiToken');
@@ -27,16 +27,16 @@ window.jangolovaSandboxPackage = {
     });
     port.onmessage = async (event) => {
       const value = event.data;
-      if (record(value) && value.channel === 'jangolova.cymonkey.media.response') {
+      if (record(value) && value.channel === 'cymonkey.jangolova.media.response') {
         media.receive(value);
         return;
       }
-      if (!record(value) || value.channel !== 'jangolova.cymonkey.sandbox.request' || typeof value.id !== 'string') return;
+      if (!record(value) || value.channel !== 'cymonkey.jangolova.sandbox.request' || typeof value.id !== 'string') return;
       const request = record(value.request) ? value.request as CymonkeyRequest : {method: ''};
       try {
-        port.postMessage({channel: 'jangolova.cymonkey.sandbox.response', id: value.id, result: await runtime.dispatch(request)});
+        port.postMessage({channel: 'cymonkey.jangolova.sandbox.response', id: value.id, result: await runtime.dispatch(request)});
       } catch (error) {
-        port.postMessage({channel: 'jangolova.cymonkey.sandbox.response', id: value.id, error: errorMessage(error)});
+        port.postMessage({channel: 'cymonkey.jangolova.sandbox.response', id: value.id, error: errorMessage(error)});
       }
     };
     port.start();
@@ -65,10 +65,10 @@ function createCameraMediaProvider(port: MessagePort) {
     return new Promise<Record<string, unknown>>((resolve, reject) => {
       const timer = window.setTimeout(() => {
         pending.delete(id);
-        reject(new Error('Jangolova media broker timed out'));
+        reject(new Error('Cymonkey media broker timed out'));
       }, 15_000);
       pending.set(id, {resolve, reject, timer});
-      port.postMessage({channel: 'jangolova.cymonkey.media.request', id, method, params});
+      port.postMessage({channel: 'cymonkey.jangolova.media.request', id, method, params});
     });
   };
 
@@ -89,7 +89,7 @@ function createCameraMediaProvider(port: MessagePort) {
             offer: {type: 'offer', sdp: peer.localDescription.sdp},
           });
           const answer = result.answer;
-          if (!record(answer) || answer.type !== 'answer' || typeof answer.sdp !== 'string') throw new Error('Jangolova media broker returned an invalid answer');
+          if (!record(answer) || answer.type !== 'answer' || typeof answer.sdp !== 'string') throw new Error('Cymonkey media broker returned an invalid answer');
           await peer.setRemoteDescription({type: 'answer', sdp: answer.sdp});
           const stream = await track.promise;
           active = {sessionId, peer, stream};
@@ -118,7 +118,7 @@ function createCameraMediaProvider(port: MessagePort) {
       window.clearTimeout(item.timer);
       if (value.error) item.reject(new Error(String(value.error)));
       else if (record(value.result)) item.resolve(value.result);
-      else item.reject(new Error('Jangolova media broker returned an invalid response'));
+      else item.reject(new Error('Cymonkey media broker returned an invalid response'));
     },
   };
 }
@@ -132,7 +132,7 @@ function waitForTrack(peer: RTCPeerConnection) {
   let resolveTrack!: (stream: MediaStream) => void;
   const timer = window.setTimeout(() => {
     cleanup();
-    rejectTrack(new Error('Jangolova camera track timed out'));
+    rejectTrack(new Error('Cymonkey camera track timed out'));
   }, 10_000);
   const cleanup = () => {
     window.clearTimeout(timer);

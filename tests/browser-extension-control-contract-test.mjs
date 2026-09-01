@@ -33,8 +33,8 @@ test('outbound WebSocket is optional, authenticated, bounded, and single-build',
     source('pkg/browser-ext/wxt.config.ts'),
     source('protocol/browser-extension/v1alpha1/protocol.schema.json'),
   ]);
-  assert.match(client, /JANGOLOVA_EXTENSION_AUTH/);
-  assert.match(client, /JANGOLOVA_EXTENSION_AUTHENTICATED/);
+  assert.match(client, /CYMONKEY_EXTENSION_AUTH/);
+  assert.match(client, /CYMONKEY_EXTENSION_AUTHENTICATED/);
   assert.match(client, /authenticated-websocket/);
   assert.match(client, /20_000/);
   assert.match(client, /30_000/);

@@ -25,7 +25,7 @@ type PackageRuntime = {
 };
 
 const packageId = 'threejs';
-const factoriesSymbol = Symbol.for('jangolova.cymonkey.browser-package.factories');
+const factoriesSymbol = Symbol.for('cymonkey.jangolova.browser-package.factories');
 const globalRecord = globalThis as Record<PropertyKey, unknown>;
 let factories = globalRecord[factoriesSymbol];
 if (!(factories instanceof Map)) {
@@ -64,7 +64,7 @@ class ThreeJSBrowserAugmentation {
       if (request.method === 'hello') {
         return response(request, {
           ...this.#engine.hello(),
-          implementation: {name: 'jangolova-threejs-browser-augmentation', version: '0.2.0'},
+          implementation: {name: 'cymonkey-threejs-browser-augmentation', version: '0.2.0'},
           features: ['owned-canvas', 'owned-scene', 'stable-ids', 'events.cursor'],
         });
       }
@@ -109,7 +109,7 @@ class ThreeJSBrowserAugmentation {
     host.dataset.jangolovaCymonkeyAugmentation = this.#context.augmentationId;
     const shadow = host.attachShadow({mode: 'closed'});
     const canvas = document.createElement('canvas');
-    canvas.setAttribute('aria-label', 'Jangolova Three.js augmentation');
+    canvas.setAttribute('aria-label', 'Cymonkey Three.js augmentation');
     shadow.append(canvas);
     Object.assign(host.style, {
       position: 'fixed',
@@ -128,10 +128,10 @@ class ThreeJSBrowserAugmentation {
     (document.documentElement || document.body).append(host);
 
     const scene = new Scene();
-    scene.name = 'Jangolova augmentation scene';
+    scene.name = 'Cymonkey augmentation scene';
     scene.background = new Color(colorValue(input.background ?? this.#context.configuration.background, '#07111f'));
     const camera = new PerspectiveCamera(50, 1, 0.1, 100);
-    camera.name = 'Jangolova augmentation camera';
+    camera.name = 'Cymonkey augmentation camera';
     camera.position.set(0, 0.4, 4);
     const renderer = new WebGLRenderer({canvas, antialias: true, alpha: false});
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));

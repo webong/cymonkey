@@ -608,7 +608,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Jangolova Extension/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Jangolova Extension";
+				INFOPLIST_KEY_CFBundleDisplayName = "Cymonkey Browser Extension";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -638,7 +638,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Jangolova Extension/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Jangolova Extension";
+				INFOPLIST_KEY_CFBundleDisplayName = "Cymonkey Browser Extension";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -671,7 +671,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Jangolova/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Jangolova;
+				INFOPLIST_KEY_CFBundleDisplayName = Cymonkey;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMainStoryboardFile = Main;
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
@@ -706,7 +706,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Jangolova/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Jangolova;
+				INFOPLIST_KEY_CFBundleDisplayName = Cymonkey;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMainStoryboardFile = Main;
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;

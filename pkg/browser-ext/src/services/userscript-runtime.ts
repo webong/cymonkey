@@ -19,7 +19,7 @@ type ScriptConnection = {
 
 type PendingRequest = {resolve(value: unknown): void; reject(error: Error): void; timer: number};
 
-const channel = 'jangolova.cymonkey.userscript/v1alpha1';
+const channel = 'cymonkey.userscript/v1alpha1';
 const connections = new Map<string, ScriptConnection>();
 let sequence = 0;
 

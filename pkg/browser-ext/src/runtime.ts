@@ -16,7 +16,7 @@ export function setOutboundControlStatus(status: typeof outboundControl) {
   outboundControl = status;
 }
 
-export async function dispatchJangolova(method: string, params: Record<string, unknown> = {}) {
+export async function dispatchCymonkeyExtension(method: string, params: Record<string, unknown> = {}) {
   if (method === 'hello') return hello();
   if (method === 'capabilities') return capabilities();
   if (method === 'describe') return describe();
@@ -27,13 +27,13 @@ export async function dispatchJangolova(method: string, params: Record<string, u
     return dispatchCymonkey(String(params.method || ''), isRecord(params.params) ? params.params : {});
   }
   if (method === 'cymonkey-engine.call') return callCymonkeyEngine(params.request, params.target, params.augmentationId, params.delivery, params.sandboxId);
-  throw new Error(`unsupported Jangolova extension method ${JSON.stringify(method)}`);
+  throw new Error(`unsupported Cymonkey extension method ${JSON.stringify(method)}`);
 }
 
 function hello() {
   return {
-    protocolVersion: 'jangolova.browser-extension/v1alpha1',
-    implementation: { name: 'jangolova-browser-extension', version: browser.runtime.getManifest().version },
+    protocolVersion: 'cymonkey.browser-extension/v1alpha1',
+    implementation: { name: 'cymonkey-browser-extension', version: browser.runtime.getManifest().version },
     subsystems: ['cymonkey', 'cymonkey-engine'],
     backend: 'webextension',
   };
@@ -53,7 +53,7 @@ function capabilities() {
 
 async function describe() {
   return {
-    product: 'Jangolova Browser Extension',
+    product: 'Cymonkey Browser Extension',
     extensionId: browser.runtime.id,
     distribution: 'single-build',
     subsystems: { cymonkey: true, cymonkeyEngine: true },

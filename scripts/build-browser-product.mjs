@@ -31,7 +31,7 @@ for (const browserName of product.browsers) {
   const extensionManifest = await json(manifestPath);
   extensionManifest.name = product.name;
   if (extensionManifest.action) extensionManifest.action.default_title = product.name;
-  const registry = {apiVersion: 'jangolova.browser-package/v1alpha1', kind: 'BrowserPackageRegistry', packages: []};
+  const registry = {apiVersion: 'cymonkey.browser-package/v1alpha1', kind: 'BrowserPackageRegistry', packages: []};
   const included = packages.filter((item) => item.manifest.spec.deliveries.some((delivery) => delivery.browsers.includes(browserName)));
   for (const item of included) {
     const id = item.manifest.metadata.id;
@@ -59,7 +59,7 @@ for (const browserName of product.browsers) {
 }
 
 function validateProduct(value) {
-  if (!record(value) || value.apiVersion !== 'jangolova.browser-package/v1alpha1' || value.kind !== 'BrowserExtensionProduct'
+  if (!record(value) || value.apiVersion !== 'cymonkey.browser-package/v1alpha1' || value.kind !== 'BrowserExtensionProduct'
     || !record(value.metadata) || !identifier(value.metadata.id) || typeof value.metadata.name !== 'string' || !record(value.spec)
     || !Array.isArray(value.spec.browsers) || value.spec.browsers.length === 0
     || value.spec.browsers.some((item) => !['chrome', 'edge', 'firefox', 'safari'].includes(item))
@@ -73,7 +73,7 @@ function validateProduct(value) {
 }
 
 function validatePackage(value) {
-  if (!record(value) || value.apiVersion !== 'jangolova.browser-package/v1alpha1' || value.kind !== 'BrowserAugmentationPackage'
+  if (!record(value) || value.apiVersion !== 'cymonkey.browser-package/v1alpha1' || value.kind !== 'BrowserAugmentationPackage'
     || !record(value.metadata) || !identifier(value.metadata.id) || typeof value.metadata.name !== 'string'
     || typeof value.metadata.version !== 'string' || !record(value.spec) || !Array.isArray(value.spec.deliveries)
     || !Array.isArray(value.spec.permissions) || !Array.isArray(value.spec.capabilities)) throw new Error('browser package manifest is invalid');

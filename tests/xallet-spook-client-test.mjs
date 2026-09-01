@@ -30,7 +30,7 @@ test("Xallet Spook discovery is optional, authenticated, and re-registers a same
     capabilities: [],
     extensionId: "jangolova-extension",
   };
-  const client = new XalletSpookClient("Jangolova Browser Extension", state, "popup.html", (status) => statuses.push(status), api);
+  const client = new XalletSpookClient("Cymonkey Browser Extension", state, "popup.html", (status) => statuses.push(status), api);
 
   await client.probe();
   assert.equal(statuses.at(-1), "unavailable");

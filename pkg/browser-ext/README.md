@@ -14,7 +14,7 @@ contains shared extension platform services plus Cymonkey domain integrations:
   and register bounded `@grant none` source through the extension's
   capability-probed native manager.
 
-Jangolova owns extension authentication, policy, packaged script injection,
+Cymonkey owns extension authentication, policy, packaged script injection,
 namespaced storage, declarative network rules, and the shared cursor event log.
 Neither subsystem exposes raw `chrome.*` or `browser.*` APIs to the page.
 

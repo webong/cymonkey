@@ -23,7 +23,7 @@ document.documentElement.dataset.enhanced = 'true';`;
 
 async function manifest(overrides = {}) {
   return {
-    apiVersion: 'jangolova.cymonkey.userscript/v1alpha1', kind: 'UserScript',
+    apiVersion: 'cymonkey.userscript/v1alpha1', kind: 'UserScript',
     metadata: {id: 'example-enhancer', revision: await sourceRevision(source), name: 'Example Enhancer'},
     spec: {
       matches: ['https://example.com/*'], excludeMatches: [], runAt: 'document_idle',
@@ -73,7 +73,7 @@ test('prepares a reviewable manifest from an agent-authored body', async () => {
   assert.match(value.source.code, /dataset\.agentBanner/);
   assert.match(value.source.code, /'cymonkey'/);
   assert.match(value.source.code, /'jangolova'/);
-  assert.match(value.source.code, /jangolova\.cymonkey\.userscript\/v1alpha1/);
+  assert.match(value.source.code, /cymonkey\.userscript\/v1alpha1/);
   await assert.rejects(() => createManifest({
     id: 'bad-header', name: 'Bad Header', matches: ['https://example.com/*'], code: '// ==UserScript==',
   }), /metadata block/);

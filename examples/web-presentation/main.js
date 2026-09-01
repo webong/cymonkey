@@ -201,7 +201,7 @@ function readEvents({ after = "0", types = [], limit = 100 } = {}) {
   return { events: selected, cursor: String(sequence) };
 }
 
-window.jangolova = {
+(window.cymonkey ??= {}).jangolova = {
   hello: () => ({ protocolVersion: "jangolova.bridge/v1alpha1", implementation: { name: "jangolova-web-presentation" }, features: ["presentation.document", "presentation.artifact.mount", "events.cursor"] }),
   capabilities: () => capabilities,
   describe,

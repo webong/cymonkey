@@ -4,12 +4,12 @@ declare global {
   // eslint-disable-next-line no-var
   var cymonkeyDispatch: (method: string, params?: Record<string, unknown>) => Promise<unknown>;
   // eslint-disable-next-line no-var
-  var jangolovaExtensionDispatch: (method: string, params?: Record<string, unknown>) => Promise<unknown>;
+  var cymonkeyExtensionDispatch: (method: string, params?: Record<string, unknown>) => Promise<unknown>;
 }
 
-globalThis.jangolovaExtensionDispatch = (method, params = {}) => {
+globalThis.cymonkeyExtensionDispatch = (method, params = {}) => {
   return browser.runtime.sendMessage({
-    channel: 'jangolova.extension.control',
+    channel: 'cymonkey.extension.control',
     method,
     params,
   });
@@ -17,13 +17,13 @@ globalThis.jangolovaExtensionDispatch = (method, params = {}) => {
 
 globalThis.cymonkeyDispatch = (method, params = {}) => {
   return browser.runtime.sendMessage({
-    channel: 'jangolova.cymonkey.control',
+    channel: 'cymonkey.jangolova.control',
     method,
     params,
   });
 };
 
 document.documentElement.dataset.cymonkeyControlReady = 'true';
-document.documentElement.dataset.jangolovaExtensionControlReady = 'true';
+document.documentElement.dataset.cymonkeyExtensionControlReady = 'true';
 
 export {};

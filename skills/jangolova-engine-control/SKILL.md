@@ -16,7 +16,7 @@ Use this skill only after the endpoint and bearer token are supplied through pro
 5. Invoke only actions advertised and explicitly registered for the target.
 6. Poll `events` with a cursor after mutations and close the socket cleanly.
 
-The protocol version is `jangolova.cymonkey/v1alpha2`. After
+The protocol version is `cymonkey/v1alpha1`. After
 authentication, requests use `{id, method, params}`:
 
 ```json

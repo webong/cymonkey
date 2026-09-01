@@ -1,7 +1,7 @@
-# Jangolova macOS Extension
+# Cymonkey macOS Extension
 
 This package contains the macOS menu-bar host and Safari WebExtension container
-for Jangolova. The architecture and ownership model are documented in
+for Cymonkey. It uses Jangolova's reusable macOS integration libraries. The architecture and ownership model are documented in
 `docs/macos-extension.md`.
 
 The Swift package imports the reusable `CymonkeyMacOSRuntime` library. It does

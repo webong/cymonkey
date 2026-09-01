@@ -13,7 +13,7 @@ test('userscripts use one bounded versioned contract', async () => {
     source('pkg/browser-ext/src/services/userscripts.ts'),
     source('pkg/userscript-runtime/src/validate.ts'),
   ]);
-  assert.match(schema, /jangolova\.cymonkey\.userscript\/v1alpha1/);
+  assert.match(schema, /cymonkey\.userscript\/v1alpha1/);
   assert.match(augmentationSchema, /userscript\/v1alpha1\/userscript\.schema\.json/);
   assert.match(docs, /MVP accepts `@grant none` only/);
   assert.match(service, /authorizeUserscriptMutation/);
@@ -63,6 +63,8 @@ test('macOS containing app imports the distinct helper and carries Safari', asyn
   assert.match(manifest, /\.package\(path: "\.\.\/macos-cymonkey-helper"\)/);
   assert.match(core, /import CymonkeyMacOSRuntime/);
   assert.match(menu, /Start Managed Cymonkey/);
+  assert.match(menu, /Cymonkey for macOS/);
+  assert.match(menu, /Quit Cymonkey/);
   assert.match(menu, /Safari Extension Preferences/);
   assert.match(handler, /group\.dev\.jangolova\.shared/);
   assert.match(handler, /userscripts\.catalog\.replace/);

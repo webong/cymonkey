@@ -10,7 +10,7 @@ endpoint. The adapter launches only a short-lived Node/Puppeteer interaction
 worker; it does not launch, stop, provision, or display a browser.
 
 The reference page is [examples/web-presentation](../examples/web-presentation).
-It exposes `window.jangolova` and can render either structured documents or
+It exposes `window.cymonkey.jangolova` and can render either structured documents or
 authored HTML/CSS/JavaScript.
 
 Implemented operations:

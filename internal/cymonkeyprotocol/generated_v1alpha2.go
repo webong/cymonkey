@@ -1,5 +1,5 @@
 // Code generated from src/cymonkey/protocol/v1alpha2/protocol.schema.json; DO NOT EDIT.
-// Schema SHA-256: 15de68ad0e7a95d958d0b1184d309acf5bf6604d20a68ebe2ac708cc082b573d
+// Schema SHA-256: c7cbcf984edafe827da29e7c05d0a312b2895d8f54c26c5ef701c9a4944e4af0
 
 package cymonkeyprotocol
 
@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const ProtocolVersion = "jangolova.cymonkey/v1alpha2"
+const ProtocolVersion = "cymonkey/v1alpha1"
 
 type DomainName string
 

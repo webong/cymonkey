@@ -22,8 +22,8 @@ test("Cymonkey worker provides CDP, BiDi, and Playwright drivers with integrated
 	for (const capability of ["window.navigate", "window.click", "window.fill", "window.press", "window.evaluate", "window.screenshot"]) {
 		assert.match(worker, new RegExp(capability.replaceAll(".", "\\.")));
 	}
-	assert.match(worker, /jangolova\.cymonkey\/v1alpha2/);
-	assert.doesNotMatch(worker, /jangolova\.cymonkey\/v1alpha1/);
+	assert.match(worker, /cymonkey\/v1alpha1/);
+	assert.doesNotMatch(worker, /jangolova\.cymonkey/);
   assert.match(worker, /extensionConfig\.mode === "required"/);
   assert.match(worker, /baseCapabilities\(targetProtocol\)/);
   assert.match(worker, /chrome-extension:\/\//);
@@ -46,17 +46,17 @@ test("one reversible live client is shared by CDP and BiDi fixtures", async () =
   assert.match(bidiFixture, /cymonkey-live-client\.mjs[\s\S]*--expect-backend bidi/);
 });
 
-test("v1alpha2 defines runtime-agnostic viewer, render, and player domains", async () => {
+test("v1alpha1 defines runtime-agnostic viewer, render, and player domains", async () => {
   const protocol = JSON.parse(await source("src/cymonkey/protocol/v1alpha2/protocol.schema.json"));
   const augmentation = JSON.parse(await source("src/cymonkey/protocol/v1alpha2/augmentation.schema.json"));
-  assert.equal(protocol.$defs.hello.properties.protocolVersion.const, "jangolova.cymonkey/v1alpha2");
+  assert.equal(protocol.$defs.hello.properties.protocolVersion.const, "cymonkey/v1alpha1");
   assert.deepEqual(protocol.$defs.domain.enum, ["viewer", "render", "player"]);
   for (const field of ["domain", "runtime", "driver"]) {
     assert.ok(protocol.$defs.capability.required.includes(field), `capability schema missing ${field}`);
   }
   assert.equal(protocol.$defs.driver.type, "string");
   assert.match("example-driver", new RegExp(protocol.$defs.driver.pattern));
-  assert.equal(augmentation.properties.apiVersion.const, "jangolova.cymonkey/v1alpha2");
+  assert.equal(augmentation.properties.apiVersion.const, "cymonkey/v1alpha1");
   assert.deepEqual(augmentation.$defs.target.properties.domain.enum, ["viewer", "render", "player"]);
   assert.ok(augmentation.$defs.target.required.includes("runtime"));
 	assert.deepEqual(protocol.$defs.action.dependentRequired, {domain: ["runtime"], runtime: ["domain"]});
@@ -87,7 +87,7 @@ test("CDP interception rules are augmentation-owned and cleaned up before discon
 test("WXT package builds once per browser with embedded Xallet Spook support", async () => {
   const pkg = JSON.parse(await source(browserExtensionPackage));
   const config = await source(browserExtensionConfig);
-  assert.equal(pkg.name, "@jangolova/browser-extension");
+  assert.equal(pkg.name, "@cymonkey/browser-extension");
   assert.match(pkg.scripts.build, /chrome.*edge.*firefox/);
   assert.doesNotMatch(JSON.stringify(pkg.scripts), /mode spoke|build:spoke|dev:spoke/);
   assert.match(config, /outDirTemplate: '\{\{browser\}\}-mv\{\{manifestVersion\}\}'/);
@@ -103,17 +103,18 @@ test("Cymonkey separates its page-safe and privileged extension planes", async (
   const capabilities = await source("pkg/browser-ext/src/capabilities.ts");
   const engine = await source("pkg/browser-ext/src/engine.ts");
 
-  assert.match(page, /root\.cymonkey = Object\.freeze/);
+  assert.match(page, /root\.jangolova = Object\.freeze/);
+  assert.match(page, /window\.cymonkey/);
   assert.match(page, /world: 'MAIN'/);
   assert.doesNotMatch(content, /injectScript/);
   assert.match(content, /allowedPageActions/);
   assert.match(content, /cannot invoke privileged action/);
   assert.match(background, /acceptsExternalSender\(sender\.id\)/);
-  assert.match(engine, /jangolova\.cymonkey\/v1alpha2/);
-	assert.doesNotMatch(engine, /compatibleProtocols|v1alpha1/);
+  assert.match(engine, /cymonkey\/v1alpha1/);
+	assert.doesNotMatch(engine, /compatibleProtocols/);
   assert.match(engine, /domains: \['viewer', 'render'\]/);
   assert.match(engine, /runtimes: \['browser-dom'\]/);
-  assert.match(engine, /jangolova-browser-extension-webextension/);
+  assert.match(engine, /cymonkey-browser-extension-webextension/);
   assert.match(capabilities, /capability\('document\.query',[\s\S]*?'render'\)/);
   assert.match(capabilities, /capability\('script\.execute',[\s\S]*?'render'\)/);
   assert.match(capabilities, /capability\('style\.insert',[\s\S]*?'render'\)/);
@@ -138,5 +139,5 @@ test("Xallet Spook registration activates at runtime and authenticates the disco
   assert.match(spook, /senderId === this\.hubId/);
   assert.match(background, /new XalletSpookClient/);
   assert.doesNotMatch(background, /import\.meta\.env\.MODE/);
-  assert.match(policy, /JANGOLOVA_EXTENSION_CALL/);
+  assert.match(policy, /CYMONKEY_EXTENSION_CALL/);
 });

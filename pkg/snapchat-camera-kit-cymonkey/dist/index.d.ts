@@ -1,4 +1,4 @@
-export declare const CYMONKEY_PROTOCOL_VERSION = "jangolova.cymonkey/v1alpha2";
+export declare const CYMONKEY_PROTOCOL_VERSION = "cymonkey/v1alpha1";
 export declare const CAMERA_KIT_RUNTIME = "snapchat-camera-kit";
 export declare const CAMERA_KIT_DRIVER = "sandbox";
 export declare const CYMONKEY_RUNTIME_SYMBOL: unique symbol;
@@ -19,7 +19,7 @@ export type CameraMediaProvider = {
 };
 export declare class CameraKitCymonkey {
     #private;
-    readonly protocolVersion = "jangolova.cymonkey/v1alpha2";
+    readonly protocolVersion = "cymonkey/v1alpha1";
     readonly augmentationId: string;
     readonly apiToken: string;
     readonly title: string;

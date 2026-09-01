@@ -6,7 +6,7 @@ type SandboxPackage = {
 };
 
 declare global {
-  interface Window { jangolovaSandboxPackage?: SandboxPackage }
+  interface Window { cymonkeySandboxPackage?: SandboxPackage }
 }
 
 installEphemeralWebStorage(window);
@@ -17,17 +17,17 @@ const sandboxID = identifier(params.get('id'), 'id');
 const nonce = identifier(params.get('nonce'), 'nonce');
 
 void loadPackage().then(
-  () => window.parent.postMessage({channel: 'jangolova.cymonkey.sandbox.ready', id: sandboxID, nonce, status: 'ready'}, '*'),
-  (error) => window.parent.postMessage({channel: 'jangolova.cymonkey.sandbox.ready', id: sandboxID, nonce, status: 'failed', error: message(error)}, '*'),
+  () => window.parent.postMessage({channel: 'cymonkey.jangolova.sandbox.ready', id: sandboxID, nonce, status: 'ready'}, '*'),
+  (error) => window.parent.postMessage({channel: 'cymonkey.jangolova.sandbox.ready', id: sandboxID, nonce, status: 'failed', error: message(error)}, '*'),
 );
 
 window.addEventListener('message', (event) => {
-  if (event.source !== window.parent || !event.data || event.data.channel !== 'jangolova.cymonkey.sandbox.connect') return;
+  if (event.source !== window.parent || !event.data || event.data.channel !== 'cymonkey.jangolova.sandbox.connect') return;
   if (event.data.nonce !== nonce || event.ports.length !== 1) return;
   const context = event.data.context;
   const [port] = event.ports;
   if (!port || !record(context) || context.augmentationId !== undefined && typeof context.augmentationId !== 'string') return;
-  const registration = window.jangolovaSandboxPackage;
+  const registration = window.cymonkeySandboxPackage;
   if (!registration) return reportConnection('failed', 'sandbox package is not registered');
   void Promise.resolve(registration.connect({
       augmentationId: String(context.augmentationId || ''),
@@ -39,7 +39,7 @@ window.addEventListener('message', (event) => {
 });
 
 function reportConnection(status: 'connected' | 'failed', error?: string) {
-  window.parent.postMessage({channel: 'jangolova.cymonkey.sandbox.connected', id: sandboxID, nonce, status, ...(error ? {error} : {})}, '*');
+  window.parent.postMessage({channel: 'cymonkey.jangolova.sandbox.connected', id: sandboxID, nonce, status, ...(error ? {error} : {})}, '*');
 }
 
 async function loadPackage() {
@@ -51,7 +51,7 @@ async function loadPackage() {
     script.onerror = () => reject(new Error(`could not load sandbox package ${JSON.stringify(packageID)}`));
     document.head.append(script);
   });
-  if (!window.jangolovaSandboxPackage || window.jangolovaSandboxPackage.id !== packageID) {
+  if (!window.cymonkeySandboxPackage || window.cymonkeySandboxPackage.id !== packageID) {
     throw new Error(`sandbox package ${JSON.stringify(packageID)} did not register`);
   }
 }

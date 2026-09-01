@@ -1,7 +1,7 @@
 class_name CymonkeyProtocol
 extends RefCounted
 
-const VERSION := "jangolova.cymonkey/v1alpha2"
+const VERSION := "cymonkey/v1alpha1"
 const MAXIMUM_MESSAGE_BYTES := 4 * 1024 * 1024
 
 const DOMAIN_RENDER := "render"

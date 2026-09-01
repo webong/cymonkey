@@ -51,8 +51,8 @@
 ## Phase 2b: Augmented browsing
 
 - [x] Define the Cymonkey page-safe and privileged-extension trust boundary.
-- [x] Add the nested `window.jangolova.cymonkey` page bridge.
-- [x] Define `jangolova.cymonkey/v1alpha1`, the augmentation schema, backend
+- [x] Add the nested `window.cymonkey.jangolova` page bridge.
+- [x] Define `cymonkey/v1alpha1`, the augmentation schema, backend
   interface, auto-selection policy, and capability persistence metadata.
 - [x] Add no-install CDP and first-class WebDriver BiDi mappings for the same
   augmentation contract.
@@ -76,10 +76,10 @@
 
 ## Phase 2c: Runtime-agnostic augmentation
 
-- [x] Define `jangolova.cymonkey/v1alpha2` as a portable augmentation contract
+- [x] Define `cymonkey/v1alpha1` as a portable augmentation contract
   with typed domains, runtimes, drivers, surfaces, lifecycle, capability
   provenance, and target-neutral manifests.
-- [x] Adapt the Jangolova Browser Extension control plane to advertise the
+- [x] Adapt the Cymonkey Browser Extension control plane to advertise the
   `viewer` and `render` / `browser-dom` attachment while retaining the page-safe
   `v1alpha1` compatibility bridge.
 - [x] Define a bounded `viewer` / `macos-app` mapping over typed `app.command.*` and `ui.*`
@@ -91,7 +91,7 @@
 - [x] Add a macOS menu-bar containing app that imports the reusable Cymonkey
   runtime, offers explicit managed start/stop, and embeds a Safari WebExtension.
 - [x] Define Cymonkey userscript lifecycle capabilities and the shared
-  `jangolova.cymonkey.userscript/v1alpha1` manifest, bounded
+  `cymonkey.userscript/v1alpha1` manifest, bounded
   `@grant none` MVP, approval checks, permission-increase checks, and native
   WebExtension registration adapter.
 - [x] Share source-free userscript catalog metadata from the Safari extension

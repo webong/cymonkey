@@ -5,7 +5,7 @@ const endpoint = process.env.JANGOLOVA_CYMONKEY_ENDPOINT ?? "ws://127.0.0.1:8090
 const token = process.env.JANGOLOVA_CYMONKEY_TOKEN;
 if (!token) throw new Error("JANGOLOVA_CYMONKEY_TOKEN is required");
 const plan = JSON.parse(await readFile(new URL("godot-cymonkey-fixture/house.scene-plan.json", import.meta.url), "utf8"));
-assert.equal(plan.apiVersion, "jangolova.cymonkey.scene/v1alpha1");
+assert.equal(plan.apiVersion, "cymonkey.scene/v1alpha1");
 
 const socket = new WebSocket(endpoint);
 let requestId = 1;
@@ -48,7 +48,7 @@ function act(name, targetId, input) {
 }
 
 const hello = await call("hello");
-assert.equal(hello.protocolVersion, "jangolova.cymonkey/v1alpha2");
+assert.equal(hello.protocolVersion, "cymonkey/v1alpha1");
 assert.ok(hello.domains.includes("render"));
 assert.ok(hello.runtimes.includes("godot"));
 assert.ok(hello.drivers.includes("websocket"));

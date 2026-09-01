@@ -1,7 +1,7 @@
 import { privilegedCapabilityNames } from '../src/capabilities';
 import { dispatchCymonkey } from '../src/engine';
 import { OutboundControlClient } from '../src/outbound-control';
-import { dispatchJangolova, setOutboundControlStatus, setXalletSpookStatus } from '../src/runtime';
+import { dispatchCymonkeyExtension, setOutboundControlStatus, setXalletSpookStatus } from '../src/runtime';
 import { publishAuditEvent, publishCymonkeyEvent } from '../src/services/events';
 import { ControlPolicyService, isExtensionControlCall, type AuthorizationResult, type ControlSource } from '../src/services/policy';
 import { errorMessage, isRecord, type XalletSpookState } from '../src/types';
@@ -23,7 +23,7 @@ export default defineBackground(() => {
     outboundControl: 'disabled',
   };
   const spook = new XalletSpookClient(
-    'Jangolova Browser Extension',
+    'Cymonkey Browser Extension',
     state,
     'popup.html',
     (xalletSpook) => {
@@ -64,10 +64,10 @@ export default defineBackground(() => {
 
   async function handleMessage(message: unknown, senderTabId?: number) {
     if (!isRecord(message)) return undefined;
-    if (message.channel === 'jangolova.media-broker') {
+    if (message.channel === 'cymonkey.jangolova.media-broker') {
       return dispatchMediaBroker(String(message.method || ''), isRecord(message.params) ? message.params : {}, senderTabId);
     }
-    if (message.channel === 'jangolova.cymonkey.event') {
+    if (message.channel === 'cymonkey.jangolova.event') {
       const event = isRecord(message.event) ? message.event : {};
       return publishCymonkeyEvent(
         typeof event.type === 'string' ? event.type : 'cymonkey.event',
@@ -75,14 +75,14 @@ export default defineBackground(() => {
         senderTabId,
       );
     }
-    if (message.channel === 'jangolova.cymonkey.control') {
+    if (message.channel === 'cymonkey.jangolova.control') {
 		return handleExtensionOriginCall({
-			type: 'JANGOLOVA_EXTENSION_CALL', method: 'cymonkey.call',
+			type: 'CYMONKEY_EXTENSION_CALL', method: 'cymonkey.call',
 			params: {method: String(message.method || ''), params: isRecord(message.params) ? message.params : {}},
 		});
     }
-    if (message.channel === 'jangolova.extension.control') {
-      return handleExtensionOriginCall({type: 'JANGOLOVA_EXTENSION_CALL', method: String(message.method || ''), params: isRecord(message.params) ? message.params : {}});
+    if (message.channel === 'cymonkey.extension.control') {
+      return handleExtensionOriginCall({type: 'CYMONKEY_EXTENSION_CALL', method: String(message.method || ''), params: isRecord(message.params) ? message.params : {}});
     }
     if (message.type === 'GET_SPOKE_STATE') return state;
     if (isExtensionControlCall(message)) return handleControlCall(message, 'extension-origin');
@@ -130,7 +130,7 @@ export default defineBackground(() => {
   async function dispatchAuthorized(message: Record<string, unknown>, method: string, params: Record<string, unknown>, source: ControlSource) {
 	if (method === 'cymonkey.call') return dispatchCymonkey(String(params.method || ''), isRecord(params.params) ? params.params : {});
     if (method === 'approval.list' || method === 'approval.resolve') {
-      if (source !== 'extension-origin') throw new Error('approvals are available only in Jangolova extension UI');
+      if (source !== 'extension-origin') throw new Error('approvals are available only in Cymonkey extension UI');
       if (method === 'approval.list') {
         const [packages, userscripts] = await Promise.all([listPackageApprovals(), listUserscriptApprovals()]);
         return [...packages, ...userscripts].sort((left, right) => left.createdAt.localeCompare(right.createdAt));
@@ -144,7 +144,7 @@ export default defineBackground(() => {
     if (method === 'control.websocket.describe') return outbound.describe();
     if (method === 'control.websocket.configure') return outbound.configure(params.configuration);
     if (method === 'control.websocket.disable') return outbound.disable();
-    return dispatchJangolova(method, params);
+    return dispatchCymonkeyExtension(method, params);
   }
 
   function auditData(value: AuthorizationResult) {

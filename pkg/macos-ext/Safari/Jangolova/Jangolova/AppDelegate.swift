@@ -18,7 +18,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var runtimeStatus = ManagedRuntimeStatus.stopped
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        statusItem.button?.title = "J"
+        statusItem.button?.title = "C"
         rebuildMenu()
     }
 
@@ -28,7 +28,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func rebuildMenu() {
         let menu = NSMenu()
-        let title = NSMenuItem(title: "Jangolova for macOS", action: nil, keyEquivalent: "")
+        let title = NSMenuItem(title: "Cymonkey for macOS", action: nil, keyEquivalent: "")
         title.isEnabled = false
         menu.addItem(title)
         let runtimeItem = NSMenuItem(title: runtimeLabel, action: nil, keyEquivalent: "")
@@ -48,7 +48,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         safari.target = self
         menu.addItem(safari)
         menu.addItem(.separator())
-        let quit = NSMenuItem(title: "Quit Jangolova", action: #selector(quit), keyEquivalent: "q")
+        let quit = NSMenuItem(title: "Quit Cymonkey", action: #selector(quit), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
         statusItem.menu = menu

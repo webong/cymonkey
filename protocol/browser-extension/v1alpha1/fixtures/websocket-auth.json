@@ -1,5 +1,5 @@
 {
-  "type": "JANGOLOVA_EXTENSION_AUTH",
-  "protocolVersion": "jangolova.browser-extension/v1alpha1",
+  "type": "CYMONKEY_EXTENSION_AUTH",
+  "protocolVersion": "cymonkey.browser-extension/v1alpha1",
   "token": "fixture-token-not-a-secret"
 }

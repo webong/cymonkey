@@ -1,6 +1,6 @@
 {
   "$schema": "../../src/cymonkey/protocol/v1alpha2/scene-plan.schema.json",
-  "apiVersion": "jangolova.cymonkey.scene/v1alpha1",
+  "apiVersion": "cymonkey.scene/v1alpha1",
   "name": "midnight-house",
   "description": "A model-authored night-time house choreography.",
   "requires": [

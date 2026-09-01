@@ -16,7 +16,7 @@ assert.equal(plugin.Modules[0].Name, "JangolovaCymonkey");
 assert.equal(plugin.Modules[0].Type, "Runtime");
 const unrealVersion = protocol.match(/ProtocolVersion\[\].*TEXT\("([^"]+)"\)/)?.[1];
 const goVersion = goProtocol.match(/ProtocolVersion\s+= "([^"]+)"/)?.[1];
-assert.equal(unrealVersion, "jangolova.cymonkey/v1alpha2");
+assert.equal(unrealVersion, "cymonkey/v1alpha1");
 assert.equal(unrealVersion, goVersion);
 for (const method of ["hello", "capabilities", "describe", "act", "events", "health"]) {
   assert.ok(protocol.includes(`TEXT("${method}")`));

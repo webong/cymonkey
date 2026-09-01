@@ -41,7 +41,7 @@ func TestCymonkeyEngineBackendNativeProtocol(t *testing.T) {
 				_ = conn.WriteJSON(map[string]any{
 					"id": msg.ID,
 					"result": map[string]any{
-						"protocolVersion": "jangolova.cymonkey/v1alpha2",
+						"protocolVersion": "cymonkey/v1alpha1",
 						"implementation":  map[string]any{"name": "godot-native", "version": "0.2.0"},
 						"domains":         []string{"render"},
 						"runtimes":        []string{"godot"},

@@ -11,7 +11,7 @@ Jangolova host ─────────────► depends on Cymonkey co
        │
        ├── target lifecycle and credentials
        ├── browser drivers: CDP, BiDi, Playwright, Puppeteer, Safari MCP
-       ├── Jangolova Browser Extension
+       ├── Cymonkey Browser Extension
        └── macOS app, cooperative helper, Safari and userscript systems
 ```
 
@@ -32,7 +32,7 @@ It must not contain a browser binary, extension, Node worker, Apple Event,
 Accessibility request, Xallet reference, Jangolova internal import, target
 launcher, credential resolver, or product-specific runtime module.
 
-The existing wire identifier, `jangolova.cymonkey/v1alpha2`, is a protocol
+The existing wire identifier, `cymonkey/v1alpha1`, is a protocol
 identity rather than a Go-package dependency. A future independent Cymonkey
 release may deliberately version that identifier; doing so is a protocol
 change, not a prerequisite for extracting the core.

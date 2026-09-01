@@ -42,7 +42,7 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
               let defaults = UserDefaults(suiteName: "group.dev.jangolova.shared") else {
             return ["ok": false, "error": "userscript catalog is invalid"]
         }
-        defaults.set(encoded, forKey: "jangolova.userscripts.catalog.v1")
+        defaults.set(encoded, forKey: "cymonkey.userscripts.catalog.v1")
         return ["ok": true, "count": values.count]
     }
 

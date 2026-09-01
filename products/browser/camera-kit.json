@@ -1,9 +1,9 @@
 {
-  "apiVersion": "jangolova.browser-package/v1alpha1",
+  "apiVersion": "cymonkey.browser-package/v1alpha1",
   "kind": "BrowserExtensionProduct",
   "metadata": {
     "id": "camera-kit",
-    "name": "Jangolova Camera Kit Browser Extension"
+    "name": "Cymonkey Camera Kit Browser Extension"
   },
   "spec": {
     "browsers": ["chrome", "edge"],

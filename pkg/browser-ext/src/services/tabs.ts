@@ -15,7 +15,7 @@ export async function targetTab(value: unknown) {
   const target = isRecord(value) ? value : {};
   if (Number.isInteger(target.tabId)) return browser.tabs.get(Number(target.tabId));
   const tab = await activeTab();
-  if (!tab?.id) throw new Error('Jangolova has no active target tab');
+  if (!tab?.id) throw new Error('Cymonkey has no active target tab');
   return tab;
 }
 
@@ -25,7 +25,7 @@ export function requireTabID(tab: { id?: number }) {
 }
 
 export async function sendToTab(tabId: number, method: string, params: Record<string, unknown>) {
-  return sendToTabChannel(tabId, 'jangolova.cymonkey.control', method, params);
+  return sendToTabChannel(tabId, 'cymonkey.jangolova.control', method, params);
 }
 
 export async function sendToTabChannel(tabId: number, channel: string, method: string, params: Record<string, unknown>) {
@@ -44,7 +44,7 @@ async function attachTabRuntime(tabId: number) {
   let protocol = '';
   try { protocol = tab.url ? new URL(tab.url).protocol : ''; } catch { /* handled below */ }
   if (protocol !== 'http:' && protocol !== 'https:') {
-    throw new Error('Jangolova can attach only to ordinary HTTP(S) pages; browser settings and extension pages are protected');
+    throw new Error('Cymonkey can attach only to ordinary HTTP(S) pages; browser settings and extension pages are protected');
   }
   try {
     await browser.scripting.executeScript({
@@ -54,7 +54,7 @@ async function attachTabRuntime(tabId: number) {
       target: {tabId}, files: ['content-scripts/cymonkey.js'], world: 'ISOLATED',
     } as unknown as Parameters<typeof browser.scripting.executeScript>[0]);
   } catch {
-    throw new Error('Jangolova could not attach to the target page; confirm site access is enabled for this extension');
+    throw new Error('Cymonkey could not attach to the target page; confirm site access is enabled for this extension');
   }
 }
 

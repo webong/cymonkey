@@ -9,13 +9,13 @@ export async function callCymonkeyEngine(request: unknown, target: unknown = {},
   if (delivery === 'sandbox') {
     if (typeof augmentationId !== 'string' || !augmentationId) throw new Error('sandbox delivery requires augmentationId');
     if (typeof sandboxId !== 'string' || !sandboxId) throw new Error('sandbox delivery requires sandboxId');
-    const value = await sendToTabChannel(tabId, 'jangolova.cymonkey.sandbox', 'call', {augmentationId, id: sandboxId, request});
+    const value = await sendToTabChannel(tabId, 'cymonkey.jangolova.sandbox', 'call', {augmentationId, id: sandboxId, request});
     await publishCymonkeyEngineEvent('request.completed', {tabId, augmentationId, sandboxId, runtime: 'sandbox'}, tabId);
     return value;
   }
   if (delivery === 'augmentation-package') {
     if (typeof augmentationId !== 'string' || !augmentationId) throw new Error('augmentation-package delivery requires augmentationId');
-    const value = await sendToTabChannel(tabId, 'jangolova.cymonkey.augmentation-runtime', 'dispatch', { augmentationId, request });
+    const value = await sendToTabChannel(tabId, 'cymonkey.jangolova.augmentation-runtime', 'dispatch', { augmentationId, request });
     await publishCymonkeyEngineEvent('request.completed', { tabId, augmentationId, runtime: 'augmentation-package' }, tabId);
     return value;
   }
@@ -24,7 +24,7 @@ export async function callCymonkeyEngine(request: unknown, target: unknown = {},
     target: { tabId },
     world: 'MAIN',
     func: async (engineRequest: unknown) => {
-      const symbol = Symbol.for('jangolova.cymonkey.runtime');
+      const symbol = Symbol.for('cymonkey.jangolova.runtime');
       const runtime = (globalThis as Record<PropertyKey, unknown>)[symbol] as { dispatch?(request: unknown): unknown } | undefined;
       if (!runtime?.dispatch) throw new Error('no explicitly installed Cymonkey runtime was found');
       return runtime.dispatch(engineRequest);

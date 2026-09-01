@@ -2,7 +2,7 @@
 import process from "node:process";
 import readline from "node:readline";
 
-const protocolVersion = "jangolova.cymonkey/v1alpha2";
+const protocolVersion = "cymonkey/v1alpha1";
 let browser;
 let targetProtocol = "cdp";
 let disconnected = true;
@@ -176,7 +176,7 @@ async function probeExtension() {
       !extensionHello?.domains?.includes("viewer") ||
       !extensionHello?.runtimes?.includes("browser-dom") ||
       !extensionHello?.drivers?.includes("webextension") ||
-      extensionHello?.implementation?.name !== "jangolova-browser-extension-webextension") {
+      extensionHello?.implementation?.name !== "cymonkey-browser-extension-webextension") {
       throw new Error("extension returned an incompatible Cymonkey handshake");
     }
   } catch (error) {
@@ -217,7 +217,7 @@ async function negotiateCapabilities() {
 function hello() {
   return {
     protocolVersion,
-    implementation: { name: "jangolova-cymonkey", version: "0.1.0" },
+    implementation: { name: "cymonkey", version: "0.1.0" },
     domains: ["viewer", "render"],
     runtimes: ["browser-dom"],
     drivers: activeDrivers(),
@@ -469,7 +469,7 @@ async function overlayChange(input, operation) {
   const id = requireString(input.id, "id");
   const page = await targetPage(input.target);
   return page.evaluate(({ input, operation }) => {
-    const selector = `[data-jangolova-cymonkey-overlay="${CSS.escape(input.id)}"]`;
+    const selector = `[data-cymonkey-overlay="${CSS.escape(input.id)}"]`;
     let host = document.querySelector(selector);
     if (operation === "unmount") { if (!host) throw new Error("overlay does not exist"); host.remove(); return { ok: true }; }
     if (operation === "mount" && host) throw new Error("overlay already exists");
@@ -715,7 +715,7 @@ function matchOrigin(pattern, url) {
 }
 
 function validateManifest(value) {
-  if (!value || value.apiVersion !== protocolVersion || value.kind !== "Augmentation") throw new Error("manifest must be a jangolova.cymonkey/v1alpha2 Augmentation");
+  if (!value || value.apiVersion !== protocolVersion || value.kind !== "Augmentation") throw new Error("manifest must be a cymonkey/v1alpha1 Augmentation");
   requireString(value.metadata?.id, "manifest.metadata.id");
   requireString(value.metadata?.revision, "manifest.metadata.revision");
   const target = value.spec?.targets?.find((item) => item?.domain === "render" && item?.runtime === "browser-dom");
@@ -727,9 +727,9 @@ function browserTarget(manifest) { return manifest.spec.targets.find((item) => i
 function requireString(value, name) { if (typeof value !== "string" || !value) throw new Error(`${name} is required`); return value; }
 
 function pageBridgeBootstrap(driver = "cdp") {
-  if (globalThis.jangolova !== undefined && (globalThis.jangolova === null || !["object", "function"].includes(typeof globalThis.jangolova))) return;
-  const root = globalThis.jangolova ||= {};
-  if (root.cymonkey) return;
+  if (globalThis.cymonkey !== undefined && (globalThis.cymonkey === null || !["object", "function"].includes(typeof globalThis.cymonkey))) return;
+  const root = globalThis.cymonkey ||= {};
+  if (root.jangolova) return;
   const overlays = new Map();
   let cursor = 0;
   const pageEvents = [];
@@ -741,8 +741,8 @@ function pageBridgeBootstrap(driver = "cdp") {
     if (name === "overlay.unmount") { const host = overlays.get(input.id); if (!host) throw new Error("overlay does not exist"); host.remove(); overlays.delete(input.id); emit("overlay.unmounted", { id: input.id }); return { ok: true }; }
     throw new Error(`page-safe Cymonkey does not expose ${JSON.stringify(name)}`);
   };
-  root.cymonkey = Object.freeze({
-    hello: async () => ({ protocolVersion, implementation: { name: "jangolova-cymonkey-page" }, domains: ["render"], runtimes: ["browser-dom"], drivers: [driver] }),
+  root.jangolova = Object.freeze({
+    hello: async () => ({ protocolVersion, implementation: { name: "cymonkey-page" }, domains: ["render"], runtimes: ["browser-dom"], drivers: [driver] }),
     capabilities: async () => [
       cap("document.query", driver, "mapped", "call", "ephemeral", "read", ["selector"], "render"),
       cap("document.patch", driver, "mapped", "surface", "ephemeral", "write", ["selector"], "render"),

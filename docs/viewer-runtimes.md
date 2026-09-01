@@ -98,7 +98,7 @@ as macOS:
 
 - `JANGOLOVA_CYMONKEY_CONTROL_URL`
 - `JANGOLOVA_CYMONKEY_CONTROL_TOKEN`
-- `JANGOLOVA_CYMONKEY_PROTOCOL=jangolova.cymonkey/v1alpha2`
+- `JANGOLOVA_CYMONKEY_PROTOCOL=cymonkey/v1alpha1`
 - `JANGOLOVA_CYMONKEY_CONFIG`
 
 Plaintext `ws://` is accepted only for loopback. A production distributed

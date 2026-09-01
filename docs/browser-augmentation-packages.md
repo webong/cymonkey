@@ -1,6 +1,6 @@
 # Browser augmentation packages
 
-`pkg/browser-ext` is Jangolova's browser platform: it owns browser
+`pkg/browser-ext` is Cymonkey's browser platform: it owns browser
 permissions, target selection, authentication, authorization, audit, storage,
 network rules, and packaged-script injection. It is not a catalogue of
 JavaScript libraries.
@@ -27,24 +27,24 @@ is mountable only when it appears in that reviewed registry, its canonical
 manifest is present, its delivery supports the current browser, and every
 requested iframe permission is declared by the manifest. Merely placing an
 unlisted JavaScript file in the artifact does not make it executable through
-the Jangolova control plane.
+the Cymonkey control plane.
 
 The extension popup is also a standalone package manager. It lists only the
 reviewed registry, accepts an ephemeral JSON configuration, targets the active
 tab, and runs the package's declared `launch` action after mounting. The
-configuration remains in popup memory only; Jangolova does not persist tokens
-or copy them into approval or audit records. This path is owned by Jangolova
+configuration remains in popup memory only; Cymonkey does not persist tokens
+or copy them into approval or audit records. This path is owned by Cymonkey
 and works without Xallet or an outbound control connection.
 
 If the selected HTTP(S) tab predates extension installation or reload,
-Jangolova attaches its packaged MAIN-world bridge and isolated runtime before
+Cymonkey attaches its packaged MAIN-world bridge and isolated runtime before
 retrying the request. Protected browser settings, extension pages, and other
 non-web schemes are rejected with an explicit target error.
 
 This restriction matters for SDKs that download executable code themselves.
 For example, Snap Camera Kit Web downloads its Lens renderer as WebAssembly.
 It cannot run in an ordinary MV3 extension or content-script context, but it
-can run in Jangolova's explicitly declared extension sandbox. The sandbox is
+can run in Cymonkey's explicitly declared extension sandbox. The sandbox is
 still shipped and selected as reviewed product code; only the SDK's documented
 runtime resources are allowed by that sandbox page's CSP.
 
@@ -56,9 +56,9 @@ target, requested permissions, and lifecycle. Its implementation uses
 matching content script.
 
 If the package exposes a richer runtime, its reviewed `content.js` registers a
-factory in Jangolova's private isolated world. The generic content host mounts
+factory in Cymonkey's private isolated world. The generic content host mounts
 one factory result per `augmentationId` and routes the private channel
-`jangolova.cymonkey.augmentation-runtime` to it. The package receives only a
+`cymonkey.jangolova.augmentation-runtime` to it. The package receives only a
 standard Cymonkey request (`hello`, `capabilities`, `describe`, `act`, or
 `events`) and returns only its declared semantic result.
 
@@ -80,11 +80,11 @@ The reviewed package manifest selects `augmentation-package`/`content.js` or
 `sandbox`/`sandbox.js` for the current browser. Callers do not select a
 library-specific extension action.
 
-Jangolova routes that request with:
+Cymonkey routes that request with:
 
 ```json
 {
-  "type": "JANGOLOVA_EXTENSION_CALL",
+  "type": "CYMONKEY_EXTENSION_CALL",
   "method": "cymonkey-engine.call",
   "params": {
     "augmentationId": "example-overlay",
@@ -136,14 +136,14 @@ package's manifest.
 
 When the mount requests a sensitive permission such as `camera`, the first
 call returns `status: "approval-required"` with a short-lived approval ID. The
-extension badge indicates a pending request. The user opens Jangolova, reviews
+extension badge indicates a pending request. The user opens Cymonkey, reviews
 the package, permission, and target origin, and chooses **Allow once** or
 **Deny**. An approved caller retries the identical mount with `approvalId`;
 the approval is consumed and cannot be reused for another package, origin,
 tab, or augmentation. Package configuration, including API tokens, is never
 stored in the approval record.
 
-When the user initiates the mount from Jangolova's own popup, approving it
+When the user initiates the mount from Cymonkey's own popup, approving it
 automatically retries that exact in-memory request. Calls from an agent control
 plane keep the same explicit retry behavior. Xallet Spook and authenticated
 WebSocket callers are optional integrations; neither is required for the
@@ -167,7 +167,7 @@ scene controlled must explicitly install its own Cymonkey integration.
 
 ## Product composition
 
-The baseline Jangolova Browser Extension carries no optional library runtime.
+The baseline Cymonkey Browser Extension carries no optional library runtime.
 A product or deployment composes the desired packages into the extension build.
 This lets a target owner choose a small reviewed set—for example, a Three.js
 overlay *or* a Camera Kit package—without making every browser installation
@@ -187,5 +187,5 @@ repository-escaping paths and unrecognized CSP sources.
 
 The composed artifact also uses the product manifest's display name in the
 browser and popup. This makes two locally loaded reviewed products visibly
-distinct—for example, **Jangolova Three.js Browser Extension** versus
-**Jangolova Camera Kit Browser Extension**.
+distinct—for example, **Cymonkey Three.js Browser Extension** versus
+**Cymonkey Camera Kit Browser Extension**.

@@ -127,7 +127,7 @@ for the open composite shape and contributor contract.
 
 ## Wire vocabulary
 
-The runtime-agnostic `jangolova.cymonkey/v1alpha2` contract uses:
+The runtime-agnostic `cymonkey/v1alpha1` contract uses:
 
 ```json
 {

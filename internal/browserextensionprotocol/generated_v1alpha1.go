@@ -1,5 +1,5 @@
 // Code generated from protocol/browser-extension/v1alpha1/protocol.schema.json; DO NOT EDIT.
-// Schema SHA-256: 0919d89d282b1388b9134b7300f9a06515841c9ddecd9a307cda3d5ad23a08be
+// Schema SHA-256: cf7e2f2fc41393726416758e4cf135e40103d3c1fc6e5e1be614ada60efedfb1
 
 package browserextensionprotocol
 
@@ -8,12 +8,12 @@ import (
 	"encoding/json"
 )
 
-const ProtocolVersion = "jangolova.browser-extension/v1alpha1"
+const ProtocolVersion = "cymonkey.browser-extension/v1alpha1"
 
 type CallType string
 
 const (
-	CallTypeJangolova CallType = "JANGOLOVA_EXTENSION_CALL"
+	CallTypeCymonkey CallType = "CYMONKEY_EXTENSION_CALL"
 )
 
 type Method string

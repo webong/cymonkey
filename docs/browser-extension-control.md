@@ -1,7 +1,7 @@
-# Jangolova browser-extension control plane
+# Cymonkey browser-extension control plane
 
 The private browser-extension protocol is
-`jangolova.browser-extension/v1alpha1`. It carries Jangolova platform calls,
+`cymonkey.browser-extension/v1alpha1`. It carries Cymonkey platform calls,
 Cymonkey's five semantic operations, including render-domain calls, over authenticated
 extension-origin, Xallet Spook, or optional outbound WebSocket transports.
 Website code cannot access this plane.
@@ -31,7 +31,7 @@ Example replacement call:
 
 ```json
 {
-  "type": "JANGOLOVA_EXTENSION_CALL",
+  "type": "CYMONKEY_EXTENSION_CALL",
   "method": "policy.replace",
   "params": {
     "policy": {
@@ -75,9 +75,9 @@ dependency.
 
 - Remote endpoints require `wss:`; `ws:` is accepted only on loopback.
 - Tokens must expire within 24 hours and are held in extension session storage.
-- The extension sends `JANGOLOVA_EXTENSION_AUTH` after opening the socket.
+- The extension sends `CYMONKEY_EXTENSION_AUTH` after opening the socket.
 - It accepts control calls only after
-  `JANGOLOVA_EXTENSION_AUTHENTICATED` is received.
+  `CYMONKEY_EXTENSION_AUTHENTICATED` is received.
 - Heartbeats run every 20 seconds and reconnect delay is bounded at 30 seconds.
 - `describe` returns endpoint/status/expiry but never the token.
 - `control.websocket.disable` removes configuration and closes the socket.
@@ -97,6 +97,6 @@ npm run check:browser-extension-protocol
 ```
 
 Recorded exchanges under `protocol/browser-extension/v1alpha1/fixtures`
-verify the one `JANGOLOVA_EXTENSION_CALL` envelope, including its nested
+verify the one `CYMONKEY_EXTENSION_CALL` envelope, including its nested
 `cymonkey.call` subsystem method. Generated files include the source schema
 digest and must not be edited manually.

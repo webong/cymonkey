@@ -5,8 +5,8 @@ type PendingCall = {
 
 declare global {
   interface Window {
-    jangolova?: {
-      cymonkey?: Readonly<{
+    cymonkey?: {
+      jangolova?: Readonly<{
         hello(): Promise<unknown>;
         capabilities(): Promise<unknown>;
         describe(): Promise<unknown>;
@@ -23,17 +23,17 @@ export default defineContentScript({
   runAt: 'document_start',
   world: 'MAIN',
   main() {
-    if (window.jangolova !== undefined && (
-      window.jangolova === null || !['object', 'function'].includes(typeof window.jangolova)
+    if (window.cymonkey !== undefined && (
+      window.cymonkey === null || !['object', 'function'].includes(typeof window.cymonkey)
     )) return;
 
-    const root = window.jangolova ??= {};
-    if (root.cymonkey) return;
+    const root = window.cymonkey ??= {};
+    if (root.jangolova) return;
     let requestSequence = 0;
     const pending = new Map<string, PendingCall>();
 
     window.addEventListener('message', (event) => {
-      if (event.source !== window || event.data?.channel !== 'jangolova.cymonkey.response') return;
+      if (event.source !== window || event.data?.channel !== 'cymonkey.jangolova.response') return;
       const waiter = pending.get(String(event.data.id));
       if (!waiter) return;
       pending.delete(String(event.data.id));
@@ -53,11 +53,11 @@ export default defineContentScript({
           resolve: (value) => { clearTimeout(timer); resolve(value); },
           reject: (error) => { clearTimeout(timer); reject(error); },
         });
-        window.postMessage({ channel: 'jangolova.cymonkey.request', id, method, params }, '*');
+        window.postMessage({ channel: 'cymonkey.jangolova.request', id, method, params }, '*');
       });
     }
 
-    root.cymonkey = Object.freeze({
+    root.jangolova = Object.freeze({
       hello: () => call('hello'),
       capabilities: () => call('capabilities'),
       describe: () => call('describe'),

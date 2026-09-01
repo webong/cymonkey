@@ -15,7 +15,7 @@ type RegistryEntry = {id: string; manifest: string};
 
 export async function listReviewedPackages(): Promise<BrowserPackageDescription[]> {
   const registry = await loadJSON('augmentations/registry.json');
-  if (!isRecord(registry) || registry.apiVersion !== 'jangolova.browser-package/v1alpha1'
+  if (!isRecord(registry) || registry.apiVersion !== 'cymonkey.browser-package/v1alpha1'
     || registry.kind !== 'BrowserPackageRegistry' || !Array.isArray(registry.packages)) {
     throw new Error('browser package registry is invalid');
   }
@@ -59,7 +59,7 @@ function validateRegistryEntry(value: unknown): RegistryEntry {
 }
 
 function validatePackageManifest(value: unknown): BrowserPackageDescription {
-  if (!isRecord(value) || value.apiVersion !== 'jangolova.browser-package/v1alpha1'
+  if (!isRecord(value) || value.apiVersion !== 'cymonkey.browser-package/v1alpha1'
     || value.kind !== 'BrowserAugmentationPackage' || !isRecord(value.metadata) || !isRecord(value.spec)) {
     throw new Error('browser package manifest is invalid');
   }

@@ -3,7 +3,7 @@
 This is Jangolova's reference native helper for the Cymonkey `viewer`
 domain on an interactive Windows desktop. It connects outward to Jangolova's
 one-time authenticated WebSocket endpoint and implements
-`jangolova.cymonkey/v1alpha2`.
+`cymonkey/v1alpha1`.
 
 It deliberately exposes only owner-configured executable names. The current
 reference mapping provides top-level window discovery/activation and, when the
@@ -25,7 +25,7 @@ Set these launch variables; do not put them in the JSON configuration:
 ```text
 JANGOLOVA_CYMONKEY_CONTROL_URL=ws://127.0.0.1:...
 JANGOLOVA_CYMONKEY_CONTROL_TOKEN=<short-lived-token>
-JANGOLOVA_CYMONKEY_PROTOCOL=jangolova.cymonkey/v1alpha2
+JANGOLOVA_CYMONKEY_PROTOCOL=cymonkey/v1alpha1
 JANGOLOVA_CYMONKEY_CONFIG=C:\\absolute\\path\\helper-config.json
 ```
 

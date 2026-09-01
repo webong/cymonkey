@@ -6,7 +6,7 @@ package cymonkey
 import "encoding/json"
 
 const (
-	ProtocolVersion  = "jangolova.cymonkey/v1alpha2"
+	ProtocolVersion  = "cymonkey/v1alpha1"
 	AugmentationKind = "Augmentation"
 )
 

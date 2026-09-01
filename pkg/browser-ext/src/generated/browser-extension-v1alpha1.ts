@@ -1,8 +1,8 @@
 // Code generated from protocol/browser-extension/v1alpha1/protocol.schema.json; DO NOT EDIT.
-// Schema SHA-256: 0919d89d282b1388b9134b7300f9a06515841c9ddecd9a307cda3d5ad23a08be
+// Schema SHA-256: cf7e2f2fc41393726416758e4cf135e40103d3c1fc6e5e1be614ada60efedfb1
 
-export const browserExtensionProtocolVersion = 'jangolova.browser-extension/v1alpha1' as const;
-export type ExtensionCallType = 'JANGOLOVA_EXTENSION_CALL';
+export const browserExtensionProtocolVersion = 'cymonkey.browser-extension/v1alpha1' as const;
+export type ExtensionCallType = 'CYMONKEY_EXTENSION_CALL';
 export type ExtensionMethod = "hello" | "capabilities" | "describe" | "events" | "cymonkey.call" | "cymonkey-engine.call" | "packages.list" | "packages.describe" | "approval.list" | "approval.resolve" | "policy.describe" | "policy.replace" | "control.websocket.describe" | "control.websocket.configure" | "control.websocket.disable";
 export type ControlMethod = ExtensionMethod;
 export type ControlCaller = 'xallet-spook' | 'authenticated-websocket' | 'extension-origin';
@@ -40,13 +40,13 @@ export interface OutboundControlConfiguration {
 }
 
 export interface AuthRequest {
-  type: 'JANGOLOVA_EXTENSION_AUTH';
+  type: 'CYMONKEY_EXTENSION_AUTH';
   protocolVersion: typeof browserExtensionProtocolVersion;
   token: string;
 }
 
 export interface ControlResponse {
-  type: 'JANGOLOVA_EXTENSION_RESPONSE';
+  type: 'CYMONKEY_EXTENSION_RESPONSE';
   id?: string | number | null;
   ok: boolean;
   result?: unknown;

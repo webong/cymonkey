@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://jangolova.dev/protocol/cymonkey/v1alpha2/augmentation.schema.json",
-  "title": "Jangolova Cymonkey multi-domain augmentation",
+  "$id": "https://cymonkey.dev/protocol/cymonkey/v1alpha1/augmentation.schema.json",
+  "title": "Cymonkey multi-domain augmentation",
   "type": "object",
   "required": ["apiVersion", "kind", "metadata", "spec"],
   "properties": {
-    "apiVersion": {"const": "jangolova.cymonkey/v1alpha2"},
+    "apiVersion": {"const": "cymonkey/v1alpha1"},
     "kind": {"const": "Augmentation"},
     "metadata": {
       "type": "object",

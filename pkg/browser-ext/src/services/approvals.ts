@@ -17,7 +17,7 @@ export type PackageApproval = {
 
 type MountApprovalInput = Omit<PackageApproval, 'kind' | 'id' | 'status' | 'createdAt' | 'expiresAt'> & {approvalId?: unknown};
 
-const storageKey = 'jangolova.packageApprovals.v1';
+const storageKey = 'cymonkey.packageApprovals.v1';
 const lifetimeMilliseconds = 5 * 60 * 1000;
 
 function approvalStorage() {

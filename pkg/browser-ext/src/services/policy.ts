@@ -37,7 +37,7 @@ export type AuthorizationResult = ControlContext & {
   policyMode: 'configured' | 'default-deny';
 };
 
-const policyStorageKey = 'jangolova.controlPolicy.v1';
+const policyStorageKey = 'cymonkey.controlPolicy.v1';
 const capabilityEffects = new Map(privilegedCapabilities.map((item) => [item.name, item.effect]));
 const defaultPolicy: ControlPolicy = {
   version: 1,
@@ -95,7 +95,7 @@ export class ControlPolicyService {
 }
 
 export function isExtensionControlCall(message: unknown): message is Record<string, unknown> {
-  return isRecord(message) && message.type === 'JANGOLOVA_EXTENSION_CALL';
+  return isRecord(message) && message.type === 'CYMONKEY_EXTENSION_CALL';
 }
 
 export function requireScopedIdentifier(value: unknown, name: string) {
@@ -158,10 +158,10 @@ async function controlContext(source: ControlSource, message: Record<string, unk
 }
 
 function unwrapCall(message: Record<string, unknown>) {
-  const envelopeType = String(message.type || 'JANGOLOVA_EXTENSION_CALL');
+  const envelopeType = String(message.type || 'CYMONKEY_EXTENSION_CALL');
   let method = String(message.method || '');
   let params = isRecord(message.params) ? message.params : {};
-  if (envelopeType === 'JANGOLOVA_EXTENSION_CALL' && method === 'cymonkey.call') {
+  if (envelopeType === 'CYMONKEY_EXTENSION_CALL' && method === 'cymonkey.call') {
     method = String(params.method || '');
     params = isRecord(params.params) ? params.params : {};
   }

@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-const ProtocolVersion = "jangolova.cymonkey/v1alpha2"
+const ProtocolVersion = "cymonkey/v1alpha1"
 
 type DomainName string
 

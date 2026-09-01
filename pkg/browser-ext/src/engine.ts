@@ -27,16 +27,16 @@ async function capabilities() {
 
 function hello() {
   return {
-    protocolVersion: 'jangolova.cymonkey/v1alpha2',
+    protocolVersion: 'cymonkey/v1alpha1',
     implementation: {
-      name: 'jangolova-browser-extension-webextension',
+      name: 'cymonkey-browser-extension-webextension',
       version: browser.runtime.getManifest().version,
     },
     drivers: ['webextension'],
     domains: ['viewer', 'render'],
     runtimes: ['browser-dom'],
     features: [
-      'augmentation', 'jangolova.platform-services', 'events.cursor', 'scripts.packaged',
+      'augmentation', 'cymonkey.platform-services', 'events.cursor', 'scripts.packaged',
       'userscripts', 'standalone', 'xallet.spook.runtime-discovery',
       ...(sandboxPackagesSupported() ? ['sandbox.packages'] : []),
     ],
@@ -61,7 +61,7 @@ async function describe() {
     augmentations: [],
     extension: {
       id: browser.runtime.id,
-      product: 'Jangolova Browser Extension',
+      product: 'Cymonkey Browser Extension',
       version: browser.runtime.getManifest().version,
       distribution: 'single-build',
       browser: import.meta.env.BROWSER,

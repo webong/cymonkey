@@ -7,10 +7,10 @@ import (
 
 func TestRuntimeAgnosticManifestAcceptsViewerAndRenderTargets(t *testing.T) {
 	for name, raw := range map[string]string{
-		"browser": `{"apiVersion":"jangolova.cymonkey/v1alpha2","kind":"Augmentation","metadata":{"id":"reading-tools","revision":"1"},"spec":{"targets":[{"domain":"render","runtime":"browser-dom","match":{"urlPatterns":["https://example.com/*"]}}],"permissions":["document.query"],"render":{"scripts":[]}}}`,
-		"macos":   `{"apiVersion":"jangolova.cymonkey/v1alpha2","kind":"Augmentation","metadata":{"id":"music-tools","revision":"1"},"spec":{"targets":[{"domain":"viewer","runtime":"macos-app","match":{"bundleId":"com.apple.Music"}}],"permissions":["app.command.invoke","ui.query"],"viewer":{"commands":[{"id":"play"}]}}}`,
-		"render":  `{"apiVersion":"jangolova.cymonkey/v1alpha2","kind":"Augmentation","metadata":{"id":"scene-tools","revision":"1"},"spec":{"targets":[{"domain":"render","runtime":"threejs","match":{"name":"main"}}],"permissions":["camera.projection.set"],"render":{"resources":[{"id":"camera:main","kind":"camera"}]}}}`,
-		"player":  `{"apiVersion":"jangolova.cymonkey/v1alpha2","kind":"Augmentation","metadata":{"id":"session-tools","revision":"1"},"spec":{"targets":[{"domain":"player","runtime":"browser-game","match":{"name":"main"}}],"permissions":["player.session.describe"],"player":{"sessions":[{"id":"main"}]}}}`,
+		"browser": `{"apiVersion":"cymonkey/v1alpha1","kind":"Augmentation","metadata":{"id":"reading-tools","revision":"1"},"spec":{"targets":[{"domain":"render","runtime":"browser-dom","match":{"urlPatterns":["https://example.com/*"]}}],"permissions":["document.query"],"render":{"scripts":[]}}}`,
+		"macos":   `{"apiVersion":"cymonkey/v1alpha1","kind":"Augmentation","metadata":{"id":"music-tools","revision":"1"},"spec":{"targets":[{"domain":"viewer","runtime":"macos-app","match":{"bundleId":"com.apple.Music"}}],"permissions":["app.command.invoke","ui.query"],"viewer":{"commands":[{"id":"play"}]}}}`,
+		"render":  `{"apiVersion":"cymonkey/v1alpha1","kind":"Augmentation","metadata":{"id":"scene-tools","revision":"1"},"spec":{"targets":[{"domain":"render","runtime":"threejs","match":{"name":"main"}}],"permissions":["camera.projection.set"],"render":{"resources":[{"id":"camera:main","kind":"camera"}]}}}`,
+		"player":  `{"apiVersion":"cymonkey/v1alpha1","kind":"Augmentation","metadata":{"id":"session-tools","revision":"1"},"spec":{"targets":[{"domain":"player","runtime":"browser-game","match":{"name":"main"}}],"permissions":["player.session.describe"],"player":{"sessions":[{"id":"main"}]}}}`,
 	} {
 		t.Run(name, func(t *testing.T) {
 			var manifest Manifest
@@ -56,7 +56,7 @@ func TestRuntimeHelloRequiresExactVersionAndKnownDomain(t *testing.T) {
 	if err := ValidateHello(value); err != nil {
 		t.Fatal(err)
 	}
-	value.ProtocolVersion = "jangolova.cymonkey/v1alpha1"
+	value.ProtocolVersion = "cymonkey/v1alpha1"
 	if err := ValidateHello(value); err == nil {
 		t.Fatal("ValidateHello() accepted a non-standard protocol version")
 	}

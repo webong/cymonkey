@@ -2,7 +2,7 @@ import { isRecord } from '../types';
 import { publishCymonkeyEvent } from './events';
 import { readPlatformRecord, writePlatformRecord } from './storage';
 
-const ownershipKey = 'jangolova.network.ruleOwnership';
+const ownershipKey = 'cymonkey.network.ruleOwnership';
 
 export async function installOwnedRules(owner: string, input: Record<string, unknown>) {
   if (!Array.isArray(input.rules) || input.rules.length === 0) throw new Error('rules must be a non-empty array');

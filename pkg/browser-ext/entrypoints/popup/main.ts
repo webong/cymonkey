@@ -48,8 +48,8 @@ type PendingMount = {packageValue: ReviewedPackage; input: Record<string, unknow
 const pendingMounts = new Map<string, PendingMount>();
 
 void Promise.all([
-  browser.runtime.sendMessage({ channel: 'jangolova.cymonkey.control', method: 'describe', params: {} }),
-  browser.runtime.sendMessage({ channel: 'jangolova.extension.control', method: 'describe', params: {} }),
+  browser.runtime.sendMessage({ channel: 'cymonkey.jangolova.control', method: 'describe', params: {} }),
+  browser.runtime.sendMessage({ channel: 'cymonkey.extension.control', method: 'describe', params: {} }),
   readApprovals(),
   readPackages(),
 ]).then(([cymonkeyValue, extensionValue, approvals, packages]) => {
@@ -76,11 +76,11 @@ void Promise.all([
 });
 
 async function readApprovals() {
-  return browser.runtime.sendMessage({channel: 'jangolova.extension.control', method: 'approval.list', params: {}}) as Promise<Approval[]>;
+  return browser.runtime.sendMessage({channel: 'cymonkey.extension.control', method: 'approval.list', params: {}}) as Promise<Approval[]>;
 }
 
 async function readPackages() {
-  return browser.runtime.sendMessage({channel: 'jangolova.extension.control', method: 'packages.list', params: {}}) as Promise<ReviewedPackage[]>;
+  return browser.runtime.sendMessage({channel: 'cymonkey.extension.control', method: 'packages.list', params: {}}) as Promise<ReviewedPackage[]>;
 }
 
 function renderPackages(packages: ReviewedPackage[]) {
@@ -176,7 +176,7 @@ function cymonkeyAct(name: string, input: Record<string, unknown>) {
 }
 
 function extensionCall(method: string, params: Record<string, unknown>) {
-  return browser.runtime.sendMessage({channel: 'jangolova.extension.control', method, params});
+  return browser.runtime.sendMessage({channel: 'cymonkey.extension.control', method, params});
 }
 
 function parseConfiguration(source: string) {
@@ -231,7 +231,7 @@ function approvalButton(label: string, decision: 'approve' | 'deny', approval: A
   button.addEventListener('click', async () => {
     button.disabled = true;
     try {
-      await browser.runtime.sendMessage({channel: 'jangolova.extension.control', method: 'approval.resolve', params: {id: approval.id, decision}});
+      await browser.runtime.sendMessage({channel: 'cymonkey.extension.control', method: 'approval.resolve', params: {id: approval.id, decision}});
       const pending = approval.kind === 'userscript' ? undefined : pendingMounts.get(approval.id);
       pendingMounts.delete(approval.id);
       renderApprovals(await readApprovals());

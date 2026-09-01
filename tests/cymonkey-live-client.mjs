@@ -14,7 +14,7 @@ let overlayMounted = false;
 
 try {
   const hello = await call("hello", {});
-  assert.equal(hello.protocolVersion, "jangolova.cymonkey/v1alpha2");
+  assert.equal(hello.protocolVersion, "cymonkey/v1alpha1");
   assert.ok(hello.domains.includes("viewer"), JSON.stringify(hello));
   assert.ok(hello.runtimes.includes("browser-dom"), JSON.stringify(hello));
   assert.ok(hello.drivers.includes(expectedBackend), JSON.stringify(hello));
@@ -35,7 +35,7 @@ try {
   }
 
   const manifest = {
-    apiVersion: "jangolova.cymonkey/v1alpha2",
+    apiVersion: "cymonkey/v1alpha1",
     kind: "Augmentation",
     metadata: { id: augmentationId, revision: "live-conformance-1" },
     spec: {

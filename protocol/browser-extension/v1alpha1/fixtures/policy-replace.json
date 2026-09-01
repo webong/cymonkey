@@ -1,5 +1,5 @@
 {
-  "type": "JANGOLOVA_EXTENSION_CALL",
+  "type": "CYMONKEY_EXTENSION_CALL",
   "id": "policy-1",
   "method": "policy.replace",
   "params": {

@@ -16,7 +16,7 @@ test('Camera Kit is composed only into Chrome-family sandbox builds', async () =
   assert.match(productBuilder, /browser-package\.json/);
   for (const target of ['chrome-mv3', 'edge-mv3']) {
     const manifest = JSON.parse(await source(`pkg/browser-ext/.output/${target}/manifest.json`));
-    assert.equal(manifest.name, 'Jangolova Camera Kit Browser Extension');
+    assert.equal(manifest.name, 'Cymonkey Camera Kit Browser Extension');
     assert.deepEqual(manifest.sandbox?.pages, ['runtime-sandbox.html']);
     assert.match(manifest.content_security_policy?.sandbox || '', /cf-st\.sc-cdn\.net/);
     assert.match(manifest.content_security_policy?.sandbox || '', /snapar\.com/);
@@ -25,8 +25,8 @@ test('Camera Kit is composed only into Chrome-family sandbox builds', async () =
     assert.ok((await stat(asset)).size >= 100_000);
     const sandboxWindow = {};
     vm.runInNewContext(await readFile(asset, 'utf8'), {window: sandboxWindow});
-    assert.equal(sandboxWindow.jangolovaSandboxPackage?.id, 'snapchat-camera-kit');
-    assert.equal(typeof sandboxWindow.jangolovaSandboxPackage?.connect, 'function');
+    assert.equal(sandboxWindow.cymonkeySandboxPackage?.id, 'snapchat-camera-kit');
+    assert.equal(typeof sandboxWindow.cymonkeySandboxPackage?.connect, 'function');
     const registry = JSON.parse(await source(`pkg/browser-ext/.output/${target}/augmentations/registry.json`));
     assert.deepEqual(registry.packages, [{id: 'snapchat-camera-kit', manifest: 'augmentations/snapchat-camera-kit/manifest.json'}]);
     const packageManifest = JSON.parse(await source(`pkg/browser-ext/.output/${target}/augmentations/snapchat-camera-kit/manifest.json`));

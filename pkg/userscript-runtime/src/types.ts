@@ -1,4 +1,4 @@
-export const userscriptProtocolVersion = 'jangolova.cymonkey.userscript/v1alpha1' as const;
+export const userscriptProtocolVersion = 'cymonkey.userscript/v1alpha1' as const;
 
 export type RunAt = 'document_start' | 'document_end' | 'document_idle';
 export type ExecutionWorld = 'USER_SCRIPT' | 'MAIN';

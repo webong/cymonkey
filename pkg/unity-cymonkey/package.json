@@ -1,5 +1,5 @@
 {
-  "name": "com.jangolova.cymonkey",
+  "name": "com.cymonkey.jangolova",
   "version": "0.1.0",
   "displayName": "Jangolova Cymonkey",
   "description": "Explicitly allowlisted semantic presentation bridge for caller-owned Unity applications.",

@@ -1,11 +1,11 @@
 # Cymonkey core
 
-This directory is the standalone core of the Jangolova Cymonkey product. It
+This directory is the standalone core of the Cymonkey product. It
 can be extracted into its own repository without bringing Jangolova's browser
 extension, native helper, target lifecycle, credentials, or driver clients.
 
-The public wire namespace remains `jangolova.cymonkey/v1alpha2`. That is
-product identity, not a dependency on the Jangolova host implementation.
+The public wire namespace is `cymonkey/v1alpha1`. That is Cymonkey product
+identity, not a dependency on Jangolova's reusable implementation layer.
 
 ## Owns
 

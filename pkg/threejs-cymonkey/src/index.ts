@@ -1,5 +1,5 @@
-export const CYMONKEY_PROTOCOL_VERSION = 'jangolova.cymonkey/v1alpha2';
-export const CYMONKEY_RUNTIME_SYMBOL = Symbol.for('jangolova.cymonkey.runtime');
+export const CYMONKEY_PROTOCOL_VERSION = 'cymonkey/v1alpha1';
+export const CYMONKEY_RUNTIME_SYMBOL = Symbol.for('cymonkey.jangolova.runtime');
 export const CYMONKEY_DOMAIN = 'render';
 export const CYMONKEY_RUNTIME = 'threejs';
 export const CYMONKEY_DRIVER = 'in-page-runtime';
@@ -94,7 +94,7 @@ export class ThreeJSCymonkey {
   hello() {
     return {
       protocolVersion: CYMONKEY_PROTOCOL_VERSION,
-      implementation: { name: 'jangolova-threejs-cymonkey', version: '0.2.0' },
+      implementation: { name: 'cymonkey-threejs', version: '0.2.0' },
       domains: [CYMONKEY_DOMAIN],
       runtimes: [CYMONKEY_RUNTIME],
       drivers: [CYMONKEY_DRIVER],

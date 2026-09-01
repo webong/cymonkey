@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://jangolova.dev/protocol/browser-package/v1alpha1/package.schema.json",
-  "title": "Jangolova reviewed browser augmentation package",
+  "$id": "https://cymonkey.dev/protocol/browser-package/v1alpha1/package.schema.json",
+  "title": "Cymonkey reviewed browser augmentation package",
   "type": "object",
   "required": ["apiVersion", "kind", "metadata", "spec"],
   "properties": {
-    "apiVersion": {"const": "jangolova.browser-package/v1alpha1"},
+    "apiVersion": {"const": "cymonkey.browser-package/v1alpha1"},
     "kind": {"const": "BrowserAugmentationPackage"},
     "metadata": {
       "type": "object",

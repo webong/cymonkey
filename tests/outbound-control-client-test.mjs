@@ -23,7 +23,7 @@ test('outbound control authenticates before dispatch and never describes its tok
     storage,
     async (message, source) => {
       calls.push({message, source});
-      return {ok: true, result: {product: 'Jangolova'}};
+      return {ok: true, result: {product: 'Cymonkey'}};
     },
     (status) => statuses.push(status),
     (endpoint) => {
@@ -40,19 +40,19 @@ test('outbound control authenticates before dispatch and never describes its tok
   assert.doesNotMatch(JSON.stringify(client.describe()), new RegExp(token));
 
   socket.emit('open');
-  assert.equal(JSON.parse(socket.sent[0]).type, 'JANGOLOVA_EXTENSION_AUTH');
+  assert.equal(JSON.parse(socket.sent[0]).type, 'CYMONKEY_EXTENSION_AUTH');
   assert.equal(JSON.parse(socket.sent[0]).token, token);
-  socket.emit('message', JSON.stringify({type: 'JANGOLOVA_EXTENSION_CALL', id: 'before-auth', method: 'describe'}));
+  socket.emit('message', JSON.stringify({type: 'CYMONKEY_EXTENSION_CALL', id: 'before-auth', method: 'describe'}));
   await tick();
   assert.equal(calls.length, 0);
 
-  socket.emit('message', JSON.stringify({type: 'JANGOLOVA_EXTENSION_AUTHENTICATED'}));
-  socket.emit('message', JSON.stringify({type: 'JANGOLOVA_EXTENSION_CALL', id: 'call-1', method: 'describe'}));
+  socket.emit('message', JSON.stringify({type: 'CYMONKEY_EXTENSION_AUTHENTICATED'}));
+  socket.emit('message', JSON.stringify({type: 'CYMONKEY_EXTENSION_CALL', id: 'call-1', method: 'describe'}));
   await tick();
   assert.equal(statuses.at(-1), 'connected');
   assert.equal(calls[0].source, 'authenticated-websocket');
   const response = JSON.parse(socket.sent.at(-1));
-  assert.equal(response.type, 'JANGOLOVA_EXTENSION_RESPONSE');
+  assert.equal(response.type, 'CYMONKEY_EXTENSION_RESPONSE');
   assert.equal(response.id, 'call-1');
   assert.equal(response.ok, true);
 

@@ -1,4 +1,4 @@
-# Jangolova Browser Extension sandbox
+# Cymonkey Browser Extension sandbox
 
 The browser sandbox is an optional delivery environment for a reviewed
 augmentation package that needs web-platform features unsuitable for a normal
@@ -8,7 +8,7 @@ not exposed to the target page.
 ## Roles
 
 ```text
-Jangolova control plane
+Cymonkey control plane
         │ policy-authorized augmentation.mount / cymonkey-engine.call
         │ sensitive permission → popup approval → retry
         ▼
@@ -22,7 +22,7 @@ content script ── closed Shadow DOM ── sandboxed extension iframe
 existing target tab
 ```
 
-The control plane may be Jangolova's standalone popup, an authenticated
+The control plane may be Cymonkey's standalone popup, an authenticated
 outbound WebSocket, or an installed provider integration such as Xallet Spook.
 The popup path is first-class and does not wait for either optional integration.
 
@@ -34,7 +34,7 @@ and `events`), so a caller does not need a library-specific extension API.
 ## Trust boundary
 
 - The sandbox package is bundled below `augmentations/<package>/sandbox.js` at
-  product-build time. Jangolova never downloads an npm package or arbitrary
+  product-build time. Cymonkey never downloads an npm package or arbitrary
   JavaScript into a running extension.
 - A random nonce binds the iframe-ready signal to the specific sandbox instance.
   The iframe receives exactly one `MessagePort`; requests are private to that
@@ -47,7 +47,7 @@ and `events`), so a caller does not need a library-specific extension API.
   is reported as a connection error rather than being misdiagnosed as a missing
   package.
 - The sandbox has no WebExtension APIs. Privileged browser work stays in the
-  service worker and content script, where Jangolova policy can authorize and
+  service worker and content script, where Cymonkey policy can authorize and
   audit it.
 - Because Chrome requires extension sandboxes to keep a unique opaque origin,
   native `localStorage` and `sessionStorage` are unavailable. The host supplies
@@ -56,7 +56,7 @@ and `events`), so a caller does not need a library-specific extension API.
 - Chrome requires the sandbox iframe entrypoint to be a web-accessible
   resource before an existing site may embed it. That declaration does not
   grant extension APIs: the manifest sandbox keeps the document in an opaque,
-  non-extension origin, and its only Jangolova connection remains the
+  non-extension origin, and its only Cymonkey connection remains the
   nonce-bound `MessageChannel` supplied by the isolated content script.
 - A mount must explicitly request its currently supported iframe feature
   permission—for example, `permissions: ["camera"]`. A camera or other
@@ -66,7 +66,7 @@ and `events`), so a caller does not need a library-specific extension API.
   tab, origin, and exact permission set. They expire after five minutes.
 - Opaque sandbox documents cannot invoke `getUserMedia`, and the extension is
   not permitted to weaken them with `allow-same-origin`. For Chrome and Edge,
-  Jangolova acquires approved camera media in an extension offscreen document
+  Cymonkey acquires approved camera media in an extension offscreen document
   and relays the track over a local peer connection. Signaling is private
   extension messaging; no signaling server or target-page media access exists.
   Closing the camera or sandbox stops the source tracks and peer connection.

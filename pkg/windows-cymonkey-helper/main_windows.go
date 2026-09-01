@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-const protocolVersion = "jangolova.cymonkey/v1alpha2"
+const protocolVersion = "cymonkey/v1alpha1"
 
 func main() {
 	environment := os.Environ()

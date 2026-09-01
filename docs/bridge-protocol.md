@@ -78,7 +78,7 @@ to their advertised features.
 
 ## Transport mappings
 
-The browser transport exposes the five operations on `window.jangolova`.
+The browser transport exposes the five operations on `window.cymonkey.jangolova`.
 Jangolova attaches Playwright or Puppeteer to a caller-owned CDP/BiDi endpoint,
 or WebDriver Classic to a caller-owned existing driver session, and
 invokes the page bridge without owning the browser lifecycle.

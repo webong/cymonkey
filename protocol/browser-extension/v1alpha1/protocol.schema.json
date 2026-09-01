@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://jangolova.dev/protocol/browser-extension/v1alpha1/protocol.schema.json",
-  "title": "Jangolova Browser Extension control protocol",
-  "description": "Authenticated private control-plane frames for Jangolova platform services and semantic subsystems.",
+  "$id": "https://cymonkey.dev/protocol/browser-extension/v1alpha1/protocol.schema.json",
+  "title": "Cymonkey Browser Extension control protocol",
+  "description": "Authenticated private control-plane frames for Cymonkey platform services and semantic subsystems.",
   "oneOf": [
     {"$ref": "#/$defs/controlCall"},
     {"$ref": "#/$defs/authRequest"},
@@ -15,14 +15,14 @@
       "type": "object",
       "required": ["type", "method"],
       "properties": {
-        "type": {"const": "JANGOLOVA_EXTENSION_CALL"},
+        "type": {"const": "CYMONKEY_EXTENSION_CALL"},
         "id": {"oneOf": [{"type": "string", "maxLength": 128}, {"type": "integer"}]},
         "method": {"type": "string", "minLength": 1, "maxLength": 128},
         "params": {"type": "object"}
       },
       "allOf": [
         {
-          "if": {"properties": {"type": {"const": "JANGOLOVA_EXTENSION_CALL"}}},
+          "if": {"properties": {"type": {"const": "CYMONKEY_EXTENSION_CALL"}}},
           "then": {"properties": {"method": {"enum": [
             "hello", "capabilities", "describe", "events", "cymonkey.call", "cymonkey-engine.call",
             "packages.list", "packages.describe", "approval.list", "approval.resolve",
@@ -37,8 +37,8 @@
       "type": "object",
       "required": ["type", "protocolVersion", "token"],
       "properties": {
-        "type": {"const": "JANGOLOVA_EXTENSION_AUTH"},
-        "protocolVersion": {"const": "jangolova.browser-extension/v1alpha1"},
+        "type": {"const": "CYMONKEY_EXTENSION_AUTH"},
+        "protocolVersion": {"const": "cymonkey.browser-extension/v1alpha1"},
         "token": {"type": "string", "minLength": 16, "maxLength": 4096}
       },
       "additionalProperties": false
@@ -46,14 +46,14 @@
     "authenticated": {
       "type": "object",
       "required": ["type"],
-      "properties": {"type": {"const": "JANGOLOVA_EXTENSION_AUTHENTICATED"}},
+      "properties": {"type": {"const": "CYMONKEY_EXTENSION_AUTHENTICATED"}},
       "additionalProperties": false
     },
     "controlResponse": {
       "type": "object",
       "required": ["type", "ok"],
       "properties": {
-        "type": {"const": "JANGOLOVA_EXTENSION_RESPONSE"},
+        "type": {"const": "CYMONKEY_EXTENSION_RESPONSE"},
         "id": {"oneOf": [{"type": "string"}, {"type": "integer"}, {"type": "null"}]},
         "ok": {"type": "boolean"},
         "result": {},
@@ -65,7 +65,7 @@
       "type": "object",
       "required": ["type", "occurredAt"],
       "properties": {
-        "type": {"const": "JANGOLOVA_EXTENSION_PING"},
+        "type": {"const": "CYMONKEY_EXTENSION_PING"},
         "occurredAt": {"type": "string", "format": "date-time"}
       },
       "additionalProperties": false

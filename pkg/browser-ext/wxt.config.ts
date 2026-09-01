@@ -3,8 +3,8 @@ import { defineConfig } from 'wxt';
 export default defineConfig({
   outDirTemplate: '{{browser}}-mv{{manifestVersion}}',
   manifest: ({ browser }) => ({
-    name: 'Jangolova Browser Extension',
-    description: 'Jangolova browser runtime with Cymonkey and runtime-activated Xallet Spook integration',
+    name: 'Cymonkey Browser Extension',
+    description: 'Cymonkey browser extension using Jangolova interaction libraries and runtime-activated Xallet Spook integration',
     permissions: [
       'declarativeNetRequest',
       'declarativeNetRequestWithHostAccess',
@@ -25,7 +25,7 @@ export default defineConfig({
     ],
     browser_specific_settings: {
       gecko: {
-        id: 'browser-jangolova@jangolova.dev',
+        id: 'browser-cymonkey@cymonkey.dev',
         strict_min_version: '128.0',
         data_collection_permissions: {
           required: ['none'],
