@@ -18,13 +18,22 @@ type Config struct {
 }
 
 type EngineConfig struct {
-	ID          string            `yaml:"id"`
-	Kind        string            `yaml:"kind"` // local-ultralytics, onnx
-	Workers     int               `yaml:"workers,omitempty"`
-	Command     []string          `yaml:"command,omitempty"`
-	Environment map[string]string `yaml:"environment,omitempty"`
-	YOLOModel   string            `yaml:"yoloModel,omitempty"`
-	SAMModel    string            `yaml:"samModel,omitempty"`
+	ID                 string                    `yaml:"id"`
+	Kind               string                    `yaml:"kind"` // local-ultralytics, onnx
+	Workers            int                       `yaml:"workers,omitempty"`
+	Command            []string                  `yaml:"command,omitempty"`
+	Environment        map[string]string         `yaml:"environment,omitempty"`
+	YOLOModel          string                    `yaml:"yoloModel,omitempty"`
+	SAMModel           string                    `yaml:"samModel,omitempty"`
+	ExecutionProviders []ExecutionProviderConfig `yaml:"executionProviders,omitempty"`
+}
+
+// ExecutionProviderConfig selects an ONNX Runtime execution provider. Entries
+// are applied in order; ONNX Runtime uses later providers as fallbacks for
+// nodes that an earlier provider cannot execute.
+type ExecutionProviderConfig struct {
+	Name    string            `yaml:"name"`
+	Options map[string]string `yaml:"options,omitempty"`
 }
 
 func LoadConfig(path string) (Config, error) {
@@ -63,9 +72,15 @@ func (c Config) Validate() error {
 			if engine.YOLOModel == "" || engine.SAMModel == "" {
 				return fmt.Errorf("Blockade local engine %q requires yoloModel and samModel", engine.ID)
 			}
+			if len(engine.ExecutionProviders) != 0 {
+				return fmt.Errorf("Blockade local engine %q cannot configure ONNX Runtime execution providers", engine.ID)
+			}
 		case "onnx":
 			if engine.YOLOModel == "" && engine.SAMModel == "" {
 				return fmt.Errorf("Blockade ONNX engine %q requires a model", engine.ID)
+			}
+			if err := validateExecutionProviders(engine.ID, engine.ExecutionProviders); err != nil {
+				return err
 			}
 		default:
 			return fmt.Errorf("Blockade engine %q has unsupported kind %q", engine.ID, engine.Kind)
@@ -75,7 +90,8 @@ func (c Config) Validate() error {
 }
 
 // ValidateModelFiles verifies local model attachments without starting an
-// engine. Cloud engine entries are intentionally not checked here.
+// engine. Hosted-provider and VLM integrations belong to Grimlock rather than
+// Blockade configuration.
 func (c Config) ValidateModelFiles() error {
 	if err := c.Validate(); err != nil {
 		return err

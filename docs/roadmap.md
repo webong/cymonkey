@@ -156,9 +156,24 @@
 - [x] Add reproducible model-cache mounts and a real YOLO/SAM fixture launcher.
 - [x] Run the fixture with pinned weights and add a real inference smoke test.
 - [x] Add native ONNX Runtime inference.
-- [ ] Cloud-provider adapters (fal.ai and similar): caller-owned adapters
-  that map provider responses to the Blockade contract.
-- [ ] Capture screenshots from Cymonkey and display targets for Blockade.
+- [x] Add ordered ONNX Runtime execution-provider configuration with explicit
+  TensorRT, CUDA, OpenVINO, and Core ML adapters plus an implicit CPU fallback.
+- [x] Make the ONNX smoke fixture execution-provider-selectable and validate a
+  real Core ML session on Apple Silicon.
+- [x] Move screenshot-to-observation coordination to Cymonkey: it calls
+  Jangolova's normal screenshot action and then calls standalone Blockade.
+- [ ] Validate TensorRT + CUDA fallback on NVIDIA hardware and document a
+  reproducible engine/timing-cache fixture.
+- [ ] Validate OpenVINO on Intel CPU/GPU/NPU hardware with a reproducible
+  model-cache fixture.
+- [ ] Benchmark Core ML CPU/GPU/Neural Engine placement and latency on the
+  representative model set.
+- [ ] Add cloud-provider and VLM integrations (fal.ai and similar) to Grimlock,
+  not Blockade, and map their responses to the observation contract there.
+- [ ] Expose Cymonkey observation coordination as an authenticated operator API
+  and register that capability with Grimlock.
+- [ ] Capture screenshots from additional Cymonkey and display targets for
+  Blockade.
 - [ ] Add the full screenshot → observation → external-agent decision →
   approved-action test.
 

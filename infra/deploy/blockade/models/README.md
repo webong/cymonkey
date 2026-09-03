@@ -10,5 +10,5 @@ Default filenames:
 - `sam2_b.pt`
 
 The files must be compatible with the Ultralytics version pinned in
-`deploy/blockade/requirements.txt`. Keep the cache outside Git and do not put
+`infra/deploy/blockade/requirements.txt`. Keep the cache outside Git and do not put
 credentials in model paths or configuration.

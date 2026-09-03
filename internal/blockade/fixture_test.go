@@ -2,6 +2,7 @@ package blockade
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -11,8 +12,8 @@ import (
 )
 
 func TestLocalUltralyticsFixtureSmoke(t *testing.T) {
-	if os.Getenv("JANGOLOVA_BLOCKADE_SMOKE") != "1" {
-		t.Skip("set JANGOLOVA_BLOCKADE_SMOKE=1 with local YOLO/SAM weights to run the inference smoke test")
+	if os.Getenv("BLOCKADE_SMOKE") != "1" {
+		t.Skip("set BLOCKADE_SMOKE=1 with local YOLO/SAM weights to run the inference smoke test")
 	}
 	_, currentFile, _, ok := runtime.Caller(0)
 	if !ok {
@@ -27,7 +28,7 @@ func TestLocalUltralyticsFixtureSmoke(t *testing.T) {
 			t.Skipf("fixture weights unavailable: %v", err)
 		}
 	}
-	python := os.Getenv("JANGOLOVA_BLOCKADE_PYTHON")
+	python := os.Getenv("BLOCKADE_PYTHON")
 	if python == "" {
 		python = "python3"
 	}
@@ -67,13 +68,13 @@ func TestLocalUltralyticsFixtureSmoke(t *testing.T) {
 }
 
 func TestOnnxEngineFixtureSmoke(t *testing.T) {
-	if os.Getenv("JANGOLOVA_BLOCKADE_SMOKE") != "1" {
-		t.Skip("set JANGOLOVA_BLOCKADE_SMOKE=1 with an exported ONNX model to run the inference smoke test")
+	if os.Getenv("BLOCKADE_SMOKE") != "1" {
+		t.Skip("set BLOCKADE_SMOKE=1 with an exported ONNX model to run the inference smoke test")
 	}
-	modelPath := os.Getenv("JANGOLOVA_BLOCKADE_ONNX_MODEL")
-	runtimeLib := os.Getenv("JANGOLOVA_BLOCKADE_ONNXRUNTIME_LIB")
+	modelPath := os.Getenv("BLOCKADE_ONNX_MODEL")
+	runtimeLib := os.Getenv("BLOCKADE_ONNXRUNTIME_LIB")
 	if modelPath == "" || runtimeLib == "" {
-		t.Skip("JANGOLOVA_BLOCKADE_ONNX_MODEL and JANGOLOVA_BLOCKADE_ONNXRUNTIME_LIB are required for the ONNX smoke test")
+		t.Skip("BLOCKADE_ONNX_MODEL and BLOCKADE_ONNXRUNTIME_LIB are required for the ONNX smoke test")
 	}
 	if _, err := os.Stat(modelPath); err != nil {
 		t.Skipf("ONNX model unavailable: %v", err)
@@ -92,10 +93,17 @@ func TestOnnxEngineFixtureSmoke(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
+	var providers []ExecutionProviderConfig
+	if raw := os.Getenv("BLOCKADE_ONNX_EXECUTION_PROVIDERS"); raw != "" {
+		if err := json.Unmarshal([]byte(raw), &providers); err != nil {
+			t.Fatalf("decode BLOCKADE_ONNX_EXECUTION_PROVIDERS: %v", err)
+		}
+	}
 	started, err := StartConfiguredEngine(ctx, EngineConfig{
-		ID:        "smoke-onnx-yolo",
-		Kind:      "onnx",
-		YOLOModel: modelPath,
+		ID:                 "smoke-onnx-yolo",
+		Kind:               "onnx",
+		YOLOModel:          modelPath,
+		ExecutionProviders: providers,
 	})
 	if err != nil {
 		t.Fatalf("start ONNX engine: %v", err)

@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -44,7 +45,7 @@ var onnxRuntimeSetup struct {
 
 func initializeOnnxRuntime() error {
 	onnxRuntimeSetup.once.Do(func() {
-		if lib := os.Getenv("JANGOLOVA_BLOCKADE_ONNXRUNTIME_LIB"); lib != "" {
+		if lib := os.Getenv("BLOCKADE_ONNXRUNTIME_LIB"); lib != "" {
 			ort.SetSharedLibraryPath(lib)
 		}
 		onnxRuntimeSetup.err = ort.InitializeEnvironment()
@@ -104,18 +105,33 @@ func StartOnnxEngine(e EngineConfig) (*OnnxEngine, error) {
 	if len(inputs) != 1 || len(outputs) != 1 {
 		return nil, fmt.Errorf("Blockade ONNX engine %q expects one input and one output, got %d/%d", e.ID, len(inputs), len(outputs))
 	}
+	providerOptions, providers, err := configureOnnxExecutionProviders(e.ID, e.ExecutionProviders)
+	if err != nil {
+		return nil, err
+	}
 	engine := &OnnxEngine{
 		id:         e.ID,
 		inputName:  inputs[0].Name,
 		outputName: outputs[0].Name,
 		confidence: confidenceThreshold(),
 		iou:        defaultNMSThreshold,
-		evidence:   fmt.Sprintf("onnx:%s", filepath.Base(e.YOLOModel)),
+		evidence:   fmt.Sprintf("onnx:%s;ep=%s", filepath.Base(e.YOLOModel), strings.Join(providers, ",")),
 	}
 	if err := engine.resolveLayout(inputs[0], outputs[0]); err != nil {
+		if providerOptions != nil {
+			_ = providerOptions.Destroy()
+		}
 		return nil, fmt.Errorf("Blockade ONNX engine %q: %w", e.ID, err)
 	}
-	session, err := ort.NewDynamicAdvancedSession(e.YOLOModel, []string{engine.inputName}, []string{engine.outputName}, nil)
+	session, err := ort.NewDynamicAdvancedSession(e.YOLOModel, []string{engine.inputName}, []string{engine.outputName}, providerOptions)
+	if providerOptions != nil {
+		if destroyErr := providerOptions.Destroy(); err == nil && destroyErr != nil {
+			if session != nil {
+				_ = session.Destroy()
+			}
+			return nil, fmt.Errorf("release ONNX Runtime session options for engine %q: %w", e.ID, destroyErr)
+		}
+	}
 	if err != nil {
 		return nil, fmt.Errorf("create ONNX session for engine %q: %w", e.ID, err)
 	}

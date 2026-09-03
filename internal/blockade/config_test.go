@@ -34,6 +34,74 @@ func TestLoadConfigAndLocalWorkerConfig(t *testing.T) {
 	}
 }
 
+func TestLoadOnnxExecutionProviderOrder(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "blockade.yaml")
+	content := []byte("apiVersion: blockade.config/v1alpha1\nengines:\n  - id: nvidia\n    kind: onnx\n    yoloModel: /models/yolo.onnx\n    executionProviders:\n      - name: tensorrt\n        options:\n          device_id: '0'\n          trt_fp16_enable: '1'\n      - name: cuda\n        options:\n          device_id: '0'\n      - name: cpu\n")
+	if err := os.WriteFile(path, content, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	config, err := LoadConfig(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	providers := config.Engines[0].ExecutionProviders
+	if len(providers) != 3 || providers[0].Name != "tensorrt" || providers[1].Name != "cuda" || providers[2].Name != "cpu" {
+		t.Fatalf("execution providers = %#v", providers)
+	}
+	if providers[0].Options["trt_fp16_enable"] != "1" {
+		t.Fatalf("TensorRT options = %#v", providers[0].Options)
+	}
+}
+
+func TestExecutionProviderConfigurationValidation(t *testing.T) {
+	validOnnx := func(providers ...ExecutionProviderConfig) Config {
+		return Config{APIVersion: ConfigAPIVersion, Engines: []EngineConfig{{
+			ID: "onnx-yolo", Kind: "onnx", YOLOModel: "yolo.onnx", ExecutionProviders: providers,
+		}}}
+	}
+	for name, config := range map[string]Config{
+		"defaults to CPU": validOnnx(),
+		"ordered fallback": validOnnx(
+			ExecutionProviderConfig{Name: " TensorRT "},
+			ExecutionProviderConfig{Name: "CUDA"},
+			ExecutionProviderConfig{Name: "cpu"},
+		),
+		"OpenVINO": validOnnx(ExecutionProviderConfig{Name: "openvino", Options: map[string]string{"device_type": "AUTO"}}),
+		"CoreML":   validOnnx(ExecutionProviderConfig{Name: "coreml", Options: map[string]string{"MLComputeUnits": "ALL"}}),
+	} {
+		t.Run(name, func(t *testing.T) {
+			if err := config.Validate(); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+
+	tests := map[string]Config{
+		"unknown provider": validOnnx(ExecutionProviderConfig{Name: "metal"}),
+		"duplicate provider": validOnnx(
+			ExecutionProviderConfig{Name: "CUDA"},
+			ExecutionProviderConfig{Name: "cuda"},
+		),
+		"CPU is not last": validOnnx(
+			ExecutionProviderConfig{Name: "cpu"},
+			ExecutionProviderConfig{Name: "openvino"},
+		),
+		"CPU options": validOnnx(ExecutionProviderConfig{Name: "cpu", Options: map[string]string{"threads": "2"}}),
+		"local engine providers": {APIVersion: ConfigAPIVersion, Engines: []EngineConfig{{
+			ID: "local", Kind: "local-ultralytics", Command: []string{"python3"}, YOLOModel: "yolo.pt", SAMModel: "sam.pt",
+			ExecutionProviders: []ExecutionProviderConfig{{Name: "cpu"}},
+		}}},
+	}
+	for name, config := range tests {
+		t.Run(name, func(t *testing.T) {
+			if err := config.Validate(); err == nil {
+				t.Fatal("expected invalid execution-provider configuration")
+			}
+		})
+	}
+}
+
 func TestConfiguredWorkerEndToEnd(t *testing.T) {
 	dir := t.TempDir()
 	yolo := filepath.Join(dir, "yolo.pt")

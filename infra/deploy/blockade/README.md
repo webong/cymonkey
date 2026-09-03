@@ -8,13 +8,14 @@ agent owns orchestration.
 Local engine attachments can be declared in
 [blockade.example.yaml](blockade.example.yaml). Use `local-ultralytics` for
 managed subprocess workers and `onnx` for native ONNX Runtime integration.
-Cloud providers are caller-owned adapters and are deliberately not named by
-Blockade configuration.
+Cloud providers and VLMs are Grimlock-owned integrations and are deliberately
+not named by Blockade configuration.
 
 Build and run it from the repository root:
 
 ```sh
-docker build -f deploy/blockade/Containerfile -t jangolova/blockade:yolo-sam .
+docker build -f infra/deploy/blockade/Containerfile \
+  -t jangolova/blockade:yolo-sam infra/deploy/blockade
 docker run --rm -p 127.0.0.1:8091:8091 jangolova/blockade:yolo-sam
 ```
 
@@ -35,7 +36,7 @@ For a reproducible local fixture with read-only model mounts:
 mkdir -p .cache/blockade/models
 # Place yolo11n.pt and sam2_b.pt in .cache/blockade/models.
 BLOCKADE_MODEL_CACHE="$PWD/.cache/blockade/models" \
-  deploy/blockade/run-fixture.sh
+  infra/deploy/blockade/run-fixture.sh
 ```
 
 The launcher fails before starting Docker when either weight file is missing.
@@ -45,12 +46,12 @@ See [models/README.md](models/README.md) for the cache contract.
 
 A gated Go test runs real inference through the managed worker pool using a
 checked-in input image (`internal/blockade/testdata/smoke.png`). It skips
-unless weights, a Python interpreter, and `JANGOLOVA_BLOCKADE_SMOKE=1` are
+unless weights, a Python interpreter, and `BLOCKADE_SMOKE=1` are
 available:
 
 ```sh
-JANGOLOVA_BLOCKADE_SMOKE=1 \
-JANGOLOVA_BLOCKADE_PYTHON="$PWD/.cache/blockade/venv/bin/python3" \
+BLOCKADE_SMOKE=1 \
+BLOCKADE_PYTHON="$PWD/.cache/blockade/venv/bin/python3" \
   go test ./internal/blockade -run TestLocalUltralyticsFixtureSmoke -v
 ```
 
@@ -70,9 +71,22 @@ python3 -m venv .cache/blockade/venv
 .cache/blockade/venv/bin/yolo export \
   model=.cache/blockade/models/yolo11n.pt format=onnx imgsz=640 opset=17
 
-JANGOLOVA_BLOCKADE_ONNXRUNTIME_LIB="$PWD/.cache/blockade/libonnxruntime.dylib" \
-JANGOLOVA_BLOCKADE_SMOKE=1 \
-JANGOLOVA_BLOCKADE_ONNX_MODEL="$PWD/.cache/blockade/models/yolo11n.onnx" \
+BLOCKADE_ONNXRUNTIME_LIB="$PWD/.cache/blockade/libonnxruntime.dylib" \
+BLOCKADE_SMOKE=1 \
+BLOCKADE_ONNX_MODEL="$PWD/.cache/blockade/models/yolo11n.onnx" \
+  go test ./internal/blockade -run TestOnnxEngineFixtureSmoke -v
+```
+
+Set `BLOCKADE_ONNX_EXECUTION_PROVIDERS` to a JSON array matching the YAML
+provider entries to exercise an accelerator in the same smoke test. For
+example, on Apple Silicon:
+
+```sh
+mkdir -p /tmp/blockade-coreml-cache
+BLOCKADE_ONNX_EXECUTION_PROVIDERS='[{"name":"coreml","options":{"ModelFormat":"MLProgram","MLComputeUnits":"ALL","RequireStaticInputShapes":"1","ModelCacheDirectory":"/tmp/blockade-coreml-cache"}},{"name":"cpu"}]' \
+BLOCKADE_ONNXRUNTIME_LIB="$PWD/.cache/blockade/libonnxruntime.dylib" \
+BLOCKADE_SMOKE=1 \
+BLOCKADE_ONNX_MODEL="$PWD/.cache/blockade/models/yolo11n.onnx" \
   go test ./internal/blockade -run TestOnnxEngineFixtureSmoke -v
 ```
 
@@ -80,6 +94,77 @@ The engine reads input and output names plus tensor layouts from the model,
 letterboxes to the configured input size, runs thresholding and NMS, and maps
 boxes back to original pixel coordinates. Segmentation (`samModel`) stays with
 local workers for now; ONNX engines require `yoloModel` only.
+
+### ONNX Runtime execution providers
+
+An ONNX engine can declare an ordered `executionProviders` list. Blockade
+supports `tensorrt`, `cuda`, `openvino`, `coreml`, and `cpu`. Options are passed
+unchanged to the provider's ONNX Runtime V2 configuration API. CPU is always
+the implicit final fallback, so an omitted list preserves the portable
+CPU-only behavior. If `cpu` is written explicitly, it must be last.
+
+The ONNX Runtime shared library must contain every configured accelerator.
+Blockade fails at startup when it cannot initialize one, which prevents a
+requested accelerated deployment from silently running entirely on CPU.
+Provider caches must point to a writable volume distinct from a read-only model
+mount. The effective order is recorded in each detection's evidence as
+`onnx:<model>;ep=<provider,...,cpu>`.
+
+For NVIDIA, register TensorRT before CUDA so CUDA can execute nodes TensorRT
+does not support:
+
+```yaml
+- id: onnx-yolo-nvidia
+  kind: onnx
+  yoloModel: /models/yolo11n.onnx
+  executionProviders:
+    - name: tensorrt
+      options:
+        device_id: "0"
+        trt_fp16_enable: "1"
+        trt_engine_cache_enable: "1"
+        trt_engine_cache_path: /var/cache/blockade/tensorrt
+    - name: cuda
+      options:
+        device_id: "0"
+    - name: cpu
+```
+
+For Intel hardware, OpenVINO can choose an available device, with ONNX Runtime
+CPU fallback retained for unsupported graph nodes:
+
+```yaml
+- id: onnx-yolo-openvino
+  kind: onnx
+  yoloModel: /models/yolo11n.onnx
+  executionProviders:
+    - name: openvino
+      options:
+        device_type: AUTO
+        cache_dir: /var/cache/blockade/openvino
+    - name: cpu
+```
+
+For Apple Silicon, Core ML can use all compatible compute units:
+
+```yaml
+- id: onnx-yolo-coreml
+  kind: onnx
+  yoloModel: /models/yolo11n.onnx
+  executionProviders:
+    - name: coreml
+      options:
+        ModelFormat: MLProgram
+        MLComputeUnits: ALL
+        RequireStaticInputShapes: "1"
+        ModelCacheDirectory: /var/cache/blockade/coreml
+    - name: cpu
+```
+
+Use the NVIDIA path first for production GPU throughput, then validate
+OpenVINO for Intel deployments and Core ML for Apple deployments. Each path
+still exposes the same `blockade.observation/v1alpha1` contract. Provider/VLM
+APIs remain routed through Grimlock rather than becoming Blockade engines.
 
 The first startup downloads the configured model weights unless they are
 provided through a mounted cache. Override `BLOCKADE_YOLO_MODEL` and
@@ -91,14 +176,15 @@ provided through a mounted cache. Override `BLOCKADE_YOLO_MODEL` and
 directly, then request an allowed Jangolova action through the Engine Provider
 HTTP or MCP surface.
 
-To select an engine from YAML:
+To select an engine from YAML, run Blockade directly:
 
 ```sh
-export JANGOLOVA_BLOCKADE_CONFIG=deploy/blockade/blockade.example.yaml
-export JANGOLOVA_BLOCKADE_ENGINE=local-yolo-sam
+blockade serve --config infra/deploy/blockade/blockade.example.yaml
 ```
 
-If `JANGOLOVA_BLOCKADE_ENGINE` is omitted, the first configured engine is used.
+For coordinated browser observation, Cymonkey obtains a policy-authorized
+screenshot from Jangolova and submits those pixels to this service. Jangolova
+does not embed or configure Blockade.
 
 ## Managed subprocess mode
 
@@ -107,7 +193,7 @@ avoiding a local HTTP hop while preserving process isolation:
 
 ```go
 pool, err := blockade.NewWorkerPool(ctx, blockade.WorkerConfig{
-    Command: []string{"python3", "deploy/blockade/worker.py"},
+    Command: []string{"python3", "infra/deploy/blockade/worker.py"},
     Workers: 1,
 })
 defer pool.Close()
