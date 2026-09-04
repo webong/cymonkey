@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schemaVersion": "jangolova.render-modules/v1alpha1",
+  "owner": "jangolova",
+  "coordinator": "cymonkey",
+  "protocolVersion": "cymonkey/v1alpha1",
+  "modules": [
+    {
+      "id": "render/browser-dom",
+      "runtime": "browser-dom",
+      "distributionPath": "pkg/browser-ext",
+      "status": "implemented",
+      "notes": "Jangolova browser document and augmentation bridge; Cymonkey mounts and routes it."
+    },
+    {
+      "id": "render/threejs",
+      "runtime": "threejs",
+      "distributionPath": "pkg/threejs-cymonkey",
+      "publicPackage": "@jangolova/threejs",
+      "status": "implemented",
+      "compatibilityPath": "pkg/threejs-cymonkey"
+    },
+    {
+      "id": "render/godot",
+      "runtime": "godot",
+      "distributionPath": "pkg/godot-cymonkey",
+      "publicPackage": "jangolova-godot",
+      "status": "implemented",
+      "compatibilityPath": "pkg/godot-cymonkey"
+    },
+    {
+      "id": "render/unity",
+      "runtime": "unity",
+      "distributionPath": "pkg/unity-cymonkey",
+      "publicPackage": "com.jangolova.render.unity",
+      "status": "implemented",
+      "compatibilityPath": "pkg/unity-cymonkey",
+      "legacyPath": "pkg/unity"
+    },
+    {
+      "id": "render/unreal",
+      "runtime": "unreal",
+      "distributionPath": "pkg/unreal-cymonkey",
+      "publicPackage": "JangolovaRenderUnreal",
+      "status": "implemented",
+      "compatibilityPath": "pkg/unreal-cymonkey"
+    },
+    {
+      "id": "render/snapchat-camera-kit",
+      "runtime": "snapchat-camera-kit",
+      "distributionPath": "pkg/snapchat-camera-kit-cymonkey",
+      "publicPackage": "@jangolova/snapchat-camera-kit",
+      "status": "implemented",
+      "compatibilityPath": "pkg/snapchat-camera-kit-cymonkey",
+      "notes": "Browser render augmentation requiring explicit user camera consent."
+    },
+    {
+      "id": "render/blender",
+      "runtime": "blender",
+      "distributionPath": "pkg/blender",
+      "publicPackage": "jangolova-blender",
+      "status": "implemented",
+      "notes": "Native Blender Python/bpy bridge for headless or interactive rendering."
+    }
+  ]
+}

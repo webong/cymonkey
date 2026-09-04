@@ -1,0 +1,14 @@
+# Operator-supplied Blender image. Blender is open source; the image tag is
+# deliberately configurable so a host can pin its approved Blender release.
+ARG BLENDER_IMAGE
+FROM ${BLENDER_IMAGE}
+
+WORKDIR /workspace
+COPY pkg/blender ./pkg/blender
+COPY tests/blender-cymonkey-fixture ./tests/blender-cymonkey-fixture
+
+ENV JANGOLOVA_CYMONKEY_PORT=9321
+ENV JANGOLOVA_CAPTURE_PATH=/workspace/artifacts/blender-fixture.json
+RUN mkdir -p /workspace/artifacts
+
+ENTRYPOINT ["blender", "--background", "--python", "/workspace/tests/blender-cymonkey-fixture/fixture.py"]
