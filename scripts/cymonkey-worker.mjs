@@ -140,6 +140,45 @@ async function getPages() {
   return [];
 }
 
+// Puppeteer exposes Page.addScriptToEvaluateOnNewDocument directly. Playwright
+// deliberately keeps that API behind a CDP session, so use the protocol there
+// rather than degrading registered scripts into a non-removable context script.
+async function addPreloadScript(page, fn, ...args) {
+  if (typeof page.evaluateOnNewDocument === "function") {
+    const handle = await page.evaluateOnNewDocument(fn, ...args);
+    return { kind: "puppeteer", identifier: handle.identifier };
+  }
+  if (typeof page.context === "function") {
+    const session = await page.context().newCDPSession(page);
+    try {
+      const result = await session.send("Page.addScriptToEvaluateOnNewDocument", {
+        source: `(${fn.toString()})(${args.map((value) => JSON.stringify(value)).join(",")});`,
+      });
+      return { kind: "cdp", identifier: result.identifier };
+    } finally {
+      await session.detach().catch(() => {});
+    }
+  }
+  throw new Error("browser page does not support preload scripts");
+}
+
+async function removePreloadScript(page, handle) {
+  if (handle?.kind === "puppeteer" && typeof page.removeScriptToEvaluateOnNewDocument === "function") {
+    await page.removeScriptToEvaluateOnNewDocument(handle.identifier);
+    return;
+  }
+  if (handle?.kind === "cdp" && typeof page.context === "function") {
+    const session = await page.context().newCDPSession(page);
+    try {
+      await session.send("Page.removeScriptToEvaluateOnNewDocument", { identifier: handle.identifier });
+    } finally {
+      await session.detach().catch(() => {});
+    }
+    return;
+  }
+  throw new Error("browser page does not support removing preload scripts");
+}
+
 async function initializePages() {
   for (const page of await getPages()) await initializePage(page);
 }
@@ -148,10 +187,10 @@ async function initializePage(page) {
   if (observedPages.has(page) || isExtensionPage(page)) return;
   observedPages.add(page);
   const semanticBackend = targetProtocol === "webdriver-bidi" ? "bidi" : "cdp";
-  await page.evaluateOnNewDocument(pageBridgeBootstrap, semanticBackend);
+  await addPreloadScript(page, pageBridgeBootstrap, semanticBackend);
   await page.evaluate(pageBridgeBootstrap, semanticBackend).catch(() => {});
   for (const registration of registrations.values()) {
-    const handle = await page.evaluateOnNewDocument(scriptBootstrap, registration.source, registration.matches, registration.excludeMatches);
+    const handle = await addPreloadScript(page, scriptBootstrap, registration.source, registration.matches, registration.excludeMatches);
     registration.handles.push({ page, handle });
   }
   page.on("request", (request) => {
@@ -394,8 +433,8 @@ async function registerScript(input) {
   const key = `${augmentationId}:${id}`;
   if (registrations.has(key)) throw new Error(`script ${JSON.stringify(key)} already exists`);
   const handles = [];
-  for (const page of (await browser.pages()).filter((item) => !isExtensionPage(item))) {
-    handles.push({ page, handle: await page.evaluateOnNewDocument(scriptBootstrap, source, matches, excludeMatches) });
+  for (const page of (await getPages()).filter((item) => !isExtensionPage(item))) {
+    handles.push({ page, handle: await addPreloadScript(page, scriptBootstrap, source, matches, excludeMatches) });
   }
   registrations.set(key, { source, matches, excludeMatches, handles });
   return { ok: true, id };
@@ -405,7 +444,7 @@ async function unregisterScript(input) {
   const key = `${requireString(input.augmentationId, "augmentationId")}:${requireString(input.id, "id")}`;
   const record = registrations.get(key);
   if (!record) throw new Error(`script ${JSON.stringify(key)} does not exist`);
-  for (const { page, handle } of record.handles) await page.removeScriptToEvaluateOnNewDocument(handle.identifier).catch(() => {});
+  for (const { page, handle } of record.handles) await removePreloadScript(page, handle).catch(() => {});
   registrations.delete(key);
   return { ok: true };
 }
@@ -415,7 +454,7 @@ async function insertStyle(input) {
   if (styles.has(key)) throw new Error(`style ${JSON.stringify(key)} already exists`);
   const css = requireString(input.css, "css");
   const handles = [];
-  for (const page of (await browser.pages()).filter((item) => !isExtensionPage(item))) handles.push(await page.addStyleTag({ content: css }));
+  for (const page of (await getPages()).filter((item) => !isExtensionPage(item))) handles.push(await page.addStyleTag({ content: css }));
   styles.set(key, handles);
   return { ok: true };
 }
@@ -469,7 +508,7 @@ async function overlayChange(input, operation) {
   const id = requireString(input.id, "id");
   const page = await targetPage(input.target);
   return page.evaluate(({ input, operation }) => {
-    const selector = `[data-cymonkey-overlay="${CSS.escape(input.id)}"]`;
+    const selector = `[data-jangolova-cymonkey-overlay="${CSS.escape(input.id)}"]`;
     let host = document.querySelector(selector);
     if (operation === "unmount") { if (!host) throw new Error("overlay does not exist"); host.remove(); return { ok: true }; }
     if (operation === "mount" && host) throw new Error("overlay already exists");
@@ -503,7 +542,7 @@ async function installNetworkRules(input) {
     if (existing && existing.augmentationId !== augmentationId) throw new Error(`network rule ${rule.id} belongs to augmentation ${JSON.stringify(existing.augmentationId)}`);
   }
   for (const rule of input.rules) networkRules.set(rule.id, { augmentationId, rule });
-  for (const page of (await browser.pages()).filter((item) => !isExtensionPage(item))) await enableInterception(page);
+  for (const page of (await getPages()).filter((item) => !isExtensionPage(item))) await enableInterception(page);
   return { ok: true, ruleIds: input.rules.map((rule) => rule.id).sort((a, b) => a - b) };
 }
 
@@ -652,8 +691,8 @@ async function probeBaseCapabilities() {
     supported.add("network.rules.remove");
   }
   try {
-    const handle = await page.evaluateOnNewDocument(() => undefined);
-    await page.removeScriptToEvaluateOnNewDocument(handle.identifier);
+    const handle = await addPreloadScript(page, () => undefined);
+    await removePreloadScript(page, handle);
     for (const name of ["script.register", "script.unregister", "augmentation.install", "augmentation.update", "augmentation.uninstall", "augmentation.enable", "augmentation.disable", "augmentation.list", "augmentation.describe"]) supported.add(name);
   } catch {}
   try {
@@ -786,7 +825,19 @@ async function resolveCDPEndpoint(endpoint, headers) {
   return discovery.webSocketDebuggerUrl;
 }
 function safeHeaders(value) { return !value || typeof value !== "object" || Array.isArray(value) ? {} : Object.fromEntries(Object.entries(value).filter(([name, item]) => typeof item === "string" && !/[\r\n\0]/.test(name + item))); }
-async function disconnect() { await disableInterception(); if (extensionControlCreated && extensionControl && !extensionControl.isClosed()) await extensionControl.close().catch(() => {}); if (browser) browser.disconnect(); disconnected = true; return { disconnected: true }; }
-function isConnected() { return Boolean(browser) && browser.connected && !disconnected; }
+async function disconnect() {
+  await disableInterception();
+  if (extensionControlCreated && extensionControl && !extensionControl.isClosed()) await extensionControl.close().catch(() => {});
+  // Never call Playwright Browser.close() here: the target belongs to the
+  // caller. Ending this worker releases its remote connection without asking
+  // the browser to close its target, contexts, or pages.
+  browser = null;
+  disconnected = true;
+  return { disconnected: true };
+}
+function isConnected() {
+  if (!browser || disconnected) return false;
+  return typeof browser.isConnected === "function" ? browser.isConnected() : Boolean(browser.connected);
+}
 function requireConnection() { if (!isConnected()) throw new Error("Cymonkey target is disconnected"); }
 function respond(value) { process.stdout.write(`${JSON.stringify(value)}\n`); }

@@ -1,8 +1,8 @@
-name: jangolova-tests
+name: cymonkey-tests
 
 services:
   engine-test:
-    image: jangolova-engine-test
+    image: cymonkey-engine-test
     build:
       context: ../..
       dockerfile: tests/docker/Dockerfile

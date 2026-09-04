@@ -7,8 +7,8 @@ const actor = await readFile(new URL("Source/UnrealCymonkeyFixture/Private/Cymon
 const gameMode = await readFile(new URL("Source/UnrealCymonkeyFixture/Private/CymonkeyFixtureGameMode.cpp", root), "utf8");
 const automation = await readFile(new URL("Source/UnrealCymonkeyFixture/Private/CymonkeyFixtureAutomationTests.cpp", root), "utf8");
 const build = await readFile(new URL("Source/UnrealCymonkeyFixture/UnrealCymonkeyFixture.Build.cs", root), "utf8");
-const container = await readFile(new URL("../deploy/unreal-cymonkey-fixture/Containerfile", import.meta.url), "utf8");
-const runtime = await readFile(new URL("../deploy/unreal-cymonkey-fixture/run-fixture.sh", import.meta.url), "utf8");
+const container = await readFile(new URL("../infra/deploy/unreal-cymonkey-fixture/Containerfile", import.meta.url), "utf8");
+const runtime = await readFile(new URL("../infra/deploy/unreal-cymonkey-fixture/run-fixture.sh", import.meta.url), "utf8");
 const server = await readFile(new URL("../pkg/unreal-cymonkey/Source/JangolovaCymonkey/Private/CymonkeyWebSocketServer.cpp", import.meta.url), "utf8");
 const serverHeader = await readFile(new URL("../pkg/unreal-cymonkey/Source/JangolovaCymonkey/Public/CymonkeyWebSocketServer.h", import.meta.url), "utf8");
 

@@ -40,7 +40,7 @@ curl -fsS http://127.0.0.1:9222/json/version >/dev/null
 curl -fsS http://127.0.0.1:7391/healthz >/dev/null
 
 for adapter in playwright puppeteer; do
-  curl -fsS \
+  curl --fail-with-body -sS \
     -H "Authorization: Bearer ${token}" \
     -H "Content-Type: application/json" \
     -d "{\"apiVersion\":\"interaction.engine/v1alpha1\",\"instanceId\":\"${adapter}-one\",\"engine\":{\"adapter\":\"${adapter}\",\"source\":\"file:///app/tests/fixture.html\"},\"target\":{\"kind\":\"browser\",\"endpoints\":[{\"name\":\"cdp\",\"protocol\":\"cdp\",\"url\":\"http://127.0.0.1:9222\"}]}}" \
@@ -74,7 +74,7 @@ done
 curl -fsS \
   -H "Authorization: Bearer ${token}" \
   -H "Content-Type: application/json" \
-  -d '{"apiVersion":"interaction.engine/v1alpha1","instanceId":"cymonkey-cdp","engine":{"adapter":"cymonkey","requiredCapabilities":["augmentation.install","document.query","storage.set"],"options":{"backend":"cdp","extension":{"mode":"disabled"}}},"target":{"kind":"browser","endpoints":[{"name":"cdp","protocol":"cdp","url":"http://127.0.0.1:9222"}]}}' \
+  -d '{"apiVersion":"interaction.engine/v1alpha1","instanceId":"cymonkey-cdp","engine":{"adapter":"cymonkey","requiredCapabilities":["augmentation.install","document.query","storage.set"],"options":{"driver":"cdp","extension":{"mode":"disabled"}}},"target":{"kind":"browser","endpoints":[{"name":"cdp","protocol":"cdp","url":"http://127.0.0.1:9222"}]}}' \
   http://127.0.0.1:7391/v1/instances >/tmp/cymonkey-cdp-connect.json
 
 JANGOLOVA_PROVIDER_TOKEN="${token}" node tests/cymonkey-live-client.mjs \

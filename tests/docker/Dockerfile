@@ -6,6 +6,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY cmd ./cmd
 COPY adapters ./adapters
+COPY integrations ./integrations
 COPY internal ./internal
 COPY targetconn ./targetconn
 RUN mkdir -p /out \

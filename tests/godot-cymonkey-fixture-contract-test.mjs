@@ -12,7 +12,7 @@ const project = await readFile(new URL("godot-cymonkey-fixture/project.godot", i
 const container = await readFile(new URL("../infra/deploy/godot-cymonkey-fixture/Containerfile", import.meta.url), "utf8");
 const goProtocol = await readFile(new URL("../internal/cymonkey/protocol.go", import.meta.url), "utf8");
 
-assert.match(protocol, /jangolova\.cymonkey\/v1alpha2/);
+assert.match(protocol, /cymonkey\/v1alpha1/);
 assert.equal(protocol.match(/VERSION := "([^"]+)"/)?.[1], goProtocol.match(/ProtocolVersion\s+= "([^"]+)"/)?.[1]);
 assert.doesNotMatch(registry, /compatibleProtocols/);
 assert.match(registry, /"domains": \[CymonkeyProtocol\.DOMAIN_RENDER\]/);

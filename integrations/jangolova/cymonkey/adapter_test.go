@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"jangolova/internal/bridge"
-	contract "jangolova/internal/cymonkey"
-	"jangolova/internal/manifest"
-	"jangolova/internal/orchestrator"
+	"cymonkey/internal/bridge"
+	contract "cymonkey/internal/cymonkey"
+	"cymonkey/internal/manifest"
+	"cymonkey/internal/orchestrator"
 )
 
 const fixtureExtensionID = "abcdefghijklmnopabcdefghijklmnop"
@@ -136,6 +136,25 @@ func TestBackendSelectionPrefersCDPThenBiDiThenSafariMCP(t *testing.T) {
 			backend, err := selectBackend("auto", fixture.target)
 			if err != nil || backend.Name() != fixture.want {
 				t.Fatalf("selectBackend() = %v, %v", backend, err)
+			}
+		})
+	}
+}
+
+func TestDriverPresetsSelectCompatibleProtocolBackends(t *testing.T) {
+	for name, fixture := range map[string]struct {
+		driver string
+		target orchestrator.EngineTarget
+		want   BackendName
+	}{
+		"playwright cdp": {driver: "playwright", target: orchestrator.EngineTarget{Kind: "browser", Endpoints: []orchestrator.TargetEndpoint{{Protocol: "cdp"}}}, want: BackendCDP},
+		"puppeteer cdp":  {driver: "puppeteer", target: orchestrator.EngineTarget{Kind: "browser", Endpoints: []orchestrator.TargetEndpoint{{Protocol: "cdp"}}}, want: BackendCDP},
+		"puppeteer bidi": {driver: "puppeteer", target: orchestrator.EngineTarget{Kind: "browser", Endpoints: []orchestrator.TargetEndpoint{{Protocol: "webdriver-bidi"}}}, want: BackendBiDi},
+	} {
+		t.Run(name, func(t *testing.T) {
+			backend, err := selectBackendForDomain(fixture.driver, contract.DomainViewer, fixture.target)
+			if err != nil || backend.Name() != fixture.want {
+				t.Fatalf("selectBackendForDomain(%q) = %v, %v", fixture.driver, backend, err)
 			}
 		})
 	}

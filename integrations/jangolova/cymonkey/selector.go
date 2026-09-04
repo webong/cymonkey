@@ -7,9 +7,9 @@ import (
 	"errors"
 	"fmt"
 
-	contract "jangolova/internal/cymonkey"
-	"jangolova/internal/manifest"
-	"jangolova/internal/orchestrator"
+	contract "cymonkey/internal/cymonkey"
+	"cymonkey/internal/manifest"
+	"cymonkey/internal/orchestrator"
 )
 
 type processBackend struct {
@@ -125,6 +125,15 @@ func resolveDomain(requested contract.Domain, target orchestrator.EngineTarget) 
 }
 
 func backendMatchesRequest(backend Backend, requested string) bool {
+	// Driver presets name the client library that operates the target. The
+	// selected backend remains the target protocol: Playwright attaches over
+	// CDP, while Puppeteer can attach over either CDP or WebDriver BiDi.
+	switch requested {
+	case "playwright":
+		return backend.Name() == BackendCDP
+	case "puppeteer":
+		return backend.Name() == BackendCDP || backend.Name() == BackendBiDi
+	}
 	if backend.Name() == BackendName(requested) {
 		return true
 	}

@@ -16,11 +16,11 @@ import (
 	"sync"
 	"time"
 
-	"jangolova/internal/bridge"
-	"jangolova/internal/manifest"
-	"jangolova/internal/nodeworker"
-	"jangolova/internal/orchestrator"
-	"jangolova/targetconn"
+	"cymonkey/internal/bridge"
+	"cymonkey/internal/manifest"
+	"cymonkey/internal/nodeworker"
+	"cymonkey/internal/orchestrator"
+	"cymonkey/targetconn"
 )
 
 const defaultWorkerPath = "scripts/cymonkey-worker.mjs"
@@ -115,6 +115,16 @@ func (backend processBackend) Connect(ctx context.Context, spec manifest.EngineS
 	if missing := missingCapabilities(spec.RequiredCapabilities, capabilities); len(missing) != 0 {
 		worker.Terminate()
 		return nil, fmt.Errorf("Cymonkey backend %s is missing required capabilities: %s", backend.name, strings.Join(missing, ", "))
+	}
+	if source := strings.TrimSpace(spec.Source); source != "" {
+		params, _ := json.Marshal(map[string]any{
+			"name":  "window.navigate",
+			"input": map[string]string{"url": source},
+		})
+		if _, err := running.Call(ctx, bridge.MethodAct, params); err != nil {
+			_ = running.Disconnect(context.Background())
+			return nil, fmt.Errorf("navigate Cymonkey target: %w", err)
+		}
 	}
 	go running.monitorWorker(worker)
 	if endpoint.Connection != nil {
