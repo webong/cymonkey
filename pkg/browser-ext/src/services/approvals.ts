@@ -25,7 +25,6 @@ function approvalStorage() {
 }
 
 export async function authorizePackageMount(input: MountApprovalInput) {
-  if (input.permissions.length === 0) return {approved: true as const};
   const approvals = await readApprovals();
   const approvalId = typeof input.approvalId === 'string' ? requireScopedIdentifier(input.approvalId, 'approval id') : null;
   if (approvalId) {

@@ -207,7 +207,7 @@ function renderApprovals(approvals: Approval[]) {
     const detail = document.createElement('p');
     detail.textContent = approval.kind === 'userscript'
       ? userscriptApprovalSummary(approval)
-      : `${approval.permissions.join(', ')} on ${approval.origin}`;
+      : `${approval.permissions.length ? approval.permissions.join(', ') : 'No additional browser permissions'} on ${approval.origin}`;
     const actions = document.createElement('div');
     actions.className = 'approval-actions';
     actions.append(approvalButton('Allow once', 'approve', approval), approvalButton('Deny', 'deny', approval));

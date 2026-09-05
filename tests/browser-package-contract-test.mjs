@@ -35,6 +35,7 @@ test('sensitive package mounts require one-time extension UI approval', async ()
   assert.match(augmentations, /status: 'approval-required'/);
   assert.match(approvals, /lifetimeMilliseconds = 5 \* 60 \* 1000/);
   assert.match(approvals, /approvals\.splice\(index, 1\)/);
+  assert.doesNotMatch(approvals, /input\.permissions\.length === 0/);
   assert.doesNotMatch(approvals, /configuration|apiToken|token/);
   assert.match(background, /source !== 'extension-origin'/);
   assert.match(policy, /default-approval-ui/);
