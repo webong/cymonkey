@@ -62,11 +62,3 @@ func TestHandleFlags(t *testing.T) {
 		}
 	}
 }
-
-func TestNewEngineProviderRejectsConflictingBlockadeDeploymentModes(t *testing.T) {
-	t.Setenv("JANGOLOVA_BLOCKADE_ENDPOINT", "http://127.0.0.1:7420")
-	t.Setenv("JANGOLOVA_BLOCKADE_CONFIG", "blockade.yaml")
-	if _, err := newEngineProvider(nil, "test-token"); err == nil || !strings.Contains(err.Error(), "mutually exclusive") {
-		t.Fatalf("newEngineProvider conflict error = %v", err)
-	}
-}

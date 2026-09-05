@@ -3,6 +3,7 @@ package cymonkeyhost
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -18,9 +19,10 @@ var componentIDPattern = regexp.MustCompile(`^[a-z][a-z0-9-]{0,62}$`)
 // should run together. The host does not embed either subsystem; it only
 // composes and supervises their executable boundaries.
 type Config struct {
-	APIVersion string            `yaml:"apiVersion"`
-	Kind       string            `yaml:"kind"`
-	Components []ComponentConfig `yaml:"components"`
+	APIVersion  string             `yaml:"apiVersion"`
+	Kind        string             `yaml:"kind"`
+	Components  []ComponentConfig  `yaml:"components"`
+	Observation *ObservationConfig `yaml:"observation,omitempty"`
 }
 
 type ComponentConfig struct {
@@ -28,6 +30,24 @@ type ComponentConfig struct {
 	Command          []string          `yaml:"command"`
 	Environment      map[string]string `yaml:"environment,omitempty"`
 	WorkingDirectory string            `yaml:"workingDirectory,omitempty"`
+}
+
+// ObservationConfig declares the two standalone services that Cymonkey
+// coordinates for an observation. Jangolova supplies an authorized screenshot;
+// Blockade receives pixels and returns its normalized result. Neither service
+// needs configuration knowledge of the other.
+type ObservationConfig struct {
+	Jangolova ObservationJangolovaConfig `yaml:"jangolova"`
+	Blockade  ObservationBlockadeConfig  `yaml:"blockade"`
+}
+
+type ObservationJangolovaConfig struct {
+	Endpoint         string `yaml:"endpoint"`
+	TokenEnvironment string `yaml:"tokenEnvironment"`
+}
+
+type ObservationBlockadeConfig struct {
+	Endpoint string `yaml:"endpoint"`
 }
 
 func LoadConfig(path string) (Config, error) {
@@ -72,6 +92,29 @@ func (c Config) Validate() error {
 				return fmt.Errorf("Cymonkey component %q command argument %d is empty", component.ID, index)
 			}
 		}
+	}
+	if c.Observation != nil {
+		if err := c.Observation.Validate(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c ObservationConfig) Validate() error {
+	if err := validateHTTPURL("Cymonkey observation Jangolova endpoint", c.Jangolova.Endpoint); err != nil {
+		return err
+	}
+	if strings.TrimSpace(c.Jangolova.TokenEnvironment) == "" {
+		return errors.New("Cymonkey observation Jangolova tokenEnvironment is required")
+	}
+	return validateHTTPURL("Cymonkey observation Blockade endpoint", c.Blockade.Endpoint)
+}
+
+func validateHTTPURL(name, value string) error {
+	parsed, err := url.Parse(strings.TrimSpace(value))
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return fmt.Errorf("%s must be an HTTP URL", name)
 	}
 	return nil
 }

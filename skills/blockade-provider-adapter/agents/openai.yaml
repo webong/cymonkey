@@ -1,0 +1,4 @@
+interface:
+  display_name: "Blockade Provider Adapter"
+  short_description: "Map custom vision providers into Blockade"
+  default_prompt: "Use $blockade-provider-adapter to add and verify a Blockade-owned custom VLM adapter that maps into Blockade observations."

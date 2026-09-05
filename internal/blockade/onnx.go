@@ -216,6 +216,27 @@ func (e *OnnxEngine) Observe(ctx context.Context, request ObserveRequest) (Obser
 	return ObserveResponse{APIVersion: APIVersion, RequestID: request.RequestID, Observations: observations}, nil
 }
 
+func (e *OnnxEngine) Capabilities(ctx context.Context) ([]string, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	e.mutex.Lock()
+	defer e.mutex.Unlock()
+	if e.session == nil {
+		return nil, fmt.Errorf("Blockade ONNX engine %q is closed", e.id)
+	}
+	return []string{CapabilityImageObserve, CapabilityObjectDetect}, nil
+}
+
+func (e *OnnxEngine) Health(ctx context.Context) (EngineHealth, error) {
+	if err := ctx.Err(); err != nil {
+		return EngineHealth{}, err
+	}
+	e.mutex.Lock()
+	defer e.mutex.Unlock()
+	return EngineHealth{Ready: e.session != nil}, nil
+}
+
 func (e *OnnxEngine) Close() error {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()

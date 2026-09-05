@@ -10,26 +10,22 @@ on Cymonkey or Jangolova.
 ```text
 Cymonkey or standalone caller
   ├─ supplies pixels
-  ├─ selects a configured local engine
   └─ decides what to do with observations
           ↓ blockade.observation/v1alpha1
 Blockade
-  ├─ runs local inference engines and workers
+  ├─ selects and runs configured local engines or hosted-provider adapters
+  ├─ owns adapter configuration, credentials, and provider-native mapping
   └─ returns normalized observations
-
-Grimlock (separate integration path)
-  ├─ owns hosted-provider and VLM credentials
-  └─ maps provider-native results to normalized observations
 ```
 
-Blockade must not contain hardcoded cloud-provider or VLM integrations.
-Grimlock owns those integrations, their credentials, and provider-native
-request/response mapping. Cymonkey registers its coordinated observation
-capability with Grimlock; Blockade remains a local inference service behind
-that capability.
+Blockade owns cloud-provider and VLM integration through pluggable adapters,
+not hardcoded provider branches. It owns adapter configuration, credentials,
+and provider-native request/response mapping. Cymonkey exposes its coordinated
+observation capability directly and delegates only the image inference request
+to Blockade.
 
 ```text
-pixels → Blockade engine → observations → caller decision
+pixels → configured Blockade inference backend → observations → caller decision
 ```
 
 Blockade has no Cymonkey dependency. It does not know whether a supplied image
@@ -77,12 +73,52 @@ External systems may combine Blockade with:
 - local vision models such as YOLO, SAM, and OCR;
 - ONNX Runtime execution providers such as TensorRT, CUDA, OpenVINO, Core ML,
   and CPU;
-- provider and multimodal integrations routed through Grimlock.
+- cloud-provider and multimodal adapters owned and run by Blockade.
 
 The maintained local engines are an Ultralytics YOLO/SAM worker and native
 ONNX Runtime inference. ONNX execution providers change where the same model
 runs without changing the Blockade observation contract. Future local engines
-can do the same; hosted inference remains outside Blockade.
+and hosted-provider adapters can do the same.
 
-The reference contract and local worker implementation are in
-`protocol/blockade/` and `infra/deploy/blockade/`.
+## Provider-adapter contract
+
+Provider-enabled Blockade builds register adapter factories by kind. The base
+binary currently registers no real hosted provider. Every registered adapter
+implements the Blockade-owned `blockade.provider-adapter/v1alpha1` boundary:
+
+- versioned observe request/response envelopes containing the public
+  `blockade.observation/v1alpha1` types;
+- capability and readiness reporting;
+- typed authentication, rate-limit, timeout, cancellation, unavailable, and
+  invalid-response failures;
+- concurrent calls with deterministic close behavior.
+
+Blockade wraps adapter calls with a configurable timeout, enforces a bounded
+image-and-prompt payload, preserves request IDs and image bytes, and validates every
+returned observation before it reaches a caller. Its HTTP service reports the
+selected backend's actual capabilities and retains typed adapter error kinds.
+
+Provider adapters are declared separately from local engines but share the
+same inference-ID namespace:
+
+```yaml
+apiVersion: blockade.config/v1alpha1
+providerAdapters:
+  - id: hosted-vision
+    kind: registered-provider-kind
+    timeout: 30s
+    maxPayloadBytes: 8388608
+    settings:
+      model: provider-model-name
+    secrets:
+      apiToken:
+        env: BLOCKADE_HOSTED_VISION_TOKEN
+```
+
+Only environment references are accepted under `secrets`; plaintext secret
+fields and credential-like settings are rejected. Use `--inference
+hosted-vision` with `blockade observe` or `blockade serve`. The legacy
+`--engine` flag remains an alias during migration.
+
+The public and provider-adapter schemas are in `protocol/blockade/v1alpha1/`.
+The local worker implementation is in `infra/deploy/blockade/`.

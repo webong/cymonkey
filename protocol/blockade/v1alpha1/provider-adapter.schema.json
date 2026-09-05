@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cymonkey.dev/protocol/blockade/v1alpha1/provider-adapter.schema.json",
+  "title": "Blockade provider-adapter contract",
+  "oneOf": [
+    {"$ref": "#/$defs/observeRequest"},
+    {"$ref": "#/$defs/observeResponse"},
+    {"$ref": "#/$defs/capabilities"},
+    {"$ref": "#/$defs/health"}
+  ],
+  "$defs": {
+    "publicObserveRequest": {
+      "type": "object",
+      "required": ["apiVersion", "image"],
+      "properties": {
+        "apiVersion": {"const": "blockade.observation/v1alpha1"},
+        "requestId": {"type": "string"},
+        "image": {"type": "string", "contentEncoding": "base64"},
+        "prompt": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "observeRequest": {
+      "type": "object",
+      "required": ["apiVersion", "request"],
+      "properties": {
+        "apiVersion": {"const": "blockade.provider-adapter/v1alpha1"},
+        "request": {"$ref": "#/$defs/publicObserveRequest"}
+      },
+      "additionalProperties": false
+    },
+    "observeResponse": {
+      "type": "object",
+      "required": ["apiVersion", "response"],
+      "properties": {
+        "apiVersion": {"const": "blockade.provider-adapter/v1alpha1"},
+        "response": {"$ref": "observation.schema.json"}
+      },
+      "additionalProperties": false
+    },
+    "capabilities": {
+      "type": "object",
+      "required": ["apiVersion", "capabilities"],
+      "properties": {
+        "apiVersion": {"const": "blockade.provider-adapter/v1alpha1"},
+        "capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      },
+      "additionalProperties": false
+    },
+    "health": {
+      "type": "object",
+      "required": ["apiVersion", "ready"],
+      "properties": {
+        "apiVersion": {"const": "blockade.provider-adapter/v1alpha1"},
+        "ready": {"type": "boolean"},
+        "detail": {"type": "string"}
+      },
+      "additionalProperties": false
+    }
+  }
+}

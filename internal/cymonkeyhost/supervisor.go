@@ -99,7 +99,7 @@ func (s *Supervisor) start(component ComponentConfig) (*managedProcess, error) {
 func environment(values map[string]string) []string {
 	result := make([]string, 0, len(values))
 	for key, value := range values {
-		result = append(result, key+"="+value)
+		result = append(result, key+"="+os.ExpandEnv(value))
 	}
 	return result
 }

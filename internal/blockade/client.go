@@ -61,6 +61,13 @@ func (c Client) Observe(ctx context.Context, request ObserveRequest) (ObserveRes
 		return ObserveResponse{}, err
 	}
 	if resp.StatusCode/100 != 2 {
+		var failure struct {
+			Error string                   `json:"error"`
+			Kind  ProviderAdapterErrorKind `json:"kind"`
+		}
+		if json.Unmarshal(data, &failure) == nil && validProviderAdapterErrorKind(failure.Kind) {
+			return ObserveResponse{}, newProviderAdapterError("", failure.Kind, fmt.Errorf("Blockade returned HTTP %d: %s", resp.StatusCode, failure.Error))
+		}
 		return ObserveResponse{}, fmt.Errorf("Blockade returned HTTP %d", resp.StatusCode)
 	}
 	var result ObserveResponse

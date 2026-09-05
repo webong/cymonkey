@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -30,12 +31,54 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return validate(args[1:], stdout)
 	case "run":
 		return runHost(args[1:], stdout, stderr)
+	case "observe":
+		return observe(args[1:], stdout)
 	case "help", "-h", "--help":
 		printUsage(stderr)
 		return nil
 	default:
 		return fmt.Errorf("unknown cymonkey command %q", args[0])
 	}
+}
+
+func observe(args []string, stdout io.Writer) error {
+	flags := flag.NewFlagSet("cymonkey observe", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	configPath := flags.String("config", envOrDefault("CYMONKEY_CONFIG", ""), "Cymonkey host YAML config")
+	instanceID := flags.String("instance", "", "Jangolova interaction instance ID")
+	prompt := flags.String("prompt", "", "optional observation prompt")
+	fullPage := flags.Bool("full-page", false, "capture the full browser page")
+	approvalID := flags.String("approval-id", "", "optional Jangolova screenshot approval")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if flags.NArg() != 0 {
+		return errors.New("cymonkey observe accepts flags only")
+	}
+	if strings.TrimSpace(*configPath) == "" {
+		return errors.New("--config is required")
+	}
+	if strings.TrimSpace(*instanceID) == "" {
+		return errors.New("--instance is required")
+	}
+	config, err := cymonkeyhost.LoadConfig(*configPath)
+	if err != nil {
+		return err
+	}
+	if config.Observation == nil {
+		return errors.New("Cymonkey host config has no observation coordinator")
+	}
+	coordinator, err := cymonkeyhost.NewObservationCoordinator(*config.Observation)
+	if err != nil {
+		return err
+	}
+	result, err := coordinator.Observe(context.Background(), cymonkeyhost.ObservationRequest{
+		InstanceID: *instanceID, Prompt: *prompt, FullPage: *fullPage, ApprovalID: *approvalID,
+	})
+	if err != nil {
+		return err
+	}
+	return json.NewEncoder(stdout).Encode(result)
 }
 
 func validate(args []string, stdout io.Writer) error {
@@ -98,5 +141,6 @@ func printUsage(w io.Writer) {
 
 Commands:
   validate                Validate a Cymonkey host manifest
-  run                     Start and supervise standalone components`)
+  run                     Start and supervise standalone components
+  observe                 Coordinate a Jangolova screenshot with Blockade`)
 }

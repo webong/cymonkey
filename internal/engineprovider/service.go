@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
-	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -18,7 +17,6 @@ import (
 	"sync"
 	"time"
 
-	"cymonkey/internal/blockade"
 	"cymonkey/internal/bridge"
 	"cymonkey/internal/manifest"
 	"cymonkey/internal/orchestrator"
@@ -47,8 +45,6 @@ type Service struct {
 	recoveryInitialBackoff time.Duration
 	recoveryMaximumBackoff time.Duration
 	recoveryConnectTimeout time.Duration
-	blockadeClient         *blockade.Client
-	blockadeClose          func() error
 }
 
 type runningInstance struct {
@@ -83,26 +79,6 @@ type ServiceOption func(*Service)
 
 func WithTargetResolver(resolver targetconn.Resolver) ServiceOption {
 	return func(service *Service) { service.resolver = resolver }
-}
-
-// WithBlockadeClient enables Jangolova's optional capture-to-observation
-// workflow. Blockade remains independently usable without Jangolova.
-func WithBlockadeClient(client blockade.Client) ServiceOption {
-	return func(service *Service) { service.blockadeClient = &client }
-}
-
-// WithBlockadeEngine embeds a Blockade engine in the provider. Observations
-// call it directly in-process; a Blockade engine may itself use its managed
-// worker IPC without exposing that implementation detail to Jangolova.
-// The provider owns the engine lifecycle and closes it when the service stops.
-func WithBlockadeEngine(engine blockade.Engine) ServiceOption {
-	return func(service *Service) {
-		if engine == nil {
-			return
-		}
-		service.blockadeClient = &blockade.Client{Engine: engine}
-		service.blockadeClose = engine.Close
-	}
 }
 
 func NewService(registry *orchestrator.Registry, token string, options ...ServiceOption) (*Service, error) {
@@ -272,10 +248,6 @@ func (s *Service) handleInstance(w http.ResponseWriter, r *http.Request) {
 		s.handleApprovalRequest(w, r, id)
 		return
 	}
-	if len(parts) == 2 && parts[1] == "observe" {
-		s.handleInstanceObserve(w, r, id)
-		return
-	}
 	if len(parts) == 3 && parts[1] == "approvals" {
 		s.handleApprovalResolution(w, r, id, parts[2])
 		return
@@ -379,107 +351,6 @@ func (s *Service) handleInstance(w http.ResponseWriter, r *http.Request) {
 		s.mu.Unlock()
 		writeError(w, http.StatusMethodNotAllowed, "method_not_allowed", "method not allowed")
 	}
-}
-
-func (s *Service) handleInstanceObserve(w http.ResponseWriter, r *http.Request, id string) {
-	if r.Method != http.MethodPost {
-		writeError(w, http.StatusMethodNotAllowed, "method_not_allowed", "method not allowed")
-		return
-	}
-	var request ObserveRequest
-	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1024*1024))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&request); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_request", "invalid observation request")
-		return
-	}
-	s.mu.Lock()
-	record, ok := s.instances[id]
-	if !ok {
-		s.mu.Unlock()
-		writeError(w, http.StatusNotFound, "instance_not_found", "interaction instance was not found")
-		return
-	}
-	if record.status != "connected" {
-		s.mu.Unlock()
-		writeError(w, http.StatusConflict, "instance_not_connected", "interaction instance is not connected")
-		return
-	}
-	client := s.blockadeClient
-	caller, supportsCalls := record.instance.(bridge.Caller)
-	s.mu.Unlock()
-	if client == nil {
-		writeError(w, http.StatusServiceUnavailable, "blockade_unavailable", "Jangolova has no configured Blockade client")
-		return
-	}
-	if !supportsCalls {
-		writeError(w, http.StatusNotImplemented, "calls_unsupported", "interaction engine does not accept semantic calls")
-		return
-	}
-	captureAction, _ := json.Marshal(map[string]any{
-		"name": "window.screenshot", "input": map[string]any{"fullPage": request.FullPage},
-	})
-	if err := authorizeAction(r.Context(), record.instance, captureAction); err != nil {
-		s.appendObservationAudit(id, record, "denied", err.Error())
-		writeError(w, http.StatusForbidden, "policy_denied", err.Error())
-		return
-	}
-	if requiresApproval(record.request.Engine.Approval, "window.screenshot") {
-		if err := s.consumeApproval(id, record, request.ApprovalID, "window.screenshot", captureAction); err != nil {
-			s.appendObservationAudit(id, record, "denied", err.Error())
-			writeError(w, http.StatusForbidden, "approval_required", err.Error())
-			return
-		}
-	}
-	s.appendObservationAudit(id, record, "capture_requested", "")
-	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
-	defer cancel()
-	raw, err := caller.Call(ctx, bridge.MethodAct, captureAction)
-	if err != nil {
-		s.appendObservationAudit(id, record, "capture_failed", err.Error())
-		writeError(w, http.StatusBadGateway, "capture_failed", err.Error())
-		return
-	}
-	var capture struct {
-		PNGBase64 string `json:"pngBase64"`
-	}
-	if err := json.Unmarshal(raw, &capture); err != nil || strings.TrimSpace(capture.PNGBase64) == "" {
-		s.appendObservationAudit(id, record, "capture_failed", "window.screenshot returned no PNG")
-		writeError(w, http.StatusBadGateway, "invalid_capture", "window.screenshot returned no PNG")
-		return
-	}
-	image, err := base64.StdEncoding.DecodeString(capture.PNGBase64)
-	if err != nil || len(image) == 0 || len(image) > 16<<20 {
-		s.appendObservationAudit(id, record, "capture_failed", "window.screenshot returned an invalid PNG")
-		writeError(w, http.StatusBadGateway, "invalid_capture", "window.screenshot returned an invalid PNG")
-		return
-	}
-	s.appendObservationAudit(id, record, "captured", "")
-	observation, err := client.Observe(ctx, blockade.ObserveRequest{Image: image, Prompt: request.Prompt})
-	if err != nil {
-		s.appendObservationAudit(id, record, "failed", err.Error())
-		writeError(w, http.StatusBadGateway, "blockade_failed", err.Error())
-		return
-	}
-	s.appendObservationAudit(id, record, "completed", "")
-	writeJSON(w, http.StatusOK, ObservationResponse{
-		APIVersion: APIVersion, InstanceID: id, CapturedAt: time.Now().UTC(),
-		CaptureAction: "window.screenshot", Observation: observation,
-	})
-}
-
-func (s *Service) appendObservationAudit(id string, record *runningInstance, status, message string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if current, ok := s.instances[id]; !ok || current != record {
-		return
-	}
-	if record.redact != nil && message != "" {
-		message = record.redact(message)
-	}
-	appendInstanceEvent(record, orchestrator.EngineEvent{
-		Type: "observation." + status, Status: status, Message: message, OccurredAt: time.Now().UTC(),
-	})
 }
 
 func (s *Service) handleInstanceEvents(w http.ResponseWriter, r *http.Request, id string) {
@@ -839,8 +710,6 @@ func (s *Service) Close(ctx context.Context) error {
 		values = append(values, managedInstance{instance: record.instance, release: record.release, redact: record.redact, recoveryDone: record.recoveryDone})
 	}
 	s.instances = make(map[string]*runningInstance)
-	blockadeClose := s.blockadeClose
-	s.blockadeClose = nil
 	s.mu.Unlock()
 	var problems []error
 	for index := len(values) - 1; index >= 0; index-- {
@@ -865,11 +734,6 @@ func (s *Service) Close(ctx context.Context) error {
 			if err := value.release(ctx); err != nil {
 				problems = append(problems, errors.New("release target connection material"))
 			}
-		}
-	}
-	if blockadeClose != nil {
-		if err := blockadeClose(); err != nil {
-			problems = append(problems, fmt.Errorf("close embedded Blockade engine: %w", err))
 		}
 	}
 	return errors.Join(problems...)

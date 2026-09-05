@@ -162,16 +162,20 @@
   real Core ML session on Apple Silicon.
 - [x] Move screenshot-to-observation coordination to Cymonkey: it calls
   Jangolova's normal screenshot action and then calls standalone Blockade.
+- [x] Add the Blockade-owned provider-adapter registry and versioned observe,
+  capabilities, and readiness contract with typed provider failures.
+- [x] Add named provider-adapter YAML, bounded timeout/payload enforcement,
+  environment-only secret references, unified inference selection, and a fake
+  adapter integration suite.
 - [ ] Validate TensorRT + CUDA fallback on NVIDIA hardware and document a
   reproducible engine/timing-cache fixture.
 - [ ] Validate OpenVINO on Intel CPU/GPU/NPU hardware with a reproducible
   model-cache fixture.
 - [ ] Benchmark Core ML CPU/GPU/Neural Engine placement and latency on the
   representative model set.
-- [ ] Add cloud-provider and VLM integrations (fal.ai and similar) to Grimlock,
-  not Blockade, and map their responses to the observation contract there.
-- [ ] Expose Cymonkey observation coordination as an authenticated operator API
-  and register that capability with Grimlock.
+- [ ] Add the first real cloud/VLM package (fal.ai or similar) to Blockade's
+  adapter registry and map its native response to the observation contract.
+- [ ] Expose Cymonkey observation coordination as an authenticated operator API.
 - [ ] Capture screenshots from additional Cymonkey and display targets for
   Blockade.
 - [ ] Add the full screenshot → observation → external-agent decision →

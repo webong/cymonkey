@@ -17,8 +17,6 @@ func main() {
 		err = enginesCommand(os.Args[2:])
 	case "connect-engine":
 		err = connectEngineCommand(os.Args[2:])
-	case "blockade":
-		err = blockadeCommand(os.Args[2:])
 	case "serve-engine-provider":
 		err = serveEngineProviderCommand(os.Args[2:])
 	case "serve-mcp":
@@ -43,7 +41,6 @@ func usage() {
 Commands:
   engines                 Discover interaction-engine adapters and availability
   connect-engine          Attach one engine to a caller-owned target
-  blockade                Validate Blockade config or run one observation
   serve-engine-provider   Serve the authenticated interaction-engine API
   serve-mcp               Serve Jangolova's direct MCP tool interface (stdio or HTTP)`)
 }

@@ -165,6 +165,25 @@ func (p *WorkerPool) Observe(ctx context.Context, request ObserveRequest) (Obser
 	}
 	return ObserveResponse{APIVersion: response.APIVersion, RequestID: response.ID, Observations: response.Observations}, nil
 }
+
+func (p *WorkerPool) Capabilities(ctx context.Context) ([]string, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if p == nil || len(p.workers) == 0 || p.closed.Load() {
+		return nil, errors.New("Blockade worker pool is closed")
+	}
+	return []string{CapabilityImageObserve, CapabilityObjectDetect, CapabilityObjectSegment}, nil
+}
+
+func (p *WorkerPool) Health(ctx context.Context) (EngineHealth, error) {
+	if err := ctx.Err(); err != nil {
+		return EngineHealth{}, err
+	}
+	ready := p != nil && len(p.workers) != 0 && !p.closed.Load()
+	return EngineHealth{Ready: ready}, nil
+}
+
 func (p *WorkerPool) Close() error {
 	if p == nil || p.closed.Swap(true) {
 		return nil

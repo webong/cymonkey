@@ -37,8 +37,9 @@ Blockade receives pixels and returns normalized observations. Cymonkey may
 coordinate a Jangolova screenshot with Blockade, but neither Jangolova nor
 Blockade imports or configures the other.
 
-Provider APIs and VLMs are not Blockade engines. Grimlock owns those external
-integrations and credentials, while Cymonkey exposes the coordinated
+Provider APIs and VLMs are Blockade adapter integrations, not local engines.
+Blockade owns their configuration, credentials, and normalization into its
+observation contract, while Cymonkey exposes the coordinated
 screenshot-to-observation capability. This keeps Blockade deployable as a
-standalone local inference service and Jangolova limited to runtime interaction
-and presentation libraries.
+standalone inference service and Jangolova limited to runtime interaction and
+presentation libraries.

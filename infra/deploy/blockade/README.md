@@ -8,8 +8,8 @@ agent owns orchestration.
 Local engine attachments can be declared in
 [blockade.example.yaml](blockade.example.yaml). Use `local-ultralytics` for
 managed subprocess workers and `onnx` for native ONNX Runtime integration.
-Cloud providers and VLMs are Grimlock-owned integrations and are deliberately
-not named by Blockade configuration.
+Cloud providers and VLMs are configured as Blockade provider adapters, separate
+from its local engine configuration.
 
 Build and run it from the repository root:
 
@@ -164,7 +164,7 @@ For Apple Silicon, Core ML can use all compatible compute units:
 Use the NVIDIA path first for production GPU throughput, then validate
 OpenVINO for Intel deployments and Core ML for Apple deployments. Each path
 still exposes the same `blockade.observation/v1alpha1` contract. Provider/VLM
-APIs remain routed through Grimlock rather than becoming Blockade engines.
+APIs run through Blockade adapters rather than becoming Blockade local engines.
 
 The first startup downloads the configured model weights unless they are
 provided through a mounted cache. Override `BLOCKADE_YOLO_MODEL` and
@@ -181,6 +181,41 @@ To select an engine from YAML, run Blockade directly:
 ```sh
 blockade serve --config infra/deploy/blockade/blockade.example.yaml
 ```
+
+## Hosted provider adapters
+
+Hosted vision/VLM integrations are Blockade-owned packages registered by
+adapter kind. The stock binary currently includes the reusable registry and
+contract but no real hosted provider package. A provider-enabled build passes
+its registry to `blockadecli.RunWithProviderAdapters`; no Cymonkey or
+Jangolova change is required.
+
+```yaml
+apiVersion: blockade.config/v1alpha1
+providerAdapters:
+  - id: hosted-vision
+    kind: registered-provider-kind
+    timeout: 30s
+    maxPayloadBytes: 8388608
+    settings:
+      model: provider-model-name
+    secrets:
+      apiToken:
+        env: BLOCKADE_HOSTED_VISION_TOKEN
+```
+
+Start or invoke the selected backend with `--inference hosted-vision`.
+`--engine` remains a compatibility alias. Adapter settings cannot use common
+credential field names, and a secret declaration accepts only an environment
+variable reference. Blockade resolves it lazily at runtime and never includes
+the value in configuration, error messages, evidence, or HTTP responses.
+
+The adapter boundary is `blockade.provider-adapter/v1alpha1`; its schema is
+`protocol/blockade/v1alpha1/provider-adapter.schema.json`. Blockade validates
+the nested observation response, enforces the configured timeout and payload
+limit, and exposes the adapter's readiness and capabilities through the normal
+service endpoints. Authentication, rate-limit, timeout, cancellation,
+unavailable, and invalid-response errors remain machine-readable.
 
 For coordinated browser observation, Cymonkey obtains a policy-authorized
 screenshot from Jangolova and submits those pixels to this service. Jangolova

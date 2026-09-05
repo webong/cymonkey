@@ -23,9 +23,10 @@ blockade serve --config infra/deploy/blockade/blockade.example.yaml \
   --bind 127.0.0.1:8091
 ```
 
-Jangolova can use the separately running Blockade service through its existing
-`JANGOLOVA_BLOCKADE_ENDPOINT` setting. Blockade does not need to know that
-Cymonkey or Jangolova exists.
+For a coordinated observation, Cymonkey requests Jangolova's ordinary,
+policy-authorized `window.screenshot` interaction call, then supplies those
+pixels to Blockade. Jangolova does not import, configure, or call Blockade.
+Blockade does not know Cymonkey or Jangolova exists.
 
 ## Host boundary
 
@@ -46,6 +47,18 @@ model files, target protocols, or provider-specific settings.
 This is intentionally a first host slice. Future operator APIs can add
 component health, discovery, restart policy, and coordinated routing without
 changing the standalone subsystem contracts.
+
+The first coordinator surface is a CLI command:
+
+```sh
+export CYMONKEY_JANGOLOVA_TOKEN="a-random-session-secret"
+cymonkey observe --config infra/deploy/cymonkey/cymonkey.example.yaml \
+  --instance browser-1 --prompt "find the primary action"
+```
+
+The manifest passes `${CYMONKEY_JANGOLOVA_TOKEN}` to Jangolova and keeps the
+same secret out of the manifest. A future Cymonkey API can expose this exact
+workflow without changing either subsystem.
 
 See the runnable example in
 [`infra/deploy/cymonkey`](../infra/deploy/cymonkey/README.md).

@@ -33,38 +33,18 @@ jangolova serve-engine-provider --bind 127.0.0.1:7391
 - `POST /v1/instances`
 - `GET /v1/instances/{instanceId}`
 - `POST /v1/instances/{instanceId}/call`
-- `POST /v1/instances/{instanceId}/observe`
 - `POST /v1/instances/{instanceId}/approvals`
 - `POST /v1/instances/{instanceId}/approvals/{approvalId}`
 - `GET /v1/instances/{instanceId}/events`
 - `POST /v1/reconcile`
 - `DELETE /v1/instances/{instanceId}`
 
-### Context-switched visual observation
+### Visual capture boundary
 
-When one Blockade deployment mode is configured, an attached browser instance
-can be observed without teaching Blockade anything about Cymonkey:
-
-- `JANGOLOVA_BLOCKADE_CONFIG` embeds a configured Blockade engine and calls it
-  directly. `JANGOLOVA_BLOCKADE_ENGINE` optionally selects the configured
-  engine ID.
-- `JANGOLOVA_BLOCKADE_ENDPOINT` calls a separately deployed Blockade HTTP
-  service.
-
-The two settings are mutually exclusive. In either case:
-
-```json
-{
-  "prompt": "find the primary action button",
-  "fullPage": false
-}
-```
-
-`POST /v1/instances/{instanceId}/observe` authorizes the negotiated
-`window.screenshot` action, captures pixels, sends those pixels to Blockade,
-and returns Blockade's normalized response beneath Jangolova capture
-provenance. It never turns an observation into an action. A later Cymonkey
-action is a separate, policy- and approval-governed request from the caller.
+Jangolova exposes normal semantic interaction calls, including a negotiated
+`window.screenshot` where supported. Cymonkey coordinates that capture with
+Blockade; Jangolova has no Blockade configuration or dependency. A later
+Cymonkey action is a separate, policy- and approval-governed request.
 
 ## Direct MCP tools
 
@@ -72,8 +52,8 @@ action is a separate, policy- and approval-governed request from the caller.
 MCP tools over stdio, or Streamable HTTP with `--bind`. It has no model
 connector, agent session, prompt endpoint, or internal planning loop.
 
-The tool set covers engine discovery; instance connect, describe, call,
-observe, events, and disconnect. MCP uses the same provider token and
+The tool set covers engine discovery; instance connect, describe, call, events,
+and disconnect. MCP uses the same provider token and
 policy/approval gates as HTTP.
 
 ## Approval receipts and audit events

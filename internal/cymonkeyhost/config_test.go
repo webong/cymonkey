@@ -35,6 +35,21 @@ func TestConfigValidate(t *testing.T) {
 	}
 }
 
+func TestObservationConfigValidate(t *testing.T) {
+	config := validConfig()
+	config.Observation = &ObservationConfig{
+		Jangolova: ObservationJangolovaConfig{Endpoint: "http://127.0.0.1:7391", TokenEnvironment: "CYMONKEY_JANGOLOVA_TOKEN"},
+		Blockade:  ObservationBlockadeConfig{Endpoint: "http://127.0.0.1:8091"},
+	}
+	if err := config.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	config.Observation.Blockade.Endpoint = "not-an-endpoint"
+	if err := config.Validate(); err == nil {
+		t.Fatal("Validate() unexpectedly accepted an invalid Blockade endpoint")
+	}
+}
+
 func TestLoadConfig(t *testing.T) {
 	path := t.TempDir() + "/cymonkey.yaml"
 	contents := `apiVersion: cymonkey.config/v1alpha1

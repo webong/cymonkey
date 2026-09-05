@@ -6,8 +6,6 @@ package engineprovider
 import (
 	"encoding/json"
 	"time"
-
-	"cymonkey/internal/blockade"
 )
 
 const APIVersion = "interaction.engine/v1alpha1"
@@ -128,25 +126,6 @@ type Approval struct {
 	Action     string    `json:"action"`
 	Status     string    `json:"status"`
 	ExpiresAt  time.Time `json:"expiresAt"`
-}
-
-// ObserveRequest asks Jangolova to capture pixels from an attached target and
-// submit them to Blockade. It is a Jangolova workflow request, not a Blockade
-// protocol type.
-type ObserveRequest struct {
-	Prompt     string `json:"prompt,omitempty"`
-	FullPage   bool   `json:"fullPage,omitempty"`
-	ApprovalID string `json:"approvalId,omitempty"`
-}
-
-// ObservationResponse keeps target provenance outside Blockade's normalized
-// response. Blockade receives pixels and returns observations only.
-type ObservationResponse struct {
-	APIVersion    string                   `json:"apiVersion"`
-	InstanceID    string                   `json:"instanceId"`
-	CapturedAt    time.Time                `json:"capturedAt"`
-	CaptureAction string                   `json:"captureAction"`
-	Observation   blockade.ObserveResponse `json:"observation"`
 }
 
 type ReconcileRequest struct {

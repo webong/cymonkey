@@ -8,9 +8,8 @@ import (
 	"strings"
 )
 
-// HTTPServer exposes a configured Blockade engine as a small standalone HTTP
-// service. It deliberately knows only the normalized Blockade contract; model
-// engines and provider-specific details stay behind Engine.
+// HTTPServer exposes a configured Blockade inference backend as a small
+// standalone HTTP service. Provider-specific details stay behind Engine.
 type HTTPServer struct {
 	engine   Engine
 	provider string
@@ -18,7 +17,7 @@ type HTTPServer struct {
 
 func NewHTTPServer(engine Engine, provider string) (*HTTPServer, error) {
 	if engine == nil {
-		return nil, errors.New("Blockade engine is required")
+		return nil, errors.New("Blockade inference backend is required")
 	}
 	provider = strings.TrimSpace(provider)
 	if provider == "" {
@@ -40,6 +39,17 @@ func (s *HTTPServer) health(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
+	if reporter, ok := s.engine.(EngineHealthReporter); ok {
+		health, err := reporter.Health(r.Context())
+		if err != nil {
+			writeEngineError(w, err, http.StatusServiceUnavailable)
+			return
+		}
+		if !health.Ready {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{"status": "not_ready", "provider": s.provider})
+			return
+		}
+	}
 	writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "provider": s.provider})
 }
 
@@ -48,14 +58,19 @@ func (s *HTTPServer) capabilities(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
+	capabilities := []string{CapabilityImageObserve}
+	if reporter, ok := s.engine.(EngineCapabilities); ok {
+		var err error
+		capabilities, err = reporter.Capabilities(r.Context())
+		if err != nil {
+			writeEngineError(w, err, http.StatusServiceUnavailable)
+			return
+		}
+	}
 	writeJSON(w, http.StatusOK, CapabilitiesResponse{
-		APIVersion: APIVersion,
-		Provider:   s.provider,
-		Capabilities: []string{
-			"image.observe",
-			"object.detect",
-			"object.segment",
-		},
+		APIVersion:   APIVersion,
+		Provider:     s.provider,
+		Capabilities: capabilities,
 	})
 }
 
@@ -86,7 +101,7 @@ func (s *HTTPServer) observe(w http.ResponseWriter, r *http.Request) {
 	}
 	result, err := s.engine.Observe(r.Context(), request)
 	if err != nil {
-		writeJSONError(w, http.StatusBadGateway, err.Error())
+		writeEngineError(w, err, http.StatusBadGateway)
 		return
 	}
 	if err := ValidateObserveResponse(result); err != nil {
@@ -104,4 +119,26 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 
 func writeJSONError(w http.ResponseWriter, status int, message string) {
 	writeJSON(w, status, map[string]string{"error": message})
+}
+
+func writeEngineError(w http.ResponseWriter, err error, fallbackStatus int) {
+	kind, ok := ProviderAdapterErrorKindOf(err)
+	if !ok {
+		writeJSONError(w, fallbackStatus, err.Error())
+		return
+	}
+	status := fallbackStatus
+	switch kind {
+	case ProviderAdapterErrorRateLimit:
+		status = http.StatusTooManyRequests
+	case ProviderAdapterErrorTimeout:
+		status = http.StatusGatewayTimeout
+	case ProviderAdapterErrorCanceled:
+		status = http.StatusRequestTimeout
+	case ProviderAdapterErrorUnavailable:
+		status = http.StatusServiceUnavailable
+	case ProviderAdapterErrorInvalidRequest:
+		status = http.StatusBadRequest
+	}
+	writeJSON(w, status, map[string]string{"error": err.Error(), "kind": string(kind)})
 }

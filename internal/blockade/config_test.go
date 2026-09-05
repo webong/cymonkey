@@ -54,6 +54,93 @@ func TestLoadOnnxExecutionProviderOrder(t *testing.T) {
 	}
 }
 
+func TestLoadProviderAdapterConfig(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "blockade.yaml")
+	content := []byte("apiVersion: blockade.config/v1alpha1\nproviderAdapters:\n  - id: hosted-vision\n    kind: fixture\n    timeout: 45s\n    maxPayloadBytes: 1048576\n    settings:\n      model: fixture-v1\n      endpoint: https://provider.invalid\n    secrets:\n      apiToken:\n        env: BLOCKADE_HOSTED_VISION_TOKEN\n")
+	if err := os.WriteFile(path, content, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	config, err := LoadConfig(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(config.Engines) != 0 || len(config.ProviderAdapters) != 1 {
+		t.Fatalf("config = %#v", config)
+	}
+	adapter := config.ProviderAdapters[0]
+	if adapter.ID != "hosted-vision" || adapter.Settings["model"] != "fixture-v1" || adapter.Secrets["apiToken"].Env != "BLOCKADE_HOSTED_VISION_TOKEN" {
+		t.Fatalf("adapter = %#v", adapter)
+	}
+	selected, ok := config.DefaultInference()
+	if !ok || selected.ID() != adapter.ID || selected.ProviderAdapter == nil {
+		t.Fatalf("default inference = %#v, ok = %v", selected, ok)
+	}
+	byID, ok := config.Inference(adapter.ID)
+	if !ok || byID.ProviderAdapter == nil {
+		t.Fatalf("inference lookup = %#v, ok = %v", byID, ok)
+	}
+}
+
+func TestProviderAdapterConfigurationValidation(t *testing.T) {
+	valid := func() Config {
+		return Config{APIVersion: ConfigAPIVersion, ProviderAdapters: []ProviderAdapterConfig{{
+			ID: "hosted", Kind: "fixture", Timeout: "30s", MaxPayloadBytes: 1024,
+			Settings: map[string]string{"model": "fixture-v1"},
+			Secrets:  map[string]SecretReference{"apiToken": {Env: "BLOCKADE_PROVIDER_TOKEN"}},
+		}}}
+	}
+	if err := valid().Validate(); err != nil {
+		t.Fatal(err)
+	}
+
+	tests := map[string]func(Config) Config{
+		"missing kind": func(config Config) Config {
+			config.ProviderAdapters[0].Kind = ""
+			return config
+		},
+		"invalid timeout": func(config Config) Config {
+			config.ProviderAdapters[0].Timeout = "forever"
+			return config
+		},
+		"payload too large": func(config Config) Config {
+			config.ProviderAdapters[0].MaxPayloadBytes = maximumProviderAdapterMaxPayloadBytes + 1
+			return config
+		},
+		"invalid env reference": func(config Config) Config {
+			config.ProviderAdapters[0].Secrets["apiToken"] = SecretReference{Env: "not valid"}
+			return config
+		},
+		"plaintext credential setting": func(config Config) Config {
+			config.ProviderAdapters[0].Settings["apiKey"] = "plaintext"
+			return config
+		},
+		"duplicate engine id": func(config Config) Config {
+			config.Engines = []EngineConfig{{ID: "hosted", Kind: "onnx", YOLOModel: "yolo.onnx"}}
+			return config
+		},
+	}
+	for name, mutate := range tests {
+		t.Run(name, func(t *testing.T) {
+			if err := mutate(valid()).Validate(); err == nil {
+				t.Fatal("expected invalid provider-adapter configuration")
+			}
+		})
+	}
+}
+
+func TestProviderAdapterConfigRejectsPlaintextSecretField(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "blockade.yaml")
+	content := []byte("apiVersion: blockade.config/v1alpha1\nproviderAdapters:\n  - id: hosted\n    kind: fixture\n    secrets:\n      apiToken:\n        value: plaintext\n")
+	if err := os.WriteFile(path, content, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadConfig(path); err == nil {
+		t.Fatal("expected plaintext secret field to be rejected")
+	}
+}
+
 func TestExecutionProviderConfigurationValidation(t *testing.T) {
 	validOnnx := func(providers ...ExecutionProviderConfig) Config {
 		return Config{APIVersion: ConfigAPIVersion, Engines: []EngineConfig{{

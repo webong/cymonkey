@@ -6,3 +6,16 @@ engines:
     workers: 1
     yoloModel: /models/yolo11n.pt
     samModel: /models/sam2_b.pt
+
+# Provider-enabled Blockade builds can also declare adapters registered by
+# their compiled provider packages. Secret values stay in the environment.
+# providerAdapters:
+#   - id: hosted-vision
+#     kind: registered-provider-kind
+#     timeout: 30s
+#     maxPayloadBytes: 8388608
+#     settings:
+#       model: provider-model-name
+#     secrets:
+#       apiToken:
+#         env: BLOCKADE_HOSTED_VISION_TOKEN

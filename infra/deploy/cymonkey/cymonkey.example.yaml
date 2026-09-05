@@ -1,6 +1,16 @@
 apiVersion: cymonkey.config/v1alpha1
 kind: CymonkeyHost
 
+# Export CYMONKEY_JANGOLOVA_TOKEN before running the host. Cymonkey uses the
+# same token to ask Jangolova for an authorized screenshot; only Cymonkey then
+# submits the resulting pixels to Blockade.
+observation:
+  jangolova:
+    endpoint: http://127.0.0.1:7391
+    tokenEnvironment: CYMONKEY_JANGOLOVA_TOKEN
+  blockade:
+    endpoint: http://127.0.0.1:8091
+
 # Cymonkey composes standalone subsystem executables. Build and place
 # `jangolova` and `blockade` on PATH, or replace these commands with absolute
 # paths from the deployment image.
@@ -17,9 +27,8 @@ components:
   - id: jangolova
     command:
       - jangolova
-      - serve-mcp
+      - serve-engine-provider
       - --bind
-      - 127.0.0.1:7393
+      - 127.0.0.1:7391
     environment:
-      JANGOLOVA_PROVIDER_TOKEN: replace-with-a-random-secret
-      JANGOLOVA_BLOCKADE_ENDPOINT: http://127.0.0.1:8091
+      JANGOLOVA_PROVIDER_TOKEN: ${CYMONKEY_JANGOLOVA_TOKEN}

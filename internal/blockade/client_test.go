@@ -62,6 +62,20 @@ func TestClientObserve(t *testing.T) {
 	}
 }
 
+func TestClientObservePreservesProviderAdapterErrorKind(t *testing.T) {
+	transport := roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusTooManyRequests,
+			Body:       io.NopCloser(strings.NewReader(`{"error":"Blockade provider adapter failed: rate_limit","kind":"rate_limit"}`)),
+			Header:     make(http.Header),
+		}, nil
+	})
+	_, err := (Client{BaseURL: "http://blockade.test", HTTPClient: &http.Client{Transport: transport}}).Observe(context.Background(), ObserveRequest{Image: []byte("image")})
+	if kind, ok := ProviderAdapterErrorKindOf(err); !ok || kind != ProviderAdapterErrorRateLimit {
+		t.Fatalf("error = %v, kind = %q", err, kind)
+	}
+}
+
 type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
