@@ -1,0 +1,70 @@
+{
+  "$schema": "https://jangolova.dev/protocol/registry/v1alpha1/registry.schema.json",
+  "schemaVersion": "jangolova.registry/v1alpha1",
+  "registryId": "jangolova-reference",
+  "modules": [
+    {
+      "id": "render/browser-dom",
+      "version": "0.1.0",
+      "runtime": "browser-dom",
+      "protocolVersion": "cymonkey/v1alpha1",
+      "status": "available",
+      "platforms": ["darwin-arm64", "darwin-amd64", "linux-amd64", "windows-amd64"],
+      "actions": ["resource.describe", "object.visibility.set", "object.transform.set", "material.color.set", "camera.transform.set", "render.frame"]
+    },
+    {
+      "id": "render/threejs",
+      "version": "0.1.0",
+      "runtime": "threejs",
+      "protocolVersion": "cymonkey/v1alpha1",
+      "status": "available",
+      "platforms": ["browser"],
+      "actions": ["resource.describe", "object.visibility.set", "object.transform.set", "material.color.set", "camera.transform.set", "render.frame"]
+    },
+    {
+      "id": "render/godot",
+      "version": "0.1.0",
+      "runtime": "godot",
+      "protocolVersion": "cymonkey/v1alpha1",
+      "status": "available",
+      "platforms": ["linux-amd64", "darwin-arm64", "windows-amd64"],
+      "actions": ["resource.describe", "object.visibility.set", "object.transform.set", "material.color.set", "camera.transform.set", "render.frame"]
+    },
+    {
+      "id": "render/unity",
+      "version": "0.1.0",
+      "runtime": "unity",
+      "protocolVersion": "cymonkey/v1alpha1",
+      "status": "available",
+      "platforms": ["linux-amd64", "darwin-arm64", "windows-amd64"],
+      "actions": ["resource.describe", "object.visibility.set", "object.transform.set", "material.color.set", "camera.transform.set", "render.frame"]
+    },
+    {
+      "id": "render/unreal",
+      "version": "0.1.0",
+      "runtime": "unreal",
+      "protocolVersion": "cymonkey/v1alpha1",
+      "status": "available",
+      "platforms": ["linux-amd64", "windows-amd64"],
+      "actions": ["resource.describe", "object.visibility.set", "object.transform.set", "material.color.set", "camera.transform.set", "render.frame"]
+    },
+    {
+      "id": "render/snapchat-camera-kit",
+      "version": "0.1.0",
+      "runtime": "snapchat-camera-kit",
+      "protocolVersion": "cymonkey/v1alpha1",
+      "status": "available",
+      "platforms": ["browser"],
+      "actions": ["resource.describe", "camera.transform.set", "render.frame"]
+    },
+    {
+      "id": "render/blender",
+      "version": "0.1.0",
+      "runtime": "blender",
+      "protocolVersion": "cymonkey/v1alpha1",
+      "status": "available",
+      "platforms": ["linux-amd64", "darwin-arm64", "windows-amd64"],
+      "actions": ["resource.describe", "object.visibility.set", "object.transform.set", "material.color.set", "camera.transform.set", "render.frame"]
+    }
+  ]
+}

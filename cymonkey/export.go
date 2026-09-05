@@ -1,8 +1,8 @@
-// Package cymonkey is Jangolova's temporary public façade for the standalone
-// core in src/cymonkey. New integrations should import the core directly.
+// Package cymonkey is the public façade for Cymonkey's internal core.
+// New integrations inside this repository should import the core directly.
 package cymonkey
 
-import core "jangolova/src/cymonkey"
+import core "cymonkey/internal/cymonkeycore"
 
 const ProtocolVersion = core.ProtocolVersion
 

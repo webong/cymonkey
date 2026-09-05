@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"jangolova/internal/orchestrator"
+	"cymonkey/internal/orchestrator"
 )
 
 func TestMCPServerExposesDirectEngineTools(t *testing.T) {

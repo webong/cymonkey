@@ -13,9 +13,9 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	contract "jangolova/internal/cymonkey"
-	"jangolova/internal/manifest"
-	"jangolova/internal/orchestrator"
+	contract "cymonkey/internal/cymonkey"
+	"cymonkey/internal/manifest"
+	"cymonkey/internal/orchestrator"
 )
 
 func TestMacOSCooperativeBackendHandshakesAndEnforcesBundlePolicy(t *testing.T) {

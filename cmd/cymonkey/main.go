@@ -11,7 +11,7 @@ import (
 	"strings"
 	"syscall"
 
-	"jangolova/internal/cymonkeyhost"
+	"cymonkey/internal/cymonkeyhost"
 )
 
 func main() {

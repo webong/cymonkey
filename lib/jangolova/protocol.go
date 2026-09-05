@@ -3,7 +3,7 @@ package cymonkey
 import (
 	"encoding/json"
 
-	contract "jangolova/internal/cymonkey"
+	contract "cymonkey/internal/cymonkey"
 )
 
 const ProtocolVersion = contract.ProtocolVersion

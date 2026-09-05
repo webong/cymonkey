@@ -18,7 +18,7 @@ import (
 const fixtureExtensionID = "abcdefghijklmnopabcdefghijklmnop"
 
 func TestAdapterDefaultsToNoInstallCDPAndDisconnects(t *testing.T) {
-	worker, err := filepath.Abs("../../../tests/cymonkey-worker-fixture.mjs")
+	worker, err := filepath.Abs("../../tests/cymonkey-worker-fixture.mjs")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -191,7 +191,7 @@ func TestInspectionFindsRepositoryWorker(t *testing.T) {
 	if !ok {
 		t.Fatal("resolve test path")
 	}
-	worker := filepath.Join(filepath.Dir(file), "..", "..", "..", "scripts", "cymonkey-worker.mjs")
+	worker := filepath.Join(filepath.Dir(file), "..", "..", "scripts", "cymonkey-worker.mjs")
 	t.Setenv("JANGOLOVA_CYMONKEY_WORKER", worker)
 	inspection := (Adapter{}).InspectEngine(context.Background())
 	if !inspection.Available || !contains(inspection.Capabilities, "script.register") {

@@ -26,7 +26,7 @@ import (
 const defaultWorkerPath = "scripts/cymonkey-worker.mjs"
 
 // Adapter attaches Jangolova to caller-owned targets. The portable Cymonkey
-// registry and composition APIs live in jangolova/src/cymonkey.
+// registry and composition APIs live in Cymonkey's internal core.
 type Adapter struct{}
 
 type instance struct {

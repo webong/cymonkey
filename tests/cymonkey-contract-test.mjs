@@ -47,8 +47,8 @@ test("one reversible live client is shared by CDP and BiDi fixtures", async () =
 });
 
 test("v1alpha1 defines runtime-agnostic viewer, render, and player domains", async () => {
-  const protocol = JSON.parse(await source("src/cymonkey/protocol/v1alpha2/protocol.schema.json"));
-  const augmentation = JSON.parse(await source("src/cymonkey/protocol/v1alpha2/augmentation.schema.json"));
+  const protocol = JSON.parse(await source("protocol/cymonkey/v1alpha2/protocol.schema.json"));
+  const augmentation = JSON.parse(await source("protocol/cymonkey/v1alpha2/augmentation.schema.json"));
   assert.equal(protocol.$defs.hello.properties.protocolVersion.const, "cymonkey/v1alpha1");
   assert.deepEqual(protocol.$defs.domain.enum, ["viewer", "render", "player"]);
   for (const field of ["domain", "runtime", "driver"]) {
@@ -65,7 +65,7 @@ test("v1alpha1 defines runtime-agnostic viewer, render, and player domains", asy
 
 test("transport mappings expose semantics without raw protocol passthrough", async () => {
   const worker = await source("scripts/cymonkey-worker.mjs");
-  const safari = await source("integrations/jangolova/cymonkey/safari_backend.go");
+  const safari = await source("lib/jangolova/safari_backend.go");
   for (const capability of ["augmentation.install", "script.execute", "script.register", "document.query", "document.observe", "document.patch", "network.observe", "storage.get"]) {
     assert.match(worker, new RegExp(capability.replaceAll(".", "\\.")), `worker missing ${capability}`);
   }

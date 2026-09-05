@@ -21,10 +21,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"jangolova/internal/bridge"
-	"jangolova/internal/manifest"
-	"jangolova/internal/orchestrator"
-	"jangolova/targetconn"
+	"cymonkey/internal/bridge"
+	"cymonkey/internal/manifest"
+	"cymonkey/internal/orchestrator"
+	"cymonkey/targetconn"
 )
 
 const defaultProtocolVersion = "2025-06-18"

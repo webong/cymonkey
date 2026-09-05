@@ -14,7 +14,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"jangolova/internal/bridge"
+	"cymonkey/internal/bridge"
 )
 
 type request struct {

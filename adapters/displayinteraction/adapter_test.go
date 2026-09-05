@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"jangolova/adapters/displayinteraction"
-	"jangolova/internal/manifest"
-	"jangolova/internal/orchestrator"
+	"cymonkey/adapters/displayinteraction"
+	"cymonkey/internal/manifest"
+	"cymonkey/internal/orchestrator"
 )
 
 func TestDisplayInteractionInspectEngine(t *testing.T) {

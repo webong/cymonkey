@@ -13,8 +13,8 @@ import (
 	"syscall"
 	"time"
 
-	"jangolova/internal/builtin"
-	"jangolova/internal/engineprovider"
+	"cymonkey/internal/builtin"
+	"cymonkey/internal/engineprovider"
 )
 
 func serveMCPCommand(args []string) error {

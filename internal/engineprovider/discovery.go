@@ -5,7 +5,7 @@ import (
 	"sort"
 	"time"
 
-	"jangolova/internal/orchestrator"
+	"cymonkey/internal/orchestrator"
 )
 
 const inspectionTimeout = 2 * time.Second

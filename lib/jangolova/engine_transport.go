@@ -14,9 +14,9 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"jangolova/internal/bridge"
-	"jangolova/internal/orchestrator"
-	"jangolova/targetconn"
+	"cymonkey/internal/bridge"
+	"cymonkey/internal/orchestrator"
+	"cymonkey/targetconn"
 )
 
 const engineMaxMessageBytes = 4 * 1024 * 1024

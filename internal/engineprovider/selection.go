@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"jangolova/internal/orchestrator"
+	"cymonkey/internal/orchestrator"
 )
 
 // SelectAutomaticEngine chooses a stable available adapter from target

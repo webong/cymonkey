@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"jangolova/internal/blockadecli"
+	"cymonkey/internal/blockadecli"
 )
 
 func blockadeCommand(args []string) error {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"jangolova/internal/orchestrator"
+	"cymonkey/internal/orchestrator"
 )
 
 func TestRegistryHasNoStandaloneRenderAdapter(t *testing.T) {

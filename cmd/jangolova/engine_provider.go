@@ -13,10 +13,10 @@ import (
 	"syscall"
 	"time"
 
-	"jangolova/internal/blockade"
-	"jangolova/internal/builtin"
-	"jangolova/internal/engineprovider"
-	"jangolova/internal/orchestrator"
+	"cymonkey/internal/blockade"
+	"cymonkey/internal/builtin"
+	"cymonkey/internal/engineprovider"
+	"cymonkey/internal/orchestrator"
 )
 
 func serveEngineProviderCommand(args []string) error {

@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"jangolova/internal/orchestrator"
+	"cymonkey/internal/orchestrator"
 )
 
 func TestPrepareResolvesRedactsAndReleasesCredential(t *testing.T) {

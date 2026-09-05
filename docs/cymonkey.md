@@ -189,7 +189,7 @@ method appearing in a specification is not sufficient reason to advertise it.
 ## Augmentation manifest and persistence
 
 An augmentation is a versioned semantic declaration. The schema is
-`src/cymonkey/protocol/v1alpha2/augmentation.schema.json`.
+`protocol/cymonkey/v1alpha2/augmentation.schema.json`.
 
 ```json
 {

@@ -174,12 +174,12 @@ internal/bridge/            engine-neutral semantic methods
 internal/engineprovider/    direct HTTP/MCP tools, target policy, and audit
 adapters/browserautomation/ Playwright CDP and Puppeteer CDP/BiDi attachment
 cymonkey/                   Jangolova's temporary public import façade
-src/cymonkey/               dependency-free, extraction-ready Cymonkey core
-internal/cymonkey/          Jangolova migration shim for the portable wire contract
-integrations/jangolova/cymonkey/
+internal/cymonkeycore/      Cymonkey core registry/composition/conformance code
+internal/cymonkey/          Cymonkey runtime-agnostic wire contract
+lib/jangolova/
                             Jangolova-owned browser, macOS, and engine adapters
-src/cymonkey/protocol/      canonical versioned Cymonkey schemas
-src/cymonkey/conformance/   portable Cymonkey contract checks
+protocol/cymonkey/          canonical versioned Cymonkey schemas
+tests/cymonkey-core-conformance.mjs   portable Cymonkey contract checks
 adapters/webdriverclassic/  existing W3C WebDriver session attachment
 adapters/safarimcp/         caller-owned Safari MCP relay attachment
 adapters/displayinteraction/ provider-neutral VNC/WebRTC/Wayland display interaction

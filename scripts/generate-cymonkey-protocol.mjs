@@ -2,14 +2,14 @@ import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
-const v1alpha2SchemaURL = new URL('src/cymonkey/protocol/v1alpha2/protocol.schema.json', root);
+const v1alpha2SchemaURL = new URL('protocol/cymonkey/v1alpha2/protocol.schema.json', root);
 const goV1alpha2URL = new URL('internal/cymonkeyprotocol/generated_v1alpha2.go', root);
 
 const schemaSource = await readFile(v1alpha2SchemaURL, 'utf8');
 const schema = JSON.parse(schemaSource);
 const digest = createHash('sha256').update(schemaSource).digest('hex');
 
-const go = `// Code generated from src/cymonkey/protocol/v1alpha2/protocol.schema.json; DO NOT EDIT.
+const go = `// Code generated from protocol/cymonkey/v1alpha2/protocol.schema.json; DO NOT EDIT.
 // Schema SHA-256: ${digest}
 
 package cymonkeyprotocol

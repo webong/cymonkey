@@ -14,11 +14,11 @@ import (
 	"syscall"
 	"time"
 
-	"jangolova/internal/builtin"
-	"jangolova/internal/engineprovider"
-	"jangolova/internal/manifest"
-	"jangolova/internal/orchestrator"
-	"jangolova/targetconn"
+	"cymonkey/internal/builtin"
+	"cymonkey/internal/engineprovider"
+	"cymonkey/internal/manifest"
+	"cymonkey/internal/orchestrator"
+	"cymonkey/targetconn"
 )
 
 func enginesCommand(args []string) error {

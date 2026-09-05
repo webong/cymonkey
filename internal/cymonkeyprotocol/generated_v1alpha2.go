@@ -1,4 +1,4 @@
-// Code generated from src/cymonkey/protocol/v1alpha2/protocol.schema.json; DO NOT EDIT.
+// Code generated from protocol/cymonkey/v1alpha2/protocol.schema.json; DO NOT EDIT.
 // Schema SHA-256: c7cbcf984edafe827da29e7c05d0a312b2895d8f54c26c5ef701c9a4944e4af0
 
 package cymonkeyprotocol

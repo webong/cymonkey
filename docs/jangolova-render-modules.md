@@ -1,8 +1,9 @@
 # Jangolova render modules
 
 Jangolova owns the engine-specific render contracts and runtime libraries.
-Cymonkey is the host and coordination layer: it selects approved modules,
-mounts them into caller-owned targets, applies policy, and routes calls.
+Cymonkey is the host and coordination layer: it discovers approved modules,
+verifies and caches selected artifacts, mounts them into caller-owned targets,
+applies policy, and routes calls.
 
 ```text
 Cymonkey host/coordinator
@@ -34,21 +35,37 @@ The stable public names are module IDs, not repository directory names:
 | `render/snapchat-camera-kit` | Snap Camera Kit Web | implemented | `pkg/snapchat-camera-kit-cymonkey` |
 | `render/blender` | Blender | implemented | `pkg/blender` |
 
-The `*-cymonkey` directories are compatibility distribution paths retained
-while existing projects migrate. New manifests and host configuration should
-refer to the canonical module IDs above. A physical directory move is a
-separate, versioned packaging change; it must not silently replace the
-existing `pkg/unity` Jangolova Bridge package.
+The `*-cymonkey` directories are compatibility source paths retained while
+existing projects migrate. New configuration refers to canonical module IDs,
+never to repository paths. The Jangolova registry publishes versioned module
+metadata and optional platform artifacts; Cymonkey does not treat a source
+directory as an installed plugin.
 
-The machine-readable source of this mapping is
-[`pkg/jangolova-render-modules.json`](../pkg/jangolova-render-modules.json).
+The checked-in reference snapshot is
+[`src/jangolova/registry/index.json`](../src/jangolova/registry/index.json). Production
+hosts should call the registry discovery client with a configured HTTPS
+endpoint, then pull only the selected artifact after policy approval.
+
+## Discovery and pulling
+
+Discovery is metadata-only. A registry entry declares the module ID, version,
+runtime, protocol version, supported platforms, actions, and (when published)
+immutable artifacts with SHA-256 digests. Cymonkey verifies the registry
+shape, selects a compatible entry, downloads into its cache, and verifies the
+artifact digest before exposing the path to a provider. It never executes
+downloaded code implicitly.
+
+Browser packages follow the same rule: the extension may mount only a reviewed
+package present in its signed product registry. Native render packages are
+pulled by the Cymonkey host/provider for the target machine, not by the
+browser extension.
 
 ## Ownership boundaries
 
 - Jangolova modules validate registrations, allowlists, schemas, actions,
   events, transport authentication, and runtime-specific calls.
-- Cymonkey chooses which compiled modules are available and coordinates their
-  attachments and policy.
+- Cymonkey discovers, verifies, caches, and coordinates approved modules and
+  their attachments; it does not own their engine semantics.
 - The target provider owns Godot, Unity, Unreal, Blender, or browser process
   lifecycle, displays, capture, video transport, and credentials.
 

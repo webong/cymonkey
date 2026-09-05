@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"jangolova/internal/orchestrator"
+	"cymonkey/internal/orchestrator"
 )
 
 const minimumCredentialValidity = 5 * time.Second

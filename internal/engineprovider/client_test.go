@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"jangolova/internal/orchestrator"
+	"cymonkey/internal/orchestrator"
 )
 
 func TestClientConnectsAndCallsEngine(t *testing.T) {

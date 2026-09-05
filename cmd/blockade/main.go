@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"jangolova/internal/blockadecli"
+	"cymonkey/internal/blockadecli"
 )
 
 func main() {

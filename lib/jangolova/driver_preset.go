@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"jangolova/internal/manifest"
-	"jangolova/internal/orchestrator"
+	"cymonkey/internal/manifest"
+	"cymonkey/internal/orchestrator"
 )
 
 // DriverPreset instantiates the Cymonkey control plane with one automation

@@ -1,4 +1,4 @@
-module jangolova
+module cymonkey
 
 go 1.26.5
 

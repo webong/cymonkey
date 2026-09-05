@@ -20,8 +20,8 @@ type Domain string
 
 const (
 	DomainViewer Domain = "viewer"
-	DomainRender   Domain = "render"
-	DomainPlayer   Domain = "player"
+	DomainRender Domain = "render"
+	DomainPlayer Domain = "player"
 )
 
 func ValidDomain(domain Domain) bool {

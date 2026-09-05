@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"jangolova/internal/manifest"
-	"jangolova/internal/orchestrator"
+	"cymonkey/internal/manifest"
+	"cymonkey/internal/orchestrator"
 )
 
 type inspectedAdapter struct{}

@@ -9,7 +9,7 @@ npm run generate:cymonkey-protocol   # regenerate from schema
 npm run check:cymonkey-protocol      # verify generated files are up to date
 ```
 
-Source schema: `src/cymonkey/protocol/v1alpha2/protocol.schema.json`
+Source schema: `protocol/cymonkey/v1alpha2/protocol.schema.json`
 
 ## Contents
 

@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"time"
 
-	"jangolova/internal/bridge"
-	contract "jangolova/internal/cymonkey"
-	"jangolova/internal/manifest"
-	"jangolova/internal/orchestrator"
-	"jangolova/targetconn"
+	"cymonkey/internal/bridge"
+	contract "cymonkey/internal/cymonkey"
+	"cymonkey/internal/manifest"
+	"cymonkey/internal/orchestrator"
+	"cymonkey/targetconn"
 )
 
 type enginePresentationBackend struct{}

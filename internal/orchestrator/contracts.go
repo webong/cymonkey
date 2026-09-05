@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"jangolova/internal/manifest"
+	"cymonkey/internal/manifest"
 )
 
 // EngineInstance is a Jangolova-owned interaction session attached to a

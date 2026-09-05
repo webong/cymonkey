@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"jangolova/internal/manifest"
-	"jangolova/internal/orchestrator"
+	"cymonkey/internal/manifest"
+	"cymonkey/internal/orchestrator"
 )
 
 func TestAdapterPassesResolvedHeadersToRemoteCDPWorker(t *testing.T) {

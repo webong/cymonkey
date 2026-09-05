@@ -10,10 +10,10 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	cymonkey "jangolova/integrations/jangolova/cymonkey"
-	"jangolova/internal/bridge"
-	"jangolova/internal/manifest"
-	"jangolova/internal/orchestrator"
+	"cymonkey/internal/bridge"
+	"cymonkey/internal/manifest"
+	"cymonkey/internal/orchestrator"
+	cymonkey "cymonkey/lib/jangolova"
 )
 
 var upgrader = websocket.Upgrader{

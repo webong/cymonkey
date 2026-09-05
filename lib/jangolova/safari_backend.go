@@ -8,11 +8,11 @@ import (
 	"sort"
 	"strings"
 
-	"jangolova/adapters/safarimcp"
-	"jangolova/internal/bridge"
-	contract "jangolova/internal/cymonkey"
-	"jangolova/internal/manifest"
-	"jangolova/internal/orchestrator"
+	"cymonkey/adapters/safarimcp"
+	"cymonkey/internal/bridge"
+	contract "cymonkey/internal/cymonkey"
+	"cymonkey/internal/manifest"
+	"cymonkey/internal/orchestrator"
 )
 
 type safariMCPBackend struct{}

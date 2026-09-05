@@ -16,7 +16,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"jangolova/internal/orchestrator"
+	"cymonkey/internal/orchestrator"
 )
 
 // HTTPClient returns an isolated transport that applies resolved headers and

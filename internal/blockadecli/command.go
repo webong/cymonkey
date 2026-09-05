@@ -14,7 +14,7 @@ import (
 	"syscall"
 	"time"
 
-	"jangolova/internal/blockade"
+	"cymonkey/internal/blockade"
 )
 
 // Run executes the standalone Blockade command surface. Jangolova retains a

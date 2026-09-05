@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"jangolova/internal/blockade"
-	"jangolova/internal/manifest"
-	"jangolova/internal/orchestrator"
-	"jangolova/targetconn"
+	"cymonkey/internal/blockade"
+	"cymonkey/internal/manifest"
+	"cymonkey/internal/orchestrator"
+	"cymonkey/targetconn"
 )
 
 type fakeEngineAdapter struct {

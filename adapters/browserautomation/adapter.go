@@ -17,11 +17,11 @@ import (
 	"sync"
 	"time"
 
-	"jangolova/internal/bridge"
-	"jangolova/internal/manifest"
-	"jangolova/internal/nodeworker"
-	"jangolova/internal/orchestrator"
-	"jangolova/targetconn"
+	"cymonkey/internal/bridge"
+	"cymonkey/internal/manifest"
+	"cymonkey/internal/nodeworker"
+	"cymonkey/internal/orchestrator"
+	"cymonkey/targetconn"
 )
 
 const defaultWorkerPath = "scripts/browser-worker.mjs"

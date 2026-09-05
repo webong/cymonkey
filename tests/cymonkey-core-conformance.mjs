@@ -2,15 +2,15 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-const root = new URL('../../../', import.meta.url);
+const root = new URL('../', import.meta.url);
 const source = async (path) => JSON.parse(await readFile(new URL(path, root), 'utf8'));
 
 test('the portable core publishes the Cymonkey v1alpha1 contract', async () => {
   const [protocol, augmentation, scenePlan, userscript] = await Promise.all([
-    source('src/cymonkey/protocol/v1alpha2/protocol.schema.json'),
-    source('src/cymonkey/protocol/v1alpha2/augmentation.schema.json'),
-    source('src/cymonkey/protocol/v1alpha2/scene-plan.schema.json'),
-    source('src/cymonkey/protocol/userscript/v1alpha1/userscript.schema.json'),
+    source('protocol/cymonkey/v1alpha2/protocol.schema.json'),
+    source('protocol/cymonkey/v1alpha2/augmentation.schema.json'),
+    source('protocol/cymonkey/v1alpha2/scene-plan.schema.json'),
+    source('protocol/cymonkey/userscript/v1alpha1/userscript.schema.json'),
   ]);
 
   assert.equal(protocol.$defs.hello.properties.protocolVersion.const, 'cymonkey/v1alpha1');

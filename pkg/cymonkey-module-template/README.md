@@ -44,7 +44,7 @@ func Module() cymonkey.Module {
 `AttachOptions` is deliberately public but contains only the selected semantic
 binding and policy—not worker paths, extension identities, tokens, or raw
 configuration. Start from the Go contract test in
-`src/cymonkey/modules_test.go`, then add a fixture that passes
+`internal/cymonkeycore/core_test.go`, then add a fixture that passes
 `ValidateModuleConformance` for all five Cymonkey operations.
 
 See [the module contract](../../docs/cymonkey-modules.md) for the full policy,

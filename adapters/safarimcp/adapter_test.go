@@ -9,9 +9,9 @@ import (
 	"sync"
 	"testing"
 
-	"jangolova/internal/bridge"
-	"jangolova/internal/manifest"
-	"jangolova/internal/orchestrator"
+	"cymonkey/internal/bridge"
+	"cymonkey/internal/manifest"
+	"cymonkey/internal/orchestrator"
 )
 
 func TestAdapterDiscoversAndCallsCallerOwnedSafariMCP(t *testing.T) {

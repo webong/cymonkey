@@ -18,11 +18,11 @@ import (
 	"sync"
 	"time"
 
-	"jangolova/internal/blockade"
-	"jangolova/internal/bridge"
-	"jangolova/internal/manifest"
-	"jangolova/internal/orchestrator"
-	"jangolova/targetconn"
+	"cymonkey/internal/blockade"
+	"cymonkey/internal/bridge"
+	"cymonkey/internal/manifest"
+	"cymonkey/internal/orchestrator"
+	"cymonkey/targetconn"
 )
 
 var instanceIDPattern = regexp.MustCompile(`^[a-z][a-z0-9-]{0,62}$`)

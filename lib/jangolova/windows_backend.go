@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"time"
 
-	"jangolova/internal/bridge"
-	contract "jangolova/internal/cymonkey"
-	"jangolova/internal/manifest"
-	"jangolova/internal/orchestrator"
+	"cymonkey/internal/bridge"
+	contract "cymonkey/internal/cymonkey"
+	"cymonkey/internal/manifest"
+	"cymonkey/internal/orchestrator"
 )
 
 // windowsCooperativeBackend intentionally shares the authenticated helper

@@ -18,10 +18,10 @@ import (
 	"sync"
 	"time"
 
-	"jangolova/internal/bridge"
-	"jangolova/internal/manifest"
-	"jangolova/internal/orchestrator"
-	"jangolova/targetconn"
+	"cymonkey/internal/bridge"
+	"cymonkey/internal/manifest"
+	"cymonkey/internal/orchestrator"
+	"cymonkey/targetconn"
 )
 
 const elementKey = "element-6066-11e4-a52e-4f735466cecf"

@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"jangolova/internal/orchestrator"
+	"cymonkey/internal/orchestrator"
 )
 
 const MaterialAPIVersion = "interaction.connection/v1alpha1"

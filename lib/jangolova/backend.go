@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 
-	contract "jangolova/internal/cymonkey"
-	"jangolova/internal/manifest"
-	"jangolova/internal/orchestrator"
+	contract "cymonkey/internal/cymonkey"
+	"cymonkey/internal/manifest"
+	"cymonkey/internal/orchestrator"
 )
 
 // Backend is the runtime-specific boundary below Cymonkey's stable semantic

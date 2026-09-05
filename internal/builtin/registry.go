@@ -5,12 +5,12 @@ package builtin
 import (
 	"fmt"
 
-	"jangolova/adapters/displayinteraction"
-	"jangolova/adapters/safarimcp"
-	"jangolova/adapters/webdriverclassic"
-	"jangolova/adapters/webpresentation"
-	cymonkey "jangolova/integrations/jangolova/cymonkey"
-	"jangolova/internal/orchestrator"
+	"cymonkey/adapters/displayinteraction"
+	"cymonkey/adapters/safarimcp"
+	"cymonkey/adapters/webdriverclassic"
+	"cymonkey/adapters/webpresentation"
+	cymonkey "cymonkey/lib/jangolova"
+	"cymonkey/internal/orchestrator"
 )
 
 func EngineRegistry() (*orchestrator.Registry, error) {

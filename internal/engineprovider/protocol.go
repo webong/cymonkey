@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"jangolova/internal/blockade"
+	"cymonkey/internal/blockade"
 )
 
 const APIVersion = "interaction.engine/v1alpha1"
