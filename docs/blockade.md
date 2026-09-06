@@ -73,6 +73,7 @@ External systems may combine Blockade with:
 - local vision models such as YOLO, SAM, and OCR;
 - ONNX Runtime execution providers such as TensorRT, CUDA, OpenVINO, Core ML,
   and CPU;
+- browser-local WebLLM vision-language models accelerated through WebGPU;
 - cloud-provider and multimodal adapters owned and run by Blockade.
 
 The maintained local engines are an Ultralytics YOLO/SAM worker and native
@@ -82,8 +83,9 @@ and hosted-provider adapters can do the same.
 
 ## Provider-adapter contract
 
-Provider-enabled Blockade builds register adapter factories by kind. The base
-binary currently registers no real hosted provider. Every registered adapter
+Provider-enabled Blockade builds register adapter factories by kind. The stock
+binary registers the browser-local `webllm` adapter; hosted cloud providers
+remain separately registered adapters. Every registered adapter
 implements the Blockade-owned `blockade.provider-adapter/v1alpha1` boundary:
 
 - versioned observe request/response envelopes containing the public
@@ -122,3 +124,41 @@ hosted-vision` with `blockade observe` or `blockade serve`. The legacy
 
 The public and provider-adapter schemas are in `protocol/blockade/v1alpha1/`.
 The local worker implementation is in `infra/deploy/blockade/`.
+
+## WebLLM/WebGPU backend
+
+`kind: webllm` runs a vision-language model in a dedicated Chromium process
+owned by Blockade. The process is an inference runtime only: it never attaches
+to a caller's browser, receives a target identifier, or performs an action.
+It uses WebLLM's dedicated-worker API, sends the supplied screenshot as an
+OpenAI-style image message, constrains generation to Blockade's observation
+shape, and returns the same `blockade.observation/v1alpha1` response as every
+other backend.
+
+```yaml
+apiVersion: blockade.config/v1alpha1
+providerAdapters:
+  - id: browser-vlm
+    kind: webllm
+    timeout: 2m
+    maxPayloadBytes: 8388608
+    settings:
+      model: Phi-3.5-vision-instruct-q4f16_1-MLC
+      maxTokens: "1024"
+      contextWindowSize: "6144"
+      headless: "true"
+```
+
+Blockade locates Google Chrome or Chromium automatically. Set
+`browserExecutable` when it is installed at a non-standard path. WebLLM and
+model artifacts are fetched on first startup and retained in a Blockade-owned
+browser profile under the operating system user-cache directory; set
+`cacheDirectory` for a deployment-managed persistent volume. The pinned
+WebLLM module defaults to `https://esm.run/@mlc-ai/web-llm@0.2.84`; a trusted
+HTTPS mirror can be selected with `moduleURL`.
+
+The adapter reports `image.observe` and `vision.language`. Model loading is
+asynchronous, so production startup should run `blockade serve` and wait until
+`/healthz` becomes ready before sending observations. This backend is
+experimental while upstream WebLLM vision support matures. See
+[`docs/blockade-webllm.md`](blockade-webllm.md) for operation and limitations.

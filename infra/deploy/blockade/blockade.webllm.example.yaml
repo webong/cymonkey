@@ -1,0 +1,11 @@
+apiVersion: blockade.config/v1alpha1
+providerAdapters:
+  - id: browser-vlm
+    kind: webllm
+    timeout: 2m
+    maxPayloadBytes: 8388608
+    settings:
+      model: Phi-3.5-vision-instruct-q4f16_1-MLC
+      maxTokens: "1024"
+      contextWindowSize: "6144"
+      headless: "true"

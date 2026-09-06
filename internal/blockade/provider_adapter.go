@@ -15,9 +15,10 @@ import (
 const (
 	ProviderAdapterAPIVersion = "blockade.provider-adapter/v1alpha1"
 
-	CapabilityImageObserve  = "image.observe"
-	CapabilityObjectDetect  = "object.detect"
-	CapabilityObjectSegment = "object.segment"
+	CapabilityImageObserve   = "image.observe"
+	CapabilityObjectDetect   = "object.detect"
+	CapabilityObjectSegment  = "object.segment"
+	CapabilityVisionLanguage = "vision.language"
 
 	defaultProviderAdapterTimeout         = 30 * time.Second
 	maximumProviderAdapterTimeout         = 2 * time.Minute

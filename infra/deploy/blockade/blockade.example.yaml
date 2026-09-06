@@ -19,3 +19,18 @@ engines:
 #     secrets:
 #       apiToken:
 #         env: BLOCKADE_HOSTED_VISION_TOKEN
+
+# Browser-local WebGPU inference is included in the stock Blockade binary.
+# Model loading is asynchronous; use `blockade serve` and gate traffic on
+# /healthz so a cold cache can finish downloading before the first request.
+# providerAdapters:
+#   - id: browser-vlm
+#     kind: webllm
+#     timeout: 2m
+#     maxPayloadBytes: 8388608
+#     settings:
+#       model: Phi-3.5-vision-instruct-q4f16_1-MLC
+#       cacheDirectory: /var/cache/blockade/webllm
+#       maxTokens: "1024"
+#       contextWindowSize: "6144"
+#       headless: "true"

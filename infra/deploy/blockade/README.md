@@ -9,7 +9,11 @@ Local engine attachments can be declared in
 [blockade.example.yaml](blockade.example.yaml). Use `local-ultralytics` for
 managed subprocess workers and `onnx` for native ONNX Runtime integration.
 Cloud providers and VLMs are configured as Blockade provider adapters, separate
-from its local engine configuration.
+from its local engine configuration. The stock binary includes the experimental
+browser-local `webllm` adapter described in
+[`docs/blockade-webllm.md`](../../../docs/blockade-webllm.md). A runnable
+configuration is in
+[`blockade.webllm.example.yaml`](blockade.webllm.example.yaml).
 
 Build and run it from the repository root:
 
@@ -185,8 +189,8 @@ blockade serve --config infra/deploy/blockade/blockade.example.yaml
 ## Hosted provider adapters
 
 Hosted vision/VLM integrations are Blockade-owned packages registered by
-adapter kind. The stock binary currently includes the reusable registry and
-contract but no real hosted provider package. A provider-enabled build passes
+adapter kind. The stock binary registers `webllm`; hosted cloud-provider
+packages use the same registry and contract. A provider-enabled build passes
 its registry to `blockadecli.RunWithProviderAdapters`; no Cymonkey or
 Jangolova change is required.
 
