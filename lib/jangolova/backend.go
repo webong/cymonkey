@@ -1,22 +1,21 @@
-package cymonkey
+package jangolova
 
 import (
 	"context"
 	"encoding/json"
 
-	contract "cymonkey/internal/cymonkey"
-	"cymonkey/internal/manifest"
-	"cymonkey/internal/orchestrator"
+	contract "cymonkey/src/jangolova/contract"
+	"cymonkey/src/jangolova/sdk"
 )
 
-// Backend is the runtime-specific boundary below Cymonkey's stable semantic
+// Backend is the runtime-specific boundary below Jangolova's public semantic
 // contract. Implementations attach to caller-owned targets and must not own the
 // browser or application lifecycle.
 type Backend interface {
 	Name() BackendName
 	Domains() []contract.Domain
-	Compatible(orchestrator.EngineTarget) bool
-	Connect(context.Context, manifest.EngineSpec, orchestrator.EngineTarget, options) (orchestrator.EngineInstance, error)
+	Compatible(sdk.EngineTarget) bool
+	Connect(context.Context, sdk.EngineSpec, sdk.EngineTarget, Options) (sdk.EngineInstance, error)
 }
 
 type extensionMode string
@@ -27,16 +26,16 @@ const (
 	extensionRequired extensionMode = "required"
 )
 
-type extensionOptions struct {
+type ExtensionOptions struct {
 	Mode extensionMode `json:"mode,omitempty"`
 	ID   string        `json:"id,omitempty"`
 }
 
-type nativeOptions struct {
+type NativeOptions struct {
 	ControlListen string `json:"controlListen,omitempty"`
 }
 
-type policyOptions struct {
+type PolicyLimits struct {
 	AllowedCapabilities []string `json:"allowedCapabilities,omitempty"`
 	AllowedOrigins      []string `json:"allowedOrigins,omitempty"`
 	AllowedBundleIDs    []string `json:"allowedBundleIds,omitempty"`
@@ -73,15 +72,18 @@ type compositeTargetEndpoint struct {
 	Metadata      map[string]string `json:"metadata,omitempty"`
 }
 
-type options struct {
+// Options contains module configuration and explicit host-supplied limits.
+// Host is never decoded from runtime JSON.
+type Options struct {
+	Host       sdk.Host          `json:"-"`
 	Domain     contract.Domain   `json:"domain,omitempty"`
 	Module     string            `json:"module,omitempty"`
 	Driver     string            `json:"driver,omitempty"`
 	NodePath   string            `json:"nodePath,omitempty"`
 	WorkerPath string            `json:"workerPath,omitempty"`
-	Extension  extensionOptions  `json:"extension,omitempty"`
-	Native     nativeOptions     `json:"native,omitempty"`
-	Policy     policyOptions     `json:"policy,omitempty"`
+	Extension  ExtensionOptions  `json:"extension,omitempty"`
+	Native     NativeOptions     `json:"native,omitempty"`
+	Policy     PolicyLimits      `json:"policy,omitempty"`
 	Composite  *compositeOptions `json:"composite,omitempty"`
 }
 

@@ -1,7 +1,8 @@
-package cymonkey
+package jangolova
 
 import (
 	"context"
+	"cymonkey/internal/jangolovahost"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -13,22 +14,21 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	contract "cymonkey/internal/cymonkey"
-	"cymonkey/internal/manifest"
-	"cymonkey/internal/orchestrator"
+	contract "cymonkey/src/jangolova/contract"
+	"cymonkey/src/jangolova/sdk"
 )
 
 func TestMacOSCooperativeBackendHandshakesAndEnforcesBundlePolicy(t *testing.T) {
-	spec := manifest.EngineSpec{Options: json.RawMessage(`{
+	spec := sdk.EngineSpec{Options: json.RawMessage(`{
 		"domain":"viewer",
 		"policy":{"allowedBundleIds":["com.example.Allowed"]}
 	}`)}
-	connected, err := (Adapter{}).Connect(context.Background(), spec, orchestrator.EngineTarget{Kind: "macos-application"})
+	connected, err := (Adapter{Host: jangolovahost.Services()}).Connect(context.Background(), spec, sdk.EngineTarget{Kind: "macos-application"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer connected.Disconnect(context.Background())
-	launch := connected.(orchestrator.EngineCallerLaunchProvider).EngineCallerLaunch().Environment
+	launch := connected.(sdk.EngineCallerLaunchProvider).EngineCallerLaunch().Environment
 	var actions atomic.Int32
 	serveFakeMacOSHelper(t, launch, &actions)
 
@@ -65,11 +65,11 @@ func TestMacOSSwiftHelperLive(t *testing.T) {
 	if executable == "" {
 		t.Skip("set JANGOLOVA_CYMONKEY_MACOS_HELPER to the test-built Swift helper")
 	}
-	connected, err := (Adapter{}).Connect(context.Background(), manifest.EngineSpec{Options: json.RawMessage(`{"domain":"viewer"}`)}, orchestrator.EngineTarget{Kind: "macos-application"})
+	connected, err := (Adapter{Host: jangolovahost.Services()}).Connect(context.Background(), sdk.EngineSpec{Options: json.RawMessage(`{"domain":"viewer"}`)}, sdk.EngineTarget{Kind: "macos-application"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	launch := connected.(orchestrator.EngineCallerLaunchProvider).EngineCallerLaunch().Environment
+	launch := connected.(sdk.EngineCallerLaunchProvider).EngineCallerLaunch().Environment
 	configPath := filepath.Join(t.TempDir(), "helper.json")
 	if err := os.WriteFile(configPath, []byte(`{
 		"allowedBundleIds":["com.example.UnavailableFixture"],

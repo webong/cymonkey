@@ -1,4 +1,4 @@
-package cymonkey
+package jangolova
 
 import (
 	"context"
@@ -6,10 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"cymonkey/internal/bridge"
-	contract "cymonkey/internal/cymonkey"
-	"cymonkey/internal/manifest"
-	"cymonkey/internal/orchestrator"
+	contract "cymonkey/src/jangolova/contract"
+	"cymonkey/src/jangolova/sdk"
 )
 
 // windowsCooperativeBackend intentionally shares the authenticated helper
@@ -21,30 +19,33 @@ func (windowsCooperativeBackend) Name() BackendName { return BackendWindowsCoope
 func (windowsCooperativeBackend) Domains() []contract.Domain {
 	return []contract.Domain{contract.DomainViewer}
 }
-func (windowsCooperativeBackend) Compatible(target orchestrator.EngineTarget) bool {
+func (windowsCooperativeBackend) Compatible(target sdk.EngineTarget) bool {
 	return target.Kind == "windows-application"
 }
 
 func (windowsCooperativeBackend) Connect(
 	_ context.Context,
-	spec manifest.EngineSpec,
-	target orchestrator.EngineTarget,
-	config options,
-) (orchestrator.EngineInstance, error) {
+	spec sdk.EngineSpec,
+	target sdk.EngineTarget,
+	config Options,
+) (sdk.EngineInstance, error) {
 	if target.Kind != "windows-application" {
 		return nil, errors.New("Cymonkey Windows backend requires target.kind windows-application")
 	}
-	host, err := bridge.NewWebSocketHost(config.Native.ControlListen)
+	if config.Host.ListenWebSocket == nil {
+		return nil, errors.New("Jangolova host cooperative listener is required")
+	}
+	host, err := config.Host.ListenWebSocket(config.Native.ControlListen)
 	if err != nil {
 		return nil, fmt.Errorf("create Cymonkey Windows control host: %w", err)
 	}
 	running := &macOSInstance{
 		host: host, policy: config.Policy, required: stableStrings(spec.RequiredCapabilities),
-		events:  make(chan orchestrator.EngineEvent, 8),
+		events:  make(chan sdk.EngineEvent, 8),
 		runtime: "windows-app", targetCapability: "target.windows-cooperative",
 	}
-	running.emit(orchestrator.EngineEvent{
-		Type: "cymonkey.windows.awaiting_helper", Status: orchestrator.EngineHealthStarting, OccurredAt: time.Now().UTC(),
+	running.emit(sdk.EngineEvent{
+		Type: "cymonkey.windows.awaiting_helper", Status: sdk.EngineHealthStarting, OccurredAt: time.Now().UTC(),
 	})
 	return running, nil
 }

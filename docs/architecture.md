@@ -175,7 +175,9 @@ internal/engineprovider/    direct HTTP/MCP tools, target policy, and audit
 adapters/browserautomation/ Playwright CDP and Puppeteer CDP/BiDi attachment
 cymonkey/                   Jangolova's temporary public import façade
 internal/cymonkeycore/      Cymonkey core registry/composition/conformance code
-internal/cymonkey/          Cymonkey runtime-agnostic wire contract
+src/jangolova/contract/     public runtime wire contract
+src/jangolova/sdk/          public types and host-injection interfaces
+internal/jangolovahost/     Cymonkey private/public adapter binding
 lib/jangolova/
                             Jangolova-owned browser, macOS, and engine adapters
 protocol/cymonkey/          canonical versioned Cymonkey schemas

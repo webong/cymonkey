@@ -67,6 +67,10 @@ func Decode(r io.Reader) (Registry, error) {
 	if err := decoder.Decode(&registry); err != nil {
 		return Registry{}, fmt.Errorf("decode Jangolova registry: %w", err)
 	}
+	var extra any
+	if err := decoder.Decode(&extra); err != io.EOF {
+		return Registry{}, errors.New("Jangolova registry must contain exactly one JSON document")
+	}
 	if err := registry.Validate(); err != nil {
 		return Registry{}, err
 	}

@@ -1,9 +1,9 @@
-package cymonkey
+package jangolova
 
 import (
 	"encoding/json"
 
-	contract "cymonkey/internal/cymonkey"
+	contract "cymonkey/src/jangolova/contract"
 )
 
 const ProtocolVersion = contract.ProtocolVersion
@@ -71,14 +71,14 @@ type Capability struct {
 
 type Hello struct {
 	ProtocolVersion string            `json:"protocolVersion"`
-	Implementation  implementation    `json:"implementation"`
+	Implementation  Implementation    `json:"implementation"`
 	Domains         []contract.Domain `json:"domains"`
 	Runtimes        []string          `json:"runtimes"`
 	Drivers         []BackendName     `json:"drivers"`
 	Features        []string          `json:"features,omitempty"`
 }
 
-type implementation struct {
+type Implementation struct {
 	Name    string `json:"name"`
 	Version string `json:"version,omitempty"`
 }

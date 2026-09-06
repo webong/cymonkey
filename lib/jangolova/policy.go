@@ -1,4 +1,4 @@
-package cymonkey
+package jangolova
 
 import (
 	"errors"
@@ -8,10 +8,10 @@ import (
 	"sort"
 	"strings"
 
-	contract "cymonkey/internal/cymonkey"
+	contract "cymonkey/src/jangolova/contract"
 )
 
-func normalizeOptions(value *options) error {
+func normalizeOptions(value *Options) error {
 	value.Domain = contract.Domain(strings.ToLower(strings.TrimSpace(string(value.Domain))))
 	if value.Domain != "" && !contract.ValidDomain(value.Domain) {
 		return fmt.Errorf("unsupported Cymonkey domain %q", value.Domain)
@@ -31,7 +31,9 @@ func normalizeOptions(value *options) error {
 	case "auto", "playwright", "puppeteer", string(BackendCDP), string(BackendBiDi), string(BackendSafariMCP),
 		string(BackendMacOSAppleEvents), string(BackendMacOSAccessibility), string(BackendMacOSCooperative), string(BackendWindowsCooperative):
 	default:
-		return fmt.Errorf("unsupported Cymonkey driver %q", value.Driver)
+		if !contract.ValidDriver(contract.Driver(value.Driver)) {
+			return fmt.Errorf("invalid Jangolova driver %q", value.Driver)
+		}
 	}
 	switch value.Extension.Mode {
 	case extensionAuto, extensionDisabled, extensionRequired:

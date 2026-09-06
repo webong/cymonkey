@@ -1,7 +1,8 @@
-package cymonkey
+package jangolova
 
 import (
 	"context"
+	"cymonkey/internal/jangolovahost"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -9,18 +10,17 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	contract "cymonkey/internal/cymonkey"
-	"cymonkey/internal/manifest"
-	"cymonkey/internal/orchestrator"
+	contract "cymonkey/src/jangolova/contract"
+	"cymonkey/src/jangolova/sdk"
 )
 
 func TestWindowsCooperativeBackendNegotiatesOwnerHelper(t *testing.T) {
-	connected, err := (Adapter{}).Connect(context.Background(), manifest.EngineSpec{Options: json.RawMessage(`{"domain":"viewer"}`)}, orchestrator.EngineTarget{Kind: "windows-application"})
+	connected, err := (Adapter{Host: jangolovahost.Services()}).Connect(context.Background(), sdk.EngineSpec{Options: json.RawMessage(`{"domain":"viewer"}`)}, sdk.EngineTarget{Kind: "windows-application"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer connected.Disconnect(context.Background())
-	launch := connected.(orchestrator.EngineCallerLaunchProvider).EngineCallerLaunch().Environment
+	launch := connected.(sdk.EngineCallerLaunchProvider).EngineCallerLaunch().Environment
 	serveFakeWindowsHelper(t, launch)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -39,11 +39,11 @@ func TestWindowsCooperativeBackendNegotiatesOwnerHelper(t *testing.T) {
 }
 
 func TestWindowsTargetSelectsViewerDomain(t *testing.T) {
-	domain, err := resolveDomain("", orchestrator.EngineTarget{Kind: "windows-application"})
+	domain, err := resolveDomain("", sdk.EngineTarget{Kind: "windows-application"})
 	if err != nil || domain != contract.DomainViewer {
 		t.Fatalf("resolveDomain() = %q, %v", domain, err)
 	}
-	backend, err := selectBackend("auto", orchestrator.EngineTarget{Kind: "windows-application"})
+	backend, err := selectBackend("auto", sdk.EngineTarget{Kind: "windows-application"})
 	if err != nil || backend.Name() != BackendWindowsCooperative {
 		t.Fatalf("selectBackend() = %v, %v", backend, err)
 	}

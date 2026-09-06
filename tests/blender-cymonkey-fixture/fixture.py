@@ -12,7 +12,7 @@ import os
 import sys
 from pathlib import Path
 
-PACKAGE_ROOT = Path(__file__).resolve().parents[2] / "pkg" / "blender"
+PACKAGE_ROOT = Path(os.environ.get("JANGOLOVA_BLENDER_MODULE_DIR", str(Path(__file__).resolve().parents[2] / "pkg" / "blender")))
 if str(PACKAGE_ROOT) not in sys.path:
     sys.path.insert(0, str(PACKAGE_ROOT))
 
@@ -107,7 +107,10 @@ def run_contract(registry):
     assert registry.hello()["runtimes"] == ["blender"]
     assert registry.hello()["domains"] == ["render"]
     described = registry.dispatch("describe")
-    assert {surface["id"] for surface in described["surfaces"]} == {"scene:fixture", "object:house", "object:roof", "material:roof"}
+    expected = {"scene:fixture", "object:house", "object:roof", "material:roof"}
+    if registry.bpy is not None:
+        expected.add("camera:main")
+    assert {surface["id"] for surface in described["surfaces"]} == expected
     registry.dispatch("health")
     registry.dispatch("act", {"name": "object.visibility.set", "input": {"targetId": "object:house", "visible": False}})
     registry.dispatch("act", {"name": "object.transform.set", "input": {"targetId": "object:house", "position": {"x": 1, "y": 2, "z": 3}}})

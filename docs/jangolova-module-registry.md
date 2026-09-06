@@ -45,3 +45,18 @@ registry inside the signed extension artifact. The extension must not download
 and execute arbitrary JavaScript at runtime. Native modules such as Blender,
 Godot, Unity, and Unreal are pulled by the Cymonkey host/provider for the
 target platform.
+
+## Explicit SDK activation
+
+`Activate(ctx, module, platform, cachedPath, Activation{Approve, Mount})`
+re-verifies the cached bytes, requires a host approval callback, and passes the
+verified bytes to the runtime-specific mount callback. It then checks the
+module hello, capabilities, description, and health. An incompatible module is
+disconnected. The host remains responsible for per-call approval and target
+lifecycle. See the [public SDK guide](../src/jangolova/sdk/README.md).
+
+The reference snapshot contains source-package metadata, not published artifact
+URLs or proof that an engine has run. Its action lists follow current package
+implementations; runtime negotiation is authoritative. The local Blender live
+fixture supplies its own real module artifact and local test registry. See the
+[validation record](jangolova-runtime-validation.md).

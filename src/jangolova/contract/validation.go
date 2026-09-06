@@ -1,4 +1,4 @@
-package cymonkey
+package contract
 
 import (
 	"bytes"
@@ -78,7 +78,7 @@ func ValidateCapabilities(values []Capability) error {
 
 func ValidateManifest(value Manifest) error {
 	if value.APIVersion != ProtocolVersion || value.Kind != AugmentationKind {
-		return errors.New("Cymonkey augmentation requires v1alpha2 and kind Augmentation")
+		return fmt.Errorf("augmentation requires %s and kind Augmentation", ProtocolVersion)
 	}
 	if !augmentationPattern.MatchString(value.Metadata.ID) || strings.TrimSpace(value.Metadata.Revision) == "" {
 		return errors.New("Cymonkey augmentation requires a stable id and revision")

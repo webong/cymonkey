@@ -1,4 +1,4 @@
-package cymonkey
+package jangolova
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	contract "cymonkey/internal/cymonkey"
+	contract "cymonkey/src/jangolova/contract"
 )
 
 // MacOSPrimitive is one capability reported by a caller-owned macOS helper.

@@ -10,7 +10,7 @@
       "protocolVersion": "cymonkey/v1alpha1",
       "status": "available",
       "platforms": ["darwin-arm64", "darwin-amd64", "linux-amd64", "windows-amd64"],
-      "actions": ["resource.describe", "object.visibility.set", "object.transform.set", "material.color.set", "camera.transform.set", "render.frame"]
+      "actions": []
     },
     {
       "id": "render/threejs",
@@ -19,7 +19,7 @@
       "protocolVersion": "cymonkey/v1alpha1",
       "status": "available",
       "platforms": ["browser"],
-      "actions": ["resource.describe", "object.visibility.set", "object.transform.set", "material.color.set", "camera.transform.set", "render.frame"]
+      "actions": ["resource.describe", "object.visibility.set", "object.transform.set", "camera.projection.set", "material.property.set", "animation.play", "animation.stop"]
     },
     {
       "id": "render/godot",
@@ -28,7 +28,7 @@
       "protocolVersion": "cymonkey/v1alpha1",
       "status": "available",
       "platforms": ["linux-amd64", "darwin-arm64", "windows-amd64"],
-      "actions": ["resource.describe", "object.visibility.set", "object.transform.set", "material.color.set", "camera.transform.set", "render.frame"]
+      "actions": ["resource.describe", "object.visible.set", "object.transform.set", "material.color.set", "camera.transform.set", "ui.text.set"]
     },
     {
       "id": "render/unity",
@@ -37,7 +37,7 @@
       "protocolVersion": "cymonkey/v1alpha1",
       "status": "available",
       "platforms": ["linux-amd64", "darwin-arm64", "windows-amd64"],
-      "actions": ["resource.describe", "object.visibility.set", "object.transform.set", "material.color.set", "camera.transform.set", "render.frame"]
+      "actions": ["resource.describe", "object.active.set"]
     },
     {
       "id": "render/unreal",
@@ -46,7 +46,7 @@
       "protocolVersion": "cymonkey/v1alpha1",
       "status": "available",
       "platforms": ["linux-amd64", "windows-amd64"],
-      "actions": ["resource.describe", "object.visibility.set", "object.transform.set", "material.color.set", "camera.transform.set", "render.frame"]
+      "actions": ["resource.describe", "object.visibility.set"]
     },
     {
       "id": "render/snapchat-camera-kit",
@@ -55,7 +55,7 @@
       "protocolVersion": "cymonkey/v1alpha1",
       "status": "available",
       "platforms": ["browser"],
-      "actions": ["resource.describe", "camera.transform.set", "render.frame"]
+      "actions": ["camera-kit.overlay.mount", "camera-kit.session.describe", "camera-kit.lens.apply", "camera-kit.lens.remove", "camera-kit.camera.stop", "camera-kit.overlay.unmount"]
     },
     {
       "id": "render/blender",

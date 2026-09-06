@@ -1,4 +1,4 @@
-package cymonkey
+package jangolova
 
 import (
 	"strings"
@@ -7,9 +7,8 @@ import (
 	"errors"
 	"fmt"
 
-	contract "cymonkey/internal/cymonkey"
-	"cymonkey/internal/manifest"
-	"cymonkey/internal/orchestrator"
+	contract "cymonkey/src/jangolova/contract"
+	"cymonkey/src/jangolova/sdk"
 )
 
 type processBackend struct {
@@ -21,7 +20,7 @@ func (backend processBackend) Name() BackendName { return backend.name }
 func (backend processBackend) Domains() []contract.Domain {
 	return []contract.Domain{contract.DomainViewer, contract.DomainRender}
 }
-func (backend processBackend) Compatible(target orchestrator.EngineTarget) bool {
+func (backend processBackend) Compatible(target sdk.EngineTarget) bool {
 	_, ok := target.Endpoint(backend.endpointProtocol)
 	return target.Kind == "browser" && ok
 }
@@ -35,13 +34,23 @@ var configuredBackends = []Backend{
 	enginePresentationBackend{},
 }
 
-func (Adapter) Connect(ctx context.Context, spec manifest.EngineSpec, target orchestrator.EngineTarget) (orchestrator.EngineInstance, error) {
+func (a Adapter) Connect(ctx context.Context, spec sdk.EngineSpec, target sdk.EngineTarget) (sdk.EngineInstance, error) {
 	config, err := decodeOptions(spec.Options)
 	if err != nil {
 		return nil, err
 	}
+	config.Host = a.Host
 	if config.Composite != nil {
 		return nil, errors.New("Jangolova composite attachment migration is pending; use Cymonkey core composition directly")
+	}
+	// Explicitly registered external modules select their own target kinds.
+	for _, backend := range a.Backends {
+		if backend.Compatible(target) && (config.Driver == "auto" || backendMatchesRequest(backend, config.Driver)) {
+			if config.Domain != "" && !containsDomain(backend.Domains(), config.Domain) {
+				continue
+			}
+			return backend.Connect(ctx, spec, target, config)
+		}
 	}
 	domain, err := resolveDomain(config.Domain, target)
 	if err != nil {
@@ -60,11 +69,11 @@ func (Adapter) Connect(ctx context.Context, spec manifest.EngineSpec, target orc
 	return backend.Connect(ctx, spec, target, config)
 }
 
-func selectBackend(requested string, target orchestrator.EngineTarget) (Backend, error) {
+func selectBackend(requested string, target sdk.EngineTarget) (Backend, error) {
 	return selectBackendForDomain(requested, contract.DomainViewer, target)
 }
 
-func selectBackendForDomain(requested string, domain contract.Domain, target orchestrator.EngineTarget) (Backend, error) {
+func selectBackendForDomain(requested string, domain contract.Domain, target sdk.EngineTarget) (Backend, error) {
 	for _, backend := range configuredBackends {
 		if !containsDomain(backend.Domains(), domain) {
 			continue
@@ -94,7 +103,7 @@ func selectBackendForDomain(requested string, domain contract.Domain, target orc
 	return nil, fmt.Errorf("Cymonkey backend %s has no compatible caller-owned %s domain target", requested, domain)
 }
 
-func resolveDomain(requested contract.Domain, target orchestrator.EngineTarget) (contract.Domain, error) {
+func resolveDomain(requested contract.Domain, target sdk.EngineTarget) (contract.Domain, error) {
 	if requested == "" {
 		switch target.Kind {
 		case "browser":
@@ -103,7 +112,7 @@ func resolveDomain(requested contract.Domain, target orchestrator.EngineTarget) 
 			return contract.DomainViewer, nil
 		case "windows-application":
 			return contract.DomainViewer, nil
-		case "native-presentation", "unity", "unreal", "godot":
+		case "native-presentation", "unity", "unreal", "godot", "blender":
 			return contract.DomainRender, nil
 		default:
 			return "", fmt.Errorf("Cymonkey cannot infer a domain from target.kind %q", target.Kind)
@@ -115,10 +124,10 @@ func resolveDomain(requested contract.Domain, target orchestrator.EngineTarget) 
 	if requested == contract.DomainViewer && target.Kind != "browser" && target.Kind != "macos-application" && target.Kind != "windows-application" {
 		return "", errors.New("Cymonkey viewer domain requires target.kind browser, macos-application, or windows-application")
 	}
-	if requested == contract.DomainRender && target.Kind != "browser" && target.Kind != "native-presentation" && target.Kind != "unity" && target.Kind != "unreal" && target.Kind != "godot" {
+	if requested == contract.DomainRender && target.Kind != "browser" && target.Kind != "native-presentation" && target.Kind != "unity" && target.Kind != "unreal" && target.Kind != "godot" && target.Kind != "blender" {
 		return "", errors.New("Cymonkey render domain requires target.kind browser, native-presentation, unity, unreal, or godot")
 	}
-	if requested == contract.DomainPlayer && target.Kind != "browser" && target.Kind != "macos-application" && target.Kind != "windows-application" && target.Kind != "native-presentation" && target.Kind != "unity" && target.Kind != "unreal" && target.Kind != "godot" {
+	if requested == contract.DomainPlayer && target.Kind != "browser" && target.Kind != "macos-application" && target.Kind != "windows-application" && target.Kind != "native-presentation" && target.Kind != "unity" && target.Kind != "unreal" && target.Kind != "godot" && target.Kind != "blender" {
 		return "", errors.New("Cymonkey player domain requires a browser, macos-application, windows-application, or native presentation target")
 	}
 	return requested, nil

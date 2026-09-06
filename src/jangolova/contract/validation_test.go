@@ -1,4 +1,4 @@
-package cymonkey
+package contract
 
 import (
 	"encoding/json"
@@ -56,7 +56,7 @@ func TestRuntimeHelloRequiresExactVersionAndKnownDomain(t *testing.T) {
 	if err := ValidateHello(value); err != nil {
 		t.Fatal(err)
 	}
-	value.ProtocolVersion = "cymonkey/v1alpha1"
+	value.ProtocolVersion = "cymonkey/unsupported"
 	if err := ValidateHello(value); err == nil {
 		t.Fatal("ValidateHello() accepted a non-standard protocol version")
 	}

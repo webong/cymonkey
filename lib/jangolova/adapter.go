@@ -1,5 +1,5 @@
-// Package cymonkey implements Jangolova's caller-owned target integrations.
-package cymonkey
+// Package jangolova implements Jangolova's caller-owned target integrations.
+package jangolova
 
 import (
 	"bytes"
@@ -16,34 +16,34 @@ import (
 	"sync"
 	"time"
 
-	"cymonkey/internal/bridge"
-	"cymonkey/internal/manifest"
-	"cymonkey/internal/nodeworker"
-	"cymonkey/internal/orchestrator"
-	"cymonkey/targetconn"
+	"cymonkey/src/jangolova/sdk"
 )
 
 const defaultWorkerPath = "scripts/cymonkey-worker.mjs"
 
 // Adapter attaches Jangolova to caller-owned targets. The portable Cymonkey
 // registry and composition APIs live in Cymonkey's internal core.
-type Adapter struct{}
+type Adapter struct {
+	Host     sdk.Host
+	Backends []Backend
+}
 
 type instance struct {
-	worker         *nodeworker.Process
+	host           sdk.Host
+	worker         sdk.Worker
 	nodePath       string
 	workerPath     string
 	targetProtocol string
 	driver         string
-	extension      extensionOptions
-	policy         policyOptions
-	endpoint       orchestrator.TargetEndpoint
+	extension      ExtensionOptions
+	policy         PolicyLimits
+	endpoint       sdk.TargetEndpoint
 	capabilities   []string
 
 	callMu        sync.Mutex
 	closed        bool
 	disconnecting bool
-	events        chan orchestrator.EngineEvent
+	events        chan sdk.EngineEvent
 	eventsMu      sync.RWMutex
 	eventsClosed  bool
 	eventsOnce    sync.Once
@@ -52,29 +52,29 @@ type instance struct {
 	renewalWG     sync.WaitGroup
 }
 
-var _ orchestrator.EngineAdapter = Adapter{}
-var _ orchestrator.EngineInspector = Adapter{}
-var _ orchestrator.EngineInstance = (*instance)(nil)
-var _ orchestrator.EngineHealthProvider = (*instance)(nil)
-var _ orchestrator.EngineCapabilityProvider = (*instance)(nil)
-var _ orchestrator.EngineEventSource = (*instance)(nil)
-var _ bridge.Caller = (*instance)(nil)
+var _ sdk.EngineAdapter = Adapter{}
+var _ sdk.EngineInspector = Adapter{}
+var _ sdk.EngineInstance = (*instance)(nil)
+var _ sdk.EngineHealthProvider = (*instance)(nil)
+var _ sdk.EngineCapabilityProvider = (*instance)(nil)
+var _ sdk.EngineEventSource = (*instance)(nil)
+var _ sdk.Caller = (*instance)(nil)
 
-func (Adapter) InspectEngine(context.Context) orchestrator.EngineInspection {
+func (Adapter) InspectEngine(context.Context) sdk.EngineInspection {
 	capabilities := stableStrings(append(capabilityNames(),
 		"app.command.describe", "app.command.invoke", "app.command.list",
 		"target.macos-cooperative", "target.windows-cooperative", "ui.action.invoke", "ui.attribute.set", "ui.query",
 	))
 	if _, err := exec.LookPath("node"); err != nil {
-		return orchestrator.EngineInspection{Available: true, Capabilities: capabilities, Message: "macOS viewer runtime is available; browser runtime requires Node.js: " + err.Error()}
+		return sdk.EngineInspection{Available: true, Capabilities: capabilities, Message: "macOS viewer runtime is available; browser runtime requires Node.js: " + err.Error()}
 	}
 	if _, err := resolveWorker(""); err != nil {
-		return orchestrator.EngineInspection{Available: true, Capabilities: capabilities, Message: "macOS viewer runtime is available; browser runtime is unavailable: " + err.Error()}
+		return sdk.EngineInspection{Available: true, Capabilities: capabilities, Message: "macOS viewer runtime is available; browser runtime is unavailable: " + err.Error()}
 	}
-	return orchestrator.EngineInspection{Available: true, Capabilities: capabilities}
+	return sdk.EngineInspection{Available: true, Capabilities: capabilities}
 }
 
-func (backend processBackend) Connect(ctx context.Context, spec manifest.EngineSpec, target orchestrator.EngineTarget, config options) (orchestrator.EngineInstance, error) {
+func (backend processBackend) Connect(ctx context.Context, spec sdk.EngineSpec, target sdk.EngineTarget, config Options) (sdk.EngineInstance, error) {
 	if target.Kind != "browser" {
 		return nil, errors.New("cymonkey requires target.kind browser")
 	}
@@ -85,7 +85,7 @@ func (backend processBackend) Connect(ctx context.Context, spec manifest.EngineS
 	if err := validateEndpoint(endpoint.URL, backend.endpointProtocol); err != nil {
 		return nil, err
 	}
-	if err := targetconn.Validate(endpoint); err != nil {
+	if err := config.Host.Validate(endpoint); err != nil {
 		return nil, err
 	}
 	var err error
@@ -101,11 +101,12 @@ func (backend processBackend) Connect(ctx context.Context, spec manifest.EngineS
 		return nil, err
 	}
 	running := &instance{
+		host:     config.Host,
 		nodePath: nodePath, workerPath: workerPath, targetProtocol: backend.endpointProtocol, driver: config.Driver,
 		extension: config.Extension, policy: config.Policy,
-		endpoint: endpoint, events: make(chan orchestrator.EngineEvent, 8), renewalStop: make(chan struct{}),
+		endpoint: endpoint, events: make(chan sdk.EngineEvent, 8), renewalStop: make(chan struct{}),
 	}
-	snapshot := endpoint.Connection.Snapshot()
+	snapshot := endpoint.Snapshot()
 	worker, capabilities, err := running.startWorker(ctx)
 	if err != nil {
 		return nil, err
@@ -121,7 +122,7 @@ func (backend processBackend) Connect(ctx context.Context, spec manifest.EngineS
 			"name":  "window.navigate",
 			"input": map[string]string{"url": source},
 		})
-		if _, err := running.Call(ctx, bridge.MethodAct, params); err != nil {
+		if _, err := running.Call(ctx, sdk.MethodAct, params); err != nil {
 			_ = running.Disconnect(context.Background())
 			return nil, fmt.Errorf("navigate Cymonkey target: %w", err)
 		}
@@ -135,17 +136,17 @@ func (backend processBackend) Connect(ctx context.Context, spec manifest.EngineS
 			running.watchConnectionMaterial(updates, snapshot)
 		}()
 	}
-	running.emit(orchestrator.EngineEvent{Type: "cymonkey.connected", Status: orchestrator.EngineHealthHealthy, OccurredAt: time.Now().UTC()})
+	running.emit(sdk.EngineEvent{Type: "cymonkey.connected", Status: sdk.EngineHealthHealthy, OccurredAt: time.Now().UTC()})
 	return running, nil
 }
 
 func (i *instance) Call(ctx context.Context, method string, params json.RawMessage) (json.RawMessage, error) {
 	switch method {
-	case bridge.MethodHello, bridge.MethodCapabilities, bridge.MethodDescribe, bridge.MethodAct, bridge.MethodEvents:
+	case sdk.MethodHello, sdk.MethodCapabilities, sdk.MethodDescribe, sdk.MethodAct, sdk.MethodEvents, "health":
 	default:
 		return nil, fmt.Errorf("unsupported Cymonkey interaction method %q", method)
 	}
-	if method == bridge.MethodAct {
+	if method == sdk.MethodAct {
 		action, err := decodeAction(params)
 		if err != nil {
 			return nil, fmt.Errorf("decode Cymonkey action: %w", err)
@@ -183,41 +184,41 @@ func (i *instance) Disconnect(ctx context.Context) error {
 	i.closed = true
 	i.callMu.Unlock()
 	err := worker.Disconnect(ctx)
-	i.finish(orchestrator.EngineEvent{Type: "cymonkey.disconnected", Status: orchestrator.EngineHealthStopped, OccurredAt: time.Now().UTC()})
+	i.finish(sdk.EngineEvent{Type: "cymonkey.disconnected", Status: sdk.EngineHealthStopped, OccurredAt: time.Now().UTC()})
 	return err
 }
 
-func (i *instance) EngineHealth(ctx context.Context) orchestrator.EngineHealth {
-	health := orchestrator.EngineHealth{ObservedAt: time.Now().UTC()}
-	if err := targetconn.Validate(i.endpoint); err != nil {
-		health.Status, health.Message = orchestrator.EngineHealthUnhealthy, err.Error()
+func (i *instance) EngineHealth(ctx context.Context) sdk.EngineHealth {
+	health := sdk.EngineHealth{ObservedAt: time.Now().UTC()}
+	if err := i.host.Validate(i.endpoint); err != nil {
+		health.Status, health.Message = sdk.EngineHealthUnhealthy, err.Error()
 		return health
 	}
 	result, err := i.request(ctx, "health", json.RawMessage(`{}`))
 	if err != nil {
-		health.Status, health.Message = orchestrator.EngineHealthUnhealthy, err.Error()
+		health.Status, health.Message = sdk.EngineHealthUnhealthy, err.Error()
 		return health
 	}
 	var value struct {
 		Connected bool `json:"connected"`
 	}
 	if err := json.Unmarshal(result, &value); err != nil || !value.Connected {
-		health.Status, health.Message = orchestrator.EngineHealthUnhealthy, "Cymonkey browser target is disconnected"
+		health.Status, health.Message = sdk.EngineHealthUnhealthy, "Cymonkey browser target is disconnected"
 		return health
 	}
-	health.Status = orchestrator.EngineHealthHealthy
+	health.Status = sdk.EngineHealthHealthy
 	return health
 }
 
-func (i *instance) Authorize(ctx context.Context, request orchestrator.AuthorizeRequest) (orchestrator.AuthorizeDecision, error) {
+func (i *instance) Authorize(ctx context.Context, request sdk.AuthorizeRequest) (sdk.AuthorizeDecision, error) {
 	action := strings.TrimSpace(request.Action)
 	if action == "" {
-		return orchestrator.AuthorizeDecision{Authorized: false}, errors.New("Cymonkey interaction action name is required")
+		return sdk.AuthorizeDecision{Authorized: false}, errors.New("Cymonkey interaction action name is required")
 	}
 	if !capabilityAllowed(i.policy.AllowedCapabilities, action) {
-		return orchestrator.AuthorizeDecision{Authorized: false, Reason: fmt.Sprintf("Cymonkey policy denied capability %q", action)}, nil
+		return sdk.AuthorizeDecision{Authorized: false, Reason: fmt.Sprintf("Cymonkey policy denied capability %q", action)}, nil
 	}
-	return orchestrator.AuthorizeDecision{Authorized: true}, nil
+	return sdk.AuthorizeDecision{Authorized: true}, nil
 }
 
 func (i *instance) EngineCapabilities() []string {
@@ -226,18 +227,21 @@ func (i *instance) EngineCapabilities() []string {
 	return append([]string(nil), i.capabilities...)
 }
 
-func (i *instance) EngineEvents() <-chan orchestrator.EngineEvent { return i.events }
+func (i *instance) EngineEvents() <-chan sdk.EngineEvent { return i.events }
 
-func (i *instance) startWorker(ctx context.Context) (*nodeworker.Process, []string, error) {
-	environment, err := targetconn.NodeEnvironment(i.endpoint, os.Environ())
+func (i *instance) startWorker(ctx context.Context) (sdk.Worker, []string, error) {
+	environment, err := i.host.NodeEnvironment(i.endpoint, os.Environ())
 	if err != nil {
 		return nil, nil, err
 	}
-	worker, err := nodeworker.Start(i.nodePath, i.workerPath, nil, environment)
+	if i.host.StartWorker == nil {
+		return nil, nil, errors.New("Jangolova host worker startup is required")
+	}
+	worker, err := i.host.StartWorker(i.nodePath, i.workerPath, nil, environment)
 	if err != nil {
 		return nil, nil, fmt.Errorf("start Cymonkey worker: %w", err)
 	}
-	snapshot := i.endpoint.Connection.Snapshot()
+	snapshot := i.endpoint.Snapshot()
 	params, _ := json.Marshal(map[string]any{
 		"endpoint": i.endpoint.URL, "protocol": i.targetProtocol, "driver": i.driver, "extension": i.extension,
 		"headers": snapshot.Headers, "policy": i.policy,
@@ -280,7 +284,7 @@ func (i *instance) replaceWorker(ctx context.Context) error {
 	return nil
 }
 
-func (i *instance) watchConnectionMaterial(updates <-chan uint64, connected orchestrator.EndpointConnectionSnapshot) {
+func (i *instance) watchConnectionMaterial(updates <-chan uint64, connected sdk.EndpointConnectionSnapshot) {
 	for {
 		select {
 		case <-i.renewalStop:
@@ -292,7 +296,7 @@ func (i *instance) watchConnectionMaterial(updates <-chan uint64, connected orch
 			if revision <= connected.Revision {
 				continue
 			}
-			current := i.endpoint.Connection.Snapshot()
+			current := i.endpoint.Snapshot()
 			var err error
 			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 			if current.TLSRevision > connected.TLSRevision {
@@ -306,17 +310,17 @@ func (i *instance) watchConnectionMaterial(updates <-chan uint64, connected orch
 			}
 			cancel()
 			if err != nil {
-				i.emit(orchestrator.EngineEvent{Type: "cymonkey.connection.renewal_failed", Message: targetconn.RedactString(err.Error(), orchestrator.EngineTarget{Endpoints: []orchestrator.TargetEndpoint{i.endpoint}}), OccurredAt: time.Now().UTC()})
+				i.emit(sdk.EngineEvent{Type: "cymonkey.connection.renewal_failed", Message: i.host.RedactString(err.Error(), sdk.EngineTarget{Endpoints: []sdk.TargetEndpoint{i.endpoint}}), OccurredAt: time.Now().UTC()})
 				continue
 			}
 			i.endpoint.Connection.Acknowledge(current.Revision)
 			connected = current
-			i.emit(orchestrator.EngineEvent{Type: "cymonkey.connection.renewed", OccurredAt: time.Now().UTC()})
+			i.emit(sdk.EngineEvent{Type: "cymonkey.connection.renewed", OccurredAt: time.Now().UTC()})
 		}
 	}
 }
 
-func (i *instance) monitorWorker(worker *nodeworker.Process) {
+func (i *instance) monitorWorker(worker sdk.Worker) {
 	<-worker.Done()
 	i.callMu.Lock()
 	if i.worker != worker || i.disconnecting || i.closed {
@@ -330,10 +334,10 @@ func (i *instance) monitorWorker(worker *nodeworker.Process) {
 	if err := worker.WaitError(); err != nil {
 		message = err.Error() + worker.StderrSuffix()
 	}
-	i.finish(orchestrator.EngineEvent{Type: "cymonkey.failed", Status: orchestrator.EngineHealthUnhealthy, Message: message, OccurredAt: time.Now().UTC()})
+	i.finish(sdk.EngineEvent{Type: "cymonkey.failed", Status: sdk.EngineHealthUnhealthy, Message: message, OccurredAt: time.Now().UTC()})
 }
 
-func (i *instance) emit(event orchestrator.EngineEvent) {
+func (i *instance) emit(event sdk.EngineEvent) {
 	i.eventsMu.RLock()
 	defer i.eventsMu.RUnlock()
 	if i.eventsClosed {
@@ -345,7 +349,7 @@ func (i *instance) emit(event orchestrator.EngineEvent) {
 	}
 }
 
-func (i *instance) finish(event orchestrator.EngineEvent) {
+func (i *instance) finish(event sdk.EngineEvent) {
 	i.eventsOnce.Do(func() {
 		i.eventsMu.Lock()
 		defer i.eventsMu.Unlock()
@@ -363,20 +367,20 @@ func (i *instance) finish(event orchestrator.EngineEvent) {
 
 func (i *instance) stopConnectionMaterialWatch() { i.renewalOnce.Do(func() { close(i.renewalStop) }) }
 
-func decodeOptions(raw json.RawMessage) (options, error) {
+func decodeOptions(raw json.RawMessage) (Options, error) {
 	if len(bytes.TrimSpace(raw)) == 0 {
-		value := options{}
+		value := Options{}
 		_ = normalizeOptions(&value)
 		return value, nil
 	}
-	var value options
+	var value Options
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&value); err != nil {
-		return options{}, fmt.Errorf("decode Cymonkey options: %w", err)
+		return Options{}, fmt.Errorf("decode Cymonkey options: %w", err)
 	}
 	if err := normalizeOptions(&value); err != nil {
-		return options{}, err
+		return Options{}, err
 	}
 	return value, nil
 }

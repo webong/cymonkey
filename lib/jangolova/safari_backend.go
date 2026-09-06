@@ -1,4 +1,4 @@
-package cymonkey
+package jangolova
 
 import (
 	"context"
@@ -8,11 +8,8 @@ import (
 	"sort"
 	"strings"
 
-	"cymonkey/adapters/safarimcp"
-	"cymonkey/internal/bridge"
-	contract "cymonkey/internal/cymonkey"
-	"cymonkey/internal/manifest"
-	"cymonkey/internal/orchestrator"
+	contract "cymonkey/src/jangolova/contract"
+	"cymonkey/src/jangolova/sdk"
 )
 
 type safariMCPBackend struct{}
@@ -21,29 +18,32 @@ func (safariMCPBackend) Name() BackendName { return BackendSafariMCP }
 func (safariMCPBackend) Domains() []contract.Domain {
 	return []contract.Domain{contract.DomainViewer, contract.DomainRender}
 }
-func (safariMCPBackend) Compatible(target orchestrator.EngineTarget) bool {
+func (safariMCPBackend) Compatible(target sdk.EngineTarget) bool {
 	_, ok := target.Endpoint("mcp-streamable-http")
 	return target.Kind == "browser" && ok
 }
 
-func (safariMCPBackend) Connect(ctx context.Context, spec manifest.EngineSpec, target orchestrator.EngineTarget, config options) (orchestrator.EngineInstance, error) {
+func (safariMCPBackend) Connect(ctx context.Context, spec sdk.EngineSpec, target sdk.EngineTarget, config Options) (sdk.EngineInstance, error) {
 	// Safari MCP owns its own transport options. Cymonkey policy and backend
 	// selection options must not be passed through to that adapter.
-	underlying, err := (safarimcp.Adapter{}).Connect(ctx, manifest.EngineSpec{Source: spec.Source}, target)
+	if config.Host.ConnectSafari == nil {
+		return nil, errors.New("Jangolova host Safari connector is required")
+	}
+	underlying, err := config.Host.ConnectSafari(ctx, sdk.EngineSpec{Source: spec.Source}, target)
 	if err != nil {
 		return nil, err
 	}
-	caller, ok := underlying.(bridge.Caller)
+	caller, ok := underlying.(sdk.Caller)
 	if !ok {
 		_ = underlying.Disconnect(context.Background())
 		return nil, errors.New("Safari MCP backend does not implement bridge calls")
 	}
-	raw, err := caller.Call(ctx, bridge.MethodCapabilities, json.RawMessage(`{}`))
+	raw, err := caller.Call(ctx, sdk.MethodCapabilities, json.RawMessage(`{}`))
 	if err != nil {
 		_ = underlying.Disconnect(context.Background())
 		return nil, fmt.Errorf("discover Safari MCP Cymonkey mappings: %w", err)
 	}
-	var discovered []bridge.Capability
+	var discovered []sdk.Capability
 	if err := json.Unmarshal(raw, &discovered); err != nil {
 		_ = underlying.Disconnect(context.Background())
 		return nil, fmt.Errorf("decode Safari MCP capabilities: %w", err)
@@ -62,11 +62,11 @@ type safariMapping struct {
 }
 
 type safariInstance struct {
-	underlying   orchestrator.EngineInstance
-	caller       bridge.Caller
+	underlying   sdk.EngineInstance
+	caller       sdk.Caller
 	mappings     map[string]safariMapping
 	capabilities []Capability
-	policy       policyOptions
+	policy       PolicyLimits
 }
 
 func (instance *safariInstance) Disconnect(ctx context.Context) error {
@@ -75,26 +75,29 @@ func (instance *safariInstance) Disconnect(ctx context.Context) error {
 
 func (instance *safariInstance) Call(ctx context.Context, method string, params json.RawMessage) (json.RawMessage, error) {
 	switch method {
-	case bridge.MethodHello:
+	case "health":
+		health := instance.EngineHealth(ctx)
+		return json.Marshal(map[string]any{"status": health.Status, "observedAt": health.ObservedAt})
+	case sdk.MethodHello:
 		return json.Marshal(Hello{
 			ProtocolVersion: ProtocolVersion,
-			Implementation:  implementation{Name: "jangolova-cymonkey", Version: "0.1.0"},
+			Implementation:  Implementation{Name: "jangolova-cymonkey", Version: "0.1.0"},
 			Domains:         []contract.Domain{contract.DomainViewer, contract.DomainRender},
 			Runtimes:        []string{"browser-dom"},
 			Drivers:         []BackendName{BackendSafariMCP},
 			Features:        []string{"caller-owned-target", "capabilities.negotiated", "safari-mcp.dynamic-mapping"},
 		})
-	case bridge.MethodCapabilities:
+	case sdk.MethodCapabilities:
 		return json.Marshal(instance.capabilities)
-	case bridge.MethodDescribe:
+	case sdk.MethodDescribe:
 		description, err := instance.caller.Call(ctx, method, params)
 		if err != nil {
 			return nil, err
 		}
 		return json.Marshal(map[string]any{"revision": "safari-mcp", "surfaces": []any{}, "augmentations": []any{}, "driver": BackendSafariMCP, "mappedCapabilities": capabilityNamesFromDescriptors(instance.capabilities), "target": json.RawMessage(description)})
-	case bridge.MethodAct:
+	case sdk.MethodAct:
 		return instance.act(ctx, params)
-	case bridge.MethodEvents:
+	case sdk.MethodEvents:
 		return instance.caller.Call(ctx, method, params)
 	default:
 		return nil, fmt.Errorf("unsupported Cymonkey method %q", method)
@@ -129,16 +132,16 @@ func (instance *safariInstance) act(ctx context.Context, raw json.RawMessage) (j
 		forward["name"] = "mcp.tool." + mapping.tool
 	}
 	payload, _ := json.Marshal(forward)
-	return instance.caller.Call(ctx, bridge.MethodAct, payload)
+	return instance.caller.Call(ctx, sdk.MethodAct, payload)
 }
 
-func (instance *safariInstance) Authorize(ctx context.Context, request orchestrator.AuthorizeRequest) (orchestrator.AuthorizeDecision, error) {
+func (instance *safariInstance) Authorize(ctx context.Context, request sdk.AuthorizeRequest) (sdk.AuthorizeDecision, error) {
 	action := strings.TrimSpace(request.Action)
 	if action == "" {
-		return orchestrator.AuthorizeDecision{Authorized: false}, errors.New("Cymonkey Safari action name is required")
+		return sdk.AuthorizeDecision{Authorized: false}, errors.New("Cymonkey Safari action name is required")
 	}
 	if !capabilityAllowed(instance.policy.AllowedCapabilities, action) {
-		return orchestrator.AuthorizeDecision{Authorized: false, Reason: fmt.Sprintf("Cymonkey policy denied capability %q", action)}, nil
+		return sdk.AuthorizeDecision{Authorized: false, Reason: fmt.Sprintf("Cymonkey policy denied capability %q", action)}, nil
 	}
 	return instance.underlying.Authorize(ctx, request)
 }
@@ -147,23 +150,23 @@ func (instance *safariInstance) EngineCapabilities() []string {
 	return stableStrings(append([]string{"act", "capabilities", "describe", "events", "target.safari-mcp"}, capabilityNamesFromDescriptors(instance.capabilities)...))
 }
 
-func (instance *safariInstance) EngineHealth(ctx context.Context) orchestrator.EngineHealth {
-	if provider, ok := instance.underlying.(orchestrator.EngineHealthProvider); ok {
+func (instance *safariInstance) EngineHealth(ctx context.Context) sdk.EngineHealth {
+	if provider, ok := instance.underlying.(sdk.EngineHealthProvider); ok {
 		return provider.EngineHealth(ctx)
 	}
-	return orchestrator.EngineHealth{Status: orchestrator.EngineHealthHealthy}
+	return sdk.EngineHealth{Status: sdk.EngineHealthHealthy}
 }
 
-func (instance *safariInstance) EngineEvents() <-chan orchestrator.EngineEvent {
-	if source, ok := instance.underlying.(orchestrator.EngineEventSource); ok {
+func (instance *safariInstance) EngineEvents() <-chan sdk.EngineEvent {
+	if source, ok := instance.underlying.(sdk.EngineEventSource); ok {
 		return source.EngineEvents()
 	}
-	closed := make(chan orchestrator.EngineEvent)
+	closed := make(chan sdk.EngineEvent)
 	close(closed)
 	return closed
 }
 
-func mapSafariCapabilities(discovered []bridge.Capability, allowed []string) (map[string]safariMapping, []Capability) {
+func mapSafariCapabilities(discovered []sdk.Capability, allowed []string) (map[string]safariMapping, []Capability) {
 	mappings := make(map[string]safariMapping)
 	capabilities := make([]Capability, 0)
 	add := func(name string, domain contract.Domain, mapping safariMapping, effect string, schema json.RawMessage) {
@@ -226,7 +229,7 @@ func containsAny(value string, candidates ...string) bool {
 }
 
 var _ Backend = safariMCPBackend{}
-var _ orchestrator.EngineInstance = (*safariInstance)(nil)
-var _ orchestrator.EngineHealthProvider = (*safariInstance)(nil)
-var _ orchestrator.EngineCapabilityProvider = (*safariInstance)(nil)
-var _ orchestrator.EngineEventSource = (*safariInstance)(nil)
+var _ sdk.EngineInstance = (*safariInstance)(nil)
+var _ sdk.EngineHealthProvider = (*safariInstance)(nil)
+var _ sdk.EngineCapabilityProvider = (*safariInstance)(nil)
+var _ sdk.EngineEventSource = (*safariInstance)(nil)

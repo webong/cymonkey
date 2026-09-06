@@ -1,4 +1,4 @@
-package cymonkey
+package jangolova
 
 import (
 	"context"
@@ -10,10 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"cymonkey/internal/bridge"
-	contract "cymonkey/internal/cymonkey"
-	"cymonkey/internal/manifest"
-	"cymonkey/internal/orchestrator"
+	contract "cymonkey/src/jangolova/contract"
+	"cymonkey/src/jangolova/sdk"
 )
 
 type macOSCooperativeBackend struct{}
@@ -22,66 +20,69 @@ func (macOSCooperativeBackend) Name() BackendName { return BackendMacOSCooperati
 func (macOSCooperativeBackend) Domains() []contract.Domain {
 	return []contract.Domain{contract.DomainViewer}
 }
-func (macOSCooperativeBackend) Compatible(target orchestrator.EngineTarget) bool {
+func (macOSCooperativeBackend) Compatible(target sdk.EngineTarget) bool {
 	return target.Kind == "macos-application"
 }
 
 func (macOSCooperativeBackend) Connect(
 	_ context.Context,
-	spec manifest.EngineSpec,
-	target orchestrator.EngineTarget,
-	config options,
-) (orchestrator.EngineInstance, error) {
+	spec sdk.EngineSpec,
+	target sdk.EngineTarget,
+	config Options,
+) (sdk.EngineInstance, error) {
 	if target.Kind != "macos-application" {
 		return nil, errors.New("Cymonkey macOS backend requires target.kind macos-application")
 	}
-	host, err := bridge.NewWebSocketHost(config.Native.ControlListen)
+	if config.Host.ListenWebSocket == nil {
+		return nil, errors.New("Jangolova host cooperative listener is required")
+	}
+	host, err := config.Host.ListenWebSocket(config.Native.ControlListen)
 	if err != nil {
 		return nil, fmt.Errorf("create Cymonkey macOS control host: %w", err)
 	}
 	running := &macOSInstance{
 		host: host, policy: config.Policy,
 		required: stableStrings(spec.RequiredCapabilities),
-		events:   make(chan orchestrator.EngineEvent, 8),
+		events:   make(chan sdk.EngineEvent, 8),
 		runtime:  "macos-app", targetCapability: "target.macos-cooperative",
 	}
-	running.emit(orchestrator.EngineEvent{
-		Type: "cymonkey.macos.awaiting_helper", Status: orchestrator.EngineHealthStarting,
+	running.emit(sdk.EngineEvent{
+		Type: "cymonkey.macos.awaiting_helper", Status: sdk.EngineHealthStarting,
 		OccurredAt: time.Now().UTC(),
 	})
 	return running, nil
 }
 
 type macOSInstance struct {
-	host             *bridge.WebSocketHost
-	policy           policyOptions
+	host             sdk.Listener
+	policy           PolicyLimits
 	required         []string
 	runtime          string
 	targetCapability string
 	connectMu        sync.Mutex
 	stateMu          sync.RWMutex
-	connection       *bridge.WebSocketConnection
+	connection       sdk.Transport
 	capabilities     []contract.Capability
 	capabilityNames  []string
 	closed           bool
-	events           chan orchestrator.EngineEvent
+	events           chan sdk.EngineEvent
 	eventsOnce       sync.Once
 	eventsMu         sync.RWMutex
 	eventsClosed     bool
 }
 
-var _ orchestrator.EngineInstance = (*macOSInstance)(nil)
-var _ orchestrator.EngineHealthProvider = (*macOSInstance)(nil)
-var _ orchestrator.EngineCapabilityProvider = (*macOSInstance)(nil)
-var _ orchestrator.EngineEventSource = (*macOSInstance)(nil)
-var _ orchestrator.EngineCallerLaunchProvider = (*macOSInstance)(nil)
-var _ bridge.WebSocketHostProvider = (*macOSInstance)(nil)
-var _ bridge.Caller = (*macOSInstance)(nil)
+var _ sdk.EngineInstance = (*macOSInstance)(nil)
+var _ sdk.EngineHealthProvider = (*macOSInstance)(nil)
+var _ sdk.EngineCapabilityProvider = (*macOSInstance)(nil)
+var _ sdk.EngineEventSource = (*macOSInstance)(nil)
+var _ sdk.EngineCallerLaunchProvider = (*macOSInstance)(nil)
+var _ sdk.WebSocketHostProvider = (*macOSInstance)(nil)
+var _ sdk.Caller = (*macOSInstance)(nil)
 
-func (i *macOSInstance) BridgeWebSocketHost() *bridge.WebSocketHost { return i.host }
+func (i *macOSInstance) BridgeWebSocketHost() sdk.Listener { return i.host }
 
-func (i *macOSInstance) EngineCallerLaunch() orchestrator.CallerLaunch {
-	return orchestrator.CallerLaunch{Environment: map[string]string{
+func (i *macOSInstance) EngineCallerLaunch() sdk.CallerLaunch {
+	return sdk.CallerLaunch{Environment: map[string]string{
 		"JANGOLOVA_CYMONKEY_CONTROL_URL":   i.host.Endpoint(),
 		"JANGOLOVA_CYMONKEY_CONTROL_TOKEN": i.host.Token(),
 		"JANGOLOVA_CYMONKEY_PROTOCOL":      contract.ProtocolVersion,
@@ -94,13 +95,16 @@ func (i *macOSInstance) Call(ctx context.Context, method string, params json.Raw
 		return nil, err
 	}
 	switch method {
-	case bridge.MethodHello, bridge.MethodDescribe, bridge.MethodEvents:
+	case "health":
+		health := i.EngineHealth(ctx)
+		return json.Marshal(map[string]any{"status": health.Status, "observedAt": health.ObservedAt})
+	case sdk.MethodHello, sdk.MethodDescribe, sdk.MethodEvents:
 		return connection.Call(ctx, method, params)
-	case bridge.MethodCapabilities:
+	case sdk.MethodCapabilities:
 		i.stateMu.RLock()
 		defer i.stateMu.RUnlock()
 		return json.Marshal(i.capabilities)
-	case bridge.MethodAct:
+	case sdk.MethodAct:
 		action, err := decodeAction(params)
 		if err != nil {
 			return nil, fmt.Errorf("decode Cymonkey macOS action: %w", err)
@@ -117,7 +121,7 @@ func (i *macOSInstance) Call(ctx context.Context, method string, params json.Raw
 	}
 }
 
-func (i *macOSInstance) ensureConnected(ctx context.Context) (*bridge.WebSocketConnection, error) {
+func (i *macOSInstance) ensureConnected(ctx context.Context) (sdk.Transport, error) {
 	i.stateMu.RLock()
 	if i.closed {
 		i.stateMu.RUnlock()
@@ -165,12 +169,12 @@ func (i *macOSInstance) ensureConnected(ctx context.Context) (*bridge.WebSocketC
 	}
 	i.connection, i.capabilities, i.capabilityNames = connection, capabilities, names
 	i.stateMu.Unlock()
-	i.emit(orchestrator.EngineEvent{Type: "cymonkey." + i.platform() + ".helper_connected", Status: orchestrator.EngineHealthHealthy, OccurredAt: time.Now().UTC()})
+	i.emit(sdk.EngineEvent{Type: "cymonkey." + i.platform() + ".helper_connected", Status: sdk.EngineHealthHealthy, OccurredAt: time.Now().UTC()})
 	return connection, nil
 }
 
-func (i *macOSInstance) handshake(ctx context.Context, connection *bridge.WebSocketConnection) ([]contract.Capability, error) {
-	rawHello, err := connection.Call(ctx, bridge.MethodHello, json.RawMessage(`{}`))
+func (i *macOSInstance) handshake(ctx context.Context, connection sdk.Transport) ([]contract.Capability, error) {
+	rawHello, err := connection.Call(ctx, sdk.MethodHello, json.RawMessage(`{}`))
 	if err != nil {
 		return nil, fmt.Errorf("Cymonkey macOS helper hello: %w", err)
 	}
@@ -178,7 +182,7 @@ func (i *macOSInstance) handshake(ctx context.Context, connection *bridge.WebSoc
 	if err := json.Unmarshal(rawHello, &hello); err != nil || contract.ValidateHello(hello) != nil || !containsDomain(hello.Domains, contract.DomainViewer) || !containsString(hello.Runtimes, i.runtime) {
 		return nil, errors.New("Cymonkey macOS helper returned an incompatible hello")
 	}
-	rawCapabilities, err := connection.Call(ctx, bridge.MethodCapabilities, json.RawMessage(`{}`))
+	rawCapabilities, err := connection.Call(ctx, sdk.MethodCapabilities, json.RawMessage(`{}`))
 	if err != nil {
 		return nil, fmt.Errorf("Cymonkey macOS helper capabilities: %w", err)
 	}
@@ -220,29 +224,29 @@ func (i *macOSInstance) Disconnect(ctx context.Context) error {
 	i.connection = nil
 	i.stateMu.Unlock()
 	err := i.host.Close(ctx)
-	i.finish(orchestrator.EngineEvent{Type: "cymonkey." + i.platform() + ".disconnected", Status: orchestrator.EngineHealthStopped, OccurredAt: time.Now().UTC()})
+	i.finish(sdk.EngineEvent{Type: "cymonkey." + i.platform() + ".disconnected", Status: sdk.EngineHealthStopped, OccurredAt: time.Now().UTC()})
 	return err
 }
 
-func (i *macOSInstance) EngineHealth(context.Context) orchestrator.EngineHealth {
+func (i *macOSInstance) EngineHealth(context.Context) sdk.EngineHealth {
 	i.stateMu.RLock()
 	defer i.stateMu.RUnlock()
-	status, message := orchestrator.EngineHealthStarting, "waiting for caller-owned "+i.platform()+" helper"
+	status, message := sdk.EngineHealthStarting, "waiting for caller-owned "+i.platform()+" helper"
 	if i.closed {
-		status, message = orchestrator.EngineHealthStopped, "Cymonkey "+i.platform()+" control host is disconnected"
+		status, message = sdk.EngineHealthStopped, "Cymonkey "+i.platform()+" control host is disconnected"
 	} else if i.connection != nil {
-		status, message = orchestrator.EngineHealthHealthy, "caller-owned "+i.platform()+" helper is connected"
+		status, message = sdk.EngineHealthHealthy, "caller-owned "+i.platform()+" helper is connected"
 	}
-	return orchestrator.EngineHealth{Status: status, Message: message, ObservedAt: time.Now().UTC()}
+	return sdk.EngineHealth{Status: status, Message: message, ObservedAt: time.Now().UTC()}
 }
 
-func (i *macOSInstance) Authorize(ctx context.Context, request orchestrator.AuthorizeRequest) (orchestrator.AuthorizeDecision, error) {
+func (i *macOSInstance) Authorize(ctx context.Context, request sdk.AuthorizeRequest) (sdk.AuthorizeDecision, error) {
 	action := strings.TrimSpace(request.Action)
 	if action == "" {
-		return orchestrator.AuthorizeDecision{Authorized: false}, errors.New("Cymonkey macOS action name is required")
+		return sdk.AuthorizeDecision{Authorized: false}, errors.New("Cymonkey macOS action name is required")
 	}
 	if !capabilityAllowed(i.policy.AllowedCapabilities, action) {
-		return orchestrator.AuthorizeDecision{Authorized: false, Reason: fmt.Sprintf("Cymonkey policy denied capability %q", action)}, nil
+		return sdk.AuthorizeDecision{Authorized: false, Reason: fmt.Sprintf("Cymonkey policy denied capability %q", action)}, nil
 	}
 	i.stateMu.RLock()
 	advertised := false
@@ -254,9 +258,9 @@ func (i *macOSInstance) Authorize(ctx context.Context, request orchestrator.Auth
 	}
 	i.stateMu.RUnlock()
 	if !advertised {
-		return orchestrator.AuthorizeDecision{Authorized: false, Reason: fmt.Sprintf("Cymonkey action %q was not advertised by macOS helper", action)}, nil
+		return sdk.AuthorizeDecision{Authorized: false, Reason: fmt.Sprintf("Cymonkey action %q was not advertised by macOS helper", action)}, nil
 	}
-	return orchestrator.AuthorizeDecision{Authorized: true}, nil
+	return sdk.AuthorizeDecision{Authorized: true}, nil
 }
 
 func (i *macOSInstance) EngineCapabilities() []string {
@@ -268,7 +272,7 @@ func (i *macOSInstance) EngineCapabilities() []string {
 	return append([]string(nil), i.capabilityNames...)
 }
 
-func (i *macOSInstance) EngineEvents() <-chan orchestrator.EngineEvent { return i.events }
+func (i *macOSInstance) EngineEvents() <-chan sdk.EngineEvent { return i.events }
 
 func (i *macOSInstance) platform() string {
 	if i.runtime == "windows-app" {
@@ -277,7 +281,7 @@ func (i *macOSInstance) platform() string {
 	return "macos"
 }
 
-func (i *macOSInstance) emit(event orchestrator.EngineEvent) {
+func (i *macOSInstance) emit(event sdk.EngineEvent) {
 	i.eventsMu.RLock()
 	defer i.eventsMu.RUnlock()
 	if i.eventsClosed {
@@ -289,7 +293,7 @@ func (i *macOSInstance) emit(event orchestrator.EngineEvent) {
 	}
 }
 
-func (i *macOSInstance) finish(event orchestrator.EngineEvent) {
+func (i *macOSInstance) finish(event sdk.EngineEvent) {
 	i.eventsOnce.Do(func() {
 		i.eventsMu.Lock()
 		defer i.eventsMu.Unlock()

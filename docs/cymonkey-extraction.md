@@ -1,71 +1,64 @@
-# Cymonkey extraction boundary
+# Cymonkey–Jangolova integration boundary
 
-This repository contains two products with a deliberate dependency direction:
+Cymonkey owns operator policy, approval, credential resolution, coordination,
+and host resource management. Jangolova owns target/runtime modules, protocol
+negotiation, and semantic actions. Blockade owns visual inference and cloud/VLM
+adapters. Jangolova does not configure or call Blockade.
 
-```text
-Cymonkey core  ─────────────► no Jangolova dependency
-       ▲
-       │ protocol, modules, composition, conformance
-       │
-Jangolova host ─────────────► depends on Cymonkey core
-       │
-       ├── target lifecycle and credentials
-       ├── browser drivers: CDP, BiDi, Playwright, Puppeteer, Safari MCP
-       ├── Cymonkey Browser Extension
-       └── macOS app, cooperative helper, Safari and userscript systems
-```
+## Public module interface
 
-## Cymonkey core
-
-The `internal/cymonkeycore/` directory is the Cymonkey-owned core. It uses only the
-standard library and contains:
-
-- the versioned semantic protocol and validation;
-- public target, endpoint, policy, caller, attachment, module, and registry
-  contracts;
-- composite capability routing and event cursor merging;
-- module conformance validation and fixtures.
-
-Its source contracts are documented in [Cymonkey modules](cymonkey-modules.md).
-
-It must not contain a browser binary, extension, Node worker, Apple Event,
-Accessibility request, Xallet reference, Jangolova internal import, target
-launcher, credential resolver, or product-specific runtime module.
-
-The existing wire identifier, `cymonkey/v1alpha1`, is a protocol
-identity rather than a Go-package dependency. A future independent Cymonkey
-release may deliberately version that identifier; doing so is a protocol
-change, not a prerequisite for extracting the core.
-
-Once its API stabilizes, this directory can move unchanged into the dedicated
-`cymonkey` repository and receive its own Go module path.
-
-## Jangolova source layer
-
-Jangolova's public source layer lives in `src/jangolova/`. Its Cymonkey
-integration library, in `lib/jangolova/`, adapts caller-owned target
-and lifecycle contracts to the Cymonkey core and hosts the built-in integration
-modules.
-Those modules are products of Jangolova, not requirements of Cymonkey:
-
-| Integration | Jangolova responsibility |
+| Path | Responsibility |
 | --- | --- |
-| Playwright / Puppeteer | Attach to caller-provided CDP or BiDi browser endpoints. |
-| CDP / BiDi / Safari MCP | Map browser protocols to semantic Cymonkey operations. |
-| Browser Extension | Provide privileged persistence and browser-native facilities. |
-| macOS helper | Obtain user-consented Apple Events / Accessibility capability. |
-| Godot | Provide an optional reference runtime module over `websocket`. |
+| `src/jangolova/contract` | Public runtime wire data and validation. |
+| `src/jangolova/sdk` | Target/spec/session types and injected host service interfaces. |
+| `lib/jangolova` | Runtime selection and browser/native semantic adapters. |
+| `src/jangolova/registry` | Metadata discovery, verified retrieval, and explicit activation. |
+| `internal/jangolovahost` | Cymonkey-owned implementation of SDK host services and private/public data conversion. |
+| `internal/cymonkeycore` | Cymonkey's private composition and coordination implementation. |
+| `pkg/` | Distributable runtime packages. |
 
-The integration layer may import Jangolova internals. The core may not.
+`lib/jangolova` imports public Jangolova packages and has no transitive
+dependency on `cymonkey/internal`, the private adapter implementations, or
+`targetconn`. `TestPublicIntegrationHasNoPrivateDependencies` checks this graph.
 
-## Migration sequence
+Public signatures define their own data and interfaces. They are not aliases
+to private orchestrator, manifest, bridge, or worker implementations. The
+credential view permits reading a snapshot, observing revisions, and
+acknowledging a revision; rotation, persistence, expiry enforcement, and secret
+cleanup remain host responsibilities.
 
-1. Establish and test the dependency-free core contracts in `internal/cymonkeycore/`.
-2. Point Jangolova integrations at those contracts through a small host bridge.
-3. Move built-in browser, macOS, and Godot modules out of the core path.
-4. Publish or split the Cymonkey core only after
-   the Jangolova bridge is the sole remaining dependency edge.
+The host supplies worker startup, credential-aware connection setup, cooperative
+listeners, and the legacy Safari connection. Missing services fail explicitly.
+`internal/jangolovahost.Services` binds those operations to Cymonkey internals;
+`Wrap` converts the public adapter/session into the private provider contract.
+The standalone `jangolova` executable receives this binding through its builtin
+registry, preserving the same browser/helper behavior.
 
-There is no requirement for a dynamic binary plugin loader. Hosts explicitly
-register reviewed, compiled modules; third parties can distribute their own
-modules against the public Cymonkey SDK.
+## Adding a runtime
+
+Implement `jangolova.Backend` using `sdk.EngineSpec`, `sdk.EngineTarget`, and
+`jangolova.Options`. Register it explicitly through `Adapter.Backends` after the
+host approves the module. A backend identifies its domains, target kinds, and
+endpoint protocol. This supports a contributor's target such as Lens Studio
+without adding an engine-specific case to the operator.
+
+The host owns approval. A module's `Authorize` method checks support and
+host-supplied limits; a positive result is not an operator approval. Runtime
+packages still enforce explicit resource and per-resource action registration.
+Discovery never scans an application's objects or executes discovered code.
+
+The existing wire identifier `cymonkey/v1alpha1` is retained for deployed engine
+compatibility. It is not a dependency on Cymonkey's private Go implementation.
+Changing the wire name requires a separately versioned protocol migration.
+
+## Distribution and remaining work
+
+The public SDK is currently in this repository's Go module; it has not yet been
+published as an independently versioned SDK module. A host loads reviewed
+artifacts through `registry.Activate`, supplying an approval callback and a
+runtime-specific mount callback. The SDK does not implement a universal binary
+plugin loader, install editor licenses, or own target process lifecycle.
+
+See [the public SDK guide](../src/jangolova/sdk/README.md),
+[module discovery and activation](jangolova-module-registry.md), and
+[runtime validation record](jangolova-runtime-validation.md).

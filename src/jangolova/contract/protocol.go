@@ -1,7 +1,8 @@
-// Package cymonkey defines Jangolova's runtime-agnostic interaction contract.
+// Package contract defines the public runtime wire contract shared by Jangolova modules.
+// The cymonkey/v1alpha1 identifier is retained for compatibility.
 // Runtime adapters map viewer, render, and player domain semantics to
 // caller-owned targets.
-package cymonkey
+package contract
 
 import "encoding/json"
 

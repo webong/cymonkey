@@ -1,7 +1,8 @@
-package cymonkey_test
+package jangolova_test
 
 import (
 	"context"
+	"cymonkey/internal/jangolovahost"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -10,10 +11,8 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"cymonkey/internal/bridge"
-	"cymonkey/internal/manifest"
-	"cymonkey/internal/orchestrator"
 	cymonkey "cymonkey/lib/jangolova"
+	"cymonkey/src/jangolova/sdk"
 )
 
 var upgrader = websocket.Upgrader{
@@ -93,22 +92,22 @@ func TestCymonkeyEngineBackendNativeProtocol(t *testing.T) {
 	defer server.Close()
 
 	wsURL := "ws" + strings.TrimPrefix(server.URL, "http")
-	instance, err := cymonkey.Adapter{}.Connect(context.Background(), manifest.EngineSpec{Adapter: "cymonkey"}, orchestrator.EngineTarget{
+	instance, err := cymonkey.Adapter{Host: jangolovahost.Services()}.Connect(context.Background(), sdk.EngineSpec{Adapter: "cymonkey"}, sdk.EngineTarget{
 		Kind:      "godot",
-		Endpoints: []orchestrator.TargetEndpoint{{Name: "websocket", Protocol: "websocket", URL: wsURL}},
+		Endpoints: []sdk.TargetEndpoint{{Name: "websocket", Protocol: "websocket", URL: wsURL}},
 	})
 	if err != nil {
 		t.Fatalf("native connect failed: %v", err)
 	}
 	defer instance.Disconnect(context.Background())
 
-	if provider, ok := instance.(orchestrator.EngineCapabilityProvider); !ok {
+	if provider, ok := instance.(sdk.EngineCapabilityProvider); !ok {
 		t.Fatal("instance does not expose engine capabilities")
 	} else if got := provider.EngineCapabilities(); len(got) != 1 || got[0] != "object.visible.set" {
 		t.Fatalf("capabilities = %#v", got)
 	}
 
-	caller := instance.(bridge.Caller)
+	caller := instance.(sdk.Caller)
 	helloRes, err := caller.Call(context.Background(), "hello", json.RawMessage(`{}`))
 	if err != nil {
 		t.Fatal(err)

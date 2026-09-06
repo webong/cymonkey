@@ -1,4 +1,4 @@
-package cymonkey
+package jangolova
 
 import (
 	"encoding/json"

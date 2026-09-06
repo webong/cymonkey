@@ -54,7 +54,7 @@ semantic requests into safe, native operations.
   cooperative transports.
 
 The canonical module IDs are `render/threejs`, `render/godot`, `render/unity`,
-and `render/unreal`. Their existing `pkg/*-cymonkey` directories are retained
+`render/unreal`, `render/blender`, and `render/snapchat-camera-kit`. Their existing `pkg/*-cymonkey` directories are retained
 as compatibility distribution paths; see the [render module ownership map](../../docs/jangolova-render-modules.md).
 
 ## Operating model
@@ -70,3 +70,15 @@ presentation capability.
 - [Bridge protocol](../../docs/bridge-protocol.md)
 - [Three.js library](../../pkg/threejs-cymonkey/README.md)
 - [Target connection security](../../docs/target-connection-security.md)
+
+## Public integration boundary
+
+The public wire types live in `contract/`; host-facing types and service ports
+live in `sdk/`. `../../lib/jangolova` owns runtime selection and semantics without
+private Cymonkey dependencies. The operator binds credentials, workers, and
+transport setup through `internal/jangolovahost`.
+
+Cymonkey owns policy, approval, and coordination. Blockade owns visual inference
+and cloud/VLM adapters. Jangolova never calls or configures Blockade.
+
+See the [SDK guide](sdk/README.md) and [runtime validation record](../../docs/jangolova-runtime-validation.md).

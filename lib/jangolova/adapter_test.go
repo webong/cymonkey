@@ -1,7 +1,8 @@
-package cymonkey
+package jangolova
 
 import (
 	"context"
+	"cymonkey/internal/jangolovahost"
 	"encoding/json"
 	"path/filepath"
 	"runtime"
@@ -9,10 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"cymonkey/internal/bridge"
-	contract "cymonkey/internal/cymonkey"
-	"cymonkey/internal/manifest"
-	"cymonkey/internal/orchestrator"
+	contract "cymonkey/src/jangolova/contract"
+	"cymonkey/src/jangolova/sdk"
 )
 
 const fixtureExtensionID = "abcdefghijklmnopabcdefghijklmnop"
@@ -23,9 +22,9 @@ func TestAdapterDefaultsToNoInstallCDPAndDisconnects(t *testing.T) {
 		t.Fatal(err)
 	}
 	options, _ := json.Marshal(map[string]string{"workerPath": worker})
-	connected, err := (Adapter{}).Connect(context.Background(), manifest.EngineSpec{Options: options}, orchestrator.EngineTarget{
+	connected, err := (Adapter{Host: jangolovahost.Services()}).Connect(context.Background(), sdk.EngineSpec{Options: options}, sdk.EngineTarget{
 		Kind: "browser",
-		Endpoints: []orchestrator.TargetEndpoint{{
+		Endpoints: []sdk.TargetEndpoint{{
 			Name: "control", Protocol: "cdp", URL: "wss://browser.remote.example/devtools/browser/42",
 		}},
 	})
@@ -33,12 +32,12 @@ func TestAdapterDefaultsToNoInstallCDPAndDisconnects(t *testing.T) {
 		t.Fatal(err)
 	}
 	healthCtx, cancel := context.WithTimeout(context.Background(), time.Second)
-	health := connected.(orchestrator.EngineHealthProvider).EngineHealth(healthCtx)
+	health := connected.(sdk.EngineHealthProvider).EngineHealth(healthCtx)
 	cancel()
-	if health.Status != orchestrator.EngineHealthHealthy {
+	if health.Status != sdk.EngineHealthHealthy {
 		t.Fatalf("EngineHealth() = %#v", health)
 	}
-	if !contains(connected.(orchestrator.EngineCapabilityProvider).EngineCapabilities(), "script.register") {
+	if !contains(connected.(sdk.EngineCapabilityProvider).EngineCapabilities(), "script.register") {
 		t.Fatal("worker capability was not retained")
 	}
 	if err := connected.Disconnect(context.Background()); err != nil {
@@ -48,14 +47,14 @@ func TestAdapterDefaultsToNoInstallCDPAndDisconnects(t *testing.T) {
 
 func TestAdapterRequiresCallerOwnedCompatibleBrowserTarget(t *testing.T) {
 	t.Parallel()
-	adapter := Adapter{}
+	adapter := Adapter{Host: jangolovahost.Services()}
 	for name, fixture := range map[string]struct {
-		spec   manifest.EngineSpec
-		target orchestrator.EngineTarget
+		spec   sdk.EngineSpec
+		target sdk.EngineTarget
 	}{
-		"wrong kind":  {target: orchestrator.EngineTarget{Kind: "native"}},
-		"missing all": {target: orchestrator.EngineTarget{Kind: "browser"}},
-		"invalid cdp": {target: orchestrator.EngineTarget{Kind: "browser", Endpoints: []orchestrator.TargetEndpoint{{Protocol: "cdp", URL: "file:///browser"}}}},
+		"wrong kind":  {target: sdk.EngineTarget{Kind: "native"}},
+		"missing all": {target: sdk.EngineTarget{Kind: "browser"}},
+		"invalid cdp": {target: sdk.EngineTarget{Kind: "browser", Endpoints: []sdk.TargetEndpoint{{Protocol: "cdp", URL: "file:///browser"}}}},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if _, err := adapter.Connect(context.Background(), fixture.spec, fixture.target); err == nil {
@@ -71,7 +70,7 @@ func TestDecodeOptionsRejectsUnknownAndInvalidValues(t *testing.T) {
 		`{"extensionId":"abcdefghijklmnopabcdefghijklmnop","browserExecutable":"chromium"}`,
 		`{"extension":{"mode":"required"}}`,
 		`{"extension":{"id":"not-an-extension"}}`,
-		`{"driver":"webdriver"}`,
+		`{"driver":"invalid driver"}`,
 		`{"backend":"bidi"}`,
 	} {
 		if _, err := decodeOptions(json.RawMessage(value)); err == nil {
@@ -93,14 +92,14 @@ func TestDecodeOptionsDefaultsToAutoAndAcceptsNoExtension(t *testing.T) {
 func TestRuntimeDomainIsInferredFromCallerOwnedTarget(t *testing.T) {
 	for name, fixture := range map[string]struct {
 		requested contract.Domain
-		target    orchestrator.EngineTarget
+		target    sdk.EngineTarget
 		want      contract.Domain
 	}{
-		"browser viewer":  {target: orchestrator.EngineTarget{Kind: "browser"}, want: contract.DomainViewer},
-		"macos viewer":    {target: orchestrator.EngineTarget{Kind: "macos-application"}, want: contract.DomainViewer},
-		"native render":   {target: orchestrator.EngineTarget{Kind: "godot"}, want: contract.DomainRender},
-		"explicit viewer": {requested: contract.DomainViewer, target: orchestrator.EngineTarget{Kind: "browser"}, want: contract.DomainViewer},
-		"browser render":  {requested: contract.DomainRender, target: orchestrator.EngineTarget{Kind: "browser"}, want: contract.DomainRender},
+		"browser viewer":  {target: sdk.EngineTarget{Kind: "browser"}, want: contract.DomainViewer},
+		"macos viewer":    {target: sdk.EngineTarget{Kind: "macos-application"}, want: contract.DomainViewer},
+		"native render":   {target: sdk.EngineTarget{Kind: "godot"}, want: contract.DomainRender},
+		"explicit viewer": {requested: contract.DomainViewer, target: sdk.EngineTarget{Kind: "browser"}, want: contract.DomainViewer},
+		"browser render":  {requested: contract.DomainRender, target: sdk.EngineTarget{Kind: "browser"}, want: contract.DomainRender},
 	} {
 		t.Run(name, func(t *testing.T) {
 			got, err := resolveDomain(fixture.requested, fixture.target)
@@ -112,12 +111,12 @@ func TestRuntimeDomainIsInferredFromCallerOwnedTarget(t *testing.T) {
 }
 
 func TestViewerDomainReturnsCallerOwnedNativeHelperLaunchMaterial(t *testing.T) {
-	connected, err := (Adapter{}).Connect(context.Background(), manifest.EngineSpec{Options: json.RawMessage(`{"domain":"viewer"}`)}, orchestrator.EngineTarget{Kind: "macos-application"})
+	connected, err := (Adapter{Host: jangolovahost.Services()}).Connect(context.Background(), sdk.EngineSpec{Options: json.RawMessage(`{"domain":"viewer"}`)}, sdk.EngineTarget{Kind: "macos-application"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer connected.Disconnect(context.Background())
-	launch, ok := connected.(orchestrator.EngineCallerLaunchProvider)
+	launch, ok := connected.(sdk.EngineCallerLaunchProvider)
 	if !ok || !strings.HasPrefix(launch.EngineCallerLaunch().Environment["JANGOLOVA_CYMONKEY_CONTROL_URL"], "ws://127.0.0.1:") {
 		t.Fatalf("caller launch = %#v", launch)
 	}
@@ -125,12 +124,12 @@ func TestViewerDomainReturnsCallerOwnedNativeHelperLaunchMaterial(t *testing.T) 
 
 func TestBackendSelectionPrefersCDPThenBiDiThenSafariMCP(t *testing.T) {
 	for name, fixture := range map[string]struct {
-		target orchestrator.EngineTarget
+		target sdk.EngineTarget
 		want   BackendName
 	}{
-		"cdp":    {target: orchestrator.EngineTarget{Kind: "browser", Endpoints: []orchestrator.TargetEndpoint{{Protocol: "webdriver-bidi"}, {Protocol: "cdp"}}}, want: BackendCDP},
-		"bidi":   {target: orchestrator.EngineTarget{Kind: "browser", Endpoints: []orchestrator.TargetEndpoint{{Protocol: "webdriver-bidi"}}}, want: BackendBiDi},
-		"safari": {target: orchestrator.EngineTarget{Kind: "browser", Endpoints: []orchestrator.TargetEndpoint{{Protocol: "mcp-streamable-http"}}}, want: BackendSafariMCP},
+		"cdp":    {target: sdk.EngineTarget{Kind: "browser", Endpoints: []sdk.TargetEndpoint{{Protocol: "webdriver-bidi"}, {Protocol: "cdp"}}}, want: BackendCDP},
+		"bidi":   {target: sdk.EngineTarget{Kind: "browser", Endpoints: []sdk.TargetEndpoint{{Protocol: "webdriver-bidi"}}}, want: BackendBiDi},
+		"safari": {target: sdk.EngineTarget{Kind: "browser", Endpoints: []sdk.TargetEndpoint{{Protocol: "mcp-streamable-http"}}}, want: BackendSafariMCP},
 	} {
 		t.Run(name, func(t *testing.T) {
 			backend, err := selectBackend("auto", fixture.target)
@@ -144,12 +143,12 @@ func TestBackendSelectionPrefersCDPThenBiDiThenSafariMCP(t *testing.T) {
 func TestDriverPresetsSelectCompatibleProtocolBackends(t *testing.T) {
 	for name, fixture := range map[string]struct {
 		driver string
-		target orchestrator.EngineTarget
+		target sdk.EngineTarget
 		want   BackendName
 	}{
-		"playwright cdp": {driver: "playwright", target: orchestrator.EngineTarget{Kind: "browser", Endpoints: []orchestrator.TargetEndpoint{{Protocol: "cdp"}}}, want: BackendCDP},
-		"puppeteer cdp":  {driver: "puppeteer", target: orchestrator.EngineTarget{Kind: "browser", Endpoints: []orchestrator.TargetEndpoint{{Protocol: "cdp"}}}, want: BackendCDP},
-		"puppeteer bidi": {driver: "puppeteer", target: orchestrator.EngineTarget{Kind: "browser", Endpoints: []orchestrator.TargetEndpoint{{Protocol: "webdriver-bidi"}}}, want: BackendBiDi},
+		"playwright cdp": {driver: "playwright", target: sdk.EngineTarget{Kind: "browser", Endpoints: []sdk.TargetEndpoint{{Protocol: "cdp"}}}, want: BackendCDP},
+		"puppeteer cdp":  {driver: "puppeteer", target: sdk.EngineTarget{Kind: "browser", Endpoints: []sdk.TargetEndpoint{{Protocol: "cdp"}}}, want: BackendCDP},
+		"puppeteer bidi": {driver: "puppeteer", target: sdk.EngineTarget{Kind: "browser", Endpoints: []sdk.TargetEndpoint{{Protocol: "webdriver-bidi"}}}, want: BackendBiDi},
 	} {
 		t.Run(name, func(t *testing.T) {
 			backend, err := selectBackendForDomain(fixture.driver, contract.DomainViewer, fixture.target)
@@ -161,7 +160,7 @@ func TestDriverPresetsSelectCompatibleProtocolBackends(t *testing.T) {
 }
 
 func TestBrowserDriversSupportViewerAndRenderDomains(t *testing.T) {
-	target := orchestrator.EngineTarget{Kind: "browser", Endpoints: []orchestrator.TargetEndpoint{{Protocol: "cdp"}}}
+	target := sdk.EngineTarget{Kind: "browser", Endpoints: []sdk.TargetEndpoint{{Protocol: "cdp"}}}
 	for _, domain := range []contract.Domain{contract.DomainViewer, contract.DomainRender} {
 		backend, err := selectBackendForDomain("auto", domain, target)
 		if err != nil || backend.Name() != BackendCDP {
@@ -171,11 +170,11 @@ func TestBrowserDriversSupportViewerAndRenderDomains(t *testing.T) {
 }
 
 func TestSafariMapperDoesNotInferAugmentationFromGenericInteractionTools(t *testing.T) {
-	discovered := []bridge.Capability{
-		{Name: "mcp.tool.click", Effect: bridge.EffectWrite, InputSchema: objectSchema("selector")},
-		{Name: "mcp.tool.screenshot", Effect: bridge.EffectRead, InputSchema: objectSchema()},
-		{Name: "window.evaluate", Effect: bridge.EffectExternal, InputSchema: objectSchema("expression")},
-		{Name: "mcp.tool.add_preload_script", Effect: bridge.EffectExternal, InputSchema: objectSchema("source")},
+	discovered := []sdk.Capability{
+		{Name: "mcp.tool.click", Effect: sdk.EffectWrite, InputSchema: objectSchema("selector")},
+		{Name: "mcp.tool.screenshot", Effect: sdk.EffectRead, InputSchema: objectSchema()},
+		{Name: "window.evaluate", Effect: sdk.EffectExternal, InputSchema: objectSchema("expression")},
+		{Name: "mcp.tool.add_preload_script", Effect: sdk.EffectExternal, InputSchema: objectSchema("source")},
 	}
 	_, capabilities := mapSafariCapabilities(discovered, nil)
 	if !contains(capabilityNamesFromDescriptors(capabilities), "window.evaluate") || !contains(capabilityNamesFromDescriptors(capabilities), "script.register") {
@@ -193,7 +192,7 @@ func TestInspectionFindsRepositoryWorker(t *testing.T) {
 	}
 	worker := filepath.Join(filepath.Dir(file), "..", "..", "scripts", "cymonkey-worker.mjs")
 	t.Setenv("JANGOLOVA_CYMONKEY_WORKER", worker)
-	inspection := (Adapter{}).InspectEngine(context.Background())
+	inspection := (Adapter{Host: jangolovahost.Services()}).InspectEngine(context.Background())
 	if !inspection.Available || !contains(inspection.Capabilities, "script.register") {
 		t.Fatalf("InspectEngine() = %#v", inspection)
 	}
