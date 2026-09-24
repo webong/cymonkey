@@ -1,5 +1,7 @@
 # Install browser extensions with `cmy`
 
+For all Cymonkey commands, see the [complete `cmy` CLI guide](cmy-cli.md).
+
 `cmy` is the Cymonkey CLI built with a short executable name. It manages
 extensions supplied by you; it does not create or own their source. Jangolova
 performs the browser-specific installation steps.

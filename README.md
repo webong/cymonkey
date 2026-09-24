@@ -75,6 +75,7 @@ audit events, reviewed packages, and caller-supplied target connections.
 - [Architecture](docs/architecture.md)
 - [Browser packages](docs/browser-augmentation-packages.md)
 - [Browser extension manager](docs/browser-extension-installation.md)
+- [Use the `cmy` CLI](docs/cmy-cli.md)
 - [Install extensions with the `cmy` CLI](docs/cmy-extension-cli.md)
 - [Target connection security](docs/target-connection-security.md)
 - [Roadmap](docs/roadmap.md)
