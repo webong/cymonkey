@@ -1,16 +1,20 @@
 # Blockade
 
-Blockade is a standalone Go module and visual inference service for AI systems.
-Give it an image and an optional prompt; it returns normalized visual
-evidence—objects, regions, masks, and confidence—without controlling the source
-application or making decisions on the caller's behalf.
+Blockade is the standalone inference-interface module and service for AI
+systems. Its scope covers image and sound inference through local and cloud
+backends. The implemented public request today accepts an image and optional
+prompt, then returns normalized visual evidence—objects, regions, masks, and
+confidence. Sound inputs and outputs do not yet have a public contract.
+Blockade does not control the source application or decide what to do with an
+inference result.
 
 ## Capabilities
 
 - Local YOLO and SAM inference through managed Ultralytics workers.
 - Native ONNX Runtime YOLO detection with ordered CPU, CUDA, TensorRT,
   OpenVINO, and Core ML execution providers.
-- Blockade-owned provider-adapter registry for hosted vision and VLM backends.
+- Blockade-owned provider-adapter registry for separately supplied cloud vision
+  and VLM backends.
 - Versioned adapter envelopes, typed failures, readiness, capabilities, and
   bounded request execution.
 - A provider-neutral observation contract for detections, segmentation masks,
@@ -18,14 +22,11 @@ application or making decisions on the caller's behalf.
 - Small standalone HTTP service with health and capability endpoints.
 - YAML model and engine configuration with local model-file validation.
 
-## Quick start
+## Use the library
 
-```bash
-go build -o .cache/bin/cymonkey ./src
-.cache/bin/cymonkey blockade serve \
-  --config infra/deploy/blockade/blockade.example.yaml \
-  --bind 127.0.0.1:8091
-```
+Import `blockade` and `blockade/cli` in a Go application. The application
+supplies model configuration and any separately registered provider adapters.
+Run `go test ./...` from this directory to verify the module.
 
 The service exposes:
 
@@ -57,16 +58,14 @@ real adapter package.
 
 ## Operating model
 
-The module namespace is `blockade`; Cymonkey consumes it through `blockade` and
-`blockade/...` imports.
+The module namespace is `blockade`; consumers import `blockade` and
+`blockade/...` without an operator dependency.
 
-Blockade operates on pixels only. It does not know whether an image came from a
-browser, camera, file, game engine, or desktop capture. It does not request
-screen captures, control a target, or infer the next action. Its sole job is to
-produce reliable, normalized visual evidence for the caller.
+The current observation path operates on supplied pixels. It does not know
+whether an image came from a browser, camera, file, game engine, or desktop
+capture. Future sound inference belongs behind the same Blockade boundary,
+with its own explicit contract. Blockade does not capture targets, control
+them, or infer the next action; it returns normalized inference results for
+the caller.
 
-## Documentation
-
-- [Observation contract and architecture](../../docs/blockade.md)
-- [Deployment guide](../../infra/deploy/blockade/README.md)
-- [Model cache](../../infra/deploy/blockade/models/README.md)
+The public schemas are in [`protocol/v1alpha1/`](protocol/v1alpha1/).

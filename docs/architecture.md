@@ -1,11 +1,18 @@
 # Cymonkey architecture
 
-Cymonkey is the operator and host. Jangolova is its standalone interaction,
-presentation, and MCP tool-server subsystem; Blockade is its standalone
-read-only visual observation subsystem. Cymonkey composes and supervises their
-processes and coordinates cross-subsystem observation workflows while preserving
-their standalone boundaries. See
+Cymonkey is the operator, host, and extension boundary. Jangolova owns display
+interfaces for interaction and presentation; Blockade owns inference
+interfaces for image and sound across local and cloud backends. Cymonkey
+composes and supervises their processes and coordinates cross-subsystem
+workflows while preserving their standalone boundaries. Blockade's implemented
+public request currently handles images; sound inference remains to be
+defined. See
 [Cymonkey naming migration](naming-migration.md).
+
+The dependency direction is one way: Cymonkey imports the public Jangolova and
+Blockade modules. Each library can run or be embedded with another host, and
+neither imports Cymonkey. Cymonkey-specific worker discovery, approval, and
+event compatibility live at the Cymonkey host boundary.
 
 The host boundary is executable-oriented: it starts standalone `jangolova` and
 `blockade` processes from a `cymonkey.config/v1alpha1` manifest. It may
@@ -19,12 +26,12 @@ the bounded semantic operations while the engine keeps rendering and the
 supervisor separately owns target and display lifecycle. See
 [subsystem boundaries](subsystem-boundaries.md).
 
-Jangolova is the interaction and presentation toolbox hosted by Cymonkey, not
-an agent. External agents, IDEs, and applications own planning and decisions;
+Jangolova is an independent interaction and presentation toolbox that Cymonkey
+can host. External agents, IDEs, and applications own planning and decisions;
 Xallet, a native host, or another operator owns the target runtimes with which
-Jangolova interacts. Blockade is the separate observation process that receives
-pixels and returns normalized visual results. Cymonkey requests screenshots
-through Jangolova's normal interaction interface and sends them to Blockade.
+Jangolova interacts. Blockade is the separate inference service. In the
+implemented image workflow, Cymonkey requests screenshots through Jangolova's
+display interface and sends them to Blockade.
 
 Interaction includes operating semantic browser/application interfaces and
 requesting display-level pointer/keyboard actions. Presentation includes
@@ -46,7 +53,8 @@ and extension-origin/CDP calls share this gate and its redacted audit stream.
 Cymonkey is the runtime-entry and augmentation subsystem: it gains approved
 access to a target, mounts reviewed packages, and routes authenticated calls.
 Jangolova owns each runtime library and adapter, including its semantic scene
-operations, authenticated transport, consent checks, and policy. Every
+operations and authenticated transport. The calling host supplies approval
+and policy limits. Every
 capability identifies a domain (`viewer`, `render`, or `player`), concrete
 runtime, and driver. The browser and macOS application mappings operate in
 `viewer`; explicitly registered Three.js, Godot, Unity, Unreal, and Blender resources
@@ -78,33 +86,21 @@ extension control plane or a caller-owned CDP/BiDi/MCP connection.
 
 ```text
 External agent, IDE, or application
-        |
-        +-- authenticated HTTP / MCP tool calls ------+
-                                                     |
-                                                     v
-                                JANGOLOVA TOOL CORE
-                                policy / approval / audit
-                                                     |
-                                                     v
-                                CYMONKEY UNIFIED CONTROL PLANE
-                                (jangolova.cymonkey/v1alpha2)
-                                 hello / capabilities / describe / act / events
-                                                     |
-        +────────────────────────────────────────────┼────────────────────────────────────────────+
-        │                                            │                                            │
-        ▼                                            ▼                                            ▼
-AUTOMATION DRIVERS                           INTERACTION DRIVERS                          PRESENTATION DRIVERS
-• Playwright Driver (CDP)                    • Caller-owned WebExtension                  • Three.js Cymonkey runtime
-• Puppeteer Driver (CDP/BiDi)                • Userscripts Engine                         • Declarative Web Presentation
-• Native CDP Driver                          • macOS Accessibility / Apple Events         • Unity / Unreal Bridge WS
-• WebDriver BiDi Driver                      • Safari MCP Relay                           • Display Pixel / YOLO (Blockade)
-        │                                            │                                            │
-        └────────────────────────────────────────────┴────────────────────────────────────────────┘
-                                                     │
-                                                     v
-                                           caller-owned targets
-                                 (Xallet or native host owns lifecycle)
+  → Cymonkey entry, policy, approval, and module composition
+    ├─ Jangolova display interfaces
+    │   ├─ browser and desktop interaction
+    │   └─ dynamic web and render presentation
+    │       → caller-owned targets
+    └─ Blockade inference interfaces
+        ├─ local model backends
+        └─ registered cloud/provider adapters
+            → normalized inference evidence
 ```
+
+Jangolova supports Playwright, Puppeteer, CDP, WebDriver BiDi, Safari MCP,
+caller-owned WebExtensions, desktop helpers, and render libraries. Blockade
+currently accepts images from approved captures or other callers. Sound
+inference belongs to its boundary once its request contract is defined.
 
 Endpoint and handle flow is inward: the operator creates a target and gives
 Jangolova its connection coordinates. Jangolova never returns a newly created
@@ -114,8 +110,8 @@ Chromium endpoint because it does not create Chromium.
 
 Jangolova owns:
 
-- Cymonkey control plane and driver matrix (Playwright, Puppeteer, CDP, WebDriver BiDi, WebExtension, Safari MCP, macOS Accessibility);
-- Playwright, Puppeteer, and browser automation drivers integrated into the Cymonkey control plane;
+- its display-interface driver matrix (Playwright, Puppeteer, CDP, WebDriver BiDi, WebExtension, Safari MCP, macOS Accessibility);
+- Playwright, Puppeteer, and browser automation adapters mapped into the Cymonkey contract;
 - WebDriver and MCP clients that attach to caller-owned WebKit/Safari targets;
 - Three.js render logic and cooperative web experiences;
 - Godot, Unity, Unreal, and Blender render modules and bridge protocols;
@@ -176,7 +172,7 @@ Cymonkey module through `go.work` and local replacements.
 
 ```text
 src/main.go/                   single Cymonkey operator/interface binary
-src/provider/                  provider and MCP implementation
+src/internal/provider/         provider and MCP implementation
 src/fixtures/native-bridge/    native bridge fixture implementation
 lib/blockade/                  standalone Blockade inference library
 src/adapters/browserautomation/ Playwright CDP and Puppeteer CDP/BiDi attachment
@@ -189,19 +185,18 @@ src/internal/orchestrator/      interaction lifecycle and target contracts
 src/internal/bridge/            engine-neutral semantic methods
 src/internal/builtin/           built-in engine registration
 src/internal/hostbinding/       Cymonkey binding into the Jangolova host boundary
-src/internal/cymonkeycore/      core registry/composition/conformance code
-src/host/                       Cymonkey host supervisor and observation coordinator
+src/internal/core/              core registry/composition/conformance code
+src/internal/host/              Cymonkey host supervisor and observation coordinator
 lib/jangolova/                  standalone Jangolova library and host boundary
 lib/jangolova/host/             Jangolova host service injection contract
 lib/blockade/                   standalone Blockade inference library
 lib/blockade/protocol/          Blockade schemas and fixtures
-src/targetconn/               caller-owned target connection helpers
+src/internal/targetconn/        caller-owned target connection helpers
 lib/jangolova/contract/         public runtime wire contract
 lib/jangolova/sdk/              public types and host-injection interfaces
 lib/jangolova/registry/         reviewed module discovery and activation
 src/protocol/cymonkey/          canonical versioned Cymonkey schemas
 src/protocol/browser-extension/ schema, recorded exchanges, and generated binding source
-src/internal/browserextensionprotocol/ generated Go browser-extension bindings
 tests/cymonkey-core-conformance.mjs  portable Cymonkey contract checks
 pkg/browser-adapter/            composable browser API, policy, and package library
 pkg/extension-manager/         management API interface with optional host installation adapter

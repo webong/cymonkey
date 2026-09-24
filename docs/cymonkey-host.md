@@ -4,8 +4,8 @@ Cymonkey is the composition layer around two standalone libraries:
 
 ```text
 Cymonkey host
-  ├─ blockade     visual observation and inference
-  └─ jangolova    interaction, presentation, and direct MCP tools
+  ├─ blockade     local and cloud inference interfaces (image now; sound planned)
+  └─ jangolova    display interaction, presentation, and direct MCP tools
 ```
 
 The host owns process lifecycle, composition configuration, and operator-level

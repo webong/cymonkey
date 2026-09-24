@@ -46,7 +46,7 @@ help page.
 | `cmy extension ...` | Inspect, package, stage, activate, or install a caller-supplied browser extension. |
 | `cmy userscript ...` | Store, list, update, enable, disable, or remove extension-free userscripts for a selected browser target. |
 | `cmy provider engines`, `connect-engine`, `serve-engine-provider`, `serve-mcp` | Discover or connect interaction engines, or run Jangolova interfaces. |
-| `cmy blockade validate`, `observe`, `serve` | Validate visual inference configuration, observe an image, or run the inference service. |
+| `cmy blockade validate`, `observe`, `serve` | Validate image inference configuration, infer from an image, or run the Blockade service. |
 | `cmy native-bridge-fixture` | Run the native bridge test fixture; this is for development. |
 
 ## Host and coordinated observation
@@ -305,7 +305,7 @@ provides libraries for another extension to implement a browser-native
 userscript manager. See [userscripts](userscripts.md) and
 [browser augmentation packages](browser-augmentation-packages.md).
 
-## Blockade visual inference
+## Blockade inference
 
 ```sh
 cmy blockade validate --config infra/deploy/blockade/blockade.example.yaml

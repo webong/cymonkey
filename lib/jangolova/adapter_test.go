@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -114,7 +113,7 @@ func TestViewerDomainReturnsCallerOwnedNativeHelperLaunchMaterial(t *testing.T) 
 	}
 	defer connected.Disconnect(context.Background())
 	launch, ok := connected.(sdk.EngineCallerLaunchProvider)
-	if !ok || !strings.HasPrefix(launch.EngineCallerLaunch().Environment["JANGOLOVA_CYMONKEY_CONTROL_URL"], "ws://127.0.0.1:") {
+	if !ok || !strings.HasPrefix(launch.EngineCallerLaunch().Environment["JANGOLOVA_CONTROL_URL"], "ws://127.0.0.1:") {
 		t.Fatalf("caller launch = %#v", launch)
 	}
 }
@@ -182,13 +181,7 @@ func TestSafariMapperDoesNotInferAugmentationFromGenericInteractionTools(t *test
 	}
 }
 
-func TestInspectionFindsRepositoryWorker(t *testing.T) {
-	_, file, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("resolve test path")
-	}
-	worker := filepath.Join(filepath.Dir(file), "..", "..", "scripts", "cymonkey-worker.mjs")
-	t.Setenv("JANGOLOVA_CYMONKEY_WORKER", worker)
+func TestInspectionUsesHostWorker(t *testing.T) {
 	inspection := (Adapter{Host: testHost()}).InspectEngine(context.Background())
 	if !inspection.Available || !contains(inspection.Capabilities, "script.register") {
 		t.Fatalf("InspectEngine() = %#v", inspection)

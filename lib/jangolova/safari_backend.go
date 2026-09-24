@@ -24,7 +24,7 @@ func (safariMCPBackend) Compatible(target sdk.EngineTarget) bool {
 }
 
 func (safariMCPBackend) Connect(ctx context.Context, spec sdk.EngineSpec, target sdk.EngineTarget, config Options) (sdk.EngineInstance, error) {
-	// Safari MCP owns its own transport options. Cymonkey policy and backend
+	// Safari MCP owns its own transport options. Jangolova policy and backend
 	// selection options must not be passed through to that adapter.
 	if config.Host.ConnectSafari == nil {
 		return nil, errors.New("Jangolova host Safari connector is required")
@@ -41,7 +41,7 @@ func (safariMCPBackend) Connect(ctx context.Context, spec sdk.EngineSpec, target
 	raw, err := caller.Call(ctx, sdk.MethodCapabilities, json.RawMessage(`{}`))
 	if err != nil {
 		_ = underlying.Disconnect(context.Background())
-		return nil, fmt.Errorf("discover Safari MCP Cymonkey mappings: %w", err)
+		return nil, fmt.Errorf("discover Safari MCP Jangolova mappings: %w", err)
 	}
 	var discovered []sdk.Capability
 	if err := json.Unmarshal(raw, &discovered); err != nil {
@@ -51,7 +51,7 @@ func (safariMCPBackend) Connect(ctx context.Context, spec sdk.EngineSpec, target
 	mappings, capabilities := mapSafariCapabilities(discovered, config.Policy.AllowedCapabilities)
 	if missing := missingCapabilities(spec.RequiredCapabilities, capabilityNamesFromDescriptors(capabilities)); len(missing) != 0 {
 		_ = underlying.Disconnect(context.Background())
-		return nil, fmt.Errorf("Cymonkey Safari MCP mapping is missing required capabilities: %s", strings.Join(missing, ", "))
+		return nil, fmt.Errorf("Jangolova Safari MCP mapping is missing required capabilities: %s", strings.Join(missing, ", "))
 	}
 	return &safariInstance{underlying: underlying, caller: caller, mappings: mappings, capabilities: capabilities, policy: config.Policy}, nil
 }
@@ -81,7 +81,7 @@ func (instance *safariInstance) Call(ctx context.Context, method string, params 
 	case sdk.MethodHello:
 		return json.Marshal(Hello{
 			ProtocolVersion: ProtocolVersion,
-			Implementation:  Implementation{Name: "jangolova-cymonkey", Version: "0.1.0"},
+			Implementation:  Implementation{Name: "jangolova-safari-mcp", Version: "0.1.0"},
 			Domains:         []contract.Domain{contract.DomainViewer, contract.DomainRender},
 			Runtimes:        []string{"browser-dom"},
 			Drivers:         []BackendName{BackendSafariMCP},
@@ -100,21 +100,21 @@ func (instance *safariInstance) Call(ctx context.Context, method string, params 
 	case sdk.MethodEvents:
 		return instance.caller.Call(ctx, method, params)
 	default:
-		return nil, fmt.Errorf("unsupported Cymonkey method %q", method)
+		return nil, fmt.Errorf("unsupported Jangolova method %q", method)
 	}
 }
 
 func (instance *safariInstance) act(ctx context.Context, raw json.RawMessage) (json.RawMessage, error) {
 	action, err := decodeAction(raw)
 	if err != nil {
-		return nil, fmt.Errorf("decode Cymonkey action: %w", err)
+		return nil, fmt.Errorf("decode Jangolova action: %w", err)
 	}
 	mapping, ok := instance.mappings[action.Name]
 	if !ok || !capabilityAllowed(instance.policy.AllowedCapabilities, action.Name) {
-		return nil, fmt.Errorf("Safari MCP does not advertise Cymonkey capability %q", action.Name)
+		return nil, fmt.Errorf("Safari MCP does not advertise Jangolova capability %q", action.Name)
 	}
 	if rawURL, _ := action.Input["url"].(string); !originAllowed(instance.policy.AllowedOrigins, rawURL) {
-		return nil, fmt.Errorf("Cymonkey policy denied origin %q", rawURL)
+		return nil, fmt.Errorf("Jangolova policy denied origin %q", rawURL)
 	}
 	input := action.Input
 	if action.Name == "script.execute" {
@@ -138,10 +138,10 @@ func (instance *safariInstance) act(ctx context.Context, raw json.RawMessage) (j
 func (instance *safariInstance) Authorize(ctx context.Context, request sdk.AuthorizeRequest) (sdk.AuthorizeDecision, error) {
 	action := strings.TrimSpace(request.Action)
 	if action == "" {
-		return sdk.AuthorizeDecision{Authorized: false}, errors.New("Cymonkey Safari action name is required")
+		return sdk.AuthorizeDecision{Authorized: false}, errors.New("Jangolova Safari action name is required")
 	}
 	if !capabilityAllowed(instance.policy.AllowedCapabilities, action) {
-		return sdk.AuthorizeDecision{Authorized: false, Reason: fmt.Sprintf("Cymonkey policy denied capability %q", action)}, nil
+		return sdk.AuthorizeDecision{Authorized: false, Reason: fmt.Sprintf("Jangolova policy denied capability %q", action)}, nil
 	}
 	return instance.underlying.Authorize(ctx, request)
 }

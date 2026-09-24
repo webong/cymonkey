@@ -30,7 +30,7 @@ func WithDriver(driver string, hosts ...sdk.Host) (DriverPreset, error) {
 	case "playwright", "puppeteer", "cdp", "bidi":
 		return DriverPreset{adapter: Adapter{Host: host}, driver: driver}, nil
 	default:
-		return DriverPreset{}, fmt.Errorf("unknown Cymonkey driver %q; valid drivers are playwright, puppeteer, cdp, bidi", driver)
+		return DriverPreset{}, fmt.Errorf("unknown Jangolova driver %q; valid drivers are playwright, puppeteer, cdp, bidi", driver)
 	}
 }
 
@@ -48,7 +48,7 @@ func (p DriverPreset) Connect(ctx context.Context, spec sdk.EngineSpec, target s
 	if existing, ok := options["driver"].(string); ok {
 		existing = strings.TrimSpace(existing)
 		if existing != "" && existing != p.driver {
-			return nil, fmt.Errorf("this adapter pins the Cymonkey %s driver; requested driver %q conflicts", p.driver, existing)
+			return nil, fmt.Errorf("this adapter pins the Jangolova %s driver; requested driver %q conflicts", p.driver, existing)
 		}
 	}
 	if _, exists := options["driver"]; !exists {

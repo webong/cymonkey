@@ -31,14 +31,14 @@ func (macOSCooperativeBackend) Connect(
 	config Options,
 ) (sdk.EngineInstance, error) {
 	if target.Kind != "macos-application" {
-		return nil, errors.New("Cymonkey macOS backend requires target.kind macos-application")
+		return nil, errors.New("Jangolova macOS backend requires target.kind macos-application")
 	}
 	if config.Host.ListenWebSocket == nil {
 		return nil, errors.New("Jangolova host cooperative listener is required")
 	}
 	host, err := config.Host.ListenWebSocket(config.Native.ControlListen)
 	if err != nil {
-		return nil, fmt.Errorf("create Cymonkey macOS control host: %w", err)
+		return nil, fmt.Errorf("create Jangolova macOS control host: %w", err)
 	}
 	running := &macOSInstance{
 		host: host, policy: config.Policy,
@@ -47,7 +47,7 @@ func (macOSCooperativeBackend) Connect(
 		runtime:  "macos-app", targetCapability: "target.macos-cooperative",
 	}
 	running.emit(sdk.EngineEvent{
-		Type: "cymonkey.macos.awaiting_helper", Status: sdk.EngineHealthStarting,
+		Type: "jangolova.macos.awaiting_helper", Status: sdk.EngineHealthStarting,
 		OccurredAt: time.Now().UTC(),
 	})
 	return running, nil
@@ -83,9 +83,9 @@ func (i *macOSInstance) BridgeWebSocketHost() sdk.Listener { return i.host }
 
 func (i *macOSInstance) EngineCallerLaunch() sdk.CallerLaunch {
 	return sdk.CallerLaunch{Environment: map[string]string{
-		"JANGOLOVA_CYMONKEY_CONTROL_URL":   i.host.Endpoint(),
-		"JANGOLOVA_CYMONKEY_CONTROL_TOKEN": i.host.Token(),
-		"JANGOLOVA_CYMONKEY_PROTOCOL":      contract.ProtocolVersion,
+		"JANGOLOVA_CONTROL_URL":      i.host.Endpoint(),
+		"JANGOLOVA_CONTROL_TOKEN":    i.host.Token(),
+		"JANGOLOVA_CONTROL_PROTOCOL": contract.ProtocolVersion,
 	}}
 }
 
@@ -107,17 +107,17 @@ func (i *macOSInstance) Call(ctx context.Context, method string, params json.Raw
 	case sdk.MethodAct:
 		action, err := decodeAction(params)
 		if err != nil {
-			return nil, fmt.Errorf("decode Cymonkey macOS action: %w", err)
+			return nil, fmt.Errorf("decode Jangolova macOS action: %w", err)
 		}
 		if !capabilityAllowed(i.policy.AllowedCapabilities, action.Name) || !i.advertises(action.Name) {
-			return nil, fmt.Errorf("Cymonkey policy denied capability %q", action.Name)
+			return nil, fmt.Errorf("Jangolova policy denied capability %q", action.Name)
 		}
 		if i.runtime == "macos-app" && !bundleAllowedForMacOSAction(i.policy.AllowedBundleIDs, action.Input) {
-			return nil, errors.New("Cymonkey policy denied the macOS application surface")
+			return nil, errors.New("Jangolova policy denied the macOS application surface")
 		}
 		return connection.Call(ctx, method, params)
 	default:
-		return nil, fmt.Errorf("unsupported Cymonkey method %q", method)
+		return nil, fmt.Errorf("unsupported Jangolova method %q", method)
 	}
 }
 
@@ -125,7 +125,7 @@ func (i *macOSInstance) ensureConnected(ctx context.Context) (sdk.Transport, err
 	i.stateMu.RLock()
 	if i.closed {
 		i.stateMu.RUnlock()
-		return nil, errors.New("Cymonkey macOS control host is disconnected")
+		return nil, errors.New("Jangolova macOS control host is disconnected")
 	}
 	if i.connection != nil {
 		connection := i.connection
@@ -145,7 +145,7 @@ func (i *macOSInstance) ensureConnected(ctx context.Context) (sdk.Transport, err
 	i.stateMu.RUnlock()
 	connection, err := i.host.WaitConnection(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("wait for caller-owned Cymonkey macOS helper: %w", err)
+		return nil, fmt.Errorf("wait for caller-owned Jangolova macOS helper: %w", err)
 	}
 	capabilities, err := i.handshake(ctx, connection)
 	if err != nil {
@@ -159,39 +159,39 @@ func (i *macOSInstance) ensureConnected(ctx context.Context) (sdk.Transport, err
 	names = stableStrings(names)
 	if missing := missingCapabilities(i.required, names); len(missing) != 0 {
 		_ = connection.Close()
-		return nil, fmt.Errorf("Cymonkey macOS helper is missing required capabilities: %s", strings.Join(missing, ", "))
+		return nil, fmt.Errorf("Jangolova macOS helper is missing required capabilities: %s", strings.Join(missing, ", "))
 	}
 	i.stateMu.Lock()
 	if i.closed {
 		i.stateMu.Unlock()
 		_ = connection.Close()
-		return nil, errors.New("Cymonkey macOS control host is disconnected")
+		return nil, errors.New("Jangolova macOS control host is disconnected")
 	}
 	i.connection, i.capabilities, i.capabilityNames = connection, capabilities, names
 	i.stateMu.Unlock()
-	i.emit(sdk.EngineEvent{Type: "cymonkey." + i.platform() + ".helper_connected", Status: sdk.EngineHealthHealthy, OccurredAt: time.Now().UTC()})
+	i.emit(sdk.EngineEvent{Type: "jangolova." + i.platform() + ".helper_connected", Status: sdk.EngineHealthHealthy, OccurredAt: time.Now().UTC()})
 	return connection, nil
 }
 
 func (i *macOSInstance) handshake(ctx context.Context, connection sdk.Transport) ([]contract.Capability, error) {
 	rawHello, err := connection.Call(ctx, sdk.MethodHello, json.RawMessage(`{}`))
 	if err != nil {
-		return nil, fmt.Errorf("Cymonkey macOS helper hello: %w", err)
+		return nil, fmt.Errorf("Jangolova macOS helper hello: %w", err)
 	}
 	var hello contract.Hello
 	if err := json.Unmarshal(rawHello, &hello); err != nil || contract.ValidateHello(hello) != nil || !containsDomain(hello.Domains, contract.DomainViewer) || !containsString(hello.Runtimes, i.runtime) {
-		return nil, errors.New("Cymonkey macOS helper returned an incompatible hello")
+		return nil, errors.New("Jangolova macOS helper returned an incompatible hello")
 	}
 	rawCapabilities, err := connection.Call(ctx, sdk.MethodCapabilities, json.RawMessage(`{}`))
 	if err != nil {
-		return nil, fmt.Errorf("Cymonkey macOS helper capabilities: %w", err)
+		return nil, fmt.Errorf("Jangolova macOS helper capabilities: %w", err)
 	}
 	var capabilities []contract.Capability
 	if err := json.Unmarshal(rawCapabilities, &capabilities); err != nil {
-		return nil, errors.New("Cymonkey macOS helper returned invalid capabilities")
+		return nil, errors.New("Jangolova macOS helper returned invalid capabilities")
 	}
 	if err := contract.ValidateCapabilities(capabilities); err != nil {
-		return nil, fmt.Errorf("Cymonkey macOS helper capabilities: %w", err)
+		return nil, fmt.Errorf("Jangolova macOS helper capabilities: %w", err)
 	}
 	filtered := capabilities[:0]
 	for _, capability := range capabilities {
@@ -224,7 +224,7 @@ func (i *macOSInstance) Disconnect(ctx context.Context) error {
 	i.connection = nil
 	i.stateMu.Unlock()
 	err := i.host.Close(ctx)
-	i.finish(sdk.EngineEvent{Type: "cymonkey." + i.platform() + ".disconnected", Status: sdk.EngineHealthStopped, OccurredAt: time.Now().UTC()})
+	i.finish(sdk.EngineEvent{Type: "jangolova." + i.platform() + ".disconnected", Status: sdk.EngineHealthStopped, OccurredAt: time.Now().UTC()})
 	return err
 }
 
@@ -233,7 +233,7 @@ func (i *macOSInstance) EngineHealth(context.Context) sdk.EngineHealth {
 	defer i.stateMu.RUnlock()
 	status, message := sdk.EngineHealthStarting, "waiting for caller-owned "+i.platform()+" helper"
 	if i.closed {
-		status, message = sdk.EngineHealthStopped, "Cymonkey "+i.platform()+" control host is disconnected"
+		status, message = sdk.EngineHealthStopped, "Jangolova "+i.platform()+" control host is disconnected"
 	} else if i.connection != nil {
 		status, message = sdk.EngineHealthHealthy, "caller-owned "+i.platform()+" helper is connected"
 	}
@@ -243,10 +243,10 @@ func (i *macOSInstance) EngineHealth(context.Context) sdk.EngineHealth {
 func (i *macOSInstance) Authorize(ctx context.Context, request sdk.AuthorizeRequest) (sdk.AuthorizeDecision, error) {
 	action := strings.TrimSpace(request.Action)
 	if action == "" {
-		return sdk.AuthorizeDecision{Authorized: false}, errors.New("Cymonkey macOS action name is required")
+		return sdk.AuthorizeDecision{Authorized: false}, errors.New("Jangolova macOS action name is required")
 	}
 	if !capabilityAllowed(i.policy.AllowedCapabilities, action) {
-		return sdk.AuthorizeDecision{Authorized: false, Reason: fmt.Sprintf("Cymonkey policy denied capability %q", action)}, nil
+		return sdk.AuthorizeDecision{Authorized: false, Reason: fmt.Sprintf("Jangolova policy denied capability %q", action)}, nil
 	}
 	i.stateMu.RLock()
 	advertised := false
@@ -258,7 +258,7 @@ func (i *macOSInstance) Authorize(ctx context.Context, request sdk.AuthorizeRequ
 	}
 	i.stateMu.RUnlock()
 	if !advertised {
-		return sdk.AuthorizeDecision{Authorized: false, Reason: fmt.Sprintf("Cymonkey action %q was not advertised by macOS helper", action)}, nil
+		return sdk.AuthorizeDecision{Authorized: false, Reason: fmt.Sprintf("Jangolova action %q was not advertised by macOS helper", action)}, nil
 	}
 	return sdk.AuthorizeDecision{Authorized: true}, nil
 }

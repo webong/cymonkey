@@ -21,7 +21,7 @@ import (
 	"cymonkey/src/internal/bridge"
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
-	"cymonkey/src/targetconn"
+	"cymonkey/src/internal/targetconn"
 )
 
 const elementKey = "element-6066-11e4-a52e-4f735466cecf"

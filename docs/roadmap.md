@@ -141,7 +141,7 @@
 - [ ] Verify native-host and Xallet-provided display contracts with the same
   adapter conformance suite.
 
-## Phase 4b: Blockade observation
+## Phase 4b: Blockade inference interfaces
 
 - [x] Define the provider-neutral Blockade observation contract.
 - [x] Add managed Python Ultralytics workers for local YOLO/SAM inference.
@@ -174,6 +174,8 @@
   representative model set.
 - [ ] Add the first real cloud/VLM package (fal.ai or similar) to Blockade's
   adapter registry and map its native response to the observation contract.
+- [ ] Define Blockade's sound inference request, response, and capability
+  contract before adding local or cloud sound adapters.
 - [ ] Expose Cymonkey observation coordination as an authenticated operator API.
 - [ ] Capture screenshots from additional Cymonkey and display targets for
   Blockade.

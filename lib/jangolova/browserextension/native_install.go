@@ -74,7 +74,7 @@ func InstallWithNativeUI(ctx context.Context, target DevToolsTarget, source, des
 	if err := report(InstallResult{
 		Status: "awaiting-browser-action", Browser: target.Browser, Source: destination,
 		Profile: filepath.Join(target.ProfilePath, target.ProfileDirectory), Extension: &description,
-		NextAction: "In the opened browser, enable Developer mode, select Load unpacked, and choose the staged directory. Cymonkey will restart this browser once to verify that the extension remains installed. Keep the staged directory in place.",
+		NextAction: "In the opened browser, enable Developer mode, select Load unpacked, and choose the staged directory. Keep the installation session running for restart verification, and keep the staged directory in place.",
 	}); err != nil {
 		return err
 	}

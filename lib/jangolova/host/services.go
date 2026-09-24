@@ -1,6 +1,6 @@
 // Package host defines the Jangolova-owned host boundary.
 //
-// The package contains no Cymonkey implementation details. Hosts inject the
+// The package contains no operator implementation details. Hosts inject the
 // concrete endpoint, worker, transport, and redaction services they own.
 package host
 
@@ -16,6 +16,7 @@ import (
 // is supplied explicitly; the package does not discover or launch a target.
 type Dependencies struct {
 	ValidateEndpoint  func(sdk.TargetEndpoint) error
+	ResolveWorker     func(kind string) (string, error)
 	WorkerEnvironment func(sdk.TargetEndpoint, []string) ([]string, error)
 	StartWorker       func(string, string, []string, []string) (sdk.Worker, error)
 	DialWebSocket     func(context.Context, sdk.TargetEndpoint) (*websocket.Conn, error)
@@ -28,6 +29,7 @@ type Dependencies struct {
 func Services(dependencies Dependencies) sdk.Host {
 	return sdk.Host{
 		ValidateEndpoint:  dependencies.ValidateEndpoint,
+		ResolveWorker:     dependencies.ResolveWorker,
 		WorkerEnvironment: dependencies.WorkerEnvironment,
 		StartWorker:       dependencies.StartWorker,
 		DialWebSocket:     dependencies.DialWebSocket,

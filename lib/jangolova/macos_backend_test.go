@@ -83,9 +83,9 @@ func TestMacOSSwiftHelperLive(t *testing.T) {
 	}
 	command := exec.Command(executable)
 	command.Env = append(os.Environ(),
-		"JANGOLOVA_CYMONKEY_CONTROL_URL="+launch["JANGOLOVA_CYMONKEY_CONTROL_URL"],
-		"JANGOLOVA_CYMONKEY_CONTROL_TOKEN="+launch["JANGOLOVA_CYMONKEY_CONTROL_TOKEN"],
-		"JANGOLOVA_CYMONKEY_PROTOCOL="+launch["JANGOLOVA_CYMONKEY_PROTOCOL"],
+		"JANGOLOVA_CYMONKEY_CONTROL_URL="+launch["JANGOLOVA_CONTROL_URL"],
+		"JANGOLOVA_CYMONKEY_CONTROL_TOKEN="+launch["JANGOLOVA_CONTROL_TOKEN"],
+		"JANGOLOVA_CYMONKEY_PROTOCOL="+launch["JANGOLOVA_CONTROL_PROTOCOL"],
 		"JANGOLOVA_CYMONKEY_CONFIG="+configPath,
 	)
 	if err := command.Start(); err != nil {
@@ -112,8 +112,8 @@ func TestMacOSSwiftHelperLive(t *testing.T) {
 
 func serveFakeMacOSHelper(t *testing.T, environment map[string]string, actions *atomic.Int32) {
 	t.Helper()
-	header := http.Header{"Authorization": []string{"Bearer " + environment["JANGOLOVA_CYMONKEY_CONTROL_TOKEN"]}}
-	connection, _, err := websocket.DefaultDialer.Dial(environment["JANGOLOVA_CYMONKEY_CONTROL_URL"], header)
+	header := http.Header{"Authorization": []string{"Bearer " + environment["JANGOLOVA_CONTROL_TOKEN"]}}
+	connection, _, err := websocket.DefaultDialer.Dial(environment["JANGOLOVA_CONTROL_URL"], header)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -30,7 +30,7 @@ type MacOSMapping struct {
 var macOSBundleIDPattern = regexp.MustCompile(`^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$`)
 
 // MapMacOSPrimitives maps a negotiated native-helper description into the
-// bounded Cymonkey macOS vocabulary. Generic AppleScript and raw Apple Event
+// bounded Jangolova macOS vocabulary. Generic AppleScript and raw Apple Event
 // execution are intentionally unmappable.
 func MapMacOSPrimitives(primitives []MacOSPrimitive, allowedBundleIDs, allowedCapabilities []string) (MacOSMapping, error) {
 	allowedBundles := stringSet(allowedBundleIDs)

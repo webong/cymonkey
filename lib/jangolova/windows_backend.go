@@ -30,14 +30,14 @@ func (windowsCooperativeBackend) Connect(
 	config Options,
 ) (sdk.EngineInstance, error) {
 	if target.Kind != "windows-application" {
-		return nil, errors.New("Cymonkey Windows backend requires target.kind windows-application")
+		return nil, errors.New("Jangolova Windows backend requires target.kind windows-application")
 	}
 	if config.Host.ListenWebSocket == nil {
 		return nil, errors.New("Jangolova host cooperative listener is required")
 	}
 	host, err := config.Host.ListenWebSocket(config.Native.ControlListen)
 	if err != nil {
-		return nil, fmt.Errorf("create Cymonkey Windows control host: %w", err)
+		return nil, fmt.Errorf("create Jangolova Windows control host: %w", err)
 	}
 	running := &macOSInstance{
 		host: host, policy: config.Policy, required: stableStrings(spec.RequiredCapabilities),
@@ -45,7 +45,7 @@ func (windowsCooperativeBackend) Connect(
 		runtime: "windows-app", targetCapability: "target.windows-cooperative",
 	}
 	running.emit(sdk.EngineEvent{
-		Type: "cymonkey.windows.awaiting_helper", Status: sdk.EngineHealthStarting, OccurredAt: time.Now().UTC(),
+		Type: "jangolova.windows.awaiting_helper", Status: sdk.EngineHealthStarting, OccurredAt: time.Now().UTC(),
 	})
 	return running, nil
 }

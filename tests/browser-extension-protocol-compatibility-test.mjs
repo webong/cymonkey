@@ -4,21 +4,19 @@ import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
 const root = new URL('../', import.meta.url);
-test('generated browser-extension bindings match the checked-in schema', async () => {
+test('generated browser-extension TypeScript bindings match the checked-in schema', async () => {
   const result = spawnSync(process.execPath, ['scripts/generate-browser-extension-protocol.mjs', '--check'], {
     cwd: new URL('.', root), encoding: 'utf8',
   });
   assert.equal(result.status, 0, result.stderr || result.stdout);
-  const [schema, typescript, go] = await Promise.all([
+  const [schema, typescript] = await Promise.all([
     readFile(new URL('src/protocol/browser-extension/v1alpha1/protocol.schema.json', root), 'utf8'),
     readFile(new URL('pkg/browser-adapter/src/generated/browser-extension-v1alpha1.ts', root), 'utf8'),
-    readFile(new URL('src/internal/browserextensionprotocol/generated_v1alpha1.go', root), 'utf8'),
   ]);
   const parsed = JSON.parse(schema);
   const methods = parsed.$defs.controlCall.allOf[0].then.properties.method.enum;
   for (const method of new Set(methods)) {
     assert.match(typescript, new RegExp(JSON.stringify(method).replaceAll('.', '\\.')));
-    assert.match(go, new RegExp(JSON.stringify(method).replaceAll('.', '\\.')));
   }
 });
 

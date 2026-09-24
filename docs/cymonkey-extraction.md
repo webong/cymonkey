@@ -1,9 +1,10 @@
 # Cymonkey–Jangolova integration boundary
 
-Cymonkey owns operator policy, approval, credential resolution, coordination,
-and host resource management. Jangolova owns target/runtime modules, protocol
-negotiation, and semantic actions. Blockade owns visual inference and cloud/VLM
-adapters. Jangolova does not configure or call Blockade.
+Cymonkey owns operator policy, approval, credential resolution, extension,
+coordination, and host resource management. Jangolova owns display-interface
+modules, protocol negotiation, and semantic actions. Blockade owns inference
+interfaces for image and sound across local and cloud backends. Its current
+public request handles images. Jangolova does not configure or call Blockade.
 
 ## Public module interface
 
@@ -12,19 +13,19 @@ adapters. Jangolova does not configure or call Blockade.
 | `lib/jangolova/contract` | Public runtime wire data and validation. |
 | `lib/jangolova/sdk` | Target/spec/session types and injected host service interfaces. |
 | `lib/jangolova` | Runtime selection and browser/native semantic adapters. |
-| `src/targetconn` | Caller-owned endpoint, credential, and TLS material handling. |
+| `src/internal/targetconn` | Caller-owned endpoint, credential, and TLS material handling. |
 | `lib/jangolova/registry` | Metadata discovery, verified retrieval, and explicit activation. |
 | `lib/jangolova/host` | Jangolova-owned host service boundary and dependency injection contract. |
 | `src/internal/hostbinding` | Cymonkey-specific binding from private provider services into the Jangolova host boundary. |
-| `src/internal/cymonkeycore` | Cymonkey's private composition and coordination implementation. |
+| `src/internal/core` | Cymonkey's private composition and coordination implementation. |
 | `pkg/` | Distributable runtime packages. |
 
 `lib/jangolova` imports public Jangolova packages and has no transitive
 dependency on `cymonkey/src/internal`, the private adapter implementations, or
-`src/targetconn`. `TestPublicIntegrationHasNoPrivateDependencies` checks this graph.
+`src/internal/targetconn`. `TestPublicIntegrationHasNoPrivateDependencies` checks this graph.
 
 There is deliberately no `cymonkey/cymonkey` re-export package. The core remains
-private; code in this repository imports `cymonkey/src/internal/cymonkeycore`
+private; code in this repository imports `cymonkey/src/internal/core`
 directly. Jangolova and Blockade are separate local Go modules named
 `jangolova` and `blockade`; the root module joins them through `go.work` and
 local replacements. Runtime distributions expose their own supported interfaces

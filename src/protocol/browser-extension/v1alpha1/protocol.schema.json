@@ -24,7 +24,7 @@
         {
           "if": {"properties": {"type": {"const": "CYMONKEY_EXTENSION_CALL"}}},
           "then": {"properties": {"method": {"enum": [
-            "hello", "capabilities", "describe", "events", "cymonkey.call", "cymonkey-engine.call",
+            "hello", "capabilities", "describe", "events", "call", "engine.call",
             "packages.list", "packages.describe", "approval.list", "approval.resolve",
             "policy.describe", "policy.replace",
             "control.websocket.describe", "control.websocket.configure", "control.websocket.disable"

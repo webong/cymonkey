@@ -76,7 +76,7 @@ func RunWithDevTools(ctx context.Context, target DevToolsTarget, source, destina
 	}
 	return runUnpackedViaPipe(ctx, target, profile, staged, func(id string) error {
 		return ready(InstallResult{Status: "activated", Browser: target.Browser, ID: id, Source: staged, Profile: selectedProfile, Extension: &description,
-			NextAction: "Keep this Cymonkey command running to keep the browser session and extension active."})
+			NextAction: "Keep this Jangolova command running to keep the browser session and extension active."})
 	})
 }
 

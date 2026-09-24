@@ -1,7 +1,8 @@
 # Cymonkey browser integration
 
-Cymonkey is Jangolova's runtime-agnostic augmentation engine. This document
-defines its browser integration: the `viewer` platform domain and `render`
+Cymonkey is the entry and extension layer for its display and inference
+modules. This document defines its browser integration through Jangolova: the
+`viewer` platform domain and `render`
 document domain over the `browser-dom` runtime,
 and CDP, BiDi, or Safari MCP driver. The portable `v1alpha2`
 core, macOS integration, ownership model, and migration policy are defined in

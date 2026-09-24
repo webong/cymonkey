@@ -57,7 +57,7 @@ func ResolveTarget(id string) (BrowserTarget, error) {
 			return target, nil
 		}
 	}
-	return BrowserTarget{}, fmt.Errorf("browser target %q is no longer available; run cymonkey browser targets again or supply explicit paths", id)
+	return BrowserTarget{}, fmt.Errorf("browser target %q is no longer available; discover targets again or supply explicit paths", id)
 }
 
 func discoverTargets(platform, home string, appRoots []string) []BrowserTarget {

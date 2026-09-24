@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"jangolova/sdk"
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
+	"jangolova/sdk"
 )
 
 func TestTargetBoundaryPreservesHostRotationAndIsolatesMetadata(t *testing.T) {
@@ -77,6 +77,13 @@ func (s *fixtureSession) Call(context.Context, string, json.RawMessage) (json.Ra
 	return json.RawMessage(`{"ok":true}`), nil
 }
 func (s *fixtureSession) EngineEvents() <-chan sdk.EngineEvent { return s.events }
+func (s *fixtureSession) EngineCallerLaunch() sdk.CallerLaunch {
+	return sdk.CallerLaunch{Environment: map[string]string{
+		"JANGOLOVA_CONTROL_URL":      "ws://127.0.0.1:7391",
+		"JANGOLOVA_CONTROL_TOKEN":    "fixture",
+		"JANGOLOVA_CONTROL_PROTOCOL": "fixture/v1",
+	}}
+}
 func TestHostBindingForwardsCallsEventsAndDisconnect(t *testing.T) {
 	source := &fixtureSession{events: make(chan sdk.EngineEvent, 1)}
 	instance, err := Wrap(fixtureAdapter{source}).Connect(context.Background(), manifest.EngineSpec{}, orchestrator.EngineTarget{})
@@ -87,12 +94,19 @@ func TestHostBindingForwardsCallsEventsAndDisconnect(t *testing.T) {
 	if err != nil || string(raw) != `{"ok":true}` {
 		t.Fatalf("call: %s %v", raw, err)
 	}
+	launch := instance.(orchestrator.EngineCallerLaunchProvider).EngineCallerLaunch()
+	if launch.Environment["JANGOLOVA_CYMONKEY_CONTROL_URL"] != "ws://127.0.0.1:7391" ||
+		launch.Environment["JANGOLOVA_CYMONKEY_CONTROL_TOKEN"] != "fixture" ||
+		launch.Environment["JANGOLOVA_CYMONKEY_PROTOCOL"] != "fixture/v1" ||
+		launch.Environment["JANGOLOVA_CONTROL_URL"] != "" {
+		t.Fatalf("host launch compatibility = %#v", launch.Environment)
+	}
 	events := instance.(orchestrator.EngineEventSource).EngineEvents()
-	source.events <- sdk.EngineEvent{Type: "fixture.changed", Status: "connected"}
+	source.events <- sdk.EngineEvent{Type: "jangolova.connected", Status: "connected"}
 	select {
 	case e := <-events:
-		if e.Type != "fixture.changed" {
-			t.Fatal("event was changed")
+		if e.Type != "cymonkey.connected" {
+			t.Fatalf("host event compatibility = %q", e.Type)
 		}
 	case <-time.After(time.Second):
 		t.Fatal("event not forwarded")

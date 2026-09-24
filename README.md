@@ -1,10 +1,9 @@
 # Cymonkey
 
-Cymonkey is the operating layer for AI systems that need to work with real
-interfaces. It connects agents and applications to approved browsers, desktop
-surfaces, and interactive runtimes; gives them structured capabilities instead
-of unrestricted device access; and keeps every target under its owner's
-control.
+Cymonkey is the operating and extension layer for AI systems that need to work
+with real interfaces. It gives agents and applications a way to use and extend
+its submodules through structured capabilities, policy, and caller-owned
+targets.
 
 It supports both sides of interface work: operating an existing experience and
 presenting a new dynamic one.
@@ -19,8 +18,9 @@ presenting a new dynamic one.
   presentation, and runtime-specific scene controls.
 - Operate explicit Three.js, Godot, Unity, Unreal, and Blender resources through their
   runtime libraries.
-- Request visual evidence through Blockade, including local YOLO, SAM, and ONNX
-  inference.
+- Request image inference through Blockade, including local YOLO, SAM, ONNX,
+  and browser-local WebLLM paths. Blockade also defines a provider interface
+  for separately supplied cloud inference adapters.
 - Preserve target ownership: a connection may detach, but it never quits a
   browser, terminates an application, or destroys a scene.
 
@@ -29,14 +29,22 @@ presenting a new dynamic one.
 ```text
 agent or application
   → Cymonkey
-    → Jangolova interaction and presentation runtime
+    → Jangolova display interfaces
       → browser, desktop surface, Three.js, Godot, Unity, Unreal, or Blender
-    → Blockade visual inference
+    → Blockade inference interfaces
+      → local or cloud backends for image and, as the contract grows, sound
 ```
 
-Jangolova provides the runtime-facing interaction and presentation tools.
-Blockade provides visual inference. Cymonkey hosts and coordinates those
-capabilities into one controlled operating surface.
+Jangolova provides interfaces for operating and presenting on displays.
+Blockade provides inference interfaces for image and sound across local and
+cloud backends. The current Blockade request contract is image-based; sound
+inference is part of its intended scope and is not implemented yet. Cymonkey
+coordinates both and provides the boundary through which callers extend the
+system.
+
+Both libraries are usable independently. Cymonkey imports their public Go
+modules and supplies the host services that its workflows need; neither
+library imports Cymonkey or requires the Cymonkey executable.
 
 ## Quick start
 
@@ -51,7 +59,7 @@ PATH="$PWD/.cache/bin:$PATH" cymonkey run \
   --config infra/deploy/cymonkey/cymonkey.example.yaml
 ```
 
-The host manifest starts the interaction provider and visual inference service.
+The host manifest starts the display-interface provider and inference service.
 After a target has been connected, request a visual observation with:
 
 ```bash

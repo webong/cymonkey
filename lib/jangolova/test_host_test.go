@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -20,6 +21,12 @@ import (
 
 func testHost() sdk.Host {
 	return host.Services(host.Dependencies{
+		ResolveWorker: func(kind string) (string, error) {
+			if kind != "browser" {
+				return "", errors.New("test worker kind is unsupported")
+			}
+			return filepath.Abs("../../tests/cymonkey-worker-fixture.mjs")
+		},
 		ValidateEndpoint: func(endpoint sdk.TargetEndpoint) error {
 			parsed, err := url.Parse(endpoint.URL)
 			if err != nil || parsed.Scheme == "" || parsed.Host == "" {

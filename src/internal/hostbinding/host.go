@@ -8,18 +8,19 @@ import (
 	"errors"
 	"maps"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
-	"jangolova/host"
-	"jangolova/sdk"
 	"cymonkey/src/adapters/safarimcp"
 	"cymonkey/src/internal/bridge"
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/nodeworker"
 	"cymonkey/src/internal/orchestrator"
-	"cymonkey/src/targetconn"
+	"cymonkey/src/internal/targetconn"
 	"github.com/gorilla/websocket"
+	"jangolova/host"
+	"jangolova/sdk"
 )
 
 type materialView struct {
@@ -84,6 +85,7 @@ func Services() sdk.Host {
 			}
 			return targetconn.Validate(p)
 		},
+		ResolveWorker: resolveBrowserWorker,
 		WorkerEnvironment: func(e sdk.TargetEndpoint, env []string) ([]string, error) {
 			p, err := endpoint(e)
 			if err != nil {
@@ -201,7 +203,20 @@ func (i *sessionBinding) EngineHealth(ctx context.Context) orchestrator.EngineHe
 }
 func (i *sessionBinding) EngineCallerLaunch() orchestrator.CallerLaunch {
 	if p, ok := i.source.(sdk.EngineCallerLaunchProvider); ok {
-		return orchestrator.CallerLaunch{Environment: p.EngineCallerLaunch().Environment}
+		environment := maps.Clone(p.EngineCallerLaunch().Environment)
+		if value := environment["JANGOLOVA_CONTROL_URL"]; value != "" {
+			environment["JANGOLOVA_CYMONKEY_CONTROL_URL"] = value
+			delete(environment, "JANGOLOVA_CONTROL_URL")
+		}
+		if value := environment["JANGOLOVA_CONTROL_TOKEN"]; value != "" {
+			environment["JANGOLOVA_CYMONKEY_CONTROL_TOKEN"] = value
+			delete(environment, "JANGOLOVA_CONTROL_TOKEN")
+		}
+		if value := environment["JANGOLOVA_CONTROL_PROTOCOL"]; value != "" {
+			environment["JANGOLOVA_CYMONKEY_PROTOCOL"] = value
+			delete(environment, "JANGOLOVA_CONTROL_PROTOCOL")
+		}
+		return orchestrator.CallerLaunch{Environment: environment}
 	}
 	return orchestrator.CallerLaunch{}
 }
@@ -223,7 +238,11 @@ func (i *sessionBinding) EngineEvents() <-chan orchestrator.EngineEvent {
 					if !open {
 						return
 					}
-					v := orchestrator.EngineEvent{Type: e.Type, Status: e.Status, Message: e.Message, OccurredAt: e.OccurredAt}
+					eventType := e.Type
+					if strings.HasPrefix(eventType, "jangolova.") {
+						eventType = "cymonkey." + strings.TrimPrefix(eventType, "jangolova.")
+					}
+					v := orchestrator.EngineEvent{Type: eventType, Status: e.Status, Message: e.Message, OccurredAt: e.OccurredAt}
 					select {
 					case i.events <- v:
 					case <-i.done:

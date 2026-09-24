@@ -14,7 +14,7 @@ import (
 func normalizeOptions(value *Options) error {
 	value.Domain = contract.Domain(strings.ToLower(strings.TrimSpace(string(value.Domain))))
 	if value.Domain != "" && !contract.ValidDomain(value.Domain) {
-		return fmt.Errorf("unsupported Cymonkey domain %q", value.Domain)
+		return fmt.Errorf("unsupported Jangolova domain %q", value.Domain)
 	}
 	value.Module = strings.TrimSpace(value.Module)
 	value.Driver = strings.ToLower(strings.TrimSpace(value.Driver))
@@ -22,7 +22,7 @@ func normalizeOptions(value *Options) error {
 		value.Driver = "auto"
 	}
 	if value.Composite != nil && value.Driver != "auto" {
-		return errors.New("Cymonkey composite selects its drivers per binding; do not set top-level driver")
+		return errors.New("Jangolova composite selects its drivers per binding; do not set top-level driver")
 	}
 	switch value.Driver {
 	case "auto", "playwright", "puppeteer", string(BackendCDP), string(BackendBiDi), string(BackendSafariMCP),
@@ -42,7 +42,7 @@ func normalizeOptions(value *Options) error {
 	}
 	for _, bundleID := range value.Policy.AllowedBundleIDs {
 		if !macOSBundleIDPattern.MatchString(bundleID) {
-			return fmt.Errorf("invalid Cymonkey allowed bundle ID %q", bundleID)
+			return fmt.Errorf("invalid Jangolova allowed bundle ID %q", bundleID)
 		}
 	}
 	return nil
@@ -51,10 +51,10 @@ func normalizeOptions(value *Options) error {
 func validateOriginPattern(value string) error {
 	parsed, err := url.Parse(value)
 	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
-		return fmt.Errorf("invalid Cymonkey allowed origin %q", value)
+		return fmt.Errorf("invalid Jangolova allowed origin %q", value)
 	}
 	if parsed.Scheme != "http" && parsed.Scheme != "https" && parsed.Scheme != "*" {
-		return fmt.Errorf("Cymonkey allowed origin %q has unsupported scheme", value)
+		return fmt.Errorf("Jangolova allowed origin %q has unsupported scheme", value)
 	}
 	return nil
 }

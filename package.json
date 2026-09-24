@@ -38,9 +38,7 @@
     "test:unreal-cymonkey-package": "node tests/unreal-cymonkey-package-contract-test.mjs",
     "test:unreal-cymonkey-fixture": "node tests/unreal-cymonkey-fixture-contract-test.mjs",
     "test:cymonkey-runtime-manifest": "node tests/cymonkey-runtime-manifest-test.mjs",
-    "test:unreal-cymonkey-live": "node tests/unreal-cymonkey-live-test.mjs",
-    "generate:cymonkey-protocol": "node scripts/generate-cymonkey-protocol.mjs",
-    "check:cymonkey-protocol": "node scripts/generate-cymonkey-protocol.mjs --check"
+    "test:unreal-cymonkey-live": "node tests/unreal-cymonkey-live-test.mjs"
   },
   "dependencies": {
     "playwright-core": "1.51.1",

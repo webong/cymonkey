@@ -1,9 +1,11 @@
 # Blockade
 
-Blockade is a standalone read-only visual-inference service. It runs local
-pixel-oriented models and returns normalized detections, regions, masks, and
-confidence. It does not plan, interact with targets, host an agent, or depend
-on Cymonkey or Jangolova.
+Blockade is a standalone inference-interface library and service for image and
+sound, designed for local and cloud backends. Its implemented public request
+currently accepts images and returns normalized detections, regions, masks,
+and confidence. Sound inference still needs an explicit request and response
+contract. Blockade does not plan, interact with targets, host an agent, or
+depend on Cymonkey or Jangolova.
 
 ## Ownership boundary
 
@@ -21,8 +23,8 @@ Blockade
 Blockade owns cloud-provider and VLM integration through pluggable adapters,
 not hardcoded provider branches. It owns adapter configuration, credentials,
 and provider-native request/response mapping. Cymonkey exposes its coordinated
-observation capability directly and delegates only the image inference request
-to Blockade.
+observation capability directly and delegates the current image inference
+request to Blockade.
 
 ```text
 pixels → configured Blockade inference backend → observations → caller decision

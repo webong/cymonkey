@@ -90,7 +90,7 @@ func (b enginePresentationBackend) Connect(ctx context.Context, spec sdk.EngineS
 		return fail(fmt.Errorf("render peer is missing required capabilities: %v", missing))
 	}
 	running := &engineInstance{transport: transport, endpoint: endpoint, host: config.Host, capabilities: names, descriptors: selected, events: make(chan sdk.EngineEvent, 8)}
-	running.events <- sdk.EngineEvent{Type: "cymonkey.connected", Status: sdk.EngineHealthHealthy, OccurredAt: time.Now().UTC()}
+	running.events <- sdk.EngineEvent{Type: "jangolova.connected", Status: sdk.EngineHealthHealthy, OccurredAt: time.Now().UTC()}
 	return running, nil
 }
 
@@ -155,7 +155,7 @@ func (i *engineInstance) Disconnect(context.Context) error {
 	i.closed = true
 	err := i.transport.Close()
 	select {
-	case i.events <- sdk.EngineEvent{Type: "cymonkey.disconnected", Status: sdk.EngineHealthStopped, OccurredAt: time.Now().UTC()}:
+	case i.events <- sdk.EngineEvent{Type: "jangolova.disconnected", Status: sdk.EngineHealthStopped, OccurredAt: time.Now().UTC()}:
 	default:
 	}
 	close(i.events)

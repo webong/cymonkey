@@ -1,7 +1,7 @@
 {
   "type": "CYMONKEY_EXTENSION_CALL",
   "id": "current-1",
-  "method": "cymonkey.call",
+  "method": "call",
   "params": {
     "method": "act",
     "params": {

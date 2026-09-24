@@ -42,7 +42,7 @@ func PackageSafariProject(ctx context.Context, source, projectLocation, expected
 	if description.Revision != expectedRevision {
 		return InstallResult{}, errors.New("Safari extension changed since inspection")
 	}
-	staged, err := os.MkdirTemp("", "cymonkey-safari-extension-")
+	staged, err := os.MkdirTemp("", "jangolova-safari-extension-")
 	if err != nil {
 		return InstallResult{}, err
 	}

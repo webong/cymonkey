@@ -1,9 +1,9 @@
 // Code generated from src/protocol/browser-extension/v1alpha1/protocol.schema.json; DO NOT EDIT.
-// Schema SHA-256: cf7e2f2fc41393726416758e4cf135e40103d3c1fc6e5e1be614ada60efedfb1
+// Schema SHA-256: c02e68a0e0d6056bda1a68e9e268d2d60665c3dd9b77c6c0cc437b493c9be19a
 
 export const browserExtensionProtocolVersion = 'cymonkey.browser-extension/v1alpha1' as const;
 export type ExtensionCallType = 'CYMONKEY_EXTENSION_CALL';
-export type ExtensionMethod = "hello" | "capabilities" | "describe" | "events" | "cymonkey.call" | "cymonkey-engine.call" | "packages.list" | "packages.describe" | "approval.list" | "approval.resolve" | "policy.describe" | "policy.replace" | "control.websocket.describe" | "control.websocket.configure" | "control.websocket.disable";
+export type ExtensionMethod = "hello" | "capabilities" | "describe" | "events" | "call" | "engine.call" | "packages.list" | "packages.describe" | "approval.list" | "approval.resolve" | "policy.describe" | "policy.replace" | "control.websocket.describe" | "control.websocket.configure" | "control.websocket.disable";
 export type ControlMethod = ExtensionMethod;
 export type ControlCaller = 'xallet-spook' | 'authenticated-websocket' | 'extension-origin';
 export type CapabilityEffect = 'read' | 'write' | 'external';

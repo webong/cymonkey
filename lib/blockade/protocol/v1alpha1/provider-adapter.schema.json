@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://cymonkey.dev/protocol/blockade/v1alpha1/provider-adapter.schema.json",
+  "$id": "urn:blockade:protocol:v1alpha1:provider-adapter",
   "title": "Blockade provider-adapter contract",
   "oneOf": [
     {"$ref": "#/$defs/observeRequest"},

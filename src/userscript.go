@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	"cymonkey/src/internal/userscripts"
-	"cymonkey/src/provider"
+	"cymonkey/src/internal/provider"
 	"jangolova/browserextension"
 )
 

@@ -18,7 +18,7 @@ func TestRepositoryOwnsEngineCodeOnly(t *testing.T) {
 		t.Fatal("resolve boundary test location")
 	}
 	root := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", "..", ".."))
-	productRoots := []string{"src/adapters", "src/provider", "src/fixtures", "src/internal", "src/host"}
+	productRoots := []string{"src/adapters", "src/fixtures", "src/internal"}
 	for _, productRoot := range productRoots {
 		path := filepath.Join(root, productRoot)
 		if err := filepath.WalkDir(path, func(path string, entry os.DirEntry, err error) error {

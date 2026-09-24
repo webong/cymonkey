@@ -5,9 +5,9 @@ executable subsystems. It contains two primary product areas:
 
 ```text
 Cymonkey
-├── host/operator — lifecycle, composition, and coordination
-├── Jangolova    — standalone interaction, presentation, and MCP tool server
-└── Blockade     — standalone read-only visual observation and inference
+├── host/operator — entry, extension, policy, composition, and coordination
+├── Jangolova    — standalone display interfaces and MCP tool server
+└── Blockade     — standalone local and cloud inference interfaces
 ```
 
 ## Names in the current release
@@ -20,7 +20,7 @@ surface:
 | --- | --- | --- |
 | Operator/host | Cymonkey | Use `cymonkey` for composition and lifecycle management. |
 | Interaction/tool server | Jangolova | Keep as a standalone runtime and executable. |
-| Vision subsystem | Blockade | Keep as a standalone runtime and executable. |
+| Inference subsystem | Blockade | Keep as a standalone runtime and executable. |
 | Cymonkey protocol | `cymonkey/v1alpha1` | Versioned Cymonkey contract; do not rename in place. |
 | Environment variables | `JANGOLOVA_*` | Keep for compatibility; add `CYMONKEY_*` aliases before deprecating them. |
 | Go/module and package paths | `cymonkey/...` | Repository-owned Go imports use the Cymonkey module path. |
@@ -39,6 +39,7 @@ surface:
    replacement is published.
 
 The central rule is that host composition must not silently change ownership:
-Jangolova executes approved interaction and presentation calls, while Blockade
-observes pixels and returns normalized visual results. Cymonkey coordinates
-their processes; external agents still own planning and decisions.
+Jangolova executes approved display interaction and presentation calls, while
+Blockade runs inference through local or cloud backends. Its current public
+request uses images; sound remains to be defined. Cymonkey coordinates and
+extends these modules; external agents still own planning and decisions.

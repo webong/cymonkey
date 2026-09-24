@@ -41,7 +41,7 @@ func (a Adapter) Connect(ctx context.Context, spec sdk.EngineSpec, target sdk.En
 	}
 	config.Host = a.Host
 	if config.Composite != nil {
-		return nil, errors.New("Jangolova composite attachment migration is pending; use Cymonkey core composition directly")
+		return nil, errors.New("Jangolova composite attachment migration is pending; use Jangolova core composition directly")
 	}
 	// Explicitly registered external modules select their own target kinds.
 	for _, backend := range a.Backends {
@@ -81,20 +81,20 @@ func selectBackendForDomain(requested string, domain contract.Domain, target sdk
 	}
 	if requested == "auto" {
 		if domain == contract.DomainViewer && target.Kind == "macos-application" {
-			return nil, errors.New("Cymonkey viewer domain for macOS requires a caller-owned native helper; Apple Events and Accessibility are not invoked directly by the provider")
+			return nil, errors.New("Jangolova viewer domain for macOS requires a caller-owned native helper; Apple Events and Accessibility are not invoked directly by the provider")
 		}
 		if domain == contract.DomainViewer && target.Kind == "windows-application" {
-			return nil, errors.New("Cymonkey viewer domain for Windows requires a caller-owned native helper; Win32 input is not invoked directly by the provider")
+			return nil, errors.New("Jangolova viewer domain for Windows requires a caller-owned native helper; Win32 input is not invoked directly by the provider")
 		}
 		if domain == contract.DomainRender {
-			return nil, errors.New("Cymonkey render domain requires a caller-owned websocket presentation endpoint")
+			return nil, errors.New("Jangolova render domain requires a caller-owned websocket presentation endpoint")
 		}
 		if domain == contract.DomainPlayer {
-			return nil, errors.New("Cymonkey player domain has no negotiated driver for this target")
+			return nil, errors.New("Jangolova player domain has no negotiated driver for this target")
 		}
-		return nil, errors.New("Cymonkey viewer domain requires a caller-owned CDP, WebDriver BiDi, or Safari MCP endpoint")
+		return nil, errors.New("Jangolova viewer domain requires a caller-owned CDP, WebDriver BiDi, or Safari MCP endpoint")
 	}
-	return nil, fmt.Errorf("Cymonkey backend %s has no compatible caller-owned %s domain target", requested, domain)
+	return nil, fmt.Errorf("Jangolova backend %s has no compatible caller-owned %s domain target", requested, domain)
 }
 
 func resolveDomain(requested contract.Domain, target sdk.EngineTarget) (contract.Domain, error) {
@@ -109,20 +109,20 @@ func resolveDomain(requested contract.Domain, target sdk.EngineTarget) (contract
 		case "native-presentation", "unity", "unreal", "godot", "blender":
 			return contract.DomainRender, nil
 		default:
-			return "", fmt.Errorf("Cymonkey cannot infer a domain from target.kind %q", target.Kind)
+			return "", fmt.Errorf("Jangolova cannot infer a domain from target.kind %q", target.Kind)
 		}
 	}
 	if !contract.ValidDomain(requested) {
-		return "", fmt.Errorf("unsupported Cymonkey domain %q", requested)
+		return "", fmt.Errorf("unsupported Jangolova domain %q", requested)
 	}
 	if requested == contract.DomainViewer && target.Kind != "browser" && target.Kind != "macos-application" && target.Kind != "windows-application" {
-		return "", errors.New("Cymonkey viewer domain requires target.kind browser, macos-application, or windows-application")
+		return "", errors.New("Jangolova viewer domain requires target.kind browser, macos-application, or windows-application")
 	}
 	if requested == contract.DomainRender && target.Kind != "browser" && target.Kind != "native-presentation" && target.Kind != "unity" && target.Kind != "unreal" && target.Kind != "godot" && target.Kind != "blender" {
-		return "", errors.New("Cymonkey render domain requires target.kind browser, native-presentation, unity, unreal, or godot")
+		return "", errors.New("Jangolova render domain requires target.kind browser, native-presentation, unity, unreal, or godot")
 	}
 	if requested == contract.DomainPlayer && target.Kind != "browser" && target.Kind != "macos-application" && target.Kind != "windows-application" && target.Kind != "native-presentation" && target.Kind != "unity" && target.Kind != "unreal" && target.Kind != "godot" && target.Kind != "blender" {
-		return "", errors.New("Cymonkey player domain requires a browser, macos-application, windows-application, or native presentation target")
+		return "", errors.New("Jangolova player domain requires a browser, macos-application, windows-application, or native presentation target")
 	}
 	return requested, nil
 }

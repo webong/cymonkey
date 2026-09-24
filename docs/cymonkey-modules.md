@@ -36,7 +36,7 @@ caller-owned browser tab
 ## Module contract
 
 In-repository Go modules import the private core at
-`cymonkey/src/internal/cymonkeycore`; there is intentionally no public
+`cymonkey/src/internal/core`; there is intentionally no public
 re-export package. External runtime distributions integrate through the
 Jangolova module/registry boundary instead of depending on the host's private
 Go implementation.

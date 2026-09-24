@@ -19,7 +19,7 @@ import (
 const engineMaxMessageBytes = 4 * 1024 * 1024
 
 // EngineTransport carries the transport-neutral request/response methods of
-// the Cymonkey render domain.
+// the Jangolova render domain.
 type EngineTransport interface {
 	sdk.Caller
 	Close() error
@@ -41,7 +41,7 @@ func (EngineWebSocketConnector) Protocol() string { return "websocket" }
 func (c EngineWebSocketConnector) Connect(ctx context.Context, endpoint sdk.TargetEndpoint) (EngineTransport, error) {
 	parsed, err := url.Parse(endpoint.URL)
 	if err != nil || parsed.Scheme != "ws" && parsed.Scheme != "wss" || parsed.User != nil {
-		return nil, errors.New("Cymonkey WebSocket endpoint must be an absolute ws or wss URL without user information")
+		return nil, errors.New("Jangolova WebSocket endpoint must be an absolute ws or wss URL without user information")
 	}
 	if c.Host.DialWebSocket == nil {
 		return nil, errors.New("Jangolova host WebSocket dialer is required")
@@ -84,13 +84,13 @@ func (t *engineWebSocketTransport) Call(ctx context.Context, method string, para
 		return nil, err
 	}
 	if t.closed || t.connection == nil {
-		return nil, errors.New("Cymonkey WebSocket transport is closed")
+		return nil, errors.New("Jangolova WebSocket transport is closed")
 	}
 	if len(bytes.TrimSpace(params)) == 0 {
 		params = json.RawMessage(`{}`)
 	}
 	if !json.Valid(params) {
-		return nil, errors.New("Cymonkey params are invalid JSON")
+		return nil, errors.New("Jangolova params are invalid JSON")
 	}
 	if deadline, ok := ctx.Deadline(); ok {
 		_ = t.connection.SetWriteDeadline(deadline)
@@ -113,7 +113,7 @@ func (t *engineWebSocketTransport) Call(ctx context.Context, method string, para
 	}()
 	t.nextID++
 	if err := t.connection.WriteJSON(engineRequest{ID: t.nextID, Method: method, Params: params}); err != nil {
-		return nil, errors.New("write Cymonkey WebSocket request")
+		return nil, errors.New("write Jangolova WebSocket request")
 	}
 	var reply engineResponse
 	for notices := 0; ; notices++ {
@@ -136,13 +136,13 @@ func (t *engineWebSocketTransport) Call(ctx context.Context, method string, para
 		break
 	}
 	if reply.ID != t.nextID {
-		return nil, errors.New("Cymonkey response id does not match request")
+		return nil, errors.New("Jangolova response id does not match request")
 	}
 	if reply.Error != nil {
 		return nil, &sdk.RemoteError{Code: strings.TrimSpace(reply.Error.Code), Message: reply.Error.Message}
 	}
 	if !json.Valid(reply.Result) {
-		return nil, errors.New("Cymonkey response is invalid JSON")
+		return nil, errors.New("Jangolova response is invalid JSON")
 	}
 	return reply.Result, nil
 }

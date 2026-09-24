@@ -167,6 +167,7 @@ type WebSocketHostProvider interface{ BridgeWebSocketHost() Listener }
 // Policy decisions remain with the calling operator.
 type Host struct {
 	ValidateEndpoint  func(TargetEndpoint) error
+	ResolveWorker     func(kind string) (string, error)
 	WorkerEnvironment func(TargetEndpoint, []string) ([]string, error)
 	StartWorker       func(string, string, []string, []string) (Worker, error)
 	DialWebSocket     func(context.Context, TargetEndpoint) (*websocket.Conn, error)

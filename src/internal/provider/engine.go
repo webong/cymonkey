@@ -19,7 +19,7 @@ import (
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
 	"cymonkey/src/internal/userscripts"
-	"cymonkey/src/targetconn"
+	"cymonkey/src/internal/targetconn"
 )
 
 func enginesCommand(args []string) error {

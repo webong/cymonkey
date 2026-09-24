@@ -49,7 +49,7 @@ func TestPublicIntegrationHasNoPrivateDependencies(t *testing.T) {
 		t.Fatalf("dependency graph: %v: %s", err, out)
 	}
 	for _, p := range strings.Fields(string(out)) {
-		if strings.HasPrefix(p, "cymonkey/src/internal/") || strings.HasPrefix(p, "cymonkey/src/adapters/") || p == "cymonkey/src/targetconn" {
+		if strings.HasPrefix(p, "cymonkey/src/internal/") || strings.HasPrefix(p, "cymonkey/src/adapters/") {
 			t.Errorf("private host dependency in public integration: %s", p)
 		}
 	}

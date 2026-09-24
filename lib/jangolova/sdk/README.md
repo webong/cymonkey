@@ -39,6 +39,7 @@ responsible for approval before a semantic call.
 `sdk.Host` supplies only the services the chosen backend needs:
 
 - `ValidateEndpoint`: enforce host-approved endpoint/material scope and expiry.
+- `ResolveWorker`: locate a host-owned worker by kind.
 - `WorkerEnvironment`, `StartWorker`: provide a bounded worker process.
 - `DialWebSocket`: establish a credential-aware runtime connection.
 - `ListenWebSocket`: accept a cooperative helper connection.
@@ -49,9 +50,9 @@ Omitted services fail with an explicit error. The library does not discover an
 implicit privileged host. The material interface exposes a snapshot and revision
 notifications; it does not expose the private credential store or rotation API.
 
-Cymonkey's binding is implemented by `lib/jangolova/host`. The operator injects
-its private services through `../../src/internal/hostbinding`; third-party
-modules supply their own public backend and never import that private binding.
+`jangolova/host` converts injected dependencies into the SDK host interface.
+Each integrating application supplies its own concrete services. Runtime
+modules use the public backend interface without importing the application.
 
 ## Discovery and activation
 
@@ -82,11 +83,10 @@ remain authoritative.
 
 ## Compatibility
 
-The wire version remains `cymonkey/v1alpha1`. Native WebSocket integration
+The deployed wire version remains `contract.ProtocolVersion`. Native WebSocket integration
 supports the Blender authentication notice before an RPC reply. The host must
 supply authentication during the upgrade; an authorization-required notice
 fails the connection rather than granting access.
 
-The SDK has not been released as a separate Go module. See the
-[validation record](../../../docs/jangolova-runtime-validation.md) for actual
-engine runs, contract-only checks, and remaining platform limitations.
+The SDK is part of the `jangolova` Go module and has not been released as a
+separate module.

@@ -19,24 +19,24 @@ var (
 
 func ValidateHello(value Hello) error {
 	if value.ProtocolVersion != ProtocolVersion {
-		return fmt.Errorf("Cymonkey protocol %q is incompatible; expected %q", value.ProtocolVersion, ProtocolVersion)
+		return fmt.Errorf("Jangolova protocol %q is incompatible; expected %q", value.ProtocolVersion, ProtocolVersion)
 	}
 	if strings.TrimSpace(value.Implementation.Name) == "" || len(value.Domains) == 0 || len(value.Runtimes) == 0 || len(value.Drivers) == 0 {
-		return errors.New("Cymonkey hello requires implementation, domains, runtimes, and drivers")
+		return errors.New("Jangolova hello requires implementation, domains, runtimes, and drivers")
 	}
 	for _, domain := range value.Domains {
 		if !ValidDomain(domain) {
-			return fmt.Errorf("unsupported Cymonkey domain %q", domain)
+			return fmt.Errorf("unsupported Jangolova domain %q", domain)
 		}
 	}
 	for _, runtime := range value.Runtimes {
 		if !ValidRuntime(runtime) {
-			return fmt.Errorf("invalid Cymonkey runtime %q", runtime)
+			return fmt.Errorf("invalid Jangolova runtime %q", runtime)
 		}
 	}
 	for _, driver := range value.Drivers {
 		if !ValidDriver(driver) {
-			return fmt.Errorf("unsupported Cymonkey driver %q", driver)
+			return fmt.Errorf("unsupported Jangolova driver %q", driver)
 		}
 	}
 	return nil
@@ -47,30 +47,30 @@ func ValidateCapabilities(values []Capability) error {
 	for _, value := range values {
 		key := string(value.Domain) + ":" + value.Runtime + ":" + value.Name
 		if !capabilityPattern.MatchString(value.Name) {
-			return fmt.Errorf("invalid Cymonkey capability name %q", value.Name)
+			return fmt.Errorf("invalid Jangolova capability name %q", value.Name)
 		}
 		if _, exists := seen[key]; exists {
-			return fmt.Errorf("duplicate Cymonkey capability %q for domain %q and runtime %q", value.Name, value.Domain, value.Runtime)
+			return fmt.Errorf("duplicate Jangolova capability %q for domain %q and runtime %q", value.Name, value.Domain, value.Runtime)
 		}
 		seen[key] = struct{}{}
 		if !ValidDomain(value.Domain) || !ValidRuntime(value.Runtime) || !driverSupportsDomain(value.Driver, value.Domain) {
-			return fmt.Errorf("Cymonkey capability %q has incompatible domain/runtime/driver", value.Name)
+			return fmt.Errorf("Jangolova capability %q has incompatible domain/runtime/driver", value.Name)
 		}
 		if value.Support != SupportNative && value.Support != SupportMapped && value.Support != SupportEmulated {
-			return fmt.Errorf("Cymonkey capability %q has invalid support", value.Name)
+			return fmt.Errorf("Jangolova capability %q has invalid support", value.Name)
 		}
 		if value.Lifetime != LifetimeCall && value.Lifetime != LifetimeSurface && value.Lifetime != LifetimeAttachment && value.Lifetime != LifetimeInstallation {
-			return fmt.Errorf("Cymonkey capability %q has invalid lifetime", value.Name)
+			return fmt.Errorf("Jangolova capability %q has invalid lifetime", value.Name)
 		}
 		if value.Persistence != PersistenceEphemeral && value.Persistence != PersistenceSession && value.Persistence != PersistencePersistent {
-			return fmt.Errorf("Cymonkey capability %q has invalid persistence", value.Name)
+			return fmt.Errorf("Jangolova capability %q has invalid persistence", value.Name)
 		}
 		if value.Effect != "read" && value.Effect != "write" && value.Effect != "external" {
-			return fmt.Errorf("Cymonkey capability %q has invalid effect", value.Name)
+			return fmt.Errorf("Jangolova capability %q has invalid effect", value.Name)
 		}
 		var schema map[string]any
 		if json.Unmarshal(value.InputSchema, &schema) != nil || schema == nil {
-			return fmt.Errorf("Cymonkey capability %q requires an input schema object", value.Name)
+			return fmt.Errorf("Jangolova capability %q requires an input schema object", value.Name)
 		}
 	}
 	return nil
@@ -81,18 +81,18 @@ func ValidateManifest(value Manifest) error {
 		return fmt.Errorf("augmentation requires %s and kind Augmentation", ProtocolVersion)
 	}
 	if !augmentationPattern.MatchString(value.Metadata.ID) || strings.TrimSpace(value.Metadata.Revision) == "" {
-		return errors.New("Cymonkey augmentation requires a stable id and revision")
+		return errors.New("Jangolova augmentation requires a stable id and revision")
 	}
 	if len(value.Spec.Targets) == 0 {
-		return errors.New("Cymonkey augmentation requires at least one target")
+		return errors.New("Jangolova augmentation requires at least one target")
 	}
 	domains := make(map[Domain]struct{})
 	for _, target := range value.Spec.Targets {
 		if !ValidDomain(target.Domain) {
-			return fmt.Errorf("unsupported Cymonkey target domain %q", target.Domain)
+			return fmt.Errorf("unsupported Jangolova target domain %q", target.Domain)
 		}
 		if !ValidRuntime(target.Runtime) {
-			return fmt.Errorf("invalid Cymonkey target runtime %q", target.Runtime)
+			return fmt.Errorf("invalid Jangolova target runtime %q", target.Runtime)
 		}
 		domains[target.Domain] = struct{}{}
 		if err := validateTarget(target); err != nil {
@@ -101,31 +101,31 @@ func ValidateManifest(value Manifest) error {
 	}
 	for _, permission := range value.Spec.Permissions {
 		if !capabilityPattern.MatchString(permission) {
-			return fmt.Errorf("invalid Cymonkey permission %q", permission)
+			return fmt.Errorf("invalid Jangolova permission %q", permission)
 		}
 	}
 	if len(bytes.TrimSpace(value.Spec.Viewer)) > 0 {
 		if _, ok := domains[DomainViewer]; !ok {
-			return errors.New("Cymonkey viewer payload requires a viewer target")
+			return errors.New("Jangolova viewer payload requires a viewer target")
 		}
 		if !jsonObject(value.Spec.Viewer) {
-			return errors.New("Cymonkey viewer payload must be an object")
+			return errors.New("Jangolova viewer payload must be an object")
 		}
 	}
 	if len(bytes.TrimSpace(value.Spec.Render)) > 0 {
 		if _, ok := domains[DomainRender]; !ok {
-			return errors.New("Cymonkey render payload requires a render target")
+			return errors.New("Jangolova render payload requires a render target")
 		}
 		if !jsonObject(value.Spec.Render) {
-			return errors.New("Cymonkey render payload must be an object")
+			return errors.New("Jangolova render payload must be an object")
 		}
 	}
 	if len(bytes.TrimSpace(value.Spec.Player)) > 0 {
 		if _, ok := domains[DomainPlayer]; !ok {
-			return errors.New("Cymonkey player payload requires a player target")
+			return errors.New("Jangolova player payload requires a player target")
 		}
 		if !jsonObject(value.Spec.Player) {
-			return errors.New("Cymonkey player payload must be an object")
+			return errors.New("Jangolova player payload must be an object")
 		}
 	}
 	return nil
@@ -177,18 +177,18 @@ func knownDriverSupportsDomain(driver Driver, domain Domain) bool {
 func validateTarget(target Target) error {
 	var match map[string]any
 	if json.Unmarshal(target.Match, &match) != nil || match == nil {
-		return fmt.Errorf("Cymonkey %s target match must be an object", target.Domain)
+		return fmt.Errorf("Jangolova %s target match must be an object", target.Domain)
 	}
 	switch {
 	case (target.Domain == DomainViewer || target.Domain == DomainRender) && target.Runtime == "browser-dom":
 		patterns, ok := match["urlPatterns"].([]any)
 		if !ok || len(patterns) == 0 {
-			return fmt.Errorf("Cymonkey browser-dom %s target requires urlPatterns", target.Domain)
+			return fmt.Errorf("Jangolova browser-dom %s target requires urlPatterns", target.Domain)
 		}
 	case target.Domain == DomainViewer && target.Runtime == "macos-app":
 		bundleID, _ := match["bundleId"].(string)
 		if !bundleIDPattern.MatchString(bundleID) {
-			return errors.New("Cymonkey macos-app viewer target requires a valid bundleId")
+			return errors.New("Jangolova macos-app viewer target requires a valid bundleId")
 		}
 	}
 	return nil

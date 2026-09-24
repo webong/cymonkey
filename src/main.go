@@ -16,8 +16,8 @@ import (
 	blockadecli "blockade/cli"
 	blockadewebllm "blockade/webllm"
 	nativebridge "cymonkey/src/fixtures/native-bridge"
-	"cymonkey/src/host"
-	"cymonkey/src/provider"
+	"cymonkey/src/internal/host"
+	"cymonkey/src/internal/provider"
 )
 
 func main() {

@@ -54,7 +54,7 @@ mount it. A compatible host can send normal Cymonkey requests:
 The integrating extension must obtain user consent before granting camera
 access. It may use a short-lived approval ID tied to the exact mount request.
 
-`cymonkey-engine.call` uses `delivery: "sandbox"`, `augmentationId`, and
+`engine.call` uses `delivery: "sandbox"`, `augmentationId`, and
 `sandboxId: "camera"` to call the package. The page does not receive the
 token, port, or any extension APIs.
 

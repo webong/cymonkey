@@ -16,7 +16,7 @@ cymonkey.installGlobal();
 
 When used in a browser, Cymonkey enters the tab and mounts a reviewed
 augmentation package containing this Jangolova library. Cymonkey routes opaque
-semantic requests through its private `cymonkey-engine.call` route, scoped to
+semantic requests through its private `engine.call` route, scoped to
 the augmentation ID. The Browser Extension does not import or otherwise know
 about Three.js. This library owns the Three.js semantics and remains protected
 by stable IDs and per-resource action allowlists; no render control is added to
