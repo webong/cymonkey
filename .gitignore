@@ -3,6 +3,7 @@
 **/node_modules/
 /xpost
 /out/
+/output/
 /.cache/
 **/.build/
 .DS_Store

@@ -1,6 +1,12 @@
-# Cymonkey runtime-agnostic control plane contract
+# Cymonkey runtime entry and augmentation contract
 
-Cymonkey is Jangolova's runtime-agnostic control plane engine. It serves as the single master control plane governing **automation**, **interaction**, and **presentation** across caller-owned targets. Direct browser automation tools (Playwright, Puppeteer, raw CDP, WebDriver BiDi) operate as driver backends under the Cymonkey control plane lane rather than isolated top-level engines.
+Cymonkey is Jangolova's runtime-entry and augmentation layer. It gains
+approved access to caller-owned targets, mounts reviewed runtime packages, and
+coordinates their use. Jangolova owns the runtime libraries that execute
+interaction and presentation semantics inside Three.js, Godot, Unity, Unreal, Blender,
+browser, and future runtimes. Direct browser automation tools (Playwright,
+Puppeteer, raw CDP, WebDriver BiDi) are entry drivers used by Cymonkey to reach
+Jangolova capabilities; they are not separate top-level products.
 
 The runtime-agnostic protocol is `jangolova.cymonkey/v1alpha2`. Its canonical
 interaction domains are [`viewer`, `render`, and `player`](cymonkey-domains.md).
@@ -15,31 +21,29 @@ integrations consume those assets; they do not define a separate protocol.
 
 Cymonkey owns:
 
-- the unified interaction, automation, and presentation control plane;
-- driver management (Playwright, Puppeteer, CDP, WebDriver BiDi, WebExtension,
-  Safari MCP, macOS Accessibility, Apple Events, and Cymonkey WebSocket);
-- augmentation manifests and lifecycle;
-- semantic surface discovery, automation primitives, and surface mutation requests;
-- domain capability names and schemas;
-- per-augmentation and per-driver resource ownership;
-- portable descriptions and events.
+- runtime discovery and approved entry (extension installation, target
+  selection, mounting, and private routing);
+- augmentation manifests, reviewed package registry, and lifecycle;
+- component hosting and cross-subsystem coordination;
+- entry-driver configuration and resource ownership for the access path.
 
 Jangolova owns:
 
-- target attachment and driver backend selection;
-- authentication, authorization, consent, and policy;
-- transport, event buffering, storage, networking, and script execution;
-- Playwright, Puppeteer, WebExtension, CDP, BiDi, Safari MCP, Apple Events, and Accessibility driver clients;
-- reconnect and credential-renewal behavior.
+- runtime libraries and adapters for interaction and presentation;
+- semantic surface/resource registration and runtime-native action handling;
+- target attachment, authentication, authorization, consent, and policy;
+- transport, event buffering, storage, networking, script execution, reconnect,
+  and credential-renewal behavior.
 
 The target owner or provider owns the application/runtime process, profile,
 documents, windows, display, GPU, credentials, installation, and lifecycle.
 Disconnecting Cymonkey detaches Jangolova; it never quits the target, closes its
 documents, or revokes user-granted operating-system permissions.
 
-Cymonkey's `render` domain controls explicit scene, camera, object, material,
-animation, timeline, UI, and artifact resources through its single semantic
-protocol (`hello`, `capabilities`, `describe`, `act`, `events`).
+Jangolova runtime libraries expose explicit scene, camera, object, material,
+animation, timeline, UI, and artifact resources through the shared semantic
+protocol (`hello`, `capabilities`, `describe`, `act`, `events`). Cymonkey only
+routes an approved request to the selected runtime library.
 
 ## Protocol shape
 

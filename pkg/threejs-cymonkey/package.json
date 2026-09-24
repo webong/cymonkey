@@ -2,7 +2,7 @@
   "name": "@jangolova/threejs-cymonkey",
   "version": "0.2.0",
   "type": "module",
-  "description": "Explicit-registration Cymonkey semantic runtime for Three.js",
+  "description": "Explicit-registration Jangolova runtime library for Three.js, delivered by Cymonkey",
   "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
   "files": ["dist", "README.md", "browser-package.json"],
   "scripts": {

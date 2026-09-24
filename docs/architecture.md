@@ -3,8 +3,8 @@
 Cymonkey is the operator and host. Jangolova is its standalone interaction,
 presentation, and MCP tool-server subsystem; Blockade is its standalone
 read-only visual observation subsystem. Cymonkey composes and supervises their
-processes while preserving existing Jangolova executable, package, environment,
-and protocol identifiers for compatibility. See
+processes and coordinates cross-subsystem observation workflows while preserving
+their standalone boundaries. See
 [Cymonkey naming migration](naming-migration.md).
 
 The host boundary is executable-oriented: it starts standalone `jangolova` and
@@ -13,16 +13,18 @@ coordinate their endpoints, but it does not embed their implementation or
 transfer target ownership to either subsystem. See
 [Cymonkey host and operator](cymonkey-host.md).
 
-Unity, Unreal, Godot, and Three.js semantic presentation use the Cymonkey
-`render` domain: Jangolova dials a caller-owned semantic endpoint while the
-engine keeps rendering and the supervisor separately owns target and display
-lifecycle.
+Unity, Unreal, Godot, Blender, and Three.js are Jangolova runtime libraries. Cymonkey
+enters the caller-owned runtime and coordinates their use; Jangolova exposes
+the bounded semantic operations while the engine keeps rendering and the
+supervisor separately owns target and display lifecycle. See
+[subsystem boundaries](subsystem-boundaries.md).
 
 Jangolova is the interaction and presentation toolbox hosted by Cymonkey, not
 an agent. External agents, IDEs, and applications own planning and decisions;
 Xallet, a native host, or another operator owns the target runtimes with which
 Jangolova interacts. Blockade is the separate observation process that receives
-pixels and returns normalized visual results.
+pixels and returns normalized visual results. Cymonkey requests screenshots
+through Jangolova's normal interaction interface and sends them to Blockade.
 
 Interaction includes operating semantic browser/application interfaces and
 requesting display-level pointer/keyboard actions. Presentation includes
@@ -41,16 +43,15 @@ separately authorizes every operation by capability, effect, target origin/tab,
 and augmentation. Xallet Spook, optional caller-configured outbound WebSocket,
 and extension-origin/CDP calls share this gate and its redacted audit stream.
 
-Cymonkey is its runtime-agnostic augmentation subsystem. Its portable
-`jangolova.cymonkey/v1alpha2` core owns augmentation lifecycle, surface
-discovery, overlays, and capability negotiation. Every capability identifies a
-domain (`viewer`, `render`, or `player`), concrete runtime, and driver. The
-browser and macOS application mappings operate in `viewer`; explicitly
-registered Three.js, Godot, Unity, and Unreal resources operate in `render`.
-`player` reserves lifecycle-safe media/game-session semantics. Jangolova owns
-each runtime backend, its authenticated transport, consent checks, and policy.
-The caller-owned computer is the host for those domains, not an additional
-wire-domain value.
+Cymonkey is the runtime-entry and augmentation subsystem: it gains approved
+access to a target, mounts reviewed packages, and routes authenticated calls.
+Jangolova owns each runtime library and adapter, including its semantic scene
+operations, authenticated transport, consent checks, and policy. Every
+capability identifies a domain (`viewer`, `render`, or `player`), concrete
+runtime, and driver. The browser and macOS application mappings operate in
+`viewer`; explicitly registered Three.js, Godot, Unity, Unreal, and Blender resources
+operate in `render`. `player` reserves lifecycle-safe media/game-session
+semantics.
 
 The render domain remains explicit-registration only. In browsers,
 `@jangolova/threejs-cymonkey` maps allowlisted stable IDs to Three.js scenes,
@@ -118,7 +119,7 @@ Jangolova owns:
 - Playwright, Puppeteer, and browser automation drivers integrated into the Cymonkey control plane;
 - WebDriver and MCP clients that attach to caller-owned WebKit/Safari targets;
 - Three.js render logic and cooperative web experiences;
-- Unity and Unreal interaction plugins and bridge protocol;
+- Godot, Unity, Unreal, and Blender render modules and bridge protocols;
 - semantic capability discovery, description, actions, observations, events,
   and interaction-session health;
 - worker processes used internally by an interaction adapter.
@@ -174,14 +175,14 @@ internal/bridge/            engine-neutral semantic methods
 internal/engineprovider/    direct HTTP/MCP tools, target policy, and audit
 adapters/browserautomation/ Playwright CDP and Puppeteer CDP/BiDi attachment
 cymonkey/                   Jangolova's temporary public import façade
-internal/cymonkeycore/      Cymonkey core registry/composition/conformance code
 src/jangolova/contract/     public runtime wire contract
 src/jangolova/sdk/          public types and host-injection interfaces
 internal/jangolovahost/     Cymonkey private/public adapter binding
+internal/cymonkeycore/      Cymonkey core registry/composition/conformance code
 lib/jangolova/
                             Jangolova-owned browser, macOS, and engine adapters
 protocol/cymonkey/          canonical versioned Cymonkey schemas
-tests/cymonkey-core-conformance.mjs   portable Cymonkey contract checks
+tests/cymonkey-core-conformance.mjs  portable Cymonkey contract checks
 adapters/webdriverclassic/  existing W3C WebDriver session attachment
 adapters/safarimcp/         caller-owned Safari MCP relay attachment
 adapters/displayinteraction/ provider-neutral VNC/WebRTC/Wayland display interaction

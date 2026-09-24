@@ -11,7 +11,7 @@ package example
 import (
     "context"
 
-    "jangolova/cymonkey"
+    "cymonkey/cymonkey"
 )
 
 func Module() cymonkey.Module {

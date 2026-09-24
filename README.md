@@ -1,189 +1,90 @@
 # Cymonkey
 
-Cymonkey is a deployment-neutral operator and host for two independently
-executable subsystems: Jangolova, the direct interaction and presentation tool
-server, and Blockade, the read-only visual observation subsystem. Cymonkey
-composes them through a host manifest and coordinates their lifecycle without
-embedding either subsystem.
+Cymonkey is the operating layer for AI systems that need to work with real
+interfaces. It connects agents and applications to approved browsers, desktop
+surfaces, and interactive runtimes; gives them structured capabilities instead
+of unrestricted device access; and keeps every target under its owner's
+control.
 
-Jangolova remains the current executable, protocol, and package identity during
-the compatibility-first naming migration. See
-[Cymonkey naming migration](docs/naming-migration.md).
+It supports both sides of interface work: operating an existing experience and
+presenting a new dynamic one.
 
-Its product goal has two equal parts: operate existing interfaces—including
-clicking and typing through semantic or display-level contracts—and create
-dynamic 2D/3D interfaces that agents can present and update.
+## Capabilities
 
-Neither Cymonkey nor Jangolova is an agent or model gateway. Any external agent, IDE, or
-deterministic application supplies planning and reasoning; Jangolova supplies
-the attached, policy-governed observation and action tools through HTTP and
-MCP.
+- Connect to browsers through CDP, WebDriver BiDi, WebDriver Classic, Safari
+  MCP, WebExtension, and native integrations.
+- Mount reviewed browser packages such as **Three.js Scene** into an approved
+  tab.
+- Expose typed, policy-governed actions for navigation, interaction, display,
+  presentation, and runtime-specific scene controls.
+- Operate explicit Three.js, Godot, Unity, Unreal, and Blender resources through their
+  runtime libraries.
+- Request visual evidence through Blockade, including local YOLO, SAM, and ONNX
+  inference.
+- Preserve target ownership: a connection may detach, but it never quits a
+  browser, terminates an application, or destroys a scene.
 
-Jangolova does not provision Chromium, native applications, displays,
-containers, VMs, networking, or credentials. Xallet owns those concerns when
-the products run together; a native user or another operator can provide the
-same target endpoints and handles without Xallet.
+## Architecture
 
-## Platform components
+```text
+agent or application
+  → Cymonkey
+    → Jangolova interaction and presentation runtime
+      → browser, desktop surface, Three.js, Godot, Unity, Unreal, or Blender
+    → Blockade visual inference
+```
 
-- **Cymonkey Host**: Starts, supervises, and stops standalone subsystem
-  processes from a `cymonkey.config/v1alpha1` manifest.
-- **Jangolova Tool Server**: Direct HTTP and MCP tools for attaching to targets,
-  negotiating capabilities, enforcing policy and approvals, and executing
-  interaction or presentation calls.
-- **Cymonkey Master Control Plane (`jangolova.cymonkey/v1alpha2`)**:
-  Runtime-agnostic control plane governing automation, interaction, and 2D/3D
-  presentation across caller-owned targets.
-  - **Automation Drivers**: Integrated Playwright and Puppeteer CDP/WebDriver BiDi drivers for generic window primitives (`window.navigate`, `window.click`, `window.fill`, `window.press`, `window.evaluate`, `window.screenshot`).
-  - **Web & Extension Drivers**: Jangolova WebExtension control plane, Cymonkey augmented browsing, userscripts runtime (`jangolova.cymonkey.userscript/v1alpha1`), and Safari MCP relay.
-  - **Viewer Domain Drivers**: Browser and bounded macOS application operations via WebExtension, CDP/BiDi, Apple Events, and Accessibility.
-  - **Render Domain Drivers**: Unified 2D/3D explicit-registration runtimes spanning Godot, Unity, Unreal, and Three.js.
-  - **Player Domain**: Reserved for negotiated, typed content-session controls; it never transfers player lifecycle ownership to Jangolova.
-- WebDriver Classic attachment to an existing caller-owned session, including Safari's `safaridriver`.
-- Named WebKit WebDriver attachment for WebKitGTK, WPE WebKit, and Safari.
-- **Blockade**: Pixel observation contract and external/managed YOLO/SAM vision
-  workers, with native ONNX support.
-- Target-preserving disconnect, active health, and lifecycle events.
+Jangolova provides the runtime-facing interaction and presentation tools.
+Blockade provides visual inference. Cymonkey hosts and coordinates those
+capabilities into one controlled operating surface.
 
-## Commands
+## Quick start
 
-`cymonkey`, `jangolova`, and `blockade` are separate executable surfaces.
-
-Build and run the host with standalone subsystem binaries on `PATH`:
+Build the executables and start Cymonkey:
 
 ```bash
+mkdir -p .cache/bin
 go build -o .cache/bin/cymonkey ./cmd/cymonkey
 go build -o .cache/bin/jangolova ./cmd/jangolova
 go build -o .cache/bin/blockade ./cmd/blockade
+
+export CYMONKEY_JANGOLOVA_TOKEN="replace-with-a-random-secret"
 PATH="$PWD/.cache/bin:$PATH" cymonkey run \
   --config infra/deploy/cymonkey/cymonkey.example.yaml
 ```
 
-The existing `jangolova` command remains independently usable, including its
-compatibility `jangolova blockade` subcommand.
-
-Discover installed interaction engines:
+The host manifest starts the interaction provider and visual inference service.
+After a target has been connected, request a visual observation with:
 
 ```bash
-jangolova engines
-jangolova engines --json
+PATH="$PWD/.cache/bin:$PATH" cymonkey observe \
+  --config infra/deploy/cymonkey/cymonkey.example.yaml \
+  --instance browser-1 \
+  --prompt "find the primary action"
 ```
 
-Attach directly to a browser already started by the native host or Xallet:
+## Operating model
 
-```bash
-jangolova connect-engine \
-  --adapter playwright \
-  --target-kind browser \
-  --endpoint cdp=http://127.0.0.1:9222
-```
+Cymonkey is not an agent or model gateway. Your agent, IDE, or application owns
+planning and decisions. Cymonkey enforces the boundary between that decision
+maker and the target runtime through explicit capabilities, policy, approvals,
+audit events, reviewed packages, and caller-supplied target connections.
 
-Cymonkey needs no extension for its CDP or WebDriver BiDi baseline. To add the
-optional persistent Jangolova WebExtension backend, build it with WXT and have
-the target owner install the unpacked extension from
-`pkg/browser-ext/.output/<browser>-mv3`:
+## Documentation
 
-```bash
-npm install --prefix pkg/browser-ext
-npm run build:browser-extension
-npm run build:macos-extension
-```
+- [Jangolova](jangolova/README.md)
+- [Blockade](blockade/README.md)
+- [Architecture](docs/architecture.md)
+- [Browser packages](docs/browser-augmentation-packages.md)
+- [Target connection security](docs/target-connection-security.md)
+- [Roadmap](docs/roadmap.md)
+- [Jangolova render modules](docs/jangolova-render-modules.md)
 
-Every browser artifact contains the Xallet Spook integration. It operates as an
-ordinary standalone Jangolova extension when Xallet Hub is absent and activates
-the Spook registration/control flow automatically when the hub is detected.
-
-```bash
-jangolova connect-engine \
-  --adapter cymonkey \
-  --target-kind browser \
-  --endpoint cdp=http://127.0.0.1:9222 \
-  --options '{"driver":"auto","extension":{"mode":"auto","id":"optional-installed-extension-id"}}'
-```
-
-`connect-engine` disconnects Jangolova when interrupted; it does not terminate
-the browser.
-
-Run the authenticated provider:
-
-```bash
-export JANGOLOVA_PROVIDER_TOKEN="replace-with-a-random-secret"
-jangolova serve-engine-provider --bind 127.0.0.1:7391
-```
-
-The provider accepts caller-owned targets, creates interaction instances, and
-exposes their semantic calls at `POST /v1/instances/{id}/call`.
-
-Expose the same direct Jangolova tools to an external agent through MCP. By
-default it uses stdio; pass `--bind` for Streamable HTTP:
-
-```bash
-export JANGOLOVA_PROVIDER_TOKEN="replace-with-a-random-secret"
-jangolova serve-mcp
-jangolova serve-mcp --bind 127.0.0.1:7393
-```
-
-Connection references, expiry, private certificate authorities, and output
-redaction are documented in
-[target connection security](docs/target-connection-security.md).
-Credential leases renew HTTP requests and reconnect CDP/BiDi workers without
-replacing the interaction instance or caller-owned runtime.
-Failed adapter attachments are re-created against the same caller-owned target
-without restarting that target or replaying semantic actions; see
-[attachment recovery](docs/attachment-recovery.md).
-
-## Ownership boundary
-
-```text
-Agent -> Cymonkey MCP tools -> Jangolova interaction engine -> caller-owned target
-             Playwright --- CDP ---------- Chromium
-             Puppeteer ---- CDP/BiDi ----- Chromium/Firefox
-             WebDriver ---- existing ----- WebKitGTK/WPE/Safari
-             Safari MCP --- MCP relay ---- Safari 27 beta/STP
-             Three.js/Unity/Unreal ------- presentation target
-             screenshot ------------------ Blockade observation
-```
-
-The repository boundary test prevents Chromium launch, native-process launch,
-surfaces, VNC, sessions, container placement, and other target-runtime concerns
-from returning to Jangolova product code. Test fixtures may create temporary
-targets solely to verify attachment portability.
-
-See [Architecture](docs/architecture.md), [Interaction provider](docs/engine-provider.md),
-[Cymonkey host](docs/cymonkey-host.md),
-[Deployment modes](docs/deployment-modes.md), [Bridge protocol](docs/bridge-protocol.md),
-[the headless engine test server runbook](docs/headless-engine-server.md),
-[Cymonkey runtime-agnostic augmentation](docs/cymonkey-runtime.md),
-[Cymonkey domains, runtimes, and drivers](docs/cymonkey-domains.md),
-[Cymonkey browser integration](docs/cymonkey.md),
-[browser-extension control plane](docs/browser-extension-control.md),
-[Cymonkey userscripts](docs/userscripts.md),
-[Jangolova macOS extension](docs/macos-extension.md),
-[interface creation and operation](docs/interface-model.md),
-[caller-supplied targets](docs/target-descriptor.md),
-[browser target protocols](docs/browser-target-protocols.md), and
-[Xallet boundary](docs/xallet-boundary.md).
-
-## Tests
+## Development
 
 ```bash
 go test ./...
-npm run test:browser-worker
 npm run test:cymonkey
-npm run test:userscripts
-npm run test:macos-extension
-npm run test:unity-package
-npm run test:unity-cymonkey-package
-npm run test:unreal-cymonkey-package
-npm run test:unreal-cymonkey-fixture
-npm run test:cymonkey-runtime-manifest
+npm run test:browser-extension
+npm run test:threejs-cymonkey
 ```
-
-The published Unreal 5.8 headless fixture is
-[`ghcr.io/webong/jangolova/unreal-cymonkey-gpu:5.8`](infra/deploy/unreal-cymonkey-gpu/README.md).
-Run its live protocol check with `JANGOLOVA_CYMONKEY_TOKEN` and
-`npm run test:unreal-cymonkey-live` after starting the container.
-
-The optional container fixture is documented in
-[tests/docker/README.md](tests/docker/README.md). Docker is not required by
-Jangolova itself.

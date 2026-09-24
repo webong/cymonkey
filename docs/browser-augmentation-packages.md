@@ -5,9 +5,10 @@ permissions, target selection, authentication, authorization, audit, storage,
 network rules, and packaged-script injection. It is not a catalogue of
 JavaScript libraries.
 
-Three.js, Snapchat Camera Kit, or another library are optional augmentation
-packages. A package is selected by the product builder or target owner, and is
-then shipped as reviewed extension code below:
+Three.js, Snapchat Camera Kit, and other Jangolova runtime libraries are
+optional augmentation packages. Cymonkey selects and mounts one for a target;
+the package owns the runtime-native semantics. It is then shipped as reviewed
+extension code below:
 
 ```text
 augmentations/<package-id>/
@@ -20,7 +21,7 @@ augmentations/<package-id>/
 The extension accepts only files below that package directory. It never
 downloads and executes an arbitrary npm package or remote JavaScript at
 runtime. That preserves WebExtension policy, makes the package reviewable, and
-keeps the capability boundary meaningful.
+keeps Cymonkey's entry boundary separate from the Jangolova library boundary.
 
 Every product artifact also carries `augmentations/registry.json`. A package
 is mountable only when it appears in that reviewed registry, its canonical

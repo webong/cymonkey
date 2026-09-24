@@ -24,7 +24,7 @@ test('reviewed package manifests constrain delivery, permissions, and CSP', asyn
   assert.match(builder, /BrowserPackageRegistry/);
 });
 
-test('sensitive package mounts require one-time extension UI approval', async () => {
+test('reviewed package mounts require one-time extension UI approval', async () => {
   const [approvals, augmentations, background, popup, policy] = await Promise.all([
     source('pkg/browser-ext/src/services/approvals.ts'),
     source('pkg/browser-ext/src/services/augmentations.ts'),

@@ -64,7 +64,7 @@ class ThreeJSBrowserAugmentation {
       if (request.method === 'hello') {
         return response(request, {
           ...this.#engine.hello(),
-          implementation: {name: 'cymonkey-threejs-browser-augmentation', version: '0.2.0'},
+          implementation: {name: 'jangolova-threejs-browser-augmentation', version: '0.2.0'},
           features: ['owned-canvas', 'owned-scene', 'stable-ids', 'events.cursor'],
         });
       }
@@ -109,7 +109,7 @@ class ThreeJSBrowserAugmentation {
     host.dataset.jangolovaCymonkeyAugmentation = this.#context.augmentationId;
     const shadow = host.attachShadow({mode: 'closed'});
     const canvas = document.createElement('canvas');
-    canvas.setAttribute('aria-label', 'Cymonkey Three.js augmentation');
+    canvas.setAttribute('aria-label', 'Jangolova Three.js augmentation');
     shadow.append(canvas);
     Object.assign(host.style, {
       position: 'fixed',

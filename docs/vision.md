@@ -19,7 +19,7 @@ The durable abstraction is semantic interaction—`capabilities`, `describe`,
 
 Operating includes semantic browser/scene actions and, when no richer contract
 exists, display-level observation plus pointer and keyboard actions. Creating
-includes dynamic web, Three.js, Unity, Unreal, and future presentation engines.
+includes dynamic web, Three.js, Godot, Unity, Unreal, Blender, and future presentation engines.
 In both cases Jangolova owns interface behavior while the target provider owns
 the runtime, display, and lifecycle.
 

@@ -1,8 +1,9 @@
-# Three.js Cymonkey
+# Jangolova runtime library for Three.js
 
-`@jangolova/threejs-cymonkey` implements the `render` domain of
-`cymonkey/v1alpha1` for explicitly registered Three.js resources. It
-never scans a scene, global variables, or the page for objects.
+`@jangolova/threejs-cymonkey` is Jangolova's runtime library for explicitly
+registered Three.js resources. It implements the `render` domain of
+`cymonkey/v1alpha1`; it never scans a scene, global variables, or the page for
+objects.
 
 ```ts
 const cymonkey = new ThreeJSCymonkey();
@@ -13,12 +14,13 @@ cymonkey.register({
 cymonkey.installGlobal();
 ```
 
-When used in a browser, a product-specific augmentation package bundles this
-runtime and exposes it through Cymonkey's generic private
-`cymonkey-engine.call` route, scoped to that augmentation's ID. The Browser
-Extension itself does not import or otherwise know about Three.js. The runtime
-remains protected by stable IDs and per-resource action allowlists; no render
-control is added to the public page API.
+When used in a browser, Cymonkey enters the tab and mounts a reviewed
+augmentation package containing this Jangolova library. Cymonkey routes opaque
+semantic requests through its private `cymonkey-engine.call` route, scoped to
+the augmentation ID. The Browser Extension does not import or otherwise know
+about Three.js. This library owns the Three.js semantics and remains protected
+by stable IDs and per-resource action allowlists; no render control is added to
+the public page API.
 
 ## Existing-tab augmentation package
 

@@ -55,7 +55,7 @@ display runtime.
 
 Jangolova selects the richest interaction level offered by a target:
 
-1. **Cooperative semantic interface** — a Three.js, Unity, Unreal, or native
+1. **Cooperative semantic interface** — a Three.js, Godot, Unity, Unreal, Blender, or native
    integration declares objects, actions, events, and state explicitly.
 2. **Runtime automation protocol** — Playwright, Puppeteer, WebDriver, or MCP
    inspects and operates browser content through a typed control endpoint.

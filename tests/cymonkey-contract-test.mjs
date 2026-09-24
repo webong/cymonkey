@@ -75,11 +75,12 @@ test("transport mappings expose semantics without raw protocol passthrough", asy
   assert.doesNotMatch(worker, /cdp\.call|bidi\.call|browser\.api|chrome\.evaluate/);
 });
 
-test("CDP interception rules are augmentation-owned and cleaned up before disconnect", async () => {
+test("CDP interception rules are augmentation-owned and cleaned up before the worker releases its connection", async () => {
   const worker = await source("scripts/cymonkey-worker.mjs");
   assert.match(worker, /existing\.augmentationId !== augmentationId/);
   assert.match(worker, /network rule \$\{id\} is not owned by augmentation/);
-  assert.match(worker, /await disableInterception\(\).*browser\.disconnect\(\)/s);
+  assert.match(worker, /async function disconnect\(\) \{\s*await disableInterception\(\);[\s\S]*?browser = null;/);
+  assert.doesNotMatch(worker, /async function disconnect\(\)[\s\S]*?browser\.disconnect\(/);
   assert.match(worker, /page\.setRequestInterception\(false\)/);
   assert.match(worker, /protocol === "cdp"/);
 });

@@ -22,7 +22,7 @@ inspect arbitrary Three.js objects, or embed vision engines.
 ## Jangolova runtime libraries
 
 Jangolova owns the libraries and adapters that run *inside* a target runtime:
-Three.js, Unity, Unreal, Godot, browser interaction, and future presentation
+Three.js, Godot, Unity, Unreal, Blender, browser interaction, and future presentation
 hosts. A library registers stable resources and an allowlist of semantic
 operations through the shared bridge contract. It owns the translation from a
 semantic request to a safe runtime-native operation.

@@ -41,7 +41,6 @@ the bearer token.
 | `jangolova_instance_describe` | Read instance status and connection metadata. |
 | `jangolova_instance_call` | Invoke `hello`, `capabilities`, `describe`, `act`, or `events`. |
 | `jangolova_instance_events` | Read retained lifecycle and audit events. |
-| `jangolova_instance_observe` | Request a configured Blockade observation; this is not an action. |
 | `jangolova_action_approval_request` / `resolve` | Follow an instance's approval policy. |
 | `jangolova_instance_disconnect` | Detach without stopping the target. |
 

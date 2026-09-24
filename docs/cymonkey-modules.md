@@ -1,9 +1,10 @@
-# Cymonkey runtime and driver modules
+# Cymonkey runtime entry and Jangolova library modules
 
-Cymonkey is an open augmentation contract. The standalone core owns the public
-module, policy, composite-routing, and conformance contracts. A host such as
-Jangolova owns authentication, target lifecycle, credentials, and the
-integration code that reaches a particular runtime or automation driver.
+Cymonkey is the open runtime-entry and augmentation contract. Jangolova owns
+the runtime-library and driver modules that execute semantic work after
+Cymonkey has entered an approved target. Cymonkey supplies mounting and routing;
+Jangolova supplies the integration code, authentication, target lifecycle, and
+credentials for a particular runtime or automation driver.
 
 This is deliberately not a raw-plugin escape hatch. A module may expose only
 typed Cymonkey capabilities through `hello`, `capabilities`, `describe`,
@@ -18,7 +19,7 @@ arbitrarily inspect caller-owned targets.
 | `runtime` | The concrete augmentable implementation. | `browser-dom`, `macos-app`, `godot` |
 | `driver` | The implementation that translates Cymonkey operations for a target. | `playwright`, `puppeteer`, `macos-cooperative`, `websocket` |
 | `transport` | The wire mechanism used by a driver. | `cdp`, `webdriver-bidi`, `websocket`, Apple Events |
-| `module` | A versioned Cymonkey contribution that provides a runtime or driver. | `browser.playwright`, `render.godot` |
+| `module` | A versioned Jangolova contribution mounted or reached through Cymonkey. | `browser.playwright`, `render.godot` |
 
 Playwright and Puppeteer are drivers. CDP and WebDriver BiDi are transports
 they use. A browser tab is the caller-owned target; `browser-dom` is the
