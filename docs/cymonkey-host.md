@@ -1,6 +1,6 @@
 # Cymonkey host and operator
 
-Cymonkey is the composition layer around two standalone subsystems:
+Cymonkey is the composition layer around two standalone libraries:
 
 ```text
 Cymonkey host
@@ -9,8 +9,8 @@ Cymonkey host
 ```
 
 The host owns process lifecycle, composition configuration, and operator-level
-coordination. It does not absorb either subsystem's implementation or make
-their standalone commands depend on the host.
+coordination. It does not absorb either library's implementation or make the
+libraries depend on the host.
 
 ## Standalone boundaries
 
@@ -18,8 +18,8 @@ Jangolova and Blockade can be built, deployed, upgraded, tested, and run
 independently:
 
 ```sh
-jangolova serve-mcp --bind 127.0.0.1:7393
-blockade serve --config infra/deploy/blockade/blockade.example.yaml \
+cymonkey provider serve-mcp --bind 127.0.0.1:7393
+cymonkey blockade serve --config infra/deploy/blockade/blockade.example.yaml \
   --bind 127.0.0.1:8091
 ```
 

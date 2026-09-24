@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const root = new URL(
-  "../integrations/unity/com.jangolova.bridge/",
+  "../pkg/unity/com.jangolova.bridge/",
   import.meta.url,
 );
 const manifest = JSON.parse(await readFile(new URL("package.json", root)));
@@ -28,7 +28,7 @@ const scene = await readFile(
   "utf8",
 );
 const goProtocol = await readFile(
-  new URL("../internal/bridge/protocol.go", import.meta.url),
+  new URL("../src/internal/bridge/protocol.go", import.meta.url),
   "utf8",
 );
 

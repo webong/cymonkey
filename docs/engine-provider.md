@@ -23,7 +23,7 @@ own its renderer or lifecycle.
 
 ```bash
 export JANGOLOVA_PROVIDER_TOKEN="a-random-session-secret"
-jangolova serve-engine-provider --bind 127.0.0.1:7391
+cymonkey provider serve-engine-provider --bind 127.0.0.1:7391
 ```
 
 ## Operations
@@ -48,7 +48,7 @@ Cymonkey action is a separate, policy- and approval-governed request.
 
 ## Direct MCP tools
 
-`jangolova serve-mcp` exposes the same Engine Provider operations as direct
+`cymonkey provider serve-mcp` exposes the same Engine Provider operations as direct
 MCP tools over stdio, or Streamable HTTP with `--bind`. It has no model
 connector, agent session, prompt endpoint, or internal planning loop.
 

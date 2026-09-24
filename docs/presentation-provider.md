@@ -60,7 +60,7 @@ or shutdown API.
 
 The artifact model supports inline `{html, css, js}`, structured presentation
 documents, and versioned artifact references defined by the
-[provider-neutral schema](../protocol/presentation/v1/artifact.schema.json).
+[provider-neutral schema](../src/protocol/presentation/v1/artifact.schema.json).
 Artifact bytes do not pass through Jangolova. The attached engine loads one of
 the caller-supplied locations directly.
 

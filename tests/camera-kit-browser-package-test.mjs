@@ -9,7 +9,7 @@ const source = (path) => readFile(new URL(path, root), 'utf8');
 test('Camera Kit is composed only into Chrome-family sandbox builds', async () => {
   const extensionPackage = await source('pkg/browser-ext/package.json');
   const productBuilder = await source('scripts/build-browser-product.mjs');
-  const product = JSON.parse(await source('products/browser/camera-kit.json'));
+  const product = JSON.parse(await source('infra/browser/camera-kit.json'));
   assert.doesNotMatch(extensionPackage, /camera-kit|@snap\//);
   assert.equal(product.kind, 'BrowserExtensionProduct');
   assert.match(productBuilder, /BrowserPackageRegistry/);

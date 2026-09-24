@@ -10,9 +10,9 @@ test('generated browser-extension bindings match the checked-in schema', async (
   });
   assert.equal(result.status, 0, result.stderr || result.stdout);
   const [schema, typescript, go] = await Promise.all([
-    readFile(new URL('protocol/browser-extension/v1alpha1/protocol.schema.json', root), 'utf8'),
+    readFile(new URL('src/protocol/browser-extension/v1alpha1/protocol.schema.json', root), 'utf8'),
     readFile(new URL('pkg/browser-ext/src/generated/browser-extension-v1alpha1.ts', root), 'utf8'),
-    readFile(new URL('internal/browserextensionprotocol/generated_v1alpha1.go', root), 'utf8'),
+    readFile(new URL('src/internal/browserextensionprotocol/generated_v1alpha1.go', root), 'utf8'),
   ]);
   const parsed = JSON.parse(schema);
   const methods = parsed.$defs.controlCall.allOf[0].then.properties.method.enum;
@@ -23,6 +23,6 @@ test('generated browser-extension bindings match the checked-in schema', async (
 });
 
 test('browser control protocol accepts one Cymonkey envelope', async () => {
-  const schema = JSON.parse(await readFile(new URL('protocol/browser-extension/v1alpha1/protocol.schema.json', root), 'utf8'));
+  const schema = JSON.parse(await readFile(new URL('src/protocol/browser-extension/v1alpha1/protocol.schema.json', root), 'utf8'));
   assert.equal(schema.$defs.controlCall.properties.type.const, 'CYMONKEY_EXTENSION_CALL');
 });

@@ -14,7 +14,7 @@ interaction domains are [`viewer`, `render`, and `player`](cymonkey-domains.md).
 bridge.
 
 The canonical schemas and portable conformance suite live with the standalone
-core in `protocol/cymonkey/` and `tests/cymonkey-core-conformance.mjs`. Jangolova
+core in `src/protocol/cymonkey/` and `tests/cymonkey-core-conformance.mjs`. Jangolova
 integrations consume those assets; they do not define a separate protocol.
 
 ## Boundary and ownership

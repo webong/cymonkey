@@ -174,10 +174,10 @@ This lets a target owner choose a small reviewed set—for example, a Three.js
 overlay *or* a Camera Kit package—without making every browser installation
 carry every SDK.
 
-A browser product is declared in `products/browser/*.json` and built with:
+A browser product is declared in `infra/browser/*.json` and built with:
 
 ```sh
-npm run build:browser-product -- products/browser/camera-kit.json
+npm run build:browser-product -- infra/browser/camera-kit.json
 npm run build:threejs-browser-package
 ```
 

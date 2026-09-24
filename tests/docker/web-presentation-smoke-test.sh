@@ -43,7 +43,7 @@ credential_expires_at="$(node -e 'process.stdout.write(new Date(Date.now() + 100
 credential_document="{\"apiVersion\":\"interaction.connection/v1alpha1\",\"kind\":\"credential\",\"headers\":{\"Authorization\":\"${cdp_authorization}\"},\"expiresAt\":\"${credential_expires_at}\"}"
 printf '%s\n' "${credential_document}" > "${credential_path}"
 JANGOLOVA_CONNECTION_MATERIAL_DIR="${material_root}" JANGOLOVA_PROVIDER_TOKEN="${token}" \
-  bin/jangolova serve-engine-provider --bind 127.0.0.1:7392 > "${provider_log}" 2>&1 &
+  bin/cymonkey provider serve-engine-provider --bind 127.0.0.1:7392 > "${provider_log}" 2>&1 &
 provider_pid=$!
 
 cleanup() {

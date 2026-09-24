@@ -93,19 +93,19 @@ server:
 ```sh
 docker build --progress=plain --platform linux/amd64 \
   --build-arg GODOT_IMAGE=barichello/godot-ci:4.3 \
-  -f deploy/godot-cymonkey-gpu/Containerfile \
+  -f infra/deploy/godot-cymonkey-gpu/Containerfile \
   -t "${REGISTRY}/jangolova-godot-cymonkey-gpu:4.3" .
 
 docker build --progress=plain --platform linux/amd64 \
   --build-arg UNITY_EDITOR_IMAGE="${REGISTRY}/unity-editor:${VERSION}" \
-  -f deploy/unity-cymonkey-gpu/Containerfile \
+  -f infra/deploy/unity-cymonkey-gpu/Containerfile \
   -t "${REGISTRY}/jangolova-unity-cymonkey-gpu:${VERSION}" .
 
 docker build --progress=plain --platform linux/amd64 \
   --build-arg UE_BUILD_IMAGE="${REGISTRY}/unreal-build:5.3" \
   --build-arg UE_RUNTIME_IMAGE="${REGISTRY}/unreal-runtime:5.3" \
   --build-arg UE_ROOT=/opt/UnrealEngine \
-  -f deploy/unreal-cymonkey-gpu/Containerfile \
+  -f infra/deploy/unreal-cymonkey-gpu/Containerfile \
   -t "${REGISTRY}/jangolova-unreal-cymonkey-gpu:5.3" .
 
 docker push "${REGISTRY}/jangolova-godot-cymonkey-gpu:4.3"
@@ -165,7 +165,7 @@ docker login ghcr.io
 docker build --platform linux/amd64 \
   --build-arg UNITY_EDITOR_IMAGE=ghcr.io/ORG/unity-editor:2022.3 \
   --build-arg UNITY_CONTAINER_USER=root \
-  -f deploy/unity-cymonkey-gpu/Containerfile \
+  -f infra/deploy/unity-cymonkey-gpu/Containerfile \
   -t ghcr.io/ORG/jangolova-unity-cymonkey-gpu:2022.3 .
 
 docker push ghcr.io/ORG/jangolova-unity-cymonkey-gpu:2022.3
@@ -199,7 +199,7 @@ docker build --platform linux/amd64 \
   --build-arg UE_BUILD_IMAGE=ghcr.io/ORG/unreal-build:5.3 \
   --build-arg UE_RUNTIME_IMAGE=ghcr.io/ORG/unreal-runtime:5.3 \
   --build-arg UE_ROOT=/opt/UnrealEngine \
-  -f deploy/unreal-cymonkey-gpu/Containerfile \
+  -f infra/deploy/unreal-cymonkey-gpu/Containerfile \
   -t ghcr.io/ORG/jangolova-unreal-cymonkey-gpu:5.3 .
 
 docker push ghcr.io/ORG/jangolova-unreal-cymonkey-gpu:5.3
@@ -213,7 +213,7 @@ built without a private editor or activation secret:
 ```sh
 docker build --platform linux/amd64 \
   --build-arg GODOT_IMAGE=barichello/godot-ci:4.3 \
-  -f deploy/godot-cymonkey-gpu/Containerfile \
+  -f infra/deploy/godot-cymonkey-gpu/Containerfile \
   -t ghcr.io/ORG/jangolova-godot-cymonkey-gpu:4.3 .
 
 docker push ghcr.io/ORG/jangolova-godot-cymonkey-gpu:4.3

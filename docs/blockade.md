@@ -38,7 +38,7 @@ Cymonkey may supervise the standalone `blockade` executable alongside the
 standalone `jangolova` tool server. Blockade remains usable without Cymonkey:
 
 ```sh
-blockade serve --config infra/deploy/blockade/blockade.example.yaml
+cymonkey blockade serve --config infra/deploy/blockade/blockade.example.yaml
 ```
 
 The host only manages process lifecycle and composition. It does not absorb
@@ -119,10 +119,10 @@ providerAdapters:
 
 Only environment references are accepted under `secrets`; plaintext secret
 fields and credential-like settings are rejected. Use `--inference
-hosted-vision` with `blockade observe` or `blockade serve`. The legacy
+hosted-vision` with `cymonkey blockade observe` or `cymonkey blockade serve`. The legacy
 `--engine` flag remains an alias during migration.
 
-The public and provider-adapter schemas are in `protocol/blockade/v1alpha1/`.
+The public and provider-adapter schemas are in `lib/blockade/protocol/v1alpha1/`.
 The local worker implementation is in `infra/deploy/blockade/`.
 
 ## WebLLM/WebGPU backend
@@ -158,7 +158,7 @@ WebLLM module defaults to `https://esm.run/@mlc-ai/web-llm@0.2.84`; a trusted
 HTTPS mirror can be selected with `moduleURL`.
 
 The adapter reports `image.observe` and `vision.language`. Model loading is
-asynchronous, so production startup should run `blockade serve` and wait until
+asynchronous, so production startup should run `cymonkey blockade serve` and wait until
 `/healthz` becomes ready before sending observations. This backend is
 experimental while upstream WebLLM vision support matures. See
 [`docs/blockade-webllm.md`](blockade-webllm.md) for operation and limitations.

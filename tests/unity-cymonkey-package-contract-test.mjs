@@ -8,7 +8,7 @@ const bridge = await readFile(new URL("Runtime/CymonkeyBridge.cs", root), "utf8"
 const server = await readFile(new URL("Runtime/CymonkeyWebSocketServer.cs", root), "utf8");
 const host = await readFile(new URL("Runtime/CymonkeyWebSocketHost.cs", root), "utf8");
 const transport = await readFile(new URL("Runtime/ICymonkeyTransportHost.cs", root), "utf8");
-const goProtocol = await readFile(new URL("../src/jangolova/contract/protocol.go", import.meta.url), "utf8");
+const goProtocol = await readFile(new URL("../lib/jangolova/contract/protocol.go", import.meta.url), "utf8");
 
 assert.equal(manifest.name, "com.cymonkey.jangolova");
 assert.equal(manifest.unity, "2022.3");

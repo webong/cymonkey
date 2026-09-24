@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	contract "cymonkey/src/jangolova/contract"
-	"cymonkey/src/jangolova/sdk"
+	contract "cymonkey/lib/jangolova/contract"
+	"cymonkey/lib/jangolova/sdk"
 )
 
 // windowsCooperativeBackend intentionally shares the authenticated helper

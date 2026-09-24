@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const productPath = process.argv[2];
 if (!productPath || !safeRepositoryPath(productPath) || !productPath.endsWith('.json')) {
-  throw new Error('usage: node scripts/build-browser-product.mjs products/browser/<product>.json');
+  throw new Error('usage: node scripts/build-browser-product.mjs infra/browser/<product>.json');
 }
 const product = validateProduct(await json(`${root}${productPath}`));
 const extension = `${root}pkg/browser-ext`;

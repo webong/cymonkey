@@ -42,7 +42,7 @@ metadata and optional platform artifacts; Cymonkey does not treat a source
 directory as an installed plugin.
 
 The checked-in reference snapshot is
-[`src/jangolova/registry/index.json`](../src/jangolova/registry/index.json). Production
+[`lib/jangolova/registry/index.json`](../lib/jangolova/registry/index.json). Production
 hosts should call the registry discovery client with a configured HTTPS
 endpoint, then pull only the selected artifact after policy approval.
 

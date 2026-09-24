@@ -3,11 +3,11 @@
 Read the current repository sources before implementing because the checked-in
 schema is authoritative:
 
-- `protocol/blockade/v1alpha1/observation.schema.json`
-- `protocol/blockade/v1alpha1/provider-adapter.schema.json`
-- `internal/blockade/protocol.go`
-- `internal/blockade/provider_adapter.go`
-- `internal/blockade/validate.go`
+- `lib/blockade/protocol/v1alpha1/observation.schema.json`
+- `lib/blockade/protocol/v1alpha1/provider-adapter.schema.json`
+- `lib/blockade/protocol.go`
+- `lib/blockade/provider_adapter.go`
+- `lib/blockade/validate.go`
 - `docs/blockade.md`
 - `docs/subsystem-boundaries.md`
 

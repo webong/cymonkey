@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
-	contract "cymonkey/src/jangolova/contract"
-	"cymonkey/src/jangolova/sdk"
+	contract "cymonkey/lib/jangolova/contract"
+	"cymonkey/lib/jangolova/sdk"
 )
 
 // Backend is the runtime-specific boundary below Jangolova's public semantic

@@ -13,7 +13,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"cymonkey/src/jangolova/sdk"
+	"cymonkey/lib/jangolova/sdk"
 )
 
 const engineMaxMessageBytes = 4 * 1024 * 1024

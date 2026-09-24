@@ -94,7 +94,7 @@ The `display-interaction` engine supports policy restrictions to protect sensiti
 Connect to a caller-owned VNC server:
 
 ```bash
-jangolova connect-engine \
+cymonkey provider connect-engine \
   --adapter display-interaction \
   --target-kind display \
   --endpoint vnc=vnc://127.0.0.1:5900

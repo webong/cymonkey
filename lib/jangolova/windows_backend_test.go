@@ -2,7 +2,6 @@ package jangolova
 
 import (
 	"context"
-	"cymonkey/internal/jangolovahost"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -10,12 +9,12 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	contract "cymonkey/src/jangolova/contract"
-	"cymonkey/src/jangolova/sdk"
+	contract "cymonkey/lib/jangolova/contract"
+	"cymonkey/lib/jangolova/sdk"
 )
 
 func TestWindowsCooperativeBackendNegotiatesOwnerHelper(t *testing.T) {
-	connected, err := (Adapter{Host: jangolovahost.Services()}).Connect(context.Background(), sdk.EngineSpec{Options: json.RawMessage(`{"domain":"viewer"}`)}, sdk.EngineTarget{Kind: "windows-application"})
+	connected, err := (Adapter{Host: testHost()}).Connect(context.Background(), sdk.EngineSpec{Options: json.RawMessage(`{"domain":"viewer"}`)}, sdk.EngineTarget{Kind: "windows-application"})
 	if err != nil {
 		t.Fatal(err)
 	}

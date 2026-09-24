@@ -21,7 +21,7 @@ engines:
 #         env: BLOCKADE_HOSTED_VISION_TOKEN
 
 # Browser-local WebGPU inference is included in the stock Blockade binary.
-# Model loading is asynchronous; use `blockade serve` and gate traffic on
+# Model loading is asynchronous; use `cymonkey blockade serve` and gate traffic on
 # /healthz so a cold cache can finish downloading before the first request.
 # providerAdapters:
 #   - id: browser-vlm

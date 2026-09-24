@@ -9,7 +9,7 @@ Use this skill when an agent must make an engine controllable by Jangolova. Keep
 
 ## Choose the runtime
 
-- Godot: build `deploy/godot-cymonkey-gpu/Containerfile`; it is the license-free reference runtime.
+- Godot: build `infra/deploy/godot-cymonkey-gpu/Containerfile`; it is the license-free reference runtime.
 - Unreal: pull `ghcr.io/webong/jangolova/unreal-cymonkey-gpu:5.8` for the packaged fixture, or install `pkg/unreal-cymonkey` from the GitHub Release for a custom project.
 - Unity: supply a licensed private Unity Linux Editor base; never invent or embed Unity credentials.
 

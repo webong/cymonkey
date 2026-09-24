@@ -2,7 +2,6 @@ package jangolova
 
 import (
 	"context"
-	"cymonkey/internal/jangolovahost"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -14,8 +13,8 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	contract "cymonkey/src/jangolova/contract"
-	"cymonkey/src/jangolova/sdk"
+	contract "cymonkey/lib/jangolova/contract"
+	"cymonkey/lib/jangolova/sdk"
 )
 
 func TestMacOSCooperativeBackendHandshakesAndEnforcesBundlePolicy(t *testing.T) {
@@ -23,7 +22,7 @@ func TestMacOSCooperativeBackendHandshakesAndEnforcesBundlePolicy(t *testing.T) 
 		"domain":"viewer",
 		"policy":{"allowedBundleIds":["com.example.Allowed"]}
 	}`)}
-	connected, err := (Adapter{Host: jangolovahost.Services()}).Connect(context.Background(), spec, sdk.EngineTarget{Kind: "macos-application"})
+	connected, err := (Adapter{Host: testHost()}).Connect(context.Background(), spec, sdk.EngineTarget{Kind: "macos-application"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +64,7 @@ func TestMacOSSwiftHelperLive(t *testing.T) {
 	if executable == "" {
 		t.Skip("set JANGOLOVA_CYMONKEY_MACOS_HELPER to the test-built Swift helper")
 	}
-	connected, err := (Adapter{Host: jangolovahost.Services()}).Connect(context.Background(), sdk.EngineSpec{Options: json.RawMessage(`{"domain":"viewer"}`)}, sdk.EngineTarget{Kind: "macos-application"})
+	connected, err := (Adapter{Host: testHost()}).Connect(context.Background(), sdk.EngineSpec{Options: json.RawMessage(`{"domain":"viewer"}`)}, sdk.EngineTarget{Kind: "macos-application"})
 	if err != nil {
 		t.Fatal(err)
 	}

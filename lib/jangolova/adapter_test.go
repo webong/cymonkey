@@ -2,7 +2,6 @@ package jangolova
 
 import (
 	"context"
-	"cymonkey/internal/jangolovahost"
 	"encoding/json"
 	"path/filepath"
 	"runtime"
@@ -10,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	contract "cymonkey/src/jangolova/contract"
-	"cymonkey/src/jangolova/sdk"
+	contract "cymonkey/lib/jangolova/contract"
+	"cymonkey/lib/jangolova/sdk"
 )
 
 const fixtureExtensionID = "abcdefghijklmnopabcdefghijklmnop"
@@ -22,7 +21,7 @@ func TestAdapterDefaultsToNoInstallCDPAndDisconnects(t *testing.T) {
 		t.Fatal(err)
 	}
 	options, _ := json.Marshal(map[string]string{"workerPath": worker})
-	connected, err := (Adapter{Host: jangolovahost.Services()}).Connect(context.Background(), sdk.EngineSpec{Options: options}, sdk.EngineTarget{
+	connected, err := (Adapter{Host: testHost()}).Connect(context.Background(), sdk.EngineSpec{Options: options}, sdk.EngineTarget{
 		Kind: "browser",
 		Endpoints: []sdk.TargetEndpoint{{
 			Name: "control", Protocol: "cdp", URL: "wss://browser.remote.example/devtools/browser/42",
@@ -47,7 +46,7 @@ func TestAdapterDefaultsToNoInstallCDPAndDisconnects(t *testing.T) {
 
 func TestAdapterRequiresCallerOwnedCompatibleBrowserTarget(t *testing.T) {
 	t.Parallel()
-	adapter := Adapter{Host: jangolovahost.Services()}
+	adapter := Adapter{Host: testHost()}
 	for name, fixture := range map[string]struct {
 		spec   sdk.EngineSpec
 		target sdk.EngineTarget
@@ -111,7 +110,7 @@ func TestRuntimeDomainIsInferredFromCallerOwnedTarget(t *testing.T) {
 }
 
 func TestViewerDomainReturnsCallerOwnedNativeHelperLaunchMaterial(t *testing.T) {
-	connected, err := (Adapter{Host: jangolovahost.Services()}).Connect(context.Background(), sdk.EngineSpec{Options: json.RawMessage(`{"domain":"viewer"}`)}, sdk.EngineTarget{Kind: "macos-application"})
+	connected, err := (Adapter{Host: testHost()}).Connect(context.Background(), sdk.EngineSpec{Options: json.RawMessage(`{"domain":"viewer"}`)}, sdk.EngineTarget{Kind: "macos-application"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,7 +191,7 @@ func TestInspectionFindsRepositoryWorker(t *testing.T) {
 	}
 	worker := filepath.Join(filepath.Dir(file), "..", "..", "scripts", "cymonkey-worker.mjs")
 	t.Setenv("JANGOLOVA_CYMONKEY_WORKER", worker)
-	inspection := (Adapter{Host: jangolovahost.Services()}).InspectEngine(context.Background())
+	inspection := (Adapter{Host: testHost()}).InspectEngine(context.Background())
 	if !inspection.Available || !contains(inspection.Capabilities, "script.register") {
 		t.Fatalf("InspectEngine() = %#v", inspection)
 	}

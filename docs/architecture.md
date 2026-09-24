@@ -165,41 +165,55 @@ Every callable interaction engine uses the common bridge methods:
 The authenticated, provider-neutral `interaction.engine/v1alpha1` HTTP API transports those
 calls. The cooperative Unity bridge implements the same vocabulary.
 
+The repository uses `src/` for Cymonkey provider code, generic contracts,
+adapters, and protocol assets. Standalone Jangolova and Blockade libraries live
+under root `lib/`; `src/main.go` is the single Cymonkey interface binary. `pkg/`
+remains the distribution surface for runtime packages and platform products,
+while `tests/` remains the conformance and fixture surface.
+
 ## Package direction
 
 ```text
-cmd/jangolova/              CLI and authenticated provider
-internal/engineprovider/    target-in / semantic-call protocol
-internal/orchestrator/      interaction lifecycle and target contracts
-internal/bridge/            engine-neutral semantic methods
-internal/engineprovider/    direct HTTP/MCP tools, target policy, and audit
-adapters/browserautomation/ Playwright CDP and Puppeteer CDP/BiDi attachment
-cymonkey/                   Jangolova's temporary public import façade
-src/jangolova/contract/     public runtime wire contract
-src/jangolova/sdk/          public types and host-injection interfaces
-internal/jangolovahost/     Cymonkey private/public adapter binding
-internal/cymonkeycore/      Cymonkey core registry/composition/conformance code
-lib/jangolova/
-                            Jangolova-owned browser, macOS, and engine adapters
-protocol/cymonkey/          canonical versioned Cymonkey schemas
+src/main.go/                   single Cymonkey operator/interface binary
+src/provider/                  provider and MCP implementation
+src/fixtures/native-bridge/    native bridge fixture implementation
+lib/blockade/                  standalone Blockade inference library
+src/adapters/browserautomation/ Playwright CDP and Puppeteer CDP/BiDi attachment
+src/adapters/webdriverclassic/  existing W3C WebDriver session attachment
+src/adapters/safarimcp/         caller-owned Safari MCP relay attachment
+src/adapters/displayinteraction/ provider-neutral VNC/WebRTC/Wayland interaction
+src/adapters/webpresentation/   declarative web presentation adapter
+src/internal/engineprovider/    target-in / semantic-call protocol
+src/internal/orchestrator/      interaction lifecycle and target contracts
+src/internal/bridge/            engine-neutral semantic methods
+src/internal/builtin/           built-in engine registration
+src/internal/hostbinding/       Cymonkey binding into the Jangolova host boundary
+src/internal/cymonkeycore/      core registry/composition/conformance code
+src/host/                       Cymonkey host supervisor and observation coordinator
+lib/jangolova/                  standalone Jangolova library and host boundary
+lib/jangolova/host/             Jangolova host service injection contract
+lib/blockade/                   standalone Blockade inference library
+lib/blockade/protocol/          Blockade schemas and fixtures
+src/targetconn/               caller-owned target connection helpers
+lib/jangolova/contract/         public runtime wire contract
+lib/jangolova/sdk/              public types and host-injection interfaces
+lib/jangolova/registry/         reviewed module discovery and activation
+src/protocol/cymonkey/          canonical versioned Cymonkey schemas
+src/protocol/browser-extension/ schema, recorded exchanges, and generated binding source
+src/internal/browserextensionprotocol/ generated Go browser-extension bindings
 tests/cymonkey-core-conformance.mjs  portable Cymonkey contract checks
-adapters/webdriverclassic/  existing W3C WebDriver session attachment
-adapters/safarimcp/         caller-owned Safari MCP relay attachment
-adapters/displayinteraction/ provider-neutral VNC/WebRTC/Wayland display interaction
-pkg/browser-ext/           single-build WXT runtime with optional Xallet Spook activation
-pkg/macos-cymonkey-helper/  caller-owned Swift Apple Events/Accessibility binding
-pkg/macos-ext/              menu-bar host, managed helper mode, and Safari container
-pkg/userscript-runtime/     shared Cymonkey userscript validation and registration planning
-protocol/browser-extension/ schema, recorded exchanges, and generated binding source
-internal/browserextensionprotocol/ generated Go browser-extension bindings
-pkg/threejs-cymonkey/         explicit-registration Three.js Cymonkey runtime
-pkg/                          distributable Godot, Unity, and Unreal Cymonkey packages
-tests/godot-cymonkey-fixture/ license-free Godot conformance project
-tests/unreal-cymonkey-fixture/ caller-owned Unreal conformance project
-deploy/engine-runtime/      optional interaction artifact
-deploy/godot-cymonkey-fixture/ optional headless Godot target image
-deploy/unreal-cymonkey-fixture/ optional packaged Unreal target image
-tests/docker/               target-owning portability fixture only
+pkg/browser-ext/                single-build WXT runtime with optional Xallet Spook activation
+pkg/macos-cymonkey-helper/       caller-owned Swift Apple Events/Accessibility binding
+pkg/macos-ext/                   menu-bar host, managed helper mode, and Safari container
+pkg/userscript-runtime/          shared userscript validation and registration planning
+pkg/threejs-cymonkey/            explicit-registration Three.js runtime
+pkg/                             distributable Godot, Unity, and Unreal Cymonkey packages
+tests/godot-cymonkey-fixture/    license-free Godot conformance project
+tests/unreal-cymonkey-fixture/   caller-owned Unreal conformance project
+infra/deploy/engine-runtime/     optional interaction artifact
+infra/deploy/godot-cymonkey-fixture/ optional headless Godot target image
+infra/deploy/unreal-cymonkey-fixture/ optional packaged Unreal target image
+tests/docker/                    target-owning portability fixture only
 ```
 
 No package imports Xallet. No product adapter provisions a target runtime.

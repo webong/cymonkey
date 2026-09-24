@@ -4,15 +4,15 @@
 
 ```sh
 # Direct agent integration through stdio MCP.
-JANGOLOVA_PROVIDER_TOKEN=<injected-secret> jangolova serve-mcp
+JANGOLOVA_PROVIDER_TOKEN=<injected-secret> cymonkey provider serve-mcp
 
 # Direct MCP over Streamable HTTP.
 JANGOLOVA_PROVIDER_TOKEN=<injected-secret> \
-  jangolova serve-mcp --bind 127.0.0.1:7393
+  cymonkey provider serve-mcp --bind 127.0.0.1:7393
 
 # Provider HTTP API for services.
 JANGOLOVA_PROVIDER_TOKEN=<injected-secret> \
-  jangolova serve-engine-provider --bind 127.0.0.1:7391
+  cymonkey provider serve-engine-provider --bind 127.0.0.1:7391
 ```
 
 Keep the token in the process environment or the client secret store. Do not
@@ -74,7 +74,7 @@ that material to the authorized target owner through an approved secure channel.
 The owner adds the absolute `JANGOLOVA_CYMONKEY_CONFIG` path and launches the
 signed platform helper.
 
-The direct `jangolova connect-engine` command is intentionally excluded from
+The direct `cymonkey provider connect-engine` command is intentionally excluded from
 this flow: it holds an attachment only for its own process lifetime and its
 terminal output does not include `callerLaunch`. Use Provider HTTP or MCP for
 native helpers.

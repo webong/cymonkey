@@ -9,7 +9,7 @@ const source = (path) => readFile(new URL(path, root), 'utf8');
 test('Three.js is a reviewed ordinary augmentation package', async () => {
   const [manifestText, productText, packageSource, extensionPackage, extensionCapabilities] = await Promise.all([
     source('pkg/threejs-cymonkey/browser-package.json'),
-    source('products/browser/threejs.json'),
+    source('infra/browser/threejs.json'),
     source('pkg/threejs-cymonkey/src/content.ts'),
     source('pkg/browser-ext/package.json'),
     source('pkg/browser-ext/src/capabilities.ts'),

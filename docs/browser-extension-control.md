@@ -88,7 +88,7 @@ operation, and this WebSocket remain runtime choices in one build.
 ## Generated bindings
 
 The canonical schema is
-`protocol/browser-extension/v1alpha1/protocol.schema.json`. Generate the
+`src/protocol/browser-extension/v1alpha1/protocol.schema.json`. Generate the
 checked-in TypeScript and Go bindings with:
 
 ```sh
@@ -96,7 +96,7 @@ npm run generate:browser-extension-protocol
 npm run check:browser-extension-protocol
 ```
 
-Recorded exchanges under `protocol/browser-extension/v1alpha1/fixtures`
+Recorded exchanges under `src/protocol/browser-extension/v1alpha1/fixtures`
 verify the one `CYMONKEY_EXTENSION_CALL` envelope, including its nested
 `cymonkey.call` subsystem method. Generated files include the source schema
 digest and must not be edited manually.

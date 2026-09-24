@@ -10,7 +10,7 @@ const transport = await readFile(new URL("Source/JangolovaCymonkey/Public/ICymon
 const router = await readFile(new URL("Source/JangolovaCymonkey/Private/CymonkeyRequestRouter.cpp", root), "utf8");
 const host = await readFile(new URL("Source/JangolovaCymonkey/Private/CymonkeyWebSocketHost.cpp", root), "utf8");
 const hostHeader = await readFile(new URL("Source/JangolovaCymonkey/Public/CymonkeyWebSocketHost.h", root), "utf8");
-const goProtocol = await readFile(new URL("../src/jangolova/contract/protocol.go", import.meta.url), "utf8");
+const goProtocol = await readFile(new URL("../lib/jangolova/contract/protocol.go", import.meta.url), "utf8");
 
 assert.equal(plugin.Modules[0].Name, "JangolovaCymonkey");
 assert.equal(plugin.Modules[0].Type, "Runtime");

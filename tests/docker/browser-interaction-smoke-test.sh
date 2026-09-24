@@ -20,7 +20,7 @@ chromium \
   --user-data-dir="${profile_path}" \
   about:blank >/tmp/jangolova-target.log 2>&1 &
 target_pid=$!
-JANGOLOVA_PROVIDER_TOKEN="${token}" bin/jangolova serve-engine-provider --bind 127.0.0.1:7391 >"${provider_log}" 2>&1 &
+JANGOLOVA_PROVIDER_TOKEN="${token}" bin/cymonkey provider serve-engine-provider --bind 127.0.0.1:7391 >"${provider_log}" 2>&1 &
 provider_pid=$!
 
 cleanup() {

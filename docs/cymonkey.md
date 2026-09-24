@@ -189,7 +189,7 @@ method appearing in a specification is not sufficient reason to advertise it.
 ## Augmentation manifest and persistence
 
 An augmentation is a versioned semantic declaration. The schema is
-`protocol/cymonkey/v1alpha2/augmentation.schema.json`.
+`src/protocol/cymonkey/v1alpha2/augmentation.schema.json`.
 
 ```json
 {
@@ -300,7 +300,7 @@ the appropriate product; Jangolova does not install it.
 No-install CDP baseline:
 
 ```sh
-jangolova connect-engine \
+cymonkey provider connect-engine \
   --adapter cymonkey \
   --target-kind browser \
   --endpoint cdp=http://127.0.0.1:9222 \
@@ -310,7 +310,7 @@ jangolova connect-engine \
 First-class BiDi baseline:
 
 ```sh
-jangolova connect-engine \
+cymonkey provider connect-engine \
   --adapter cymonkey \
   --target-kind browser \
   --endpoint webdriver-bidi=ws://127.0.0.1:9222/session \
@@ -320,7 +320,7 @@ jangolova connect-engine \
 Require a provider-installed extension on CDP:
 
 ```sh
-jangolova connect-engine \
+cymonkey provider connect-engine \
   --adapter cymonkey \
   --target-kind browser \
   --endpoint cdp=http://127.0.0.1:9222 \

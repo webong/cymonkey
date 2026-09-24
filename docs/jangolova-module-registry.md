@@ -16,10 +16,10 @@ module is being built; it becomes pullable when it contains a platform artifact
 with a HTTPS URL and SHA-256 digest.
 
 The reference snapshot lives at
-[`src/jangolova/registry/index.json`](../src/jangolova/registry/index.json). It is a
+[`lib/jangolova/registry/index.json`](../lib/jangolova/registry/index.json). It is a
 development fixture, not a replacement for a signed production registry.
 
-The reusable Jangolova registry package is `src/jangolova/registry`. Its
+The reusable Jangolova registry package is `lib/jangolova/registry`. Its
 `Discover` function accepts HTTPS endpoints (or loopback HTTP for local
 fixtures), `Select` filters an advertised module by platform, and `Pull` writes
 a temporary cache file, checks its digest, and atomically publishes it.
@@ -27,12 +27,12 @@ Pulling never launches a process, loads a shared library, or mounts a target;
 those operations remain explicit provider actions after approval. Cymonkey
 imports this public package as its coordinator-side client.
 
-For a simple operator-facing flow, the `cymonkey-modules` utility exposes the
+For a simple operator-facing flow, the `cymonkey modules` interface exposes the
 same stages:
 
 ```sh
-cymonkey-modules discover --registry https://registry.example/jangolova.json
-cymonkey-modules pull \
+cymonkey modules discover --registry https://registry.example/jangolova.json
+cymonkey modules pull \
   --registry https://registry.example/jangolova.json \
   --module render/blender --platform linux-amd64 --cache /var/cache/jangolova
 ```
@@ -53,7 +53,7 @@ re-verifies the cached bytes, requires a host approval callback, and passes the
 verified bytes to the runtime-specific mount callback. It then checks the
 module hello, capabilities, description, and health. An incompatible module is
 disconnected. The host remains responsible for per-call approval and target
-lifecycle. See the [public SDK guide](../src/jangolova/sdk/README.md).
+lifecycle. See the [public SDK guide](../lib/jangolova/sdk/README.md).
 
 The reference snapshot contains source-package metadata, not published artifact
 URLs or proof that an engine has run. Its action lists follow current package

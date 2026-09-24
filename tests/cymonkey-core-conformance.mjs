@@ -7,10 +7,10 @@ const source = async (path) => JSON.parse(await readFile(new URL(path, root), 'u
 
 test('the portable core publishes the Cymonkey v1alpha1 contract', async () => {
   const [protocol, augmentation, scenePlan, userscript] = await Promise.all([
-    source('protocol/cymonkey/v1alpha2/protocol.schema.json'),
-    source('protocol/cymonkey/v1alpha2/augmentation.schema.json'),
-    source('protocol/cymonkey/v1alpha2/scene-plan.schema.json'),
-    source('protocol/cymonkey/userscript/v1alpha1/userscript.schema.json'),
+    source('src/protocol/cymonkey/v1alpha2/protocol.schema.json'),
+    source('src/protocol/cymonkey/v1alpha2/augmentation.schema.json'),
+    source('src/protocol/cymonkey/v1alpha2/scene-plan.schema.json'),
+    source('src/protocol/cymonkey/userscript/v1alpha1/userscript.schema.json'),
   ]);
 
   assert.equal(protocol.$defs.hello.properties.protocolVersion.const, 'cymonkey/v1alpha1');

@@ -15,7 +15,7 @@ The current protocol identifier is:
 jangolova.bridge/v1alpha1
 ```
 
-Its Go wire types and method constants live in `internal/bridge`. The protocol
+Its Go wire types and method constants live in `src/internal/bridge`. The protocol
 has five operations:
 
 | Operation | Purpose |

@@ -3,12 +3,12 @@
 ## Implemented boundary
 
 The integration at `lib/jangolova` now uses the public wire contract in
-`src/jangolova/contract` and public host/module types in `src/jangolova/sdk`.
+`lib/jangolova/contract` and public host/module types in `lib/jangolova/sdk`.
 Its production dependency graph contains no private Cymonkey packages.
 The old private wire files were moved to the public contract package; the wire
 identifier remains `cymonkey/v1alpha1` for compatibility.
 
-`internal/jangolovahost` supplies Cymonkey's private worker, credential, listener,
+`src/internal/hostbinding` supplies Cymonkey's private worker, credential, listener,
 and Safari services through SDK ports and explicitly converts target/session
 data. It preserves credential revision notifications and acknowledgements.
 The operator still owns policy and approval. Jangolova owns runtime modules and
@@ -78,17 +78,18 @@ See [reproduction instructions](../tests/blender-cymonkey-fixture/README.md).
 Passed focused race checks:
 
 ```sh
-go test -race ./lib/jangolova ./src/jangolova/... \
-  ./internal/jangolovahost ./internal/builtin ./internal/engineprovider \
-  ./cmd/jangolova ./pkg/lens-studio-cymonkey
+go test -race ./lib/jangolova ./lib/jangolova/... \
+  ./src/internal/hostbinding ./src/internal/builtin ./src/internal/engineprovider \
+  ./src/provider ./pkg/lens-studio-cymonkey
 ```
 
 Includes public dependency enforcement, external backend registration, explicit
 approval denial, cache tampering and byte limits, immutable mount input,
 negotiation cleanup, host credential rotation, and event/call conversion.
 
-Standalone builds passed for `cmd/jangolova`, `cmd/cymonkey`, and
-`cmd/cymonkey-modules`. Protocol-generation verification and `git diff --check`
+The generic `cymonkey` build from `./src` passed.
+The module registry interface is exposed as `cymonkey modules`.
+Protocol-generation verification and `git diff --check`
 passed. Seven Node checks passed: core conformance, engine runtime manifest,
 module registry, Blender fixture contract, Godot fixture contract, Unity package
 contract, and Unreal package contract. These Node checks are static/contracts;
@@ -114,7 +115,7 @@ Augmented Browsing task owns that assertion and its live browser tests.
   shared wire validator's accepted lifetimes. This was reported to the browser
   task; strict activation will reject it until reconciled.
 - SDK publication as an independent Go module, signed production registry
-  metadata, and published runtime artifacts remain release work. The CLI
+  metadata, and published runtime artifacts remain release work. The `cymonkey modules` interface
   supports discovery/pull; runtime-specific activation is an explicit host API,
   not a universal process or binary-plugin launcher.
 

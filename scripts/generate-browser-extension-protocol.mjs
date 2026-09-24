@@ -3,16 +3,16 @@ import { execFileSync } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
-const schemaURL = new URL('protocol/browser-extension/v1alpha1/protocol.schema.json', root);
+const schemaURL = new URL('src/protocol/browser-extension/v1alpha1/protocol.schema.json', root);
 const typescriptURL = new URL('pkg/browser-ext/src/generated/browser-extension-v1alpha1.ts', root);
-const goURL = new URL('internal/browserextensionprotocol/generated_v1alpha1.go', root);
+const goURL = new URL('src/internal/browserextensionprotocol/generated_v1alpha1.go', root);
 const schemaSource = await readFile(schemaURL, 'utf8');
 const schema = JSON.parse(schemaSource);
 const digest = createHash('sha256').update(schemaSource).digest('hex');
 const conditions = schema.$defs.controlCall.allOf;
 const extensionMethods = conditions[0].then.properties.method.enum;
 
-const typescript = `// Code generated from protocol/browser-extension/v1alpha1/protocol.schema.json; DO NOT EDIT.
+const typescript = `// Code generated from src/protocol/browser-extension/v1alpha1/protocol.schema.json; DO NOT EDIT.
 // Schema SHA-256: ${digest}
 
 export const browserExtensionProtocolVersion = 'cymonkey.browser-extension/v1alpha1' as const;
@@ -82,7 +82,7 @@ export class BrowserExtensionClient {
 }
 `;
 
-const go = `// Code generated from protocol/browser-extension/v1alpha1/protocol.schema.json; DO NOT EDIT.
+const go = `// Code generated from src/protocol/browser-extension/v1alpha1/protocol.schema.json; DO NOT EDIT.
 // Schema SHA-256: ${digest}
 
 package browserextensionprotocol

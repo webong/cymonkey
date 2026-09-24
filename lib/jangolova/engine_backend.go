@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"cymonkey/src/jangolova/contract"
-	"cymonkey/src/jangolova/sdk"
+	"cymonkey/lib/jangolova/contract"
+	"cymonkey/lib/jangolova/sdk"
 )
 
 type enginePresentationBackend struct{}

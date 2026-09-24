@@ -9,8 +9,8 @@
   "scripts": {
     "build:browser-extension": "npm --prefix pkg/browser-ext run build",
     "build:browser-product": "node scripts/build-browser-product.mjs",
-    "build:camera-kit-browser-package": "node scripts/build-browser-product.mjs products/browser/camera-kit.json",
-    "build:threejs-browser-package": "node scripts/build-browser-product.mjs products/browser/threejs.json",
+    "build:camera-kit-browser-package": "node scripts/build-browser-product.mjs infra/browser/camera-kit.json",
+    "build:threejs-browser-package": "node scripts/build-browser-product.mjs infra/browser/threejs.json",
     "build:macos-extension": "pkg/macos-ext/scripts/build-safari.sh",
     "compile:browser-extension": "npm --prefix pkg/browser-ext run compile",
     "generate:browser-extension-protocol": "node scripts/generate-browser-extension-protocol.mjs",

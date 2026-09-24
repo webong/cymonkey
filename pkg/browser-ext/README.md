@@ -37,7 +37,7 @@ communicates with the content-script-owned overlay through a private
 Each product build has a reviewed augmentation registry. Sensitive sandbox
 permissions use single-use popup approvals bound to the requesting package,
 augmentation, tab, and origin. General products are composed from
-`products/browser/*.json` with `npm run build:browser-product -- <manifest>`.
+`infra/browser/*.json` with `npm run build:browser-product -- <manifest>`.
 
 Every privileged call passes the same fine-grained authorization and redacted
 audit layer after transport authentication. The single build supports Xallet

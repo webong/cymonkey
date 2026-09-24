@@ -8,10 +8,10 @@ const source = (path) => readFile(new URL(path, root), 'utf8');
 
 test('reviewed package manifests constrain delivery, permissions, and CSP', async () => {
   const [manifestSchema, productSchema, packageManifest, product, builder] = await Promise.all([
-    source('protocol/browser-package/v1alpha1/package.schema.json'),
-    source('protocol/browser-package/v1alpha1/product.schema.json'),
+    source('src/protocol/browser-package/v1alpha1/package.schema.json'),
+    source('src/protocol/browser-package/v1alpha1/product.schema.json'),
     source('pkg/snapchat-camera-kit-cymonkey/browser-package.json'),
-    source('products/browser/camera-kit.json'),
+    source('infra/browser/camera-kit.json'),
     source('scripts/build-browser-product.mjs'),
   ]);
   assert.equal(JSON.parse(manifestSchema).properties.kind.const, 'BrowserAugmentationPackage');

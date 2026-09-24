@@ -12,7 +12,7 @@ Xvfb "${DISPLAY}" -screen 0 1280x720x24 -ac >/tmp/jangolova-webkit-xvfb.log 2>&1
 xvfb_pid=$!
 WebKitWebDriver --host=127.0.0.1 --port=4445 >"${driver_log}" 2>&1 &
 driver_pid=$!
-JANGOLOVA_PROVIDER_TOKEN="${token}" bin/jangolova serve-engine-provider --bind 127.0.0.1:7391 >"${provider_log}" 2>&1 &
+JANGOLOVA_PROVIDER_TOKEN="${token}" bin/cymonkey provider serve-engine-provider --bind 127.0.0.1:7391 >"${provider_log}" 2>&1 &
 provider_pid=$!
 session_id=
 

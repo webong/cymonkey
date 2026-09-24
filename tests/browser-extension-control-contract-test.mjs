@@ -31,7 +31,7 @@ test('outbound WebSocket is optional, authenticated, bounded, and single-build',
     source('pkg/browser-ext/src/outbound-control.ts'),
     source('pkg/browser-ext/entrypoints/background.ts'),
     source('pkg/browser-ext/wxt.config.ts'),
-    source('protocol/browser-extension/v1alpha1/protocol.schema.json'),
+    source('src/protocol/browser-extension/v1alpha1/protocol.schema.json'),
   ]);
   assert.match(client, /CYMONKEY_EXTENSION_AUTH/);
   assert.match(client, /CYMONKEY_EXTENSION_AUTHENTICATED/);

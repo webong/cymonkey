@@ -148,7 +148,7 @@
 - [x] Add managed Python Ultralytics workers for local YOLO/SAM inference.
 - [x] Add worker-pool lifecycle, framed stdin/stdout IPC, and shutdown.
 - [x] Add YAML engine configuration and local model-file validation.
-- [x] Add `blockade validate` and `blockade observe` CLI flows.
+- [x] Add `cymonkey blockade validate` and `cymonkey blockade observe` CLI flows.
 - [x] Keep Blockade as a read-only observation capability for external agents
   and applications.
 - [x] Consolidate engine render control into Cymonkey's `render` domain

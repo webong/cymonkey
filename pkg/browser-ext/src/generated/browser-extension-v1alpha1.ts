@@ -1,4 +1,4 @@
-// Code generated from protocol/browser-extension/v1alpha1/protocol.schema.json; DO NOT EDIT.
+// Code generated from src/protocol/browser-extension/v1alpha1/protocol.schema.json; DO NOT EDIT.
 // Schema SHA-256: cf7e2f2fc41393726416758e4cf135e40103d3c1fc6e5e1be614ada60efedfb1
 
 export const browserExtensionProtocolVersion = 'cymonkey.browser-extension/v1alpha1' as const;

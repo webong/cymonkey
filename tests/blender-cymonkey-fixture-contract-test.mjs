@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 const packageSource = await readFile(new URL("../pkg/blender/blender_cymonkey.py", import.meta.url), "utf8");
 const packageReadme = await readFile(new URL("../pkg/blender/README.md", import.meta.url), "utf8");
 const fixture = await readFile(new URL("blender-cymonkey-fixture/fixture.py", import.meta.url), "utf8");
-const manifest = JSON.parse(await readFile(new URL("../src/jangolova/registry/index.json", import.meta.url), "utf8"));
+const manifest = JSON.parse(await readFile(new URL("../lib/jangolova/registry/index.json", import.meta.url), "utf8"));
 
 assert.match(packageSource, /PROTOCOL_VERSION = "cymonkey\/v1alpha1"/);
 assert.match(packageSource, /RUNTIME_BLENDER = "blender"/);

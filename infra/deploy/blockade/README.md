@@ -28,8 +28,8 @@ run a configured local engine directly and expose the HTTP service without the
 Python FastAPI container:
 
 ```sh
-go build -o .cache/bin/blockade ./cmd/blockade
-.cache/bin/blockade serve \
+go build -o .cache/bin/cymonkey ./src
+.cache/bin/cymonkey blockade serve \
   --config infra/deploy/blockade/blockade.example.yaml \
   --bind 127.0.0.1:8091
 ```
@@ -49,14 +49,14 @@ See [models/README.md](models/README.md) for the cache contract.
 ## Inference smoke test
 
 A gated Go test runs real inference through the managed worker pool using a
-checked-in input image (`internal/blockade/testdata/smoke.png`). It skips
+checked-in input image (`lib/blockade/testdata/smoke.png`). It skips
 unless weights, a Python interpreter, and `BLOCKADE_SMOKE=1` are
 available:
 
 ```sh
 BLOCKADE_SMOKE=1 \
 BLOCKADE_PYTHON="$PWD/.cache/blockade/venv/bin/python3" \
-  go test ./internal/blockade -run TestLocalUltralyticsFixtureSmoke -v
+  go test ./lib/blockade -run TestLocalUltralyticsFixtureSmoke -v
 ```
 
 Override `BLOCKADE_YOLO_MODEL_FILE` or `BLOCKADE_SAM_MODEL_FILE` when testing
@@ -78,7 +78,7 @@ python3 -m venv .cache/blockade/venv
 BLOCKADE_ONNXRUNTIME_LIB="$PWD/.cache/blockade/libonnxruntime.dylib" \
 BLOCKADE_SMOKE=1 \
 BLOCKADE_ONNX_MODEL="$PWD/.cache/blockade/models/yolo11n.onnx" \
-  go test ./internal/blockade -run TestOnnxEngineFixtureSmoke -v
+  go test ./lib/blockade -run TestOnnxEngineFixtureSmoke -v
 ```
 
 Set `BLOCKADE_ONNX_EXECUTION_PROVIDERS` to a JSON array matching the YAML
@@ -91,7 +91,7 @@ BLOCKADE_ONNX_EXECUTION_PROVIDERS='[{"name":"coreml","options":{"ModelFormat":"M
 BLOCKADE_ONNXRUNTIME_LIB="$PWD/.cache/blockade/libonnxruntime.dylib" \
 BLOCKADE_SMOKE=1 \
 BLOCKADE_ONNX_MODEL="$PWD/.cache/blockade/models/yolo11n.onnx" \
-  go test ./internal/blockade -run TestOnnxEngineFixtureSmoke -v
+  go test ./lib/blockade -run TestOnnxEngineFixtureSmoke -v
 ```
 
 The engine reads input and output names plus tensor layouts from the model,
@@ -176,14 +176,14 @@ provided through a mounted cache. Override `BLOCKADE_YOLO_MODEL` and
 
 `POST /v1/observe` accepts JSON with a base64-encoded `image` and returns the
 `blockade.observation/v1alpha1` response. The Go client is in
-`internal/blockade`. An external agent or application can call this endpoint
+`lib/blockade`. An external agent or application can call this endpoint
 directly, then request an allowed Jangolova action through the Engine Provider
 HTTP or MCP surface.
 
 To select an engine from YAML, run Blockade directly:
 
 ```sh
-blockade serve --config infra/deploy/blockade/blockade.example.yaml
+cymonkey blockade serve --config infra/deploy/blockade/blockade.example.yaml
 ```
 
 ## Hosted provider adapters
@@ -215,7 +215,7 @@ variable reference. Blockade resolves it lazily at runtime and never includes
 the value in configuration, error messages, evidence, or HTTP responses.
 
 The adapter boundary is `blockade.provider-adapter/v1alpha1`; its schema is
-`protocol/blockade/v1alpha1/provider-adapter.schema.json`. Blockade validates
+`lib/blockade/protocol/v1alpha1/provider-adapter.schema.json`. Blockade validates
 the nested observation response, enforces the configured timeout and payload
 limit, and exposes the adapter's readiness and capabilities through the normal
 service endpoints. Authentication, rate-limit, timeout, cancellation,

@@ -9,17 +9,24 @@ adapters. Jangolova does not configure or call Blockade.
 
 | Path | Responsibility |
 | --- | --- |
-| `src/jangolova/contract` | Public runtime wire data and validation. |
-| `src/jangolova/sdk` | Target/spec/session types and injected host service interfaces. |
+| `lib/jangolova/contract` | Public runtime wire data and validation. |
+| `lib/jangolova/sdk` | Target/spec/session types and injected host service interfaces. |
 | `lib/jangolova` | Runtime selection and browser/native semantic adapters. |
-| `src/jangolova/registry` | Metadata discovery, verified retrieval, and explicit activation. |
-| `internal/jangolovahost` | Cymonkey-owned implementation of SDK host services and private/public data conversion. |
-| `internal/cymonkeycore` | Cymonkey's private composition and coordination implementation. |
+| `src/targetconn` | Caller-owned endpoint, credential, and TLS material handling. |
+| `lib/jangolova/registry` | Metadata discovery, verified retrieval, and explicit activation. |
+| `lib/jangolova/host` | Jangolova-owned host service boundary and dependency injection contract. |
+| `src/internal/hostbinding` | Cymonkey-specific binding from private provider services into the Jangolova host boundary. |
+| `src/internal/cymonkeycore` | Cymonkey's private composition and coordination implementation. |
 | `pkg/` | Distributable runtime packages. |
 
 `lib/jangolova` imports public Jangolova packages and has no transitive
-dependency on `cymonkey/internal`, the private adapter implementations, or
-`targetconn`. `TestPublicIntegrationHasNoPrivateDependencies` checks this graph.
+dependency on `cymonkey/src/internal`, the private adapter implementations, or
+`src/targetconn`. `TestPublicIntegrationHasNoPrivateDependencies` checks this graph.
+
+There is deliberately no `cymonkey/cymonkey` re-export package. The core remains
+private; code in this repository imports `cymonkey/src/internal/cymonkeycore`
+directly. Runtime distributions expose their own supported interfaces rather
+than leaking the host's private Go implementation.
 
 Public signatures define their own data and interfaces. They are not aliases
 to private orchestrator, manifest, bridge, or worker implementations. The
@@ -29,8 +36,9 @@ cleanup remain host responsibilities.
 
 The host supplies worker startup, credential-aware connection setup, cooperative
 listeners, and the legacy Safari connection. Missing services fail explicitly.
-`internal/jangolovahost.Services` binds those operations to Cymonkey internals;
-`Wrap` converts the public adapter/session into the private provider contract.
+`lib/jangolova/host.Services` defines the Jangolova-owned host boundary.
+`src/internal/hostbinding.Services` injects Cymonkey's private services into it;
+`hostbinding.Wrap` converts the public adapter/session into the private provider contract.
 The standalone `jangolova` executable receives this binding through its builtin
 registry, preserving the same browser/helper behavior.
 
@@ -59,6 +67,6 @@ artifacts through `registry.Activate`, supplying an approval callback and a
 runtime-specific mount callback. The SDK does not implement a universal binary
 plugin loader, install editor licenses, or own target process lifecycle.
 
-See [the public SDK guide](../src/jangolova/sdk/README.md),
+See [the public SDK guide](../lib/jangolova/sdk/README.md),
 [module discovery and activation](jangolova-module-registry.md), and
 [runtime validation record](jangolova-runtime-validation.md).

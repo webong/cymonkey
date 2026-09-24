@@ -12,15 +12,15 @@ do not guess an application name, resource ID, or OS-level operation.
 ## Choose a transport
 
 - **MCP stdio** is the default for an agent host that can launch local MCP
-  servers. Configure its Jangolova server command as `jangolova serve-mcp` and
+  servers. Configure its Jangolova server command as `cymonkey provider serve-mcp` and
   provide `JANGOLOVA_PROVIDER_TOKEN` through the host's secret environment.
   Use the discovered `jangolova_*` MCP tools; do not manually write JSON-RPC to
   the server's standard input.
 - **Engine Provider HTTP** is for an external service, daemon, or remote
-  integration. Run `jangolova serve-engine-provider --bind <host:port>` and
+  integration. Run `cymonkey provider serve-engine-provider --bind <host:port>` and
   call it with the provider bearer token.
 - **MCP over HTTP** is for an MCP client that cannot use stdio. Run
-  `jangolova serve-mcp --bind <host:port>` and use its `/mcp` Streamable HTTP
+  `cymonkey provider serve-mcp --bind <host:port>` and use its `/mcp` Streamable HTTP
   endpoint.
 - **`connect-engine`** is a terminal diagnostic tool for targets that need no
   caller-launch handoff. It disconnects when the command exits and does not

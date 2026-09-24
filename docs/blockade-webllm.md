@@ -68,8 +68,8 @@ they are already cached.
 Build and start Blockade normally:
 
 ```sh
-go build -o .cache/bin/blockade ./cmd/blockade
-.cache/bin/blockade serve \
+go build -o .cache/bin/cymonkey ./src
+.cache/bin/cymonkey blockade serve \
   --config infra/deploy/blockade/blockade.webllm.example.yaml \
   --inference browser-vlm \
   --bind 127.0.0.1:8091
@@ -82,7 +82,7 @@ normal Blockade health endpoint and only route traffic after it returns `200`:
 curl --fail http://127.0.0.1:8091/healthz
 ```
 
-Then use the ordinary `/v1/observe` API or `blockade observe`. Every request is
+Then use the ordinary `/v1/observe` API or `cymonkey blockade observe`. Every request is
 serialized through the loaded WebLLM engine, receives a fixed structured-JSON
 schema, preserves its Blockade request ID, and records deterministic evidence
 as `webllm:<model>`.
@@ -118,7 +118,7 @@ multimodal generation, and response validation:
 
 ```sh
 BLOCKADE_WEBLLM_SMOKE=1 \
-  go test ./internal/blockadewebllm -run TestWebLLMFixtureSmoke -v
+  go test ./lib/blockade/webllm -run TestWebLLMFixtureSmoke -v
 ```
 
 Set `BLOCKADE_WEBLLM_BROWSER`, `BLOCKADE_WEBLLM_CACHE`,
@@ -130,5 +130,5 @@ pinned WebLLM module without downloading a model:
 
 ```sh
 BLOCKADE_WEBLLM_BOOT_PROBE=1 \
-  go test ./internal/blockadewebllm -run TestWebLLMRuntimeBootProbe -v
+  go test ./lib/blockade/webllm -run TestWebLLMRuntimeBootProbe -v
 ```

@@ -3,7 +3,7 @@
 This image is the packaged Unreal 5.8 conformance fixture built from
 `pkg/unreal-cymonkey` and `tests/unreal-cymonkey-fixture`. It is intended for
 headless CI, RunPod, or another Linux `amd64` container host. It is separate
-from the distributable plugin: use the [plugin README](../../pkg/unreal-cymonkey/README.md)
+from the distributable plugin: use the [plugin README](../../../pkg/unreal-cymonkey/README.md)
 when integrating Cymonkey into your own Unreal project.
 
 ## Pull the published image
@@ -61,7 +61,7 @@ docker build --progress=plain --platform linux/amd64 \
   --build-arg UE_BUILD_IMAGE=ghcr.io/epicgames/unreal-engine:dev-slim-5.8.0 \
   --build-arg UE_RUNTIME_IMAGE=ghcr.io/epicgames/unreal-engine:runtime \
   --build-arg UE_ROOT=/home/ue4/UnrealEngine \
-  -f deploy/unreal-cymonkey-gpu/Containerfile \
+  -f infra/deploy/unreal-cymonkey-gpu/Containerfile \
   -t ghcr.io/your-org/jangolova/unreal-cymonkey-gpu:5.8 .
 ```
 

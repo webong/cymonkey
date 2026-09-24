@@ -23,8 +23,8 @@ import (
 	"time"
 
 	jangolova "cymonkey/lib/jangolova"
-	contract "cymonkey/src/jangolova/contract"
-	"cymonkey/src/jangolova/sdk"
+	contract "cymonkey/lib/jangolova/contract"
+	"cymonkey/lib/jangolova/sdk"
 )
 
 const (

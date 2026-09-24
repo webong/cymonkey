@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const manifest = JSON.parse(await readFile(new URL("../src/jangolova/registry/index.json", import.meta.url), "utf8"));
+const manifest = JSON.parse(await readFile(new URL("../lib/jangolova/registry/index.json", import.meta.url), "utf8"));
 assert.equal(manifest.schemaVersion, "jangolova.registry/v1alpha1");
 assert.equal(manifest.registryId, "jangolova-reference");
 

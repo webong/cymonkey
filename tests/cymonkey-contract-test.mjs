@@ -47,8 +47,8 @@ test("one reversible live client is shared by CDP and BiDi fixtures", async () =
 });
 
 test("v1alpha1 defines runtime-agnostic viewer, render, and player domains", async () => {
-  const protocol = JSON.parse(await source("protocol/cymonkey/v1alpha2/protocol.schema.json"));
-  const augmentation = JSON.parse(await source("protocol/cymonkey/v1alpha2/augmentation.schema.json"));
+  const protocol = JSON.parse(await source("src/protocol/cymonkey/v1alpha2/protocol.schema.json"));
+  const augmentation = JSON.parse(await source("src/protocol/cymonkey/v1alpha2/augmentation.schema.json"));
   assert.equal(protocol.$defs.hello.properties.protocolVersion.const, "cymonkey/v1alpha1");
   assert.deepEqual(protocol.$defs.domain.enum, ["viewer", "render", "player"]);
   for (const field of ["domain", "runtime", "driver"]) {

@@ -44,9 +44,7 @@ Build the executables and start Cymonkey:
 
 ```bash
 mkdir -p .cache/bin
-go build -o .cache/bin/cymonkey ./cmd/cymonkey
-go build -o .cache/bin/jangolova ./cmd/jangolova
-go build -o .cache/bin/blockade ./cmd/blockade
+go build -o .cache/bin/cymonkey ./src
 
 export CYMONKEY_JANGOLOVA_TOKEN="replace-with-a-random-secret"
 PATH="$PWD/.cache/bin:$PATH" cymonkey run \
@@ -72,8 +70,8 @@ audit events, reviewed packages, and caller-supplied target connections.
 
 ## Documentation
 
-- [Jangolova](jangolova/README.md)
-- [Blockade](blockade/README.md)
+- [Jangolova](lib/jangolova/README.md)
+- [Blockade](lib/blockade/README.md)
 - [Architecture](docs/architecture.md)
 - [Browser packages](docs/browser-augmentation-packages.md)
 - [Target connection security](docs/target-connection-security.md)

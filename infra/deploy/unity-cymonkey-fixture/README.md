@@ -14,7 +14,7 @@ To build that private base image directly from a Linux Editor installed at
 ```sh
 cd /opt/unity
 docker build \
-  -f /path/to/jangolova/deploy/unity-cymonkey-fixture/UnityBase.Containerfile \
+  -f /path/to/jangolova/infra/deploy/unity-cymonkey-fixture/UnityBase.Containerfile \
   -t private/unity-editor:2022.3 .
 ```
 
@@ -22,7 +22,7 @@ docker build \
 docker build \
   --build-arg UNITY_EDITOR_IMAGE=registry.example/unity-editor:2022.3 \
   --build-arg UNITY_CONTAINER_USER=root \
-  -f deploy/unity-cymonkey-fixture/Containerfile \
+  -f infra/deploy/unity-cymonkey-fixture/Containerfile \
   -t jangolova/unity-cymonkey-fixture:local .
 ```
 

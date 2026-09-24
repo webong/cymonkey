@@ -25,7 +25,7 @@ Implemented operations:
 - cursor-based `events` for presentation actions and resize events.
 
 The adapter is registered as `web-presentation` and is discoverable through
-`jangolova engines --json`. The provider handoff is documented in
+`cymonkey provider engines --json`. The provider handoff is documented in
 [presentation-provider.md](presentation-provider.md).
 
 The engine provider also accepts the formal
@@ -145,7 +145,7 @@ remain `jangolova/engine-runtime` until a release process exists.
 
 ## Useful files
 
-- Adapter: `adapters/webpresentation/adapter.go`
+- Adapter: `src/adapters/webpresentation/adapter.go`
 - Worker: `scripts/presentation-worker.mjs`
 - Reference host: `examples/web-presentation/main.js`
 - Provider API docs: `docs/engine-provider.md`

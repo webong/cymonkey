@@ -1,8 +1,7 @@
-package jangolova_test
+package jangolova
 
 import (
 	"context"
-	"cymonkey/internal/jangolovahost"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -11,8 +10,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	cymonkey "cymonkey/lib/jangolova"
-	"cymonkey/src/jangolova/sdk"
+	"cymonkey/lib/jangolova/sdk"
 )
 
 var upgrader = websocket.Upgrader{
@@ -92,7 +90,7 @@ func TestCymonkeyEngineBackendNativeProtocol(t *testing.T) {
 	defer server.Close()
 
 	wsURL := "ws" + strings.TrimPrefix(server.URL, "http")
-	instance, err := cymonkey.Adapter{Host: jangolovahost.Services()}.Connect(context.Background(), sdk.EngineSpec{Adapter: "cymonkey"}, sdk.EngineTarget{
+	instance, err := Adapter{Host: testHost()}.Connect(context.Background(), sdk.EngineSpec{Adapter: "cymonkey"}, sdk.EngineTarget{
 		Kind:      "godot",
 		Endpoints: []sdk.TargetEndpoint{{Name: "websocket", Protocol: "websocket", URL: wsURL}},
 	})

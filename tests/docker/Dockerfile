@@ -4,14 +4,11 @@ FROM golang:1.26-bookworm AS builder
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
+COPY src ./src
+COPY lib ./lib
 COPY cmd ./cmd
-COPY adapters ./adapters
-COPY integrations ./integrations
-COPY internal ./internal
-COPY targetconn ./targetconn
 RUN mkdir -p /out \
-  && go build -o /out/jangolova ./cmd/jangolova \
-  && go build -o /out/native-bridge-fixture ./cmd/native-bridge-fixture
+  && go build -o /out/cymonkey ./src
 
 FROM node:22-bookworm
 
@@ -32,11 +29,9 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 COPY tests ./tests
 COPY examples ./examples
-COPY integrations ./integrations
-COPY internal/bridge ./internal/bridge
+COPY src/internal/bridge ./src/internal/bridge
 COPY scripts ./scripts
-COPY --from=builder /out/jangolova /app/bin/jangolova
-COPY --from=builder /out/native-bridge-fixture /app/bin/native-bridge-fixture
+COPY --from=builder /out/cymonkey /app/bin/cymonkey
 RUN chmod +x tests/docker/*.sh scripts/browser-worker.mjs
 
 ENTRYPOINT ["tests/docker/entrypoint.sh"]

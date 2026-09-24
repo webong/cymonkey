@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	jangolova "cymonkey/lib/jangolova"
-	"cymonkey/src/jangolova/contract"
-	"cymonkey/src/jangolova/sdk"
+	"cymonkey/lib/jangolova/contract"
+	"cymonkey/lib/jangolova/sdk"
 )
 
 // This backend deliberately uses only public signatures. A Lens Studio or
@@ -44,12 +44,12 @@ func TestContributedBackendUsesOnlyPublicContract(t *testing.T) {
 	}
 }
 func TestPublicIntegrationHasNoPrivateDependencies(t *testing.T) {
-	out, err := exec.Command("go", "list", "-deps", "cymonkey/lib/jangolova", "cymonkey/src/jangolova/registry").CombinedOutput()
+	out, err := exec.Command("go", "list", "-deps", "cymonkey/lib/jangolova", "cymonkey/lib/jangolova/registry").CombinedOutput()
 	if err != nil {
 		t.Fatalf("dependency graph: %v: %s", err, out)
 	}
 	for _, p := range strings.Fields(string(out)) {
-		if strings.HasPrefix(p, "cymonkey/internal/") || strings.HasPrefix(p, "cymonkey/adapters/") || p == "cymonkey/targetconn" {
+		if strings.HasPrefix(p, "cymonkey/src/internal/") || strings.HasPrefix(p, "cymonkey/src/adapters/") || p == "cymonkey/src/targetconn" {
 			t.Errorf("private host dependency in public integration: %s", p)
 		}
 	}

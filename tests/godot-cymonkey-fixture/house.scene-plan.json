@@ -1,5 +1,5 @@
 {
-  "$schema": "../../protocol/cymonkey/v1alpha2/scene-plan.schema.json",
+  "$schema": "../../src/protocol/cymonkey/v1alpha2/scene-plan.schema.json",
   "apiVersion": "cymonkey.scene/v1alpha1",
   "name": "midnight-house",
   "description": "A model-authored night-time house choreography.",

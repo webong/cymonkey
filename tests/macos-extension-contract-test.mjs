@@ -7,8 +7,8 @@ const source = (path) => readFile(new URL(path, root), 'utf8');
 
 test('userscripts use one bounded versioned contract', async () => {
   const [schema, augmentationSchema, docs, service, runtime] = await Promise.all([
-    source('protocol/cymonkey/userscript/v1alpha1/userscript.schema.json'),
-    source('protocol/cymonkey/v1alpha2/augmentation.schema.json'),
+    source('src/protocol/cymonkey/userscript/v1alpha1/userscript.schema.json'),
+    source('src/protocol/cymonkey/v1alpha2/augmentation.schema.json'),
     source('docs/userscripts.md'),
     source('pkg/browser-ext/src/services/userscripts.ts'),
     source('pkg/userscript-runtime/src/validate.ts'),

@@ -1,15 +1,13 @@
 # Cymonkey host
 
-Cymonkey is the operator and host for standalone Jangolova and Blockade
-processes. It does not embed either subsystem or replace their executables.
+Cymonkey is the operator and host for the standalone Jangolova and Blockade
+libraries. It exposes their interfaces through one `cymonkey` executable.
 
 Validate and run a host manifest from the repository root:
 
 ```sh
 mkdir -p .cache/bin
-go build -o .cache/bin/jangolova ./cmd/jangolova
-go build -o .cache/bin/blockade ./cmd/blockade
-go build -o .cache/bin/cymonkey ./cmd/cymonkey
+go build -o .cache/bin/cymonkey ./src
 
 PATH="$PWD/.cache/bin:$PATH" \
   cymonkey validate --config infra/deploy/cymonkey/cymonkey.example.yaml
@@ -25,11 +23,11 @@ SIGINT/SIGTERM. Component configuration is intentionally executable-oriented:
 the host supplies commands, environment, and working directories but does not
 know Blockade model internals or Jangolova target-driver internals.
 
-Jangolova and Blockade remain independently usable:
+The library interfaces remain independently usable through Cymonkey:
 
 ```sh
-jangolova serve-mcp
-blockade serve --config infra/deploy/blockade/blockade.example.yaml
+cymonkey provider serve-mcp
+cymonkey blockade serve --config infra/deploy/blockade/blockade.example.yaml
 ```
 
 To coordinate an observation, use the same token and the interaction instance

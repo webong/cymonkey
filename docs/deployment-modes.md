@@ -9,7 +9,7 @@ Start Chromium using the native system's preferred mechanism and enable a
 private CDP endpoint. Then attach Jangolova:
 
 ```sh
-jangolova connect-engine \
+cymonkey provider connect-engine \
   --target-kind browser \
   --endpoint cdp=http://127.0.0.1:9222
 ```
@@ -22,7 +22,7 @@ For Firefox, start it with WebDriver BiDi enabled and give Puppeteer the direct
 session endpoint:
 
 ```sh
-jangolova connect-engine \
+cymonkey provider connect-engine \
   --adapter puppeteer \
   --target-kind browser \
   --endpoint webdriver-bidi=ws://127.0.0.1:9223/session
@@ -45,7 +45,7 @@ only the relay endpoint.
 
 ```sh
 export JANGOLOVA_PROVIDER_TOKEN="replace-with-a-random-secret"
-jangolova serve-engine-provider --bind 127.0.0.1:7391
+cymonkey provider serve-engine-provider --bind 127.0.0.1:7391
 ```
 
 Any authorized caller can submit target endpoints and use the semantic API.

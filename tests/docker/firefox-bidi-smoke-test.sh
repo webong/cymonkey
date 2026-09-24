@@ -14,7 +14,7 @@ Xvfb "${DISPLAY}" -screen 0 1280x720x24 -ac >/tmp/jangolova-firefox-xvfb.log 2>&
 xvfb_pid=$!
 firefox-esr --no-remote --profile "${profile_path}" --remote-debugging-port 9223 about:blank >"${target_log}" 2>&1 &
 target_pid=$!
-JANGOLOVA_PROVIDER_TOKEN="${token}" bin/jangolova serve-engine-provider --bind 127.0.0.1:7391 >"${provider_log}" 2>&1 &
+JANGOLOVA_PROVIDER_TOKEN="${token}" bin/cymonkey provider serve-engine-provider --bind 127.0.0.1:7391 >"${provider_log}" 2>&1 &
 provider_pid=$!
 
 cleanup() {

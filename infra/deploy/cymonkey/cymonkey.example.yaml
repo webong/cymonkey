@@ -11,12 +11,13 @@ observation:
   blockade:
     endpoint: http://127.0.0.1:8091
 
-# Cymonkey composes standalone subsystem executables. Build and place
-# `jangolova` and `blockade` on PATH, or replace these commands with absolute
-# paths from the deployment image.
+# Cymonkey composes its standalone library interfaces through the single
+# `cymonkey` executable. Build and place `cymonkey` on PATH, or replace these
+# commands with an absolute path from the deployment image.
 components:
   - id: blockade
     command:
+      - cymonkey
       - blockade
       - serve
       - --config
@@ -26,7 +27,8 @@ components:
 
   - id: jangolova
     command:
-      - jangolova
+      - cymonkey
+      - provider
       - serve-engine-provider
       - --bind
       - 127.0.0.1:7391

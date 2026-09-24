@@ -30,7 +30,7 @@ messages, lifecycle events, and provider shutdown errors.
 ## Material documents
 
 Environment and directory resolvers consume strict documents matching the
-[connection material schema](../protocol/target/v1/connection-material.schema.json).
+[connection material schema](../src/protocol/target/v1/connection-material.schema.json).
 A credential is a set of connection headers with a mandatory expiry:
 
 ```json
@@ -146,7 +146,7 @@ its candidate handshake before the previous transport is released.
 The standalone command accepts matching endpoint reference flags:
 
 ```bash
-jangolova connect-engine \
+cymonkey provider connect-engine \
   --target-kind browser \
   --endpoint cdp=wss://browser.example/devtools/browser/42 \
   --credential-ref cdp=browser-session \
