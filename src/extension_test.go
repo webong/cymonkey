@@ -92,11 +92,25 @@ func TestExtensionActionForOtherLocalTools(t *testing.T) {
 	if installed.Status != "awaiting-browser-action" {
 		t.Fatalf("incorrect install state: %+v", installed)
 	}
-	if _, err := extensionAction("extension.install", []byte(`{"source":"/somewhere"}`)); err == nil {
+	if err := run([]string{"extension", "act", "--name", "extension.install", "--input", `{"source":"/somewhere","target":{"browser":"chrome"}}`}, &bytes.Buffer{}, &bytes.Buffer{}); err == nil {
 		t.Fatal("accepted tool install without a reviewed revision")
 	}
-	if _, err := extensionAction("extension.install", []byte(`{"source":"/somewhere","revision":"sha256:example","target":{"browser":"safari"}}`)); err == nil {
-		t.Fatal("claimed direct installation support for an unsupported browser")
+	installRequest, err := json.Marshal(map[string]any{
+		"source": source, "revision": prepared.Revision,
+		"destination": filepath.Join(t.TempDir(), "native-staged"),
+		"target": map[string]string{
+			"browser": "chrome", "executablePath": filepath.Join(t.TempDir(), "missing-browser"),
+			"userDataDir": filepath.Join(t.TempDir(), "user-data"), "profileDirectory": "Default",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := run([]string{"extension", "act", "--name", "extension.install", "--input", string(installRequest)}, &bytes.Buffer{}, &bytes.Buffer{}); err == nil || !os.IsNotExist(err) {
+		t.Fatalf("structured install did not reach the selected browser: %v", err)
+	}
+	if err := run([]string{"extension", "act", "--name", "extension.install", "--input", `{"source":"/somewhere","revision":"sha256:example","target":{"browser":"safari"}}`}, &bytes.Buffer{}, &bytes.Buffer{}); err == nil {
+		t.Fatal("accepted an unsupported browser through the long-running action")
 	}
 	capability, err := extensionAction("extension.capabilities", []byte(`{"target":{"browser":"safari"}}`))
 	if err != nil {
@@ -108,5 +122,16 @@ func TestExtensionActionForOtherLocalTools(t *testing.T) {
 	}
 	if !bytes.Contains(encoded, []byte(`"persistentLocalInstall":false`)) || !bytes.Contains(encoded, []byte(`"sessionLoad":false`)) {
 		t.Fatalf("incorrect unsupported target capability: %s", encoded)
+	}
+	capability, err = extensionAction("extension.capabilities", []byte(`{"target":{"browser":"chrome"}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, err = json.Marshal(capability)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(encoded, []byte(`"requiresBrowserAction":true`)) {
+		t.Fatalf("native installation action was not disclosed: %s", encoded)
 	}
 }

@@ -16,13 +16,14 @@ import (
 	"time"
 )
 
-// DevToolsTarget is a browser and user-owned profile selected by the caller.
+// DevToolsTarget is a browser and user data directory selected by the caller.
 // The executable must support Chromium's pipe-only Extensions.loadUnpacked.
 type DevToolsTarget struct {
-	Browser        string
-	ExecutablePath string
-	ProfilePath    string
-	Headless       bool
+	Browser          string
+	ExecutablePath   string
+	ProfilePath      string
+	ProfileDirectory string
+	Headless         bool
 }
 
 // RunWithDevTools loads a reviewed extension in a caller-selected browser
@@ -40,6 +41,9 @@ func RunWithDevTools(ctx context.Context, target DevToolsTarget, source, destina
 	}
 	if !filepath.IsAbs(target.ExecutablePath) || !filepath.IsAbs(target.ProfilePath) {
 		return errors.New("browser executable and profile paths must be absolute")
+	}
+	if target.ProfileDirectory != "" && (target.ProfileDirectory == "." || target.ProfileDirectory == ".." || filepath.Base(target.ProfileDirectory) != target.ProfileDirectory) {
+		return errors.New("profile directory must be a single directory name")
 	}
 	info, err := os.Stat(target.ExecutablePath)
 	if err != nil {
@@ -63,8 +67,12 @@ func RunWithDevTools(ctx context.Context, target DevToolsTarget, source, destina
 	if err != nil {
 		return err
 	}
+	selectedProfile := profile
+	if target.ProfileDirectory != "" {
+		selectedProfile = filepath.Join(profile, target.ProfileDirectory)
+	}
 	return runUnpackedViaPipe(ctx, target, profile, staged, func(id string) error {
-		return ready(InstallResult{Status: "activated", Browser: target.Browser, ID: id, Source: staged, Profile: profile, Extension: &description,
+		return ready(InstallResult{Status: "activated", Browser: target.Browser, ID: id, Source: staged, Profile: selectedProfile, Extension: &description,
 			NextAction: "Keep this Cymonkey command running to keep the browser session and extension active."})
 	})
 }
@@ -92,6 +100,9 @@ func runUnpackedViaPipe(ctx context.Context, target DevToolsTarget, profile, sta
 	defer responseRead.Close()
 	defer responseWrite.Close()
 	args := []string{"--remote-debugging-pipe", "--enable-unsafe-extension-debugging", "--user-data-dir=" + profile, "--no-first-run", "--no-default-browser-check"}
+	if target.ProfileDirectory != "" {
+		args = append(args, "--profile-directory="+target.ProfileDirectory)
+	}
 	if target.Headless {
 		args = append(args, "--headless=new")
 	}

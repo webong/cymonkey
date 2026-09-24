@@ -13,8 +13,13 @@ The caller retains ownership of the submitted extension and its source.
 cymonkey extension capabilities --browser chrome
 cymonkey extension prepare --source /path/to/extension.zip
 cymonkey extension package --source /path/to/unpacked-extension --output /path/to/extension.zip
+cymonkey extension install --browser chrome --browser-bin /absolute/path/to/browser \
+  --profile /absolute/path/to/browser-user-data --profile-directory Default \
+  --source /path/to/extension.zip --revision 'sha256:REVISION_FROM_PREPARE' \
+  --destination /stable/path/to/staged-extension
 cymonkey extension run --browser chrome --browser-bin /absolute/path/to/browser --headless=false \
-  --profile /absolute/path/to/user-owned-profile --source /path/to/extension.zip \
+  --profile /absolute/path/to/browser-user-data --profile-directory Default \
+  --source /path/to/extension.zip \
   --revision 'sha256:REVISION_FROM_PREPARE' --destination /path/to/staged-extension
 ```
 
@@ -28,6 +33,30 @@ key, file count, byte count, and a content revision. It never returns source.
 CRX, signed Firefox XPI, Safari app, or Web Store listing. Keep a Chromium
 signing key outside this ZIP; a ZIP without a manifest public key has no stable
 Chromium extension ID.
+
+`install` supports a persistent unpacked extension in a user-selected Chrome,
+Chromium, or Edge profile on macOS or Linux. `--profile` is the browser's **user
+data directory**, and `--profile-directory` selects the profile within it (for
+example `Default` or `Profile 1`). Close that profile in other browser processes
+before starting this command. Use a stable `--destination`: the browser loads
+the extension from that directory after installation.
+
+For Chrome 136 and newer, the pipe used to verify installation is not honored
+against Chrome's **default** user data directory. This command rejects that
+directory and needs a custom user data directory. For an existing default
+Chrome profile, use `extension stage` and complete Load unpacked in Chrome;
+the current local CLI cannot verify persistence there. Chrome documents the
+[default-directory debugging restriction](https://developer.chrome.com/blog/remote-debugging-port).
+
+The command emits `awaiting-browser-action` after opening the selected
+browser's extension page. In that browser, enable Developer mode, choose **Load
+unpacked**, and select the returned staged directory. Jangolova observes the
+exact directory and browser-assigned ID, restarts the browser once, and reports
+`installed` only if the same extension is enabled after restart and the staged
+files still match the prepared revision. The restarted browser remains open
+until the user closes it or stops the command. The staged directory must remain
+in place. This route uses the browser's native installation action; it does not
+silently bypass it.
 
 `run` validates and stages the package, launches the selected Chrome,
 Chromium, or Edge executable with a debugging pipe against the caller-selected
@@ -47,11 +76,11 @@ reports `installed` for this route. The caller must keep the `extension run`
 process active and launch the browser through Cymonkey again for a later
 session.
 
-This adapter must launch the selected browser itself. It cannot attach the
+These adapters must launch the selected browser themselves. They cannot attach the
 pipe-only loading command to an ordinary browser process that is already
 running. Callers choose the executable and profile; Jangolova does not assume
 their default browser or profile. `extension.capabilities` distinguishes
-session loading from persistent installation for the selected browser. An
+session loading from guided persistent installation for the selected browser. An
 unsupported browser gets a clear unsupported result.
 
 `extension stage` is a manual fallback for Chrome, Chromium, and Edge. It
@@ -78,10 +107,27 @@ cymonkey extension act --name extension.capabilities \
 
 The supported one-shot actions are `extension.capabilities`,
 `extension.prepare`, `extension.package`, `extension.stage`, and
-`extension.install-store`. A caller can spawn the long-running `extension run`
-command and read its first JSON line to obtain the active browser session.
-`extension.install` rejects an arbitrary local package when no persistent
-installer exists for the target.
+`extension.install-store`. `extension.install` is a long-running action for the
+guided native route. A caller can spawn it and read JSON lines for
+`awaiting-browser-action` and, after restart verification, `installed`:
+
+```sh
+cymonkey extension act --name extension.install --input '{
+  "source":"/path/to/extension.zip",
+  "destination":"/stable/path/to/staged-extension",
+  "revision":"sha256:REVISION_FROM_PREPARE",
+  "target":{
+    "browser":"chrome",
+    "executablePath":"/absolute/path/to/browser",
+    "userDataDir":"/absolute/path/to/browser-user-data",
+    "profileDirectory":"Default"
+  }
+}'
+```
+
+A caller can also spawn the long-running `extension run` command and read its
+first JSON line to obtain a session-only activation. On unsupported browsers,
+`extension.install` returns an error and never reports `installed`.
 
 After the browser completes installation, Cymonkey's privileged WebExtension
 offers `extension.list` and `extension.describe` through `capabilities`/`act`.
@@ -109,8 +155,9 @@ or self-hosted ZIP to be installed through a personal macOS external preference
 file. A managed Chrome deployment can use enterprise policy and a hosted
 update URL; that requires a separate administrator-owned adapter. Firefox
 requires a signed XPI for normal distribution, and Safari distributes its
-WebExtension inside an app. No adapter may claim success before the browser
-reports the extension installed.
+WebExtension inside an app. Native install adapters for Firefox, Safari, and
+Windows are not implemented yet. No adapter may claim success before the
+browser reports the extension installed.
 
 ## Ownership
 

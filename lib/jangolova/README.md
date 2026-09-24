@@ -52,9 +52,10 @@ Jangolova libraries run inside or beside the target runtime and translate
 semantic requests into safe, native operations.
 
 The `browserextension` package owns browser-native extension inspection,
-deterministic ZIP packaging, staging, and supported installation handoffs.
-It never marks a staged extension as installed; the browser must confirm that
-state. Cymonkey exposes these adapters through its `extension` host command
+deterministic ZIP packaging, staging, and guided installation. Its Chrome,
+Chromium, and Edge adapter reports `installed` only after the browser's native
+Load unpacked action survives a restart. Cymonkey exposes these adapters
+through its `extension` host command
 and owns caller policy and lifecycle semantics. See
 [browser extension installation](../../docs/browser-extension-installation.md).
 

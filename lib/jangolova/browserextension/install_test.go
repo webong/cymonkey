@@ -22,7 +22,7 @@ func TestStageForChromeReportsBrowserHandoff(t *testing.T) {
 func TestInstallCapabilityFollowsSelectedBrowser(t *testing.T) {
 	for _, browserName := range []string{"chrome", "chromium", "edge"} {
 		capability := Capability(browserName)
-		if capability.PersistentLocalInstall || (runtime.GOOS != "windows" && (!capability.SessionLoad || capability.SessionDriver != "cdp-pipe")) || (runtime.GOOS == "windows" && capability.SessionLoad) {
+		if (runtime.GOOS != "windows" && (!capability.PersistentLocalInstall || capability.InstallDriver != "native-load-unpacked" || !capability.RequiresBrowserAction || !capability.SessionLoad || capability.SessionDriver != "cdp-pipe")) || (runtime.GOOS == "windows" && (capability.PersistentLocalInstall || capability.SessionLoad)) {
 			t.Fatalf("incorrect session adapter for %s: %+v", browserName, capability)
 		}
 	}

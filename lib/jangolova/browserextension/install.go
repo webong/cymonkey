@@ -13,11 +13,13 @@ import (
 
 var chromeID = regexp.MustCompile(`^[a-p]{32}$`)
 
-// InstallCapability describes whether the selected browser has a direct
-// caller-owned package installation adapter.
+// InstallCapability describes the routes available for a caller-owned package
+// in the selected browser. Persistent installation may require browser action.
 type InstallCapability struct {
 	Browser                string   `json:"browser"`
 	PersistentLocalInstall bool     `json:"persistentLocalInstall"`
+	InstallDriver          string   `json:"installDriver,omitempty"`
+	RequiresBrowserAction  bool     `json:"requiresBrowserAction"`
 	SessionLoad            bool     `json:"sessionLoad"`
 	SessionDriver          string   `json:"sessionDriver,omitempty"`
 	Requires               []string `json:"requires,omitempty"`
@@ -30,7 +32,11 @@ func Capability(browserName string) InstallCapability {
 		if runtime.GOOS == "windows" {
 			return InstallCapability{Browser: browserName, Reason: "the pipe-based extension session adapter is not implemented on Windows"}
 		}
-		return InstallCapability{Browser: browserName, SessionLoad: true, SessionDriver: "cdp-pipe", Requires: []string{"executablePath", "profilePath", "revision", "source", "destination"}, Reason: "DevTools loading lasts for the browser session and does not persist as a normal extension installation"}
+		reason := "Persistent installation requires the browser's Load unpacked action; DevTools-only loading lasts for the browser session"
+		if browserName == "chrome" {
+			reason += "; Chrome 136+ requires a custom user data directory for debugging-pipe verification"
+		}
+		return InstallCapability{Browser: browserName, PersistentLocalInstall: true, InstallDriver: "native-load-unpacked", RequiresBrowserAction: true, SessionLoad: true, SessionDriver: "cdp-pipe", Requires: []string{"executablePath", "userDataDir", "revision", "source", "destination"}, Reason: reason}
 	default:
 		return InstallCapability{Browser: browserName, Reason: "no direct local extension adapter is available for this browser"}
 	}
