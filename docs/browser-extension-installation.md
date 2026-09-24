@@ -1,5 +1,7 @@
 # Browser extension manager
 
+For step-by-step terminal commands, see [Install browser extensions with `cmy`](cmy-extension-cli.md).
+
 Cymonkey manages browser extensions supplied by users and other tools, just as
 it manages userscripts. It does not author, modify, or bundle those extensions
 into its own browser extension. Jangolova owns the browser-specific inspection,
