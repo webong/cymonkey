@@ -23,6 +23,43 @@ caller may always specify `--browser`, `--browser-bin`, and `--profile` paths
 directly. IDs remain stable while those paths stay the same. No browser or
 profile is selected automatically.
 
+### Get the revision before installing
+
+Run `prepare` on the **same source path** you will pass to `install`:
+
+```sh
+cymonkey extension prepare --source /path/to/extension.zip
+```
+
+The response includes a `revision` field, for example:
+
+```json
+{
+  "name": "Example Extension",
+  "version": "1.0",
+  "revision": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+}
+```
+
+Copy the complete `revision` value into `--revision` (or the `revision` field
+of `extension.install`). It is generated from the extension's file names and
+contents; it is **not** a Git commit ID or a browser extension ID. If the
+source changes after `prepare`, run `prepare` again and review the new revision.
+Installation rejects a source that no longer matches the supplied revision.
+
+For a local tool, call `extension.prepare` and pass the returned `revision` to
+`extension.install` with the same `source`:
+
+```sh
+cymonkey extension act --name extension.prepare \
+  --input '{"source":"/path/to/extension.zip"}'
+```
+
+A signed Safari `.app` uses the same `prepare` command, but its revision starts
+with `cdhash:` and comes from the app's code signature. Prepare the **built,
+signed app** before calling `extension.install`; the earlier `sha256:` revision
+of the WebExtension ZIP is used only when creating the Safari Xcode project.
+
 For a discovered target, pass its ID instead of browser and profile flags:
 
 ```sh
