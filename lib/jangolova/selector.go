@@ -60,12 +60,6 @@ func (a Adapter) Connect(ctx context.Context, spec sdk.EngineSpec, target sdk.En
 	if err != nil {
 		return nil, err
 	}
-	if domain != contract.DomainViewer && domain != contract.DomainRender && config.Extension.Mode == extensionRequired {
-		return nil, errors.New("Cymonkey WebExtension mode is available only for browser viewer or render domains")
-	}
-	if backend.Name() != BackendCDP && config.Extension.Mode == extensionRequired {
-		return nil, fmt.Errorf("Cymonkey extension mode required is not available with backend %s", backend.Name())
-	}
 	return backend.Connect(ctx, spec, target, config)
 }
 

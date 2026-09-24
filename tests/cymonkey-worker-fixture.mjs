@@ -14,8 +14,8 @@ lines.on("line", (line) => {
       respond({ id: request.id, error: "fixture received the wrong backend protocol" });
       return;
     }
-    if (request.params.extension?.mode !== "auto") {
-      respond({ id: request.id, error: "fixture received the wrong extension policy" });
+    if (request.params.extension !== undefined) {
+      respond({ id: request.id, error: "fixture received a retired extension option" });
       return;
     }
     result = request.method === "connect" ? { capabilities: ["script.register"] } : { reconnected: true };

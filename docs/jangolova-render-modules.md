@@ -27,7 +27,7 @@ The stable public names are module IDs, not repository directory names:
 
 | Module ID | Runtime | State | Current distribution path |
 | --- | --- | --- | --- |
-| `render/browser-dom` | Browser document/augmentation | implemented | `pkg/browser-ext` |
+| `render/browser-dom` | Browser document/augmentation | implemented | `scripts/cymonkey-worker.mjs`, `pkg/browser-adapter` |
 | `render/threejs` | Three.js | implemented | `pkg/threejs-cymonkey` |
 | `render/godot` | Godot 4 | implemented | `pkg/godot-cymonkey` |
 | `render/unity` | Unity | implemented | `pkg/unity-cymonkey` |
@@ -55,10 +55,9 @@ shape, selects a compatible entry, downloads into its cache, and verifies the
 artifact digest before exposing the path to a provider. It never executes
 downloaded code implicitly.
 
-Browser packages follow the same rule: the extension may mount only a reviewed
-package present in its signed product registry. Native render packages are
-pulled by the Cymonkey host/provider for the target machine, not by the
-browser extension.
+Browser packages follow the same rule: a consuming extension or host chooses
+reviewed packages and owns its packaging and installation. Native render
+packages are pulled by the Cymonkey host/provider for the target machine.
 
 ## Ownership boundaries
 

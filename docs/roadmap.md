@@ -64,14 +64,14 @@
   storage, Shadow DOM overlays, and declarative network rules.
 - [x] Detect an optional caller-installed Chromium extension through a
   caller-owned CDP target without launching or stopping the browser.
-- [x] Add WXT Manifest V3 packaging for Chrome, Edge, and Firefox, including
-  one standalone artifact with runtime-activated Xallet Spook integration.
+- [x] Extract browser API and optional Xallet Spook integrations from the
+  earlier WXT prototype into reusable libraries.
 - [ ] Add live cross-browser extension fixtures.
 - [x] Add provider-level capability and origin filtering.
 - [x] Add per-call extension policy across caller, capability, effect,
   origin/tab, and augmentation with redacted audit lifecycle events.
-- [x] Add an optional extension-initiated authenticated WebSocket using a
-  caller-supplied short-lived token in the same browser artifact.
+- [x] Provide an optional extension-initiated authenticated WebSocket client
+  using a caller-supplied short-lived token.
 - [ ] Add signed augmentation bundles.
 
 ## Phase 2c: Runtime-agnostic augmentation
@@ -79,17 +79,16 @@
 - [x] Define `cymonkey/v1alpha1` as a portable augmentation contract
   with typed domains, runtimes, drivers, surfaces, lifecycle, capability
   provenance, and target-neutral manifests.
-- [x] Adapt the Cymonkey Browser Extension control plane to advertise the
-  `viewer` and `render` / `browser-dom` attachment while retaining the page-safe
-  `v1alpha1` compatibility bridge.
+- [x] Extract the browser extension control contract and browser API helpers
+  into libraries for consuming extensions. Retain CDP/BiDi browser attachment.
 - [x] Define a bounded `viewer` / `macos-app` mapping over typed `app.command.*` and `ui.*`
   operations without raw AppleScript, raw Apple Events, or unrestricted
   Accessibility-tree passthrough.
 - [x] Add shared Go validation and a policy-filtered macOS capability mapper.
 - [x] Implement a caller-owned macOS native helper that negotiates Automation
   and Accessibility consent and exposes only mapped capabilities.
-- [x] Add a macOS menu-bar containing app that imports the reusable Cymonkey
-  runtime, offers explicit managed start/stop, and embeds a Safari WebExtension.
+- [x] Extract the macOS catalog and managed-runtime controller into a Swift
+  library for caller-owned apps.
 - [x] Define Cymonkey userscript lifecycle capabilities and the shared
   `cymonkey.userscript/v1alpha1` manifest, bounded
   `@grant none` MVP, approval checks, permission-increase checks, and native

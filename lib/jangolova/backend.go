@@ -18,19 +18,6 @@ type Backend interface {
 	Connect(context.Context, sdk.EngineSpec, sdk.EngineTarget, Options) (sdk.EngineInstance, error)
 }
 
-type extensionMode string
-
-const (
-	extensionAuto     extensionMode = "auto"
-	extensionDisabled extensionMode = "disabled"
-	extensionRequired extensionMode = "required"
-)
-
-type ExtensionOptions struct {
-	Mode extensionMode `json:"mode,omitempty"`
-	ID   string        `json:"id,omitempty"`
-}
-
 type NativeOptions struct {
 	ControlListen string `json:"controlListen,omitempty"`
 }
@@ -81,7 +68,6 @@ type Options struct {
 	Driver     string            `json:"driver,omitempty"`
 	NodePath   string            `json:"nodePath,omitempty"`
 	WorkerPath string            `json:"workerPath,omitempty"`
-	Extension  ExtensionOptions  `json:"extension,omitempty"`
 	Native     NativeOptions     `json:"native,omitempty"`
 	Policy     PolicyLimits      `json:"policy,omitempty"`
 	Composite  *compositeOptions `json:"composite,omitempty"`

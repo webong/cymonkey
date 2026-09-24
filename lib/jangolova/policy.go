@@ -24,9 +24,6 @@ func normalizeOptions(value *Options) error {
 	if value.Composite != nil && value.Driver != "auto" {
 		return errors.New("Cymonkey composite selects its drivers per binding; do not set top-level driver")
 	}
-	if value.Extension.Mode == "" {
-		value.Extension.Mode = extensionAuto
-	}
 	switch value.Driver {
 	case "auto", "playwright", "puppeteer", string(BackendCDP), string(BackendBiDi), string(BackendSafariMCP),
 		string(BackendMacOSAppleEvents), string(BackendMacOSAccessibility), string(BackendMacOSCooperative), string(BackendWindowsCooperative):
@@ -34,17 +31,6 @@ func normalizeOptions(value *Options) error {
 		if !contract.ValidDriver(contract.Driver(value.Driver)) {
 			return fmt.Errorf("invalid Jangolova driver %q", value.Driver)
 		}
-	}
-	switch value.Extension.Mode {
-	case extensionAuto, extensionDisabled, extensionRequired:
-	default:
-		return fmt.Errorf("unsupported Cymonkey extension mode %q", value.Extension.Mode)
-	}
-	if value.Extension.Mode == extensionRequired && value.Extension.ID == "" {
-		return errors.New("Cymonkey extension.id is required when extension.mode is required")
-	}
-	if value.Extension.ID != "" && !validExtensionID(value.Extension.ID) {
-		return errors.New("Cymonkey extension.id must be a Chrome extension ID or Firefox WebExtension ID")
 	}
 	value.Policy.AllowedCapabilities = stableStrings(value.Policy.AllowedCapabilities)
 	value.Policy.AllowedOrigins = stableStrings(value.Policy.AllowedOrigins)
@@ -60,19 +46,6 @@ func normalizeOptions(value *Options) error {
 		}
 	}
 	return nil
-}
-
-func validExtensionID(value string) bool {
-	if len(value) == 32 {
-		valid := true
-		for _, character := range value {
-			valid = valid && character >= 'a' && character <= 'p'
-		}
-		if valid {
-			return true
-		}
-	}
-	return strings.Contains(value, "@") && !strings.ContainsAny(value, " /\\")
 }
 
 func validateOriginPattern(value string) error {

@@ -5,8 +5,6 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 const root = new URL("../", import.meta.url);
-const browserExtensionPackage = "pkg/browser-ext/package.json";
-const browserExtensionConfig = "pkg/browser-ext/wxt.config.ts";
 
 async function source(path) {
   return readFile(new URL(path, root), "utf8");
@@ -24,10 +22,9 @@ test("Cymonkey worker provides CDP, BiDi, and Playwright drivers with integrated
 	}
 	assert.match(worker, /cymonkey\/v1alpha1/);
 	assert.doesNotMatch(worker, /jangolova\.cymonkey/);
-  assert.match(worker, /extensionConfig\.mode === "required"/);
+  assert.match(worker, /first-party Cymonkey browser extension backend was retired/);
   assert.match(worker, /baseCapabilities\(targetProtocol\)/);
   assert.match(worker, /chrome-extension:\/\//);
-  assert.match(worker, /cymonkeyDispatch/);
   assert.doesNotMatch(worker, /puppeteer\.launch/);
   assert.doesNotMatch(worker, /chromium\.launch/);
 });
@@ -83,62 +80,4 @@ test("CDP interception rules are augmentation-owned and cleaned up before the wo
   assert.doesNotMatch(worker, /async function disconnect\(\)[\s\S]*?browser\.disconnect\(/);
   assert.match(worker, /page\.setRequestInterception\(false\)/);
   assert.match(worker, /protocol === "cdp"/);
-});
-
-test("WXT package builds once per browser with embedded Xallet Spook support", async () => {
-  const pkg = JSON.parse(await source(browserExtensionPackage));
-  const config = await source(browserExtensionConfig);
-  assert.equal(pkg.name, "@cymonkey/browser-extension");
-  assert.match(pkg.scripts.build, /chrome.*edge.*firefox/);
-  assert.doesNotMatch(JSON.stringify(pkg.scripts), /mode spoke|build:spoke|dev:spoke/);
-  assert.match(config, /outDirTemplate: '\{\{browser\}\}-mv\{\{manifestVersion\}\}'/);
-  assert.match(config, /'management'/);
-  assert.match(config, /externally_connectable: browser === 'safari' \? undefined : \{ ids: \['\*'\] \}/);
-  assert.match(config, /data_collection_permissions/);
-});
-
-test("Cymonkey separates its page-safe and privileged extension planes", async () => {
-  const background = await source("pkg/browser-ext/entrypoints/background.ts");
-  const content = await source("pkg/browser-ext/entrypoints/cymonkey.content.ts");
-  const page = await source("pkg/browser-ext/entrypoints/cymonkey-page.content.ts");
-  const capabilities = await source("pkg/browser-ext/src/capabilities.ts");
-  const engine = await source("pkg/browser-ext/src/engine.ts");
-
-  assert.match(page, /root\.jangolova = Object\.freeze/);
-  assert.match(page, /window\.cymonkey/);
-  assert.match(page, /world: 'MAIN'/);
-  assert.doesNotMatch(content, /injectScript/);
-  assert.match(content, /allowedPageActions/);
-  assert.match(content, /cannot invoke privileged action/);
-  assert.match(background, /acceptsExternalSender\(sender\.id\)/);
-  assert.match(engine, /cymonkey\/v1alpha1/);
-	assert.doesNotMatch(engine, /compatibleProtocols/);
-  assert.match(engine, /domains: \['viewer', 'render'\]/);
-  assert.match(engine, /runtimes: \['browser-dom'\]/);
-  assert.match(engine, /cymonkey-browser-extension-webextension/);
-  assert.match(capabilities, /capability\('document\.query',[\s\S]*?'render'\)/);
-  assert.match(capabilities, /capability\('script\.execute',[\s\S]*?'render'\)/);
-  assert.match(capabilities, /capability\('style\.insert',[\s\S]*?'render'\)/);
-
-  for (const capability of [
-    "script.execute", "script.register", "script.unregister", "style.insert", "style.remove",
-    "network.rules.install", "network.rules.remove", "storage.get", "storage.set",
-  ]) {
-    assert.match(capabilities, new RegExp(capability.replaceAll(".", "\\.")), `missing ${capability}`);
-    assert.doesNotMatch(page, new RegExp(capability.replaceAll(".", "\\.")), `page bridge exposes ${capability}`);
-  }
-  assert.doesNotMatch(background, /browser\.api|chrome\.evaluate/);
-});
-
-test("Xallet Spook registration activates at runtime and authenticates the discovered hub ID", async () => {
-  const spook = await source("pkg/browser-ext/src/xallet-spook.ts");
-  const background = await source("pkg/browser-ext/entrypoints/background.ts");
-  const policy = await source("pkg/browser-ext/src/services/policy.ts");
-  assert.match(spook, /extension\.name === hubName && extension\.enabled/);
-  assert.match(spook, /REGISTER_SPOKE/);
-  assert.match(spook, /UPDATE_SPOKE_STATE/);
-  assert.match(spook, /senderId === this\.hubId/);
-  assert.match(background, /new XalletSpookClient/);
-  assert.doesNotMatch(background, /import\.meta\.env\.MODE/);
-  assert.match(policy, /CYMONKEY_EXTENSION_CALL/);
 });

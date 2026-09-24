@@ -13,8 +13,8 @@ presenting a new dynamic one.
 
 - Connect to browsers through CDP, WebDriver BiDi, WebDriver Classic, Safari
   MCP, WebExtension, and native integrations.
-- Mount reviewed browser packages such as **Three.js Scene** into an approved
-  tab.
+- Supply libraries that an extension or browser host can use to mount reviewed
+  browser packages into an approved tab.
 - Expose typed, policy-governed actions for navigation, interaction, display,
   presentation, and runtime-specific scene controls.
 - Operate explicit Three.js, Godot, Unity, Unreal, and Blender resources through their
@@ -75,8 +75,11 @@ audit events, reviewed packages, and caller-supplied target connections.
 - [Architecture](docs/architecture.md)
 - [Browser packages](docs/browser-augmentation-packages.md)
 - [Browser extension manager](docs/browser-extension-installation.md)
+- [Extension manager library for other browser extensions](pkg/extension-manager/README.md)
+- [Composable browser adapter library](pkg/browser-adapter/README.md)
 - [Use the `cmy` CLI](docs/cmy-cli.md)
 - [Install extensions with the `cmy` CLI](docs/cmy-extension-cli.md)
+- [Manage userscripts without an extension](docs/userscripts.md#extension-free-local-manager)
 - [Target connection security](docs/target-connection-security.md)
 - [Roadmap](docs/roadmap.md)
 - [Jangolova render modules](docs/jangolova-render-modules.md)
@@ -86,6 +89,7 @@ audit events, reviewed packages, and caller-supplied target connections.
 ```bash
 go test ./...
 npm run test:cymonkey
-npm run test:browser-extension
+npm run test:browser-adapter
+npm run test:extension-manager
 npm run test:threejs-cymonkey
 ```

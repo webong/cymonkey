@@ -4,7 +4,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
 const schemaURL = new URL('src/protocol/browser-extension/v1alpha1/protocol.schema.json', root);
-const typescriptURL = new URL('pkg/browser-ext/src/generated/browser-extension-v1alpha1.ts', root);
+const typescriptURL = new URL('pkg/browser-adapter/src/generated/browser-extension-v1alpha1.ts', root);
 const goURL = new URL('src/internal/browserextensionprotocol/generated_v1alpha1.go', root);
 const schemaSource = await readFile(schemaURL, 'utf8');
 const schema = JSON.parse(schemaSource);

@@ -13,8 +13,6 @@ import (
 	"jangolova/sdk"
 )
 
-const fixtureExtensionID = "abcdefghijklmnopabcdefghijklmnop"
-
 func TestAdapterDefaultsToNoInstallCDPAndDisconnects(t *testing.T) {
 	worker, err := filepath.Abs("../../tests/cymonkey-worker-fixture.mjs")
 	if err != nil {
@@ -78,12 +76,12 @@ func TestDecodeOptionsRejectsUnknownAndInvalidValues(t *testing.T) {
 	}
 }
 
-func TestDecodeOptionsDefaultsToAutoAndAcceptsNoExtension(t *testing.T) {
+func TestDecodeOptionsDefaultsToAutoDriver(t *testing.T) {
 	config, err := decodeOptions(json.RawMessage(`{}`))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if config.Domain != "" || config.Driver != "auto" || config.Extension.Mode != extensionAuto || config.Extension.ID != "" {
+	if config.Domain != "" || config.Driver != "auto" {
 		t.Fatalf("decodeOptions() = %#v", config)
 	}
 }

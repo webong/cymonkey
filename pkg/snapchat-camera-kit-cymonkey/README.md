@@ -1,8 +1,8 @@
 # Snapchat Camera Kit Cymonkey package
 
-This is an optional `render/browser-dom` sandbox augmentation package. It integrates
+This is an optional `render/browser-dom` augmentation package. It integrates
 Snap Camera Kit Web without adding Snap's SDK, a camera permission, or Snap
-credentials to Cymonkey Browser Extension itself.
+credentials to Cymonkey's core.
 
 The package owns a canvas and its Camera Kit session. It exposes only its
 declared Cymonkey actions:
@@ -20,24 +20,22 @@ camera stream; an agent cannot open the camera through `act` alone. The target o
 API token when composing the package and must have Camera Kit Web access and
 Lens IDs from Snap.
 
-## Sandbox deployment
+## Browser-host integration
 
-Camera Kit Web downloads its Lens renderer as WebAssembly from Snap. It cannot
-execute in the ordinary MV3 extension or content-script context. Cymonkey
-therefore runs this package inside its extension sandbox page: a separate
-extension origin with no WebExtension APIs and a narrowly composed Camera Kit
-Content Security Policy.
+Camera Kit Web downloads its Lens renderer as WebAssembly from Snap. A
+consuming extension can bundle this package in its own sandbox page with a
+reviewed Content Security Policy and camera consent flow. Cymonkey provides
+the package and browser-adapter library; it does not ship the sandbox page or
+a composed Chrome/Edge extension.
 
-Build the composed Chrome/Edge artifact with:
+Build the package with:
 
 ```sh
-npm run build:camera-kit-browser-package
+npm --prefix pkg/snapchat-camera-kit-cymonkey run build
 ```
 
-That build puts this package at
-`augmentations/snapchat-camera-kit/sandbox.js`; `pkg/browser-ext` still has no
-Snap dependency. The caller mounts the generic sandbox and then sends normal
-Cymonkey requests through it:
+The integrating extension decides where to include the output and how to
+mount it. A compatible host can send normal Cymonkey requests:
 
 ```json
 {
@@ -53,10 +51,8 @@ Cymonkey requests through it:
 }
 ```
 
-The first camera-permission mount returns a short-lived `approvalId`. The user
-reviews it in the Cymonkey extension popup and chooses **Allow once**. The
-caller then retries the identical input with that `approvalId`; successful
-mounting consumes it.
+The integrating extension must obtain user consent before granting camera
+access. It may use a short-lived approval ID tied to the exact mount request.
 
 `cymonkey-engine.call` uses `delivery: "sandbox"`, `augmentationId`, and
 `sandboxId: "camera"` to call the package. The page does not receive the
@@ -65,9 +61,7 @@ token, port, or any extension APIs.
 ## Consent
 
 The user must click the owned **Start camera** button before capture begins. A
-target-owned standalone runtime uses `getUserMedia` directly. The browser
-extension uses Cymonkey's generic offscreen media broker and a local WebRTC
-track because an opaque extension sandbox cannot call `getUserMedia`, and an
-arbitrary target site's Permissions Policy must not decide whether an approved
-extension package can acquire media. An agent may apply or remove an approved
-Lens only after that explicit camera session has started.
+target-owned standalone runtime uses `getUserMedia` directly. An integrating
+extension with an opaque sandbox must supply its own approved media broker and
+private track transport. An agent may apply or remove an approved Lens only
+after that explicit camera session has started.

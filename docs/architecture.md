@@ -60,16 +60,15 @@ page or scene objects.
 
 Userscripts are a privileged Cymonkey augmentation form with the shared
 `jangolova.cymonkey.userscript/v1alpha1` manifest. Cymonkey owns their semantic
-lifecycle through `capabilities`, `describe`, `act`, and `events`. The WXT
-extension provides the approval, storage, reconciliation, and native
-registration manager. The macOS containing app receives source-free catalog
-metadata from its embedded Safari extension; source never crosses that bridge.
+lifecycle through `capabilities`, `describe`, `act`, and `events`. Cymonkey's
+local store and Jangolova's CDP/BiDi attachment provide extension-free
+registration. Integrators can use the shared userscript runtime in their own
+extensions, and the macOS browser adapter supplies source-free catalog data.
 
-`pkg/macos-ext` is the user-facing macOS product. It imports the distinct
-`CymonkeyMacOSRuntime` library, can supervise that runtime when explicitly
-started by the user, presents consent/runtime state in a menu bar, and embeds
-the Safari WebExtension. It owns only its helper connection, never the target
-applications it augments.
+`pkg/macos-browser-adapter` is a reusable Swift catalog and managed-runtime
+controller. A caller-owned macOS app can import it and provide its own UI and
+Safari extension if desired. It owns only its helper connection, never the
+target applications it augments.
 
 The public page bridge contains only page-safe Cymonkey operations. Platform
 services and render control are reachable only through the authenticated
@@ -95,7 +94,7 @@ External agent, IDE, or application
         │                                            │                                            │
         ▼                                            ▼                                            ▼
 AUTOMATION DRIVERS                           INTERACTION DRIVERS                          PRESENTATION DRIVERS
-• Playwright Driver (CDP)                    • WebExtension (WXT)                         • Three.js Cymonkey runtime
+• Playwright Driver (CDP)                    • Caller-owned WebExtension                  • Three.js Cymonkey runtime
 • Puppeteer Driver (CDP/BiDi)                • Userscripts Engine                         • Declarative Web Presentation
 • Native CDP Driver                          • macOS Accessibility / Apple Events         • Unity / Unreal Bridge WS
 • WebDriver BiDi Driver                      • Safari MCP Relay                           • Display Pixel / YOLO (Blockade)
@@ -204,9 +203,10 @@ src/protocol/cymonkey/          canonical versioned Cymonkey schemas
 src/protocol/browser-extension/ schema, recorded exchanges, and generated binding source
 src/internal/browserextensionprotocol/ generated Go browser-extension bindings
 tests/cymonkey-core-conformance.mjs  portable Cymonkey contract checks
-pkg/browser-ext/                single-build WXT runtime with optional Xallet Spook activation
+pkg/browser-adapter/            composable browser API, policy, and package library
+pkg/extension-manager/         management API interface with optional host installation adapter
 pkg/macos-cymonkey-helper/       caller-owned Swift Apple Events/Accessibility binding
-pkg/macos-ext/                   menu-bar host, managed helper mode, and Safari container
+pkg/macos-browser-adapter/      reusable Swift catalog and managed-runtime controller
 pkg/userscript-runtime/          shared userscript validation and registration planning
 pkg/threejs-cymonkey/            explicit-registration Three.js runtime
 pkg/                             distributable Godot, Unity, and Unreal Cymonkey packages

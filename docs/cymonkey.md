@@ -3,7 +3,7 @@
 Cymonkey is Jangolova's runtime-agnostic augmentation engine. This document
 defines its browser integration: the `viewer` platform domain and `render`
 document domain over the `browser-dom` runtime,
-and CDP, BiDi, Safari MCP, or WebExtension driver. The portable `v1alpha2`
+and CDP, BiDi, or Safari MCP driver. The portable `v1alpha2`
 core, macOS integration, ownership model, and migration policy are defined in
 [Cymonkey runtime-agnostic augmentation contract](cymonkey-runtime.md).
 See [Cymonkey domains, runtimes, and drivers](cymonkey-domains.md) for the
@@ -37,11 +37,10 @@ and endpoint authentication. Jangolova only attaches to those supplied
 resources. Disconnecting Cymonkey must not close the browser, remove an
 extension, or destroy its profile.
 
-An extension is optional. When extension mode is `auto`, Jangolova attaches to
-CDP, BiDi, or Safari MCP first and then probes for an extension backend where
-that transport supports a safe probe. A missing extension reduces the
-negotiated capability set. It is an error only when extension mode is
-`required`. Installation is never attempted by Jangolova.
+An integrating extension is optional. Jangolova attaches through the supplied
+CDP, BiDi, or Safari MCP endpoint. Cymonkey can separately inspect, prepare,
+and guide installation of caller-owned extensions with the
+`browserextension` host library.
 
 ## Architecture
 
@@ -62,16 +61,10 @@ Cymonkey Control Plane Engine
         +-- Native CDP driver ---------- Runtime / Page / DOM / CSS / Network / Fetch
         +-- BiDi driver ---------------- script / browsingContext / network
         +-- Safari MCP driver ---------- dynamically discovered safe tool mappings
-        +-- optional Jangolova Extension - platform services, overlays, and persistent state
-                                                    |
-                                                    +-- isolated content script
-                                                    +-- page bootstrap bridge
 ```
 
-Hybrid operation merges capabilities from a base automation/interaction transport and the optional
-extension. Capability names remain stable; `capabilities` reports which backend driver
-will handle each capability and whether another backend driver is available as a
-fallback.
+The browser adapter library supplies browser API helpers to an independently
+built extension. The CDP/BiDi attachment does not probe for that extension.
 
 ## Backend driver selection policy
 
@@ -82,30 +75,16 @@ The default driver is `auto`:
 3. Otherwise use a supplied WebDriver BiDi endpoint as a first-class driver backend.
 4. Otherwise use a supplied Safari MCP Streamable HTTP endpoint and negotiate
    the safely mapped subset from its discovered tools.
-5. If extension mode is `auto` or `required`, probe the optional extension on a
-   compatible base transport and merge its persistent/privileged capabilities.
-6. Reject the connection when required capabilities cannot be satisfied after
-   probing and policy filtering.
+5. Reject the connection when required capabilities cannot be satisfied after
+   driver negotiation and policy filtering.
 
 An explicit `module` selects one registered contribution; an explicit `driver`
 selects a compatible driver implementation. Neither changes the semantic API.
-An explicit extension policy is one of:
-
-| Value | Meaning |
-| --- | --- |
-| `auto` | Use the extension if detected; otherwise continue with reduced capabilities. |
-| `disabled` | Do not probe or use an extension. |
-| `required` | Fail unless the expected extension handshakes successfully. |
-
 Example:
 
 ```json
 {
   "driver": "auto",
-  "extension": {
-    "mode": "auto",
-    "id": "optional-provider-supplied-id"
-  },
   "policy": {
     "allowedCapabilities": ["document.query", "overlay.mount", "script.execute"],
     "allowedOrigins": ["https://*.wikipedia.org"]
@@ -119,7 +98,7 @@ Example:
 | --- | --- |
 | `hello` | Protocol version, implementation, selected backends, and features. |
 | `capabilities` | Negotiated, policy-filtered semantic capability descriptors. |
-| `describe` | Current backend state, target contexts, augmentations, and extension presence. |
+| `describe` | Current backend state, target contexts, and augmentations. |
 | `act` | Execute one advertised semantic capability. |
 | `events` | Non-destructively read events after an opaque cursor. |
 
@@ -131,13 +110,13 @@ Every advertised capability contains:
   "description": "Register a script for matching future documents.",
   "domain": "render",
   "runtime": "browser-dom",
-  "driver": "webextension",
-  "support": "native",
-  "lifetime": "profile",
-  "persistence": "persistent",
+  "driver": "cdp",
+  "support": "mapped",
+  "lifetime": "browser-session",
+  "persistence": "session",
   "effect": "external",
   "inputSchema": {"type": "object", "required": ["augmentationId", "script"]},
-  "alternatives": ["cdp"]
+  "alternatives": []
 }
 ```
 
@@ -233,33 +212,12 @@ capability constraint and verify the returned capability descriptor.
 Website content is hostile. Page messages, DOM state, URLs, and page-provided
 objects are untrusted. The page global is never an authentication mechanism.
 
-Privileged extension commands use a control plane independent of the page. The
-preferred production shape is an extension-initiated authenticated WebSocket
-using a caller-supplied endpoint and short-lived token. Backends may instead
-use provider-controlled native messaging or CDP evaluation in an extension
-service-worker/extension-origin target. The current development backend uses
-the latter and verifies the expected extension origin and implementation
-handshake. It never dispatches privileged commands through `window.postMessage`.
-
-All private transports feed the same per-capability authorization gate. The
-gate evaluates caller, effect, resolved tab/origin, and augmentation ID before
-dispatch, then emits redacted requested/succeeded/denied/failed audit events.
-The optional outbound WebSocket is implemented in the same artifact and is
-activated only by trusted caller configuration. See
-[browser-extension control plane](browser-extension-control.md).
-
-The extension consists of:
-
-- a Manifest V3 service worker owning scripting, storage, and declarative
-  network request operations;
-- an isolated content script implementing bounded page operations;
-- a main-world bootstrap that creates `window.jangolova.cymonkey`;
-- an extension-origin control entry point for the backend handshake.
-
-The single extension build always carries Xallet Spook integration. It detects
-the provider-installed `Xallet` browser hub at runtime, registers when found, and
-accepts external privileged calls only from that discovered, enabled hub ID.
-When the hub is absent, the same artifact continues to operate standalone.
+Jangolova's CDP/BiDi worker attaches to a caller-owned browser endpoint and
+applies Cymonkey policy before dispatch. A consuming extension may instead
+use the [browser adapter library](../pkg/browser-adapter/README.md) with its
+own browser APIs, UI, and authenticated control channel. The optional
+[extension control protocol](browser-extension-control.md) remains available
+as a library contract.
 
 ## Policy requirements
 
@@ -278,22 +236,14 @@ When the hub is absent, the same artifact continues to operate standalone.
 8. Default-deny write/external extension calls until an authenticated bootstrap
    caller installs an explicit fine-grained policy.
 
-## Browser extension package
+## Browser extension libraries
 
-The optional Jangolova Browser Extension lives in `pkg/browser-ext` and uses WXT. Build it
-with:
-
-```sh
-npm install --prefix pkg/browser-ext
-npm --prefix pkg/browser-ext run check
-```
-
-Outputs are `.output/chrome-mv3`, `.output/edge-mv3`,
-`.output/firefox-mv3`, and `.output/safari-mv3`. The Safari resources are
-embedded in the containing app under `pkg/macos-ext`; its currently unsupported
-extension permissions are omitted and the resulting capability set is reduced.
-There is no separate normal or Spook build. The target owner loads or installs
-the appropriate product; Jangolova does not install it.
+`pkg/browser-adapter` contains composable browser API and control helpers;
+`pkg/extension-manager` lets another extension become an extension manager.
+An integrating extension chooses its own framework, manifest, package assets,
+permissions, and installation flow. Jangolova's host-side
+`browserextension` package can inspect, prepare, and guide installation of
+caller-owned extensions.
 
 ## Connection examples
 
@@ -304,7 +254,7 @@ cymonkey provider connect-engine \
   --adapter cymonkey \
   --target-kind browser \
   --endpoint cdp=http://127.0.0.1:9222 \
-  --options '{"driver":"auto","extension":{"mode":"auto"}}'
+  --options '{"driver":"auto"}'
 ```
 
 First-class BiDi baseline:
@@ -314,17 +264,7 @@ cymonkey provider connect-engine \
   --adapter cymonkey \
   --target-kind browser \
   --endpoint webdriver-bidi=ws://127.0.0.1:9222/session \
-  --options '{"driver":"bidi","extension":{"mode":"disabled"}}'
-```
-
-Require a provider-installed extension on CDP:
-
-```sh
-cymonkey provider connect-engine \
-  --adapter cymonkey \
-  --target-kind browser \
-  --endpoint cdp=http://127.0.0.1:9222 \
-  --options '{"extension":{"mode":"required","id":"replace-with-installed-extension-id"}}'
+  --options '{"driver":"bidi"}'
 ```
 
 Safari MCP uses the same adapter with a caller-owned

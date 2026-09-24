@@ -9,6 +9,18 @@ packaging, staging, and installation adapters in
 `lib/jangolova/browserextension`; Cymonkey exposes their semantic workflow.
 The caller retains ownership of the submitted extension and its source.
 
+## Build an extension manager with Cymonkey
+
+Cymonkey also provides the reusable
+[`@cymonkey/extension-manager` library](../pkg/extension-manager/README.md).
+An extension can import it, pass its own native `management` API, and implement
+its own list, detail, enable/disable, uninstall, and change-event UI. That
+extension is self-owned. The library has
+an optional installation-host interface so the integrating app can connect
+its own authenticated Cymonkey/Jangolova host for package preparation and
+browser-specific installation. The extension owns its UI and permissions;
+Cymonkey owns the shared interface and host workflow.
+
 ## Local package workflow
 
 Discover browsers and existing profiles on the machine running Cymonkey:
@@ -199,11 +211,11 @@ long-running `extension.install` action with `target.browser` set to `firefox`,
 Safari uses `extension.package-safari` and `extension.install` with
 `target.browser` set to `safari`, or its discovered Safari target ID.
 
-After the browser completes installation, Cymonkey's privileged WebExtension
-offers `extension.list` and `extension.describe` through `capabilities`/`act`.
-These read the browser's native management API and return source-free installed
-state, including the browser-assigned ID, version, enabled flag, install type,
-and declared permissions. They are advertised only where that API exists.
+After installation, a caller-owned WebExtension can use
+[`@cymonkey/extension-manager`](../pkg/extension-manager/README.md) to read
+the browser's native management API. Its `list` and `describe` methods return
+source-free installed state, including the browser-assigned ID, version,
+enabled flag, install type, and declared permissions, when that API exists.
 
 ## Firefox
 

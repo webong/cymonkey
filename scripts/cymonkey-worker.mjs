@@ -6,9 +6,6 @@ const protocolVersion = "cymonkey/v1alpha1";
 let browser;
 let targetProtocol = "cdp";
 let disconnected = true;
-let extensionControl = null;
-let extensionControlCreated = false;
-let extensionConfig = { mode: "auto", id: "" };
 let policy = { allowedCapabilities: [], allowedOrigins: [] };
 let negotiated = [];
 let sequence = 0;
@@ -59,13 +56,12 @@ async function connect(params) {
   if (typeof params.endpoint !== "string" || !params.endpoint) throw new Error("caller-owned browser endpoint is required");
   targetProtocol = params.protocol === "webdriver-bidi" ? "webdriver-bidi" : "cdp";
   driver = typeof params.driver === "string" && params.driver ? params.driver : "auto";
-  extensionConfig = normalizeExtension(params.extension);
+  if (params.extension?.mode === "required") throw new Error("the first-party Cymonkey browser extension backend was retired");
   policy = normalizePolicy(params.policy);
   browser = await openBrowser(params.endpoint, targetProtocol, params.headers, driver);
   disconnected = false;
   observeBrowser(browser);
   await initializePages();
-  await probeExtension();
   negotiated = await negotiateCapabilities();
   appendEvent("cymonkey.connected", { drivers: activeDrivers(), driver });
   return { capabilities: negotiated.map((item) => item.name), descriptors: negotiated, drivers: activeDrivers() };
@@ -74,32 +70,24 @@ async function connect(params) {
 async function reconnect(params) {
   requireConnection();
   const previous = browser;
-  const previousControl = extensionControl;
-  const previousCreated = extensionControlCreated;
   targetProtocol = params.protocol === "webdriver-bidi" ? "webdriver-bidi" : "cdp";
   driver = typeof params.driver === "string" && params.driver ? params.driver : driver;
-  extensionConfig = normalizeExtension(params.extension);
+  if (params.extension?.mode === "required") throw new Error("the first-party Cymonkey browser extension backend was retired");
   policy = normalizePolicy(params.policy);
   const replacement = await openBrowser(params.endpoint, targetProtocol, params.headers, driver);
   browser = replacement;
   disconnected = false;
-  extensionControl = null;
-  extensionControlCreated = false;
   observeBrowser(replacement);
   try {
     await initializePages();
-    await probeExtension();
     negotiated = await negotiateCapabilities();
   } catch (error) {
     await disableInterception(await getPages().catch(() => []));
     browser = previous;
-    extensionControl = previousControl;
-    extensionControlCreated = previousCreated;
     replacement.disconnect();
     throw error;
   }
   await disableInterception(await getPages().catch(() => []));
-  if (previousCreated && previousControl && !previousControl.isClosed()) await previousControl.close().catch(() => {});
   if (typeof previous.disconnect === "function") previous.disconnect();
   else if (typeof previous.close === "function") await previous.close().catch(() => {});
   appendEvent("cymonkey.connection.renewed", { drivers: activeDrivers(), driver });
@@ -190,8 +178,9 @@ async function initializePage(page) {
   await addPreloadScript(page, pageBridgeBootstrap, semanticBackend);
   await page.evaluate(pageBridgeBootstrap, semanticBackend).catch(() => {});
   for (const registration of registrations.values()) {
-    const handle = await addPreloadScript(page, scriptBootstrap, registration.source, registration.matches, registration.excludeMatches);
+    const handle = await addPreloadScript(page, scriptBootstrap, registration.key, registration.source, registration.matches, registration.excludeMatches);
     registration.handles.push({ page, handle });
+    await page.evaluate(scriptBootstrap, registration.key, registration.source, registration.matches, registration.excludeMatches).catch(() => {});
   }
   page.on("request", (request) => {
     if (!capabilityAllowed("network.observe")) return;
@@ -200,57 +189,8 @@ async function initializePage(page) {
   if (networkRules.size > 0) await enableInterception(page);
 }
 
-async function probeExtension() {
-  if (extensionConfig.mode === "disabled") return;
-  if (targetProtocol !== "cdp" || !extensionConfig.id) {
-    if (extensionConfig.mode === "required") throw new Error("required Cymonkey extension needs a CDP backend and provider-supplied extension ID");
-    return;
-  }
-  try {
-    const result = await openExtensionControl(browser, extensionConfig.id);
-    extensionControl = result.page;
-    extensionControlCreated = result.created;
-    const extensionHello = await callExtension("hello", {});
-    if (extensionHello?.protocolVersion !== protocolVersion ||
-      !extensionHello?.domains?.includes("viewer") ||
-      !extensionHello?.runtimes?.includes("browser-dom") ||
-      !extensionHello?.drivers?.includes("webextension") ||
-      extensionHello?.implementation?.name !== "cymonkey-browser-extension-webextension") {
-      throw new Error("extension returned an incompatible Cymonkey handshake");
-    }
-  } catch (error) {
-    extensionControl = null;
-    if (extensionConfig.mode === "required") throw error;
-    appendEvent("webextension.unavailable", { reason: error?.message || String(error) });
-  }
-}
-
-async function openExtensionControl(candidate, extensionId) {
-  if (!/^[a-p]{32}$/.test(extensionId)) throw new Error("CDP WebExtension probing requires a 32-character Chrome extension ID");
-  const url = `chrome-extension://${extensionId}/control.html`;
-  const existing = (await getPages()).find((page) => page.url() === url);
-  const page = existing || await candidate.newPage();
-  try {
-    if (!existing) await page.goto(url, { waitUntil: "domcontentloaded" });
-    await page.waitForFunction(() => document.documentElement.dataset.cymonkeyControlReady === "true" && typeof globalThis.cymonkeyDispatch === "function", { timeout: 5000 });
-    return { page, created: !existing };
-  } catch (error) {
-    if (!existing && !page.isClosed()) await page.close().catch(() => {});
-    throw error;
-  }
-}
-
 async function negotiateCapabilities() {
-  const base = (await probeBaseCapabilities()).filter((item) => capabilityAllowed(item.name));
-  if (!extensionControl) return base;
-  const extension = (await callExtension("capabilities", {})).map(normalizeExtensionCapability).filter((item) => capabilityAllowed(item.name));
-  const merged = new Map(base.map((item) => [item.name, item]));
-  for (const item of extension) {
-    const fallback = merged.get(item.name);
-    if (fallback) item.alternatives = [...new Set([...(item.alternatives || []), fallback.driver])];
-    merged.set(item.name, item);
-  }
-  return [...merged.values()].sort((left, right) => left.name.localeCompare(right.name));
+  return (await probeBaseCapabilities()).filter((item) => capabilityAllowed(item.name));
 }
 
 function hello() {
@@ -282,9 +222,7 @@ async function act(request) {
   const descriptor = negotiated.find((item) => item.name === name);
   if (!descriptor) throw new Error(`Cymonkey capability ${JSON.stringify(name)} is unavailable or denied by policy`);
   await enforceOriginPolicy(input);
-  let result;
-  if (descriptor.driver === "webextension") result = await callExtension("act", { name, input });
-  else result = await actBase(name, input);
+  const result = await actBase(name, input);
   appendEvent("cymonkey.action", { name, driver: descriptor.driver });
   return result;
 }
@@ -430,13 +368,22 @@ async function registerScript(input) {
   const source = requireString(script.source, "script.source");
   const matches = Array.isArray(input.matches) ? input.matches : ["*://*/*"];
   const excludeMatches = Array.isArray(input.excludeMatches) ? input.excludeMatches : [];
+  for (const match of [...matches, ...excludeMatches]) {
+    if (typeof match !== "string" || !originPatternAllowed(match)) throw new Error(`Cymonkey policy denied script match ${JSON.stringify(match)}`);
+  }
   const key = `${augmentationId}:${id}`;
   if (registrations.has(key)) throw new Error(`script ${JSON.stringify(key)} already exists`);
   const handles = [];
-  for (const page of (await getPages()).filter((item) => !isExtensionPage(item))) {
-    handles.push({ page, handle: await addPreloadScript(page, scriptBootstrap, source, matches, excludeMatches) });
+  try {
+    for (const page of (await getPages()).filter((item) => !isExtensionPage(item))) {
+      handles.push({ page, handle: await addPreloadScript(page, scriptBootstrap, key, source, matches, excludeMatches) });
+      await page.evaluate(scriptBootstrap, key, source, matches, excludeMatches).catch(() => {});
+    }
+  } catch (error) {
+    for (const { page, handle } of handles) await removePreloadScript(page, handle).catch(() => {});
+    throw error;
   }
-  registrations.set(key, { source, matches, excludeMatches, handles });
+  registrations.set(key, { key, source, matches, excludeMatches, handles });
   return { ok: true, id };
 }
 
@@ -712,24 +659,6 @@ function cap(name, driver, support, lifetime, persistence, effect, required, dom
   };
 }
 
-function normalizeExtensionCapability(value) {
-  const { backend: _backend, ...capability } = value;
-  return {
-    ...capability,
-    domain: capability.domain || "viewer",
-    runtime: "browser-dom",
-    driver: "webextension",
-    support: capability.support || "native",
-    lifetime: capability.lifetime || "installation",
-    persistence: capability.persistence || "persistent",
-  };
-}
-
-function normalizeExtension(value) {
-  const mode = ["auto", "disabled", "required"].includes(value?.mode) ? value.mode : "auto";
-  return { mode, id: typeof value?.id === "string" ? value.id : "" };
-}
-
 function normalizePolicy(value) {
   return {
     allowedCapabilities: Array.isArray(value?.allowedCapabilities) ? value.allowedCapabilities.filter((item) => typeof item === "string") : [],
@@ -793,18 +722,18 @@ function pageBridgeBootstrap(driver = "cdp") {
   });
 }
 
-function scriptBootstrap(source, matches, excludeMatches) {
+function scriptBootstrap(key, source, matches, excludeMatches) {
   const wildcard = (pattern) => new RegExp(`^${pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replaceAll("*", ".*")}$`);
   const url = location.href;
-  if (!matches.some((pattern) => wildcard(pattern).test(url)) || excludeMatches.some((pattern) => wildcard(pattern).test(url))) return;
+  const matchesURL = (pattern) => (!pattern.startsWith("*://") || ["http:", "https:"].includes(location.protocol)) && wildcard(pattern).test(url);
+  if (!matches.some(matchesURL) || excludeMatches.some(matchesURL)) return;
+  const applied = globalThis[Symbol.for("cymonkey.userscripts.applied")] ||= new Set();
+  if (applied.has(key)) return;
+  applied.add(key);
   (0, eval)(source);
 }
 
-async function callExtension(method, params) {
-  if (!extensionControl || extensionControl.isClosed()) throw new Error("Cymonkey WebExtension control plane is unavailable");
-  return extensionControl.evaluate(({ method, params }) => globalThis.cymonkeyDispatch(method, params), { method, params });
-}
-function activeDrivers() { return [targetProtocol === "webdriver-bidi" ? "bidi" : "cdp", ...(extensionControl ? ["webextension"] : [])]; }
+function activeDrivers() { return [targetProtocol === "webdriver-bidi" ? "bidi" : "cdp"]; }
 function isExtensionPage(page) { return page.url().startsWith("chrome-extension://") || page.url().startsWith("moz-extension://"); }
 function redactURL(value) { try { const url = new URL(value); url.username = ""; url.password = ""; url.search = ""; url.hash = ""; return url.toString(); } catch { return ""; } }
 
@@ -827,7 +756,10 @@ async function resolveCDPEndpoint(endpoint, headers) {
 function safeHeaders(value) { return !value || typeof value !== "object" || Array.isArray(value) ? {} : Object.fromEntries(Object.entries(value).filter(([name, item]) => typeof item === "string" && !/[\r\n\0]/.test(name + item))); }
 async function disconnect() {
   await disableInterception();
-  if (extensionControlCreated && extensionControl && !extensionControl.isClosed()) await extensionControl.close().catch(() => {});
+  for (const registration of registrations.values()) {
+    for (const { page, handle } of registration.handles) await removePreloadScript(page, handle).catch(() => {});
+  }
+  registrations.clear();
   // Never call Playwright Browser.close() here: the target belongs to the
   // caller. Ending this worker releases its remote connection without asking
   // the browser to close its target, contexts, or pages.

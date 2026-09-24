@@ -18,6 +18,7 @@ import (
 	"cymonkey/src/internal/engineprovider"
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
+	"cymonkey/src/internal/userscripts"
 	"cymonkey/src/targetconn"
 )
 
@@ -52,7 +53,12 @@ func enginesCommand(args []string) error {
 	return nil
 }
 
-func connectEngineCommand(args []string) error {
+// ConnectEngine attaches to a caller-owned browser from another local CLI flow.
+func ConnectEngine(args []string, stdout io.Writer) error { return connectEngine(args, stdout) }
+
+func connectEngineCommand(args []string) error { return connectEngine(args, os.Stdout) }
+
+func connectEngine(args []string, stdout io.Writer) error {
 	flags := flag.NewFlagSet("connect-engine", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	adapterName := flags.String("adapter", "auto", "interaction-engine adapter name or auto")
@@ -61,6 +67,12 @@ func connectEngineCommand(args []string) error {
 	driverName := flags.String("driver", "", "driver backend for cymonkey control plane (auto, playwright, puppeteer, cdp, bidi)")
 	optionsText := flags.String("options", "{}", "engine-specific options as a JSON object")
 	disconnectTimeout := flags.Duration("disconnect-timeout", 15*time.Second, "maximum disconnect duration")
+	userscriptTarget := flags.String("userscripts-target", "", "stable browser/profile ID whose approved userscripts should be replayed")
+	defaultUserscriptStore, err := userscripts.DefaultDirectory()
+	if err != nil {
+		return err
+	}
+	userscriptStore := flags.String("userscripts-store", defaultUserscriptStore, "userscript store directory")
 	var endpoints endpointFlags
 	flags.Var(&endpoints, "endpoint", "caller-owned target endpoint in PROTOCOL=URL form; may be repeated")
 	var handles handleFlags
@@ -79,6 +91,12 @@ func connectEngineCommand(args []string) error {
 	}
 	if strings.TrimSpace(*targetKind) == "" {
 		return errors.New("--target-kind is required")
+	}
+	if *userscriptTarget != "" && *targetKind != "browser" {
+		return errors.New("--userscripts-target requires --target-kind browser")
+	}
+	if *userscriptTarget != "" {
+		requiredCapabilities = append(requiredCapabilities, "script.register")
 	}
 	if *disconnectTimeout <= 0 {
 		return errors.New("--disconnect-timeout must be positive")
@@ -146,6 +164,14 @@ func connectEngineCommand(args []string) error {
 	if instance == nil {
 		return errors.New("connect interaction engine: adapter returned no instance")
 	}
+	var appliedUserscripts map[string]userscripts.Record
+	if *userscriptTarget != "" {
+		appliedUserscripts, err = syncUserscripts(ctx, instance, *userscriptStore, *userscriptTarget, nil)
+		if err != nil {
+			_ = instance.Disconnect(context.Background())
+			return fmt.Errorf("replay approved userscripts: %w", err)
+		}
+	}
 
 	health := orchestrator.EngineHealth{
 		Status:     orchestrator.EngineHealthUnknown,
@@ -170,35 +196,45 @@ func connectEngineCommand(args []string) error {
 	if provider, ok := instance.(orchestrator.EngineCapabilityProvider); ok {
 		result.Capabilities = provider.EngineCapabilities()
 	}
-	if err := json.NewEncoder(os.Stdout).Encode(result); err != nil {
+	if err := json.NewEncoder(stdout).Encode(result); err != nil {
 		_ = instance.Disconnect(context.Background())
 		return err
 	}
 
 	var terminal *orchestrator.EngineEvent
+	var events <-chan orchestrator.EngineEvent
 	if source, ok := instance.(orchestrator.EngineEventSource); ok {
-		for events := source.EngineEvents(); events != nil && terminal == nil; {
-			select {
-			case <-ctx.Done():
+		events = source.EngineEvents()
+	}
+	var syncTick <-chan time.Time
+	if *userscriptTarget != "" {
+		ticker := time.NewTicker(2 * time.Second)
+		defer ticker.Stop()
+		syncTick = ticker.C
+	}
+	for terminal == nil && ctx.Err() == nil {
+		select {
+		case <-ctx.Done():
+		case <-syncTick:
+			appliedUserscripts, err = syncUserscripts(ctx, instance, *userscriptStore, *userscriptTarget, appliedUserscripts)
+			if err != nil {
+				_ = instance.Disconnect(context.Background())
+				return fmt.Errorf("synchronize approved userscripts: %w", err)
+			}
+		case event, open := <-events:
+			if !open {
 				events = nil
-			case event, open := <-events:
-				if !open {
-					events = nil
-					continue
-				}
-				event.Message = targetconn.RedactString(event.Message, target)
-				if err := json.NewEncoder(os.Stdout).Encode(engineEventValue(event)); err != nil {
-					_ = instance.Disconnect(context.Background())
-					return err
-				}
-				if event.Status == "disconnected" || event.Status == "failed" {
-					terminal = &event
-				}
+				continue
+			}
+			event.Message = targetconn.RedactString(event.Message, target)
+			if err := json.NewEncoder(stdout).Encode(engineEventValue(event)); err != nil {
+				_ = instance.Disconnect(context.Background())
+				return err
+			}
+			if event.Status == "disconnected" || event.Status == "failed" {
+				terminal = &event
 			}
 		}
-	}
-	if terminal == nil && ctx.Err() == nil {
-		<-ctx.Done()
 	}
 	disconnectCtx, cancel := context.WithTimeout(context.Background(), *disconnectTimeout)
 	defer cancel()

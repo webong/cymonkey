@@ -35,7 +35,6 @@ type instance struct {
 	workerPath     string
 	targetProtocol string
 	driver         string
-	extension      ExtensionOptions
 	policy         PolicyLimits
 	endpoint       sdk.TargetEndpoint
 	capabilities   []string
@@ -103,7 +102,7 @@ func (backend processBackend) Connect(ctx context.Context, spec sdk.EngineSpec, 
 	running := &instance{
 		host:     config.Host,
 		nodePath: nodePath, workerPath: workerPath, targetProtocol: backend.endpointProtocol, driver: config.Driver,
-		extension: config.Extension, policy: config.Policy,
+		policy:   config.Policy,
 		endpoint: endpoint, events: make(chan sdk.EngineEvent, 8), renewalStop: make(chan struct{}),
 	}
 	snapshot := endpoint.Snapshot()
@@ -243,7 +242,7 @@ func (i *instance) startWorker(ctx context.Context) (sdk.Worker, []string, error
 	}
 	snapshot := i.endpoint.Snapshot()
 	params, _ := json.Marshal(map[string]any{
-		"endpoint": i.endpoint.URL, "protocol": i.targetProtocol, "driver": i.driver, "extension": i.extension,
+		"endpoint": i.endpoint.URL, "protocol": i.targetProtocol, "driver": i.driver,
 		"headers": snapshot.Headers, "policy": i.policy,
 	})
 	result, err := worker.Call(ctx, "connect", params)
@@ -303,7 +302,7 @@ func (i *instance) watchConnectionMaterial(updates <-chan uint64, connected sdk.
 				err = i.replaceWorker(ctx)
 			} else {
 				params, _ := json.Marshal(map[string]any{
-					"endpoint": i.endpoint.URL, "protocol": i.targetProtocol, "extension": i.extension,
+					"endpoint": i.endpoint.URL, "protocol": i.targetProtocol,
 					"headers": current.Headers, "policy": i.policy,
 				})
 				_, err = i.request(ctx, "reconnect", params)
@@ -434,7 +433,7 @@ func capabilityNames() []string {
 		"network.rules.install", "network.rules.remove",
 		"overlay.mount", "overlay.patch", "overlay.unmount", "script.execute", "script.register",
 		"script.unregister", "storage.get", "storage.set", "style.insert", "style.remove",
-		"target.cdp", "target.safari-mcp", "target.webdriver-bidi", "webextension.optional",
+		"target.cdp", "target.safari-mcp", "target.webdriver-bidi",
 	}
 }
 

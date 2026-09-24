@@ -1,0 +1,21 @@
+{
+  "name": "@cymonkey/extension-manager",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Reusable extension management interface for browser extensions and host adapters",
+  "files": ["dist", "README.md"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepack": "npm run build",
+    "test": "npm run build && node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

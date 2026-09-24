@@ -6,4 +6,6 @@
 /output/
 /.cache/
 **/.build/
+pkg/extension-manager/dist/
+pkg/browser-adapter/dist/
 .DS_Store

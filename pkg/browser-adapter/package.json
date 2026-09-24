@@ -1,0 +1,21 @@
+{
+  "name": "@cymonkey/browser-adapter",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Composable browser APIs for Cymonkey integrations",
+  "files": ["dist", "README.md"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepack": "npm run build",
+    "test": "npm run build && node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
