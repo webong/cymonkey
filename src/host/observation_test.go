@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"cymonkey/lib/blockade"
+	"blockade"
 )
 
 func TestObservationCoordinatorCoordinatesJangolovaAndBlockade(t *testing.T) {

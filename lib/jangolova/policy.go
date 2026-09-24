@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	contract "cymonkey/lib/jangolova/contract"
+	contract "jangolova/contract"
 )
 
 func normalizeOptions(value *Options) error {

@@ -37,7 +37,7 @@ The runtime owner registers the package explicitly; importing it is not enough:
 
 ```go
 import (
-    jangolova "cymonkey/lib/jangolova"
+    jangolova "jangolova"
     lensstudio "cymonkey/pkg/lens-studio-cymonkey"
 )
 

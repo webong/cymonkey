@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	contract "cymonkey/lib/jangolova/contract"
-	"cymonkey/lib/jangolova/sdk"
+	contract "jangolova/contract"
+	"jangolova/sdk"
 )
 
 const fixtureExtensionID = "abcdefghijklmnopabcdefghijklmnop"

@@ -12,8 +12,8 @@ import (
 	"os"
 	"strings"
 
-	"cymonkey/lib/jangolova/contract"
-	"cymonkey/lib/jangolova/sdk"
+	"jangolova/contract"
+	"jangolova/sdk"
 )
 
 // Activation is an explicit host decision about one reviewed artifact. Mount

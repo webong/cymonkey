@@ -14,8 +14,8 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"cymonkey/lib/jangolova/host"
-	"cymonkey/lib/jangolova/sdk"
+	"jangolova/host"
+	"jangolova/sdk"
 )
 
 func testHost() sdk.Host {

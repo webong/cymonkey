@@ -1,9 +1,9 @@
 # Blockade
 
-Blockade is a visual inference service for AI systems. Give it an image and an
-optional prompt; it returns normalized visual evidence—objects, regions, masks,
-and confidence—without controlling the source application or making decisions
-on the caller's behalf.
+Blockade is a standalone Go module and visual inference service for AI systems.
+Give it an image and an optional prompt; it returns normalized visual
+evidence—objects, regions, masks, and confidence—without controlling the source
+application or making decisions on the caller's behalf.
 
 ## Capabilities
 
@@ -56,6 +56,9 @@ the reusable boundary and fake integration tests are in place for the first
 real adapter package.
 
 ## Operating model
+
+The module namespace is `blockade`; Cymonkey consumes it through `blockade` and
+`blockade/...` imports.
 
 Blockade operates on pixels only. It does not know whether an image came from a
 browser, camera, file, game engine, or desktop capture. It does not request

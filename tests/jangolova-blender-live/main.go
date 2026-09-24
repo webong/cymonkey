@@ -21,9 +21,9 @@ import (
 	"strings"
 	"time"
 
-	jangolova "cymonkey/lib/jangolova"
-	"cymonkey/lib/jangolova/registry"
-	"cymonkey/lib/jangolova/sdk"
+	jangolova "jangolova"
+	"jangolova/registry"
+	"jangolova/sdk"
 	"github.com/gorilla/websocket"
 )
 

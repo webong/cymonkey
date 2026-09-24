@@ -9,7 +9,7 @@ import (
 	"io"
 	"strings"
 
-	jangolovaregistry "cymonkey/lib/jangolova/registry"
+	jangolovaregistry "jangolova/registry"
 )
 
 func modulesCommand(args []string, stdout, stderr io.Writer) error {

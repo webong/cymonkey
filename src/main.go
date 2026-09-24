@@ -12,9 +12,9 @@ import (
 	"strings"
 	"syscall"
 
-	"cymonkey/lib/blockade"
-	blockadecli "cymonkey/lib/blockade/cli"
-	blockadewebllm "cymonkey/lib/blockade/webllm"
+	"blockade"
+	blockadecli "blockade/cli"
+	blockadewebllm "blockade/webllm"
 	nativebridge "cymonkey/src/fixtures/native-bridge"
 	"cymonkey/src/host"
 	"cymonkey/src/provider"

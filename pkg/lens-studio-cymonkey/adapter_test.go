@@ -9,9 +9,9 @@ import (
 	"sync"
 	"testing"
 
-	jangolova "cymonkey/lib/jangolova"
-	contract "cymonkey/lib/jangolova/contract"
-	"cymonkey/lib/jangolova/sdk"
+	jangolova "jangolova"
+	contract "jangolova/contract"
+	"jangolova/sdk"
 )
 
 type staticConnection struct{ headers map[string]string }

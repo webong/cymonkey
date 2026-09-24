@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"cymonkey/lib/jangolova/sdk"
+	"jangolova/sdk"
 )
 
 type activatedFixture struct {

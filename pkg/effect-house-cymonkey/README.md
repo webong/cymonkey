@@ -43,7 +43,7 @@ The host mounts this backend explicitly:
 
 ```go
 import (
-    jangolova "cymonkey/lib/jangolova"
+    jangolova "jangolova"
     effecthouse "cymonkey/pkg/effect-house-cymonkey"
 )
 

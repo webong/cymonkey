@@ -169,7 +169,9 @@ The repository uses `src/` for Cymonkey provider code, generic contracts,
 adapters, and protocol assets. Standalone Jangolova and Blockade libraries live
 under root `lib/`; `src/main.go` is the single Cymonkey interface binary. `pkg/`
 remains the distribution surface for runtime packages and platform products,
-while `tests/` remains the conformance and fixture surface.
+while `tests/` remains the conformance and fixture surface. The Jangolova and Blockade
+libraries are separate Go modules (`jangolova` and `blockade`) joined to the
+Cymonkey module through `go.work` and local replacements.
 
 ## Package direction
 

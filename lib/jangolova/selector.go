@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 
-	contract "cymonkey/lib/jangolova/contract"
-	"cymonkey/lib/jangolova/sdk"
+	contract "jangolova/contract"
+	"jangolova/sdk"
 )
 
 type processBackend struct {

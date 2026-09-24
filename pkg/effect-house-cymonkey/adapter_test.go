@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	jangolova "cymonkey/lib/jangolova"
-	contract "cymonkey/lib/jangolova/contract"
-	"cymonkey/lib/jangolova/sdk"
+	jangolova "jangolova"
+	contract "jangolova/contract"
+	"jangolova/sdk"
 )
 
 const originalScript = `@component()

@@ -5,7 +5,7 @@ package builtin
 import (
 	"fmt"
 
-	cymonkey "cymonkey/lib/jangolova"
+	cymonkey "jangolova"
 	"cymonkey/src/adapters/displayinteraction"
 	"cymonkey/src/adapters/safarimcp"
 	"cymonkey/src/adapters/webdriverclassic"

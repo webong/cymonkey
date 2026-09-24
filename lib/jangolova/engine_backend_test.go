@@ -10,7 +10,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"cymonkey/lib/jangolova/sdk"
+	"jangolova/sdk"
 )
 
 var upgrader = websocket.Upgrader{

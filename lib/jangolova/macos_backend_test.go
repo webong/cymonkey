@@ -13,8 +13,8 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	contract "cymonkey/lib/jangolova/contract"
-	"cymonkey/lib/jangolova/sdk"
+	contract "jangolova/contract"
+	"jangolova/sdk"
 )
 
 func TestMacOSCooperativeBackendHandshakesAndEnforcesBundlePolicy(t *testing.T) {

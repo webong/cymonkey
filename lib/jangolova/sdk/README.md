@@ -1,8 +1,8 @@
 # Jangolova public SDK
 
-Runtime modules import `cymonkey/lib/jangolova/sdk` and
-`cymonkey/lib/jangolova/contract`. The integration entry point is
-`cymonkey/lib/jangolova` (package `jangolova`). These public packages have no
+Runtime modules import `jangolova/sdk` and
+`jangolova/contract`. The integration entry point is
+`jangolova` (package `jangolova`). These public packages have no
 dependency on the operator's private packages.
 
 ## Runtime registration

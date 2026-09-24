@@ -1,7 +1,7 @@
 # Jangolova
 
-Jangolova is a tool server and runtime library suite for interacting with and
-presenting inside dynamic software. It attaches to an existing target,
+Jangolova is a standalone Go module and runtime library suite for interacting
+with and presenting inside dynamic software. It attaches to an existing target,
 negotiates the capabilities that target exposes, and executes only those
 semantic operations that policy allows.
 
@@ -44,6 +44,9 @@ export JANGOLOVA_PROVIDER_TOKEN="replace-with-a-random-secret"
 ```
 
 ## Runtime libraries
+
+The module namespace is `jangolova`; public imports use paths such as
+`jangolova/sdk` and `jangolova/contract`.
 
 Jangolova libraries run inside or beside the target runtime and translate
 semantic requests into safe, native operations.

@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	contract "cymonkey/lib/jangolova/contract"
-	"cymonkey/lib/jangolova/sdk"
+	contract "jangolova/contract"
+	"jangolova/sdk"
 )
 
 type macOSCooperativeBackend struct{}

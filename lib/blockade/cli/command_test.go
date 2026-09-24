@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"cymonkey/lib/blockade"
+	"blockade"
 )
 
 type cliProviderAdapter struct {

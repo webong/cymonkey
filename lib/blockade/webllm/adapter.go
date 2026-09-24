@@ -25,7 +25,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"cymonkey/lib/blockade"
+	"blockade"
 )
 
 //go:embed runtime.js

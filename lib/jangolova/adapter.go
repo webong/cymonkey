@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"cymonkey/lib/jangolova/sdk"
+	"jangolova/sdk"
 )
 
 const defaultWorkerPath = "scripts/cymonkey-worker.mjs"

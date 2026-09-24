@@ -9,7 +9,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"cymonkey/lib/jangolova/sdk"
+	"jangolova/sdk"
 )
 
 // Dependencies are the host services a Jangolova adapter may use. Each service

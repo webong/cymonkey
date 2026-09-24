@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"cymonkey/lib/jangolova/host"
-	"cymonkey/lib/jangolova/sdk"
+	"jangolova/host"
+	"jangolova/sdk"
 	"cymonkey/src/adapters/safarimcp"
 	"cymonkey/src/internal/bridge"
 	"cymonkey/src/internal/manifest"

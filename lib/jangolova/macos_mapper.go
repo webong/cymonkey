@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	contract "cymonkey/lib/jangolova/contract"
+	contract "jangolova/contract"
 )
 
 // MacOSPrimitive is one capability reported by a caller-owned macOS helper.

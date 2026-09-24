@@ -14,7 +14,7 @@ import (
 	"syscall"
 	"time"
 
-	"cymonkey/lib/blockade"
+	"blockade"
 )
 
 // Run executes the standalone Blockade command surface with no provider

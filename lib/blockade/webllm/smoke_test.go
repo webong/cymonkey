@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"cymonkey/lib/blockade"
+	"blockade"
 )
 
 // TestWebLLMRuntimeBootProbe verifies the browser/runtime bridge and pinned ES

@@ -25,8 +25,10 @@ dependency on `cymonkey/src/internal`, the private adapter implementations, or
 
 There is deliberately no `cymonkey/cymonkey` re-export package. The core remains
 private; code in this repository imports `cymonkey/src/internal/cymonkeycore`
-directly. Runtime distributions expose their own supported interfaces rather
-than leaking the host's private Go implementation.
+directly. Jangolova and Blockade are separate local Go modules named
+`jangolova` and `blockade`; the root module joins them through `go.work` and
+local replacements. Runtime distributions expose their own supported interfaces
+rather than leaking the host's private Go implementation.
 
 Public signatures define their own data and interfaces. They are not aliases
 to private orchestrator, manifest, bridge, or worker implementations. The

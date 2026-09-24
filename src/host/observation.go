@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"cymonkey/lib/blockade"
+	"blockade"
 )
 
 const ObservationAPIVersion = "cymonkey.observation/v1alpha1"

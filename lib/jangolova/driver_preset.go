@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"cymonkey/lib/jangolova/sdk"
+	"jangolova/sdk"
 )
 
 // DriverPreset selects a Jangolova automation backend with one

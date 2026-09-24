@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"cymonkey/lib/blockade"
+	"blockade"
 )
 
 func newProtocolTestAdapter(state string) *Adapter {

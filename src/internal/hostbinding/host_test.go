@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"cymonkey/lib/jangolova/sdk"
+	"jangolova/sdk"
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
 )
