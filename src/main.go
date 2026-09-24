@@ -29,7 +29,7 @@ func main() {
 
 func run(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("cymonkey requires a command: validate, run, observe, modules, provider, blockade, or native-bridge-fixture")
+		return errors.New("cymonkey requires a command: validate, run, observe, modules, extension, provider, blockade, or native-bridge-fixture")
 	}
 	switch args[0] {
 	case "validate":
@@ -40,6 +40,8 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return observe(args[1:], stdout)
 	case "modules":
 		return modulesCommand(args[1:], stdout, stderr)
+	case "extension":
+		return extensionCommand(args[1:], stdout)
 	case "provider":
 		return provider.Run(args[1:], stderr)
 	case "blockade":
@@ -166,6 +168,7 @@ Commands:
   run                     Start and supervise standalone components
   observe                 Coordinate a Jangolova screenshot with Blockade
   modules                 Discover or retrieve reviewed Jangolova modules
+  extension               Manage caller-supplied browser extension packages
   provider                Run the Jangolova provider/MCP interface
   blockade                Run the Blockade inference interface
   native-bridge-fixture   Run the native bridge fixture`)

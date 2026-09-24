@@ -35,7 +35,12 @@ export const userscriptCapabilities = [
   capability('userscript.describe', 'Describe one installed userscript without returning source.', 'read', ['id'], 'call', 'ephemeral'),
 ];
 
-export const privilegedCapabilities = [...extensionCapabilities, ...userscriptCapabilities];
+export const browserExtensionCapabilities = [
+  capability('extension.list', 'List installed browser-native extensions without their source.', 'read', [], 'call', 'ephemeral'),
+  capability('extension.describe', 'Describe an installed browser-native extension and its permissions.', 'read', ['id'], 'call', 'ephemeral'),
+];
+
+export const privilegedCapabilities = [...extensionCapabilities, ...userscriptCapabilities, ...browserExtensionCapabilities];
 
 export const privilegedCapabilityNames = privilegedCapabilities.map((item) => item.name);
 

@@ -1,4 +1,5 @@
-import { privilegedCapabilities, sandboxPackagesSupported, userscriptCapabilities } from './capabilities';
+import { browserExtensionCapabilities, privilegedCapabilities, sandboxPackagesSupported, userscriptCapabilities } from './capabilities';
+import {describeBrowserExtension, listBrowserExtensions} from './services/browser-extensions';
 import {mountReviewedAugmentation, unmountReviewedAugmentation} from './services/augmentations';
 import { readEvents } from './services/events';
 import { changeStyle, executePackagedScripts, registerPackagedScripts, unregisterPackagedScripts } from './services/injection';
@@ -22,7 +23,10 @@ export async function dispatchCymonkey(method: string, params: Record<string, un
 async function capabilities() {
   const runtime = await describeUserscriptRuntime();
   const userscriptNames = new Set(userscriptCapabilities.map((item) => item.name));
-  return privilegedCapabilities.filter((item) => runtime.status === 'available' || !userscriptNames.has(item.name));
+  const browserExtensionNames = new Set(browserExtensionCapabilities.map((item) => item.name));
+  return privilegedCapabilities.filter((item) =>
+    (runtime.status === 'available' || !userscriptNames.has(item.name))
+    && (browser.management?.getAll || !browserExtensionNames.has(item.name)));
 }
 
 function hello() {
@@ -77,6 +81,8 @@ async function describe() {
 
 async function act(name: string, input: Record<string, unknown>) {
   if (name.startsWith('userscript.')) return dispatchUserscript(name, input);
+  if (name === 'extension.list') return listBrowserExtensions();
+  if (name === 'extension.describe') return describeBrowserExtension(input.id);
   const augmentationId = name.startsWith('document.') || name.startsWith('overlay.') ? null : requireAugmentation(input);
   if (name === 'script.execute') return executePackagedScripts(augmentationId!, input);
   if (name === 'script.register') return registerPackagedScripts(augmentationId!, input);

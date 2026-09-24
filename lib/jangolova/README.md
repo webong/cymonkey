@@ -51,6 +51,13 @@ The module namespace is `jangolova`; public imports use paths such as
 Jangolova libraries run inside or beside the target runtime and translate
 semantic requests into safe, native operations.
 
+The `browserextension` package owns browser-native extension inspection,
+deterministic ZIP packaging, staging, and supported installation handoffs.
+It never marks a staged extension as installed; the browser must confirm that
+state. Cymonkey exposes these adapters through its `extension` host command
+and owns caller policy and lifecycle semantics. See
+[browser extension installation](../../docs/browser-extension-installation.md).
+
 - **Browser and desktop** — document, window, display, and application actions.
 - **Three.js** — registered scene, camera, material, and object operations.
 - **Godot, Unity, Unreal, and Blender** — registered engine resources over authenticated
