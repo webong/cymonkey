@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -143,5 +144,66 @@ func TestExtensionActionForOtherLocalTools(t *testing.T) {
 	}
 	if !bytes.Contains(encoded, []byte(`"requiresBrowserAction":true`)) {
 		t.Fatalf("native installation action was not disclosed: %s", encoded)
+	}
+}
+
+func TestExplicitAndDiscoveredTargetSelection(t *testing.T) {
+	selected, err := resolveCLITarget("", "firefox", "/browser/firefox", "/profiles/personal", "")
+	if err != nil || selected.Browser != "firefox" || selected.ProfilePath != "/profiles/personal" {
+		t.Fatalf("explicit Firefox target was lost: %+v, %v", selected, err)
+	}
+	if _, err := resolveCLITarget("not-a-target", "firefox", "", "", ""); err == nil {
+		t.Fatal("accepted both target ID and explicit browser")
+	}
+	if _, err := resolveCLITarget("not-a-target", "", "", "", ""); err == nil {
+		t.Fatal("accepted a stale target ID")
+	}
+	if _, err := parseExtensionActionInput([]byte(`{"target":{"id":"one","browser":"firefox"}}`)); err == nil {
+		t.Fatal("accepted conflicting structured target")
+	}
+	var output bytes.Buffer
+	if err := run([]string{"browser", "targets"}, &output, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	var targets []struct {
+		ID string `json:"id"`
+	}
+	if err := json.Unmarshal(output.Bytes(), &targets); err != nil {
+		t.Fatalf("browser targets did not return JSON: %v", err)
+	}
+}
+
+func TestDefaultChromeProfileUsesManualInstallHandoff(t *testing.T) {
+	if runtime.GOOS != "darwin" {
+		t.Skip("macOS Chrome default profile")
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := filepath.Join(t.TempDir(), "extension")
+	if err := os.Mkdir(source, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(source, "manifest.json"), []byte(`{"manifest_version":3,"name":"Test","version":"1.0"}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	prepared, err := inspectExtensionSource(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(home, "Library", "Application Support", "Google", "Chrome")
+	var output bytes.Buffer
+	err = run([]string{"extension", "install", "--browser", "chrome", "--profile", target, "--source", source,
+		"--revision", prepared.Revision, "--destination", filepath.Join(t.TempDir(), "staged")}, &output, &bytes.Buffer{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var result struct{ Status, Profile string }
+	if err := json.Unmarshal(output.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if result.Status != "awaiting-browser-action" || result.Profile != filepath.Join(target, "Default") {
+		t.Fatalf("incorrect manual Chrome handoff: %+v", result)
 	}
 }

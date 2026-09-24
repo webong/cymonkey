@@ -28,12 +28,13 @@ func extensionCommand(args []string, stdout io.Writer) error {
 	output := flags.String("output", "", "output ZIP or Safari project location")
 	destination := flags.String("destination", "", "staged extension directory")
 	browserName := flags.String("browser", "", "selected browser: chrome, chromium, edge, firefox, or safari")
+	targetID := flags.String("target", "", "ID returned by cymonkey browser targets")
 	bundleID := flags.String("bundle-id", "", "caller-owned Safari app bundle ID")
 	appName := flags.String("app-name", "", "caller-owned Safari app name")
 	revision := flags.String("revision", "", "revision returned by extension inspect")
 	executable := flags.String("browser-bin", "", "absolute path to the selected browser executable")
 	profile := flags.String("profile", "", "absolute path to Chromium user data directory or Firefox profile")
-	profileDirectory := flags.String("profile-directory", "Default", "profile directory within the browser user data directory")
+	profileDirectory := flags.String("profile-directory", "", "profile directory within the browser user data directory")
 	headless := flags.Bool("headless", true, "run a session-only extension load without a browser window")
 	id := flags.String("id", "", "Chrome Web Store extension ID")
 	externalDirectory := flags.String("external-dir", "", "Chrome External Extensions directory")
@@ -56,10 +57,11 @@ func extensionCommand(args []string, stdout io.Writer) error {
 			}
 			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
-			return installNativeExtension(ctx, browserextension.DevToolsTarget{
-				Browser: input.Target.Browser, ExecutablePath: input.Target.ExecutablePath,
-				ProfilePath: input.Target.ProfilePath, ProfileDirectory: input.Target.ProfileDirectory,
-			}, input.Source, input.Destination, input.Revision, stdout)
+			target, resolveErr := resolveActionTarget(input)
+			if resolveErr != nil {
+				return resolveErr
+			}
+			return installNativeExtension(ctx, target, input.Source, input.Destination, input.Revision, stdout)
 		}
 		result, err = extensionAction(*name, []byte(*input))
 	case "install":
@@ -71,23 +73,34 @@ func extensionCommand(args []string, stdout io.Writer) error {
 		if err != nil {
 			return err
 		}
+		target, resolveErr := resolveCLITarget(*targetID, *browserName, *executable, *profile, *profileDirectory)
+		if resolveErr != nil {
+			return resolveErr
+		}
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer stop()
-		return installNativeExtension(ctx, browserextension.DevToolsTarget{
-			Browser: *browserName, ExecutablePath: *executable,
-			ProfilePath: *profile, ProfileDirectory: *profileDirectory,
-		}, *source, *destination, *revision, stdout)
+		return installNativeExtension(ctx, target, *source, *destination, *revision, stdout)
 	case "run":
+		target, resolveErr := resolveCLITarget(*targetID, *browserName, *executable, *profile, *profileDirectory)
+		if resolveErr != nil {
+			return resolveErr
+		}
+		target.Headless = *headless
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer stop()
-		return browserextension.RunWithDevTools(ctx, browserextension.DevToolsTarget{
-			Browser: *browserName, ExecutablePath: *executable, ProfilePath: *profile,
-			ProfileDirectory: *profileDirectory, Headless: *headless,
-		}, *source, *destination, *revision, func(result browserextension.InstallResult) error {
+		return browserextension.RunWithDevTools(ctx, target, *source, *destination, *revision, func(result browserextension.InstallResult) error {
 			return json.NewEncoder(stdout).Encode(result)
 		})
 	case "capabilities":
-		result = browserextension.Capability(*browserName)
+		if *targetID != "" {
+			target, resolveErr := resolveCLITarget(*targetID, *browserName, *executable, *profile, *profileDirectory)
+			if resolveErr != nil {
+				return resolveErr
+			}
+			result = browserextension.Capability(target.Browser)
+		} else {
+			result = browserextension.Capability(*browserName)
+		}
 	case "prepare", "inspect":
 		result, err = inspectExtensionSource(*source)
 	case "package":
@@ -95,7 +108,15 @@ func extensionCommand(args []string, stdout io.Writer) error {
 	case "package-safari":
 		result, err = browserextension.PackageSafariProject(context.Background(), *source, *output, *revision, *bundleID, *appName)
 	case "stage":
-		result, err = browserextension.StageForChromiumWithRevision(*browserName, *source, *destination, *revision)
+		selectedBrowser := *browserName
+		if *targetID != "" {
+			target, resolveErr := resolveCLITarget(*targetID, *browserName, *executable, *profile, *profileDirectory)
+			if resolveErr != nil {
+				return resolveErr
+			}
+			selectedBrowser = target.Browser
+		}
+		result, err = browserextension.StageForChromiumWithRevision(selectedBrowser, *source, *destination, *revision)
 	case "install-store":
 		result, err = browserextension.RequestChromeWebStoreInstall(*id, *externalDirectory)
 	default:
@@ -110,9 +131,29 @@ func extensionCommand(args []string, stdout io.Writer) error {
 func installNativeExtension(ctx context.Context, target browserextension.DevToolsTarget, source, destination, revision string, output io.Writer) error {
 	encoder := json.NewEncoder(output)
 	switch target.Browser {
+	case "chrome":
+		if browserextension.IsDefaultChromeUserDataDir(target.ProfilePath) {
+			if revision == "" {
+				return errors.New("extension installation requires a prepared revision")
+			}
+			result, err := browserextension.StageForChromiumWithRevision("chrome", source, destination, revision)
+			if err != nil {
+				return err
+			}
+			directory := target.ProfileDirectory
+			if directory == "" {
+				directory = "Default"
+			}
+			result.Profile = filepath.Join(target.ProfilePath, directory)
+			result.NextAction += " Use the selected Chrome profile: " + result.Profile + "."
+			return encoder.Encode(result)
+		}
 	case "firefox":
 		return browserextension.InstallFirefox(ctx, target, source, revision, func(result browserextension.InstallResult) error { return encoder.Encode(result) })
 	case "safari":
+		if target.ProfilePath != "" || target.ProfileDirectory != "" {
+			return errors.New("Safari profile enablement is selected in Safari Settings; do not pass a profile path")
+		}
 		result, err := browserextension.InstallSafariApp(ctx, source, revision)
 		if err != nil {
 			return err
@@ -122,6 +163,26 @@ func installNativeExtension(ctx context.Context, target browserextension.DevTool
 	return browserextension.InstallWithNativeUI(ctx, target, source, destination, revision, func(result browserextension.InstallResult) error {
 		return encoder.Encode(result)
 	})
+}
+
+func resolveCLITarget(id, browser, executable, profile, directory string) (browserextension.DevToolsTarget, error) {
+	if id != "" {
+		if browser != "" || executable != "" || profile != "" || directory != "" {
+			return browserextension.DevToolsTarget{}, errors.New("--target cannot be combined with --browser, --browser-bin, --profile, or --profile-directory")
+		}
+		selected, err := browserextension.ResolveTarget(id)
+		if err != nil {
+			return browserextension.DevToolsTarget{}, err
+		}
+		return selected.DevToolsTarget(), nil
+	}
+	if browser == "" {
+		return browserextension.DevToolsTarget{}, errors.New("select --target or --browser with explicit paths")
+	}
+	if (browser == "chrome" || browser == "chromium" || browser == "edge") && directory == "" {
+		directory = "Default"
+	}
+	return browserextension.DevToolsTarget{Browser: browser, ExecutablePath: executable, ProfilePath: profile, ProfileDirectory: directory}, nil
 }
 
 func inspectExtensionSource(source string) (browserextension.Description, error) {
@@ -141,6 +202,7 @@ type extensionActionInput struct {
 	BundleID          string `json:"bundleId"`
 	AppName           string `json:"appName"`
 	Target            struct {
+		ID               string `json:"id"`
 		Browser          string `json:"browser"`
 		ExecutablePath   string `json:"executablePath"`
 		UserDataDir      string `json:"userDataDir"`
@@ -165,7 +227,21 @@ func parseExtensionActionInput(raw []byte) (extensionActionInput, error) {
 	if input.Target.ProfilePath == "" {
 		input.Target.ProfilePath = input.Target.UserDataDir
 	}
+	if input.Target.ID != "" && (input.Target.Browser != "" || input.Target.ExecutablePath != "" || input.Target.ProfilePath != "" || input.Target.ProfileDirectory != "") {
+		return input, errors.New("target.id cannot be combined with explicit browser or profile fields")
+	}
 	return input, nil
+}
+
+func resolveActionTarget(input extensionActionInput) (browserextension.DevToolsTarget, error) {
+	if input.Target.ID != "" {
+		selected, err := browserextension.ResolveTarget(input.Target.ID)
+		if err != nil {
+			return browserextension.DevToolsTarget{}, err
+		}
+		return selected.DevToolsTarget(), nil
+	}
+	return resolveCLITarget("", input.Target.Browser, input.Target.ExecutablePath, input.Target.ProfilePath, input.Target.ProfileDirectory)
 }
 
 // extensionAction handles the one-shot structured actions used by local tools.
@@ -176,8 +252,14 @@ func extensionAction(name string, raw []byte) (any, error) {
 		return nil, err
 	}
 	switch name {
+	case "extension.targets":
+		return browserextension.DiscoverTargets()
 	case "extension.capabilities":
-		return browserextension.Capability(input.Target.Browser), nil
+		target, err := resolveActionTarget(input)
+		if err != nil {
+			return nil, err
+		}
+		return browserextension.Capability(target.Browser), nil
 	case "extension.prepare":
 		return inspectExtensionSource(input.Source)
 	case "extension.package":
@@ -187,7 +269,11 @@ func extensionAction(name string, raw []byte) (any, error) {
 	case "extension.install":
 		return nil, errors.New("extension.install is long-running; invoke it through the cymonkey extension act command")
 	case "extension.stage":
-		return browserextension.StageForChromiumWithRevision(input.Target.Browser, input.Source, input.Destination, input.Revision)
+		target, err := resolveActionTarget(input)
+		if err != nil {
+			return nil, err
+		}
+		return browserextension.StageForChromiumWithRevision(target.Browser, input.Source, input.Destination, input.Revision)
 	case "extension.install-store":
 		return browserextension.RequestChromeWebStoreInstall(input.ID, input.ExternalDirectory)
 	default:

@@ -51,7 +51,7 @@ The module namespace is `jangolova`; public imports use paths such as
 Jangolova libraries run inside or beside the target runtime and translate
 semantic requests into safe, native operations.
 
-The `browserextension` package owns browser-native extension inspection,
+The `browserextension` package discovers local browser targets and owns browser-native extension inspection,
 deterministic ZIP packaging, staging, and guided installation. Its Chrome,
 Chromium, and Edge adapter reports `installed` only after the browser's native
 Load unpacked action survives a restart. It also provides Firefox signed-XPI

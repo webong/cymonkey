@@ -9,6 +9,33 @@ The caller retains ownership of the submitted extension and its source.
 
 ## Local package workflow
 
+Discover browsers and existing profiles on the machine running Cymonkey:
+
+```sh
+cymonkey browser targets
+cymonkey extension act --name extension.targets --input '{}'
+```
+
+The result contains a target ID, browser, executable path, profile path,
+and install mode. Discovery reads known local application and profile locations
+without launching a browser. It does not find every custom installation. A
+caller may always specify `--browser`, `--browser-bin`, and `--profile` paths
+directly. IDs remain stable while those paths stay the same. No browser or
+profile is selected automatically.
+
+For a discovered target, pass its ID instead of browser and profile flags:
+
+```sh
+cymonkey extension install --target 'firefox:TARGET_ID' \
+  --source /path/to/signed-extension.xpi \
+  --revision 'sha256:REVISION_FROM_PREPARE'
+```
+
+Structured callers pass `{"target":{"id":"firefox:TARGET_ID"}}` to
+`extension.install`. The target is resolved again when the action runs; a
+missing or stale ID fails rather than choosing another profile. Target IDs
+cannot be combined with explicit browser or profile fields.
+
 ```sh
 cymonkey extension capabilities --browser chrome
 cymonkey extension prepare --source /path/to/extension.zip
@@ -42,10 +69,11 @@ before starting this command. Use a stable `--destination`: the browser loads
 the extension from that directory after installation.
 
 For Chrome 136 and newer, the pipe used to verify installation is not honored
-against Chrome's **default** user data directory. This command rejects that
-directory and needs a custom user data directory. For an existing default
-Chrome profile, use `extension stage` and complete Load unpacked in Chrome;
-the current local CLI cannot verify persistence there. Chrome documents the
+against Chrome's **default** user data directory. For an existing default
+Chrome profile, `extension install` stages the files and returns
+`awaiting-browser-action` with the selected profile and native Load unpacked
+steps. The CLI cannot verify persistence there. For a verified `installed`
+result, select a custom user data directory. Chrome documents the
 [default-directory debugging restriction](https://developer.chrome.com/blog/remote-debugging-port).
 
 The command emits `awaiting-browser-action` after opening the selected
@@ -105,7 +133,7 @@ cymonkey extension act --name extension.capabilities \
   --input '{"target":{"browser":"chrome"}}'
 ```
 
-The supported one-shot actions are `extension.capabilities`,
+The supported one-shot actions are `extension.targets`, `extension.capabilities`,
 `extension.prepare`, `extension.package`, `extension.package-safari`, `extension.stage`, and
 `extension.install-store`. `extension.install` is a long-running action for the
 guided native route. A caller can spawn it and read JSON lines for
@@ -130,7 +158,7 @@ first JSON line to obtain a session-only activation. Firefox uses the same
 long-running `extension.install` action with `target.browser` set to `firefox`,
 `target.executablePath`, and `target.profilePath` for the selected profile.
 Safari uses `extension.package-safari` and `extension.install` with
-`target.browser` set to `safari`.
+`target.browser` set to `safari`, or its discovered Safari target ID.
 
 After the browser completes installation, Cymonkey's privileged WebExtension
 offers `extension.list` and `extension.describe` through `capabilities`/`act`.
@@ -191,7 +219,8 @@ Jangolova checks the app signature and embedded Safari extension identity,
 then opens the containing app. Safari requires the user to enable the extension
 in Safari Settings and allow it for the intended profile and websites. This
 route returns `awaiting-browser-action`; the local CLI does not claim Safari is
-enabled based only on app launch. Apple's temporary developer extension flow
+enabled based only on app launch. `--profile` is rejected for Safari because
+that choice belongs to Safari's settings. Apple's temporary developer extension flow
 expires when Safari quits or after 24 hours.
 
 ## Published Chrome Web Store extension on macOS

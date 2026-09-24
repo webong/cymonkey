@@ -42,6 +42,9 @@ func RunWithDevTools(ctx context.Context, target DevToolsTarget, source, destina
 	if !filepath.IsAbs(target.ExecutablePath) || !filepath.IsAbs(target.ProfilePath) {
 		return errors.New("browser executable and profile paths must be absolute")
 	}
+	if target.Browser == "chrome" && isDefaultChromeUserDataDir(target.ProfilePath) {
+		return errors.New("Chrome does not allow debugging-pipe session loading in its default user data directory; select a custom user data directory")
+	}
 	if target.ProfileDirectory != "" && (target.ProfileDirectory == "." || target.ProfileDirectory == ".." || filepath.Base(target.ProfileDirectory) != target.ProfileDirectory) {
 		return errors.New("profile directory must be a single directory name")
 	}

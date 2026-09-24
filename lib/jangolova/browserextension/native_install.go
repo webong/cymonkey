@@ -139,6 +139,12 @@ func isDefaultChromeUserDataDir(path string) bool {
 	return sameExtensionPath(path, standard)
 }
 
+// IsDefaultChromeUserDataDir reports whether Chrome disables the debugging
+// pipe needed for Jangolova's persistent-install verification.
+func IsDefaultChromeUserDataDir(path string) bool {
+	return isDefaultChromeUserDataDir(path)
+}
+
 func stageForNativeInstall(source, destination, expectedRevision string) (Description, error) {
 	sourcePath, err := filepath.Abs(source)
 	if err != nil {
