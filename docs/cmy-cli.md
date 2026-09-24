@@ -200,9 +200,13 @@ cmy provider serve-mcp --bind 127.0.0.1:7393
 Both MCP forms also require `JANGOLOVA_PROVIDER_TOKEN`. See the
 [interaction provider guide](engine-provider.md) for its operations and
 [target connection security](target-connection-security.md) for reference
-handling. Browser userscript and augmentation actions such as
-`script.register` are available through a connected Jangolova provider
-instance; see [browser augmentation packages](browser-augmentation-packages.md).
+handling. A connected Jangolova provider can expose `script.execute` and
+`script.register` through CDP or WebDriver BiDi without installing an
+extension; those registrations are tied to the browser connection. Cymonkey's
+current managed `userscript.prepare/install/update/enable` lifecycle uses its
+WebExtension for approval, storage, and registration. These are distinct
+paths; see [userscripts](userscripts.md) and
+[browser augmentation packages](browser-augmentation-packages.md).
 
 ## Blockade visual inference
 
