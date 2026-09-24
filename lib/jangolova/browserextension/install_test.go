@@ -26,8 +26,11 @@ func TestInstallCapabilityFollowsSelectedBrowser(t *testing.T) {
 			t.Fatalf("incorrect session adapter for %s: %+v", browserName, capability)
 		}
 	}
-	if Capability("safari").SessionLoad || Capability("firefox").PersistentLocalInstall {
-		t.Fatal("claimed unsupported browser installation capability")
+	if !Capability("firefox").PersistentLocalInstall || Capability("firefox").SessionLoad || Capability("firefox").InstallDriver != "webdriver-bidi-signed-xpi" {
+		t.Fatal("incorrect Firefox installation capability")
+	}
+	if Capability("safari").SessionLoad || (runtime.GOOS == "darwin" && !Capability("safari").PersistentLocalInstall) {
+		t.Fatal("incorrect Safari installation capability")
 	}
 }
 

@@ -54,9 +54,11 @@ semantic requests into safe, native operations.
 The `browserextension` package owns browser-native extension inspection,
 deterministic ZIP packaging, staging, and guided installation. Its Chrome,
 Chromium, and Edge adapter reports `installed` only after the browser's native
-Load unpacked action survives a restart. Cymonkey exposes these adapters
-through its `extension` host command
-and owns caller policy and lifecycle semantics. See
+Load unpacked action survives a restart. It also provides Firefox signed-XPI
+BiDi installation and Safari caller-owned app packaging and launch. Safari
+enablement remains a native browser action. Cymonkey exposes these adapters
+through its `extension` host command and owns caller policy and lifecycle
+semantics. See
 [browser extension installation](../../docs/browser-extension-installation.md).
 
 - **Browser and desktop** — document, window, display, and application actions.

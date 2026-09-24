@@ -9,6 +9,8 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strings"
 	"syscall"
 
 	"jangolova/browserextension"
@@ -18,17 +20,19 @@ import (
 // by external callers. Jangolova implements the browser-specific operations.
 func extensionCommand(args []string, stdout io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("extension requires act, capabilities, prepare, inspect, package, install, run, stage, or install-store")
+		return errors.New("extension requires act, capabilities, prepare, inspect, package, package-safari, install, run, stage, or install-store")
 	}
 	flags := flag.NewFlagSet("cymonkey extension "+args[0], flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	source := flags.String("source", "", "extension directory or ZIP")
-	output := flags.String("output", "", "output ZIP path")
+	source := flags.String("source", "", "extension directory, ZIP, signed XPI, or Safari app")
+	output := flags.String("output", "", "output ZIP or Safari project location")
 	destination := flags.String("destination", "", "staged extension directory")
-	browserName := flags.String("browser", "", "selected browser: chrome, chromium, or edge")
+	browserName := flags.String("browser", "", "selected browser: chrome, chromium, edge, firefox, or safari")
+	bundleID := flags.String("bundle-id", "", "caller-owned Safari app bundle ID")
+	appName := flags.String("app-name", "", "caller-owned Safari app name")
 	revision := flags.String("revision", "", "revision returned by extension inspect")
 	executable := flags.String("browser-bin", "", "absolute path to the selected browser executable")
-	profile := flags.String("profile", "", "absolute path to the browser user data directory")
+	profile := flags.String("profile", "", "absolute path to Chromium user data directory or Firefox profile")
 	profileDirectory := flags.String("profile-directory", "Default", "profile directory within the browser user data directory")
 	headless := flags.Bool("headless", true, "run a session-only extension load without a browser window")
 	id := flags.String("id", "", "Chrome Web Store extension ID")
@@ -54,7 +58,7 @@ func extensionCommand(args []string, stdout io.Writer) error {
 			defer stop()
 			return installNativeExtension(ctx, browserextension.DevToolsTarget{
 				Browser: input.Target.Browser, ExecutablePath: input.Target.ExecutablePath,
-				ProfilePath: input.Target.UserDataDir, ProfileDirectory: input.Target.ProfileDirectory,
+				ProfilePath: input.Target.ProfilePath, ProfileDirectory: input.Target.ProfileDirectory,
 			}, input.Source, input.Destination, input.Revision, stdout)
 		}
 		result, err = extensionAction(*name, []byte(*input))
@@ -85,15 +89,17 @@ func extensionCommand(args []string, stdout io.Writer) error {
 	case "capabilities":
 		result = browserextension.Capability(*browserName)
 	case "prepare", "inspect":
-		result, err = browserextension.Inspect(*source)
+		result, err = inspectExtensionSource(*source)
 	case "package":
 		result, err = browserextension.Package(*source, *output)
+	case "package-safari":
+		result, err = browserextension.PackageSafariProject(context.Background(), *source, *output, *revision, *bundleID, *appName)
 	case "stage":
 		result, err = browserextension.StageForChromiumWithRevision(*browserName, *source, *destination, *revision)
 	case "install-store":
 		result, err = browserextension.RequestChromeWebStoreInstall(*id, *externalDirectory)
 	default:
-		return errors.New("extension requires act, capabilities, prepare, inspect, package, install, run, stage, or install-store")
+		return errors.New("extension requires act, capabilities, prepare, inspect, package, package-safari, install, run, stage, or install-store")
 	}
 	if err != nil {
 		return err
@@ -103,9 +109,26 @@ func extensionCommand(args []string, stdout io.Writer) error {
 
 func installNativeExtension(ctx context.Context, target browserextension.DevToolsTarget, source, destination, revision string, output io.Writer) error {
 	encoder := json.NewEncoder(output)
+	switch target.Browser {
+	case "firefox":
+		return browserextension.InstallFirefox(ctx, target, source, revision, func(result browserextension.InstallResult) error { return encoder.Encode(result) })
+	case "safari":
+		result, err := browserextension.InstallSafariApp(ctx, source, revision)
+		if err != nil {
+			return err
+		}
+		return encoder.Encode(result)
+	}
 	return browserextension.InstallWithNativeUI(ctx, target, source, destination, revision, func(result browserextension.InstallResult) error {
 		return encoder.Encode(result)
 	})
+}
+
+func inspectExtensionSource(source string) (browserextension.Description, error) {
+	if strings.EqualFold(filepath.Ext(source), ".app") {
+		return browserextension.InspectSafariApp(context.Background(), source)
+	}
+	return browserextension.Inspect(source)
 }
 
 type extensionActionInput struct {
@@ -115,10 +138,13 @@ type extensionActionInput struct {
 	Revision          string `json:"revision"`
 	ID                string `json:"id"`
 	ExternalDirectory string `json:"externalDirectory"`
+	BundleID          string `json:"bundleId"`
+	AppName           string `json:"appName"`
 	Target            struct {
 		Browser          string `json:"browser"`
 		ExecutablePath   string `json:"executablePath"`
 		UserDataDir      string `json:"userDataDir"`
+		ProfilePath      string `json:"profilePath"`
 		ProfileDirectory string `json:"profileDirectory"`
 	} `json:"target"`
 }
@@ -132,6 +158,12 @@ func parseExtensionActionInput(raw []byte) (extensionActionInput, error) {
 	}
 	if decoder.Decode(new(any)) != io.EOF {
 		return input, errors.New("extension action input must be one JSON object")
+	}
+	if input.Target.ProfilePath != "" && input.Target.UserDataDir != "" && input.Target.ProfilePath != input.Target.UserDataDir {
+		return input, errors.New("target.profilePath and target.userDataDir must identify the same profile")
+	}
+	if input.Target.ProfilePath == "" {
+		input.Target.ProfilePath = input.Target.UserDataDir
 	}
 	return input, nil
 }
@@ -147,9 +179,11 @@ func extensionAction(name string, raw []byte) (any, error) {
 	case "extension.capabilities":
 		return browserextension.Capability(input.Target.Browser), nil
 	case "extension.prepare":
-		return browserextension.Inspect(input.Source)
+		return inspectExtensionSource(input.Source)
 	case "extension.package":
 		return browserextension.Package(input.Source, input.Output)
+	case "extension.package-safari":
+		return browserextension.PackageSafariProject(context.Background(), input.Source, input.Output, input.Revision, input.BundleID, input.AppName)
 	case "extension.install":
 		return nil, errors.New("extension.install is long-running; invoke it through the cymonkey extension act command")
 	case "extension.stage":

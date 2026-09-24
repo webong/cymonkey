@@ -109,6 +109,16 @@ func TestExtensionActionForOtherLocalTools(t *testing.T) {
 	if err := run([]string{"extension", "act", "--name", "extension.install", "--input", string(installRequest)}, &bytes.Buffer{}, &bytes.Buffer{}); err == nil || !os.IsNotExist(err) {
 		t.Fatalf("structured install did not reach the selected browser: %v", err)
 	}
+	firefoxRequest, err := json.Marshal(map[string]any{
+		"source": filepath.Join(t.TempDir(), "signed.xpi"), "revision": prepared.Revision,
+		"target": map[string]string{"browser": "firefox", "executablePath": filepath.Join(t.TempDir(), "missing-firefox"), "profilePath": filepath.Join(t.TempDir(), "firefox-profile")},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := run([]string{"extension", "act", "--name", "extension.install", "--input", string(firefoxRequest)}, &bytes.Buffer{}, &bytes.Buffer{}); err == nil {
+		t.Fatal("Firefox install accepted a nonexistent XPI")
+	}
 	if err := run([]string{"extension", "act", "--name", "extension.install", "--input", `{"source":"/somewhere","revision":"sha256:example","target":{"browser":"safari"}}`}, &bytes.Buffer{}, &bytes.Buffer{}); err == nil {
 		t.Fatal("accepted an unsupported browser through the long-running action")
 	}
@@ -120,8 +130,8 @@ func TestExtensionActionForOtherLocalTools(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Contains(encoded, []byte(`"persistentLocalInstall":false`)) || !bytes.Contains(encoded, []byte(`"sessionLoad":false`)) {
-		t.Fatalf("incorrect unsupported target capability: %s", encoded)
+	if !bytes.Contains(encoded, []byte(`"installDriver":"signed-containing-app"`)) || !bytes.Contains(encoded, []byte(`"requiresBrowserAction":true`)) {
+		t.Fatalf("incorrect Safari target capability: %s", encoded)
 	}
 	capability, err = extensionAction("extension.capabilities", []byte(`{"target":{"browser":"chrome"}}`))
 	if err != nil {

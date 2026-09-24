@@ -23,7 +23,7 @@ cymonkey extension run --browser chrome --browser-bin /absolute/path/to/browser 
   --revision 'sha256:REVISION_FROM_PREPARE' --destination /path/to/staged-extension
 ```
 
-`prepare` (also available as `inspect`) accepts a ZIP or unpacked directory
+`prepare` (also available as `inspect`) accepts a ZIP, Firefox XPI, or unpacked directory
 containing `manifest.json`. A
 single wrapping directory in a ZIP is allowed. It returns the extension name,
 version, declared permissions, optional Chromium ID from the public manifest
@@ -106,7 +106,7 @@ cymonkey extension act --name extension.capabilities \
 ```
 
 The supported one-shot actions are `extension.capabilities`,
-`extension.prepare`, `extension.package`, `extension.stage`, and
+`extension.prepare`, `extension.package`, `extension.package-safari`, `extension.stage`, and
 `extension.install-store`. `extension.install` is a long-running action for the
 guided native route. A caller can spawn it and read JSON lines for
 `awaiting-browser-action` and, after restart verification, `installed`:
@@ -126,14 +126,73 @@ cymonkey extension act --name extension.install --input '{
 ```
 
 A caller can also spawn the long-running `extension run` command and read its
-first JSON line to obtain a session-only activation. On unsupported browsers,
-`extension.install` returns an error and never reports `installed`.
+first JSON line to obtain a session-only activation. Firefox uses the same
+long-running `extension.install` action with `target.browser` set to `firefox`,
+`target.executablePath`, and `target.profilePath` for the selected profile.
+Safari uses `extension.package-safari` and `extension.install` with
+`target.browser` set to `safari`.
 
 After the browser completes installation, Cymonkey's privileged WebExtension
 offers `extension.list` and `extension.describe` through `capabilities`/`act`.
 These read the browser's native management API and return source-free installed
 state, including the browser-assigned ID, version, enabled flag, install type,
 and declared permissions. They are advertised only where that API exists.
+
+## Firefox
+
+Firefox accepts a signed XPI for permanent installation. The caller owns the
+extension and obtains Mozilla signing (listed or unlisted); Cymonkey does not
+hold signing credentials. The XPI must remain intact because re-zipping it
+would invalidate the signature. Firefox verifies the signature itself.
+
+```sh
+cymonkey extension prepare --source /absolute/path/to/signed-extension.xpi
+cymonkey extension install --browser firefox \
+  --browser-bin /Applications/Firefox.app/Contents/MacOS/firefox \
+  --profile /absolute/path/to/firefox-profile \
+  --source /absolute/path/to/signed-extension.xpi \
+  --revision 'sha256:REVISION_FROM_PREPARE'
+```
+
+Close the selected profile first. Jangolova launches Firefox with a local
+WebDriver BiDi endpoint, calls `webExtension.install` with `moz:permanent`,
+checks Firefox's native extension inventory where supported, restarts Firefox,
+and reports `installed` only when the same extension is active and permanent
+after restart. Older Firefox releases use the profile metadata and the copied
+XPI content for that restart check.
+An unsigned XPI is rejected by Firefox. The browser stays open until the
+command ends.
+
+## Safari on macOS
+
+Safari distributes a WebExtension inside a macOS app. Jangolova can convert
+caller-owned WebExtension files into a caller-owned Xcode project, using the
+Safari packager available in Xcode (or its earlier converter name):
+
+```sh
+cymonkey extension prepare --source /absolute/path/to/extension.zip
+cymonkey extension package-safari --source /absolute/path/to/extension.zip \
+  --revision 'sha256:REVISION_FROM_PREPARE' \
+  --output /absolute/path/to/new-project-location \
+  --bundle-id com.example.myextension --app-name 'My Extension'
+```
+
+The caller builds and signs the generated app with its own Apple developer
+identity. For a built app containing a Safari WebExtension:
+
+```sh
+cymonkey extension prepare --source /absolute/path/to/MyExtension.app
+cymonkey extension install --browser safari \
+  --source /absolute/path/to/MyExtension.app \
+  --revision 'cdhash:REVISION_FROM_PREPARE'
+```
+
+Jangolova checks the app signature and embedded Safari extension identity,
+then opens the containing app. Safari requires the user to enable the extension
+in Safari Settings and allow it for the intended profile and websites. This
+route returns `awaiting-browser-action`; the local CLI does not claim Safari is
+enabled based only on app launch. Apple's temporary developer extension flow
+expires when Safari quits or after 24 hours.
 
 ## Published Chrome Web Store extension on macOS
 
@@ -153,11 +212,9 @@ existing file and symlinks in the chosen profile path.
 This route accepts a **Web Store ID only**. Chrome does not allow a local CRX
 or self-hosted ZIP to be installed through a personal macOS external preference
 file. A managed Chrome deployment can use enterprise policy and a hosted
-update URL; that requires a separate administrator-owned adapter. Firefox
-requires a signed XPI for normal distribution, and Safari distributes its
-WebExtension inside an app. Native install adapters for Firefox, Safari, and
-Windows are not implemented yet. No adapter may claim success before the
-browser reports the extension installed.
+update URL; that requires a separate administrator-owned adapter. Windows
+Chromium installation remains unimplemented. Safari app launch does not prove
+the extension is enabled, so it never reports `installed` by itself.
 
 ## Ownership
 

@@ -47,7 +47,7 @@ type sourceFile struct {
 	size int64
 }
 
-// Inspect accepts an unpacked extension directory or ZIP with manifest.json
+// Inspect accepts an unpacked extension directory, ZIP, or Firefox XPI with manifest.json
 // at its root (a single wrapping directory is also accepted).
 func Inspect(source string) (Description, error) {
 	files, closeSource, err := readSource(source)
@@ -261,8 +261,8 @@ func readSource(source string) ([]sourceFile, func(), error) {
 		files, err := directoryFiles(source)
 		return files, func() {}, err
 	}
-	if !info.Mode().IsRegular() || !strings.EqualFold(filepath.Ext(source), ".zip") {
-		return nil, nil, errors.New("extension source must be a directory or ZIP")
+	if !info.Mode().IsRegular() || (!strings.EqualFold(filepath.Ext(source), ".zip") && !strings.EqualFold(filepath.Ext(source), ".xpi")) {
+		return nil, nil, errors.New("extension source must be a directory, ZIP, or XPI")
 	}
 	reader, err := zip.OpenReader(source)
 	if err != nil {

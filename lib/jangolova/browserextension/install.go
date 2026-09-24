@@ -37,6 +37,17 @@ func Capability(browserName string) InstallCapability {
 			reason += "; Chrome 136+ requires a custom user data directory for debugging-pipe verification"
 		}
 		return InstallCapability{Browser: browserName, PersistentLocalInstall: true, InstallDriver: "native-load-unpacked", RequiresBrowserAction: true, SessionLoad: true, SessionDriver: "cdp-pipe", Requires: []string{"executablePath", "userDataDir", "revision", "source", "destination"}, Reason: reason}
+	case "firefox":
+		return InstallCapability{Browser: browserName, PersistentLocalInstall: true, InstallDriver: "webdriver-bidi-signed-xpi", RequiresBrowserAction: false,
+			Requires: []string{"executablePath", "profilePath", "source", "revision"},
+			Reason:   "Firefox accepts a permanently installed XPI only when its signature is valid; Jangolova verifies the active extension after restart"}
+	case "safari":
+		if runtime.GOOS != "darwin" {
+			return InstallCapability{Browser: browserName, Reason: "Safari WebExtension installation requires macOS and a containing app"}
+		}
+		return InstallCapability{Browser: browserName, PersistentLocalInstall: true, InstallDriver: "signed-containing-app", RequiresBrowserAction: true,
+			Requires: []string{"source", "revision"},
+			Reason:   "The caller supplies a signed macOS app containing a Safari WebExtension; Safari requires the user to enable it in Settings"}
 	default:
 		return InstallCapability{Browser: browserName, Reason: "no direct local extension adapter is available for this browser"}
 	}
