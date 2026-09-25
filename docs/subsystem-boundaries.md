@@ -1,17 +1,20 @@
-# Cymonkey, Jangolova, and Blockade boundaries
+# Cymonkey, Jangolova, Blockade, and Board boundaries
 
 Jangolova provides display interfaces. Blockade provides inference interfaces
-for image and sound across local and cloud backends. Cymonkey is the operator,
-entry, and extension layer that composes these modules. Blockade's current
-public request is image-based; sound inference has not been implemented.
-The libraries are standalone: Cymonkey depends on their public APIs; neither
-library depends on Cymonkey or on the other library.
+for image and sound across local and cloud backends. Board defines input and
+output device interfaces. Cymonkey is the operator, entry, and extension layer
+that composes these modules. Blockade's current public request is image-based;
+sound inference has not been implemented. Board currently has a provider and
+grant contract but no native device providers. The libraries are standalone:
+Cymonkey depends on their public APIs; none depends on Cymonkey or another
+library.
 
 ```text
 caller or agent
   → Cymonkey authorizes and coordinates extensions to the system
     → Jangolova operates or presents on caller-owned displays and runtimes
     → Blockade runs local or cloud inference and returns evidence
+    → Board binds host-approved input and output devices
 ```
 
 ## Cymonkey
@@ -48,3 +51,13 @@ observation contract, while Cymonkey exposes the coordinated
 screenshot-to-observation capability. This keeps Blockade deployable as a
 standalone inference service and Jangolova limited to runtime interaction and
 presentation libraries.
+
+## Board device interfaces
+
+Board providers bind concrete keyboard, drive, and future device APIs to a
+host-approved capability grant. The host selects a provider, device, and
+capabilities. A drive provider also receives opaque resource roots and must
+enforce containment for each listing and read. Board's registry gates actions
+to the grant; the provider validates its device-specific input and resource
+scope. Board does not own the device lifecycle. Cymonkey's Board binding and
+native providers remain to be implemented.

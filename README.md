@@ -21,6 +21,7 @@ presenting a new dynamic one.
 - Request image inference through Blockade, including local YOLO, SAM, ONNX,
   and browser-local WebLLM paths. Blockade also defines a provider interface
   for separately supplied cloud inference adapters.
+- Prepare typed, host-approved input and output device bindings through Board.
 - Preserve target ownership: a connection may detach, but it never quits a
   browser, terminates an application, or destroys a scene.
 
@@ -33,18 +34,21 @@ agent or application
       → browser, desktop surface, Three.js, Godot, Unity, Unreal, or Blender
     → Blockade inference interfaces
       → local or cloud backends for image and, as the contract grows, sound
+    → Board input and output device interfaces
+      → registered keyboard, drive, and future device providers
 ```
 
 Jangolova provides interfaces for operating and presenting on displays.
 Blockade provides inference interfaces for image and sound across local and
-cloud backends. The current Blockade request contract is image-based; sound
-inference is part of its intended scope and is not implemented yet. Cymonkey
-coordinates both and provides the boundary through which callers extend the
-system.
+cloud backends. Board defines the provider and grant contract for device I/O;
+native providers and a Cymonkey binding are still to be implemented. The
+current Blockade request contract is image-based; sound inference is part of
+its intended scope and is not implemented yet. Cymonkey provides the boundary
+through which callers extend and coordinate these libraries.
 
-Both libraries are usable independently. Cymonkey imports their public Go
-modules and supplies the host services that its workflows need; neither
-library imports Cymonkey or requires the Cymonkey executable.
+All three libraries are independently usable. Cymonkey can compose their public
+Go modules and supply the host services that its workflows need; none
+imports Cymonkey or requires the Cymonkey executable.
 
 ## Quick start
 
@@ -80,6 +84,7 @@ audit events, reviewed packages, and caller-supplied target connections.
 
 - [Jangolova](lib/jangolova/README.md)
 - [Blockade](lib/blockade/README.md)
+- [Board](lib/board/README.md)
 - [Architecture](docs/architecture.md)
 - [Browser packages](docs/browser-augmentation-packages.md)
 - [Browser extension manager](docs/browser-extension-installation.md)
