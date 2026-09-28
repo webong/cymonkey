@@ -78,6 +78,7 @@ test("CDP interception rules are augmentation-owned and cleaned up before the wo
   assert.match(worker, /network rule \$\{id\} is not owned by augmentation/);
   assert.match(worker, /async function disconnect\(\) \{\s*await disableInterception\(\);[\s\S]*?browser = null;/);
   assert.doesNotMatch(worker, /async function disconnect\(\)[\s\S]*?browser\.disconnect\(/);
+  assert.match(worker, /targetProtocol === "webdriver-bidi" && browser[\s\S]*?await bidiSession\.disconnect\(\)/);
   assert.match(worker, /page\.setRequestInterception\(false\)/);
   assert.match(worker, /protocol === "cdp"/);
 });

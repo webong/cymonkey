@@ -29,7 +29,7 @@ func main() {
 
 func run(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("cymonkey requires a command: validate, run, observe, modules, browser, extension, userscript, provider, blockade, or native-bridge-fixture")
+		return errors.New("cymonkey requires a command: validate, run, observe, modules, browser, extension, userscript, bookmarklet, provider, blockade, or native-bridge-fixture")
 	}
 	switch args[0] {
 	case "validate":
@@ -44,6 +44,8 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return extensionCommand(args[1:], stdout)
 	case "userscript":
 		return userscriptCommand(args[1:], stdout)
+	case "bookmarklet":
+		return bookmarkletCommand(args[1:], stdout)
 	case "browser":
 		return browserCommand(args[1:], stdout)
 	case "provider":
@@ -175,6 +177,7 @@ Commands:
   browser                 Discover local browser targets
   extension               Manage caller-supplied browser extension packages
   userscript              Store and replay approved extension-free userscripts
+  bookmarklet             Import or export user-activated browser bookmarklets
   provider                Run the Jangolova provider/MCP interface
   blockade                Run the Blockade inference interface
   native-bridge-fixture   Run the native bridge fixture`)

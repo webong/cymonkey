@@ -18,6 +18,51 @@ test('augmentation runtime host mounts, calls, and unmounts caller factories', a
   assert.deepEqual(events, ['augmentation.mounted', 'augmentation.unmounted']);
 });
 
+test('runtime serializes pending mount, action, and competing unmounts', async () => {
+  let finishMount, finishAction;
+  const mountGate = new Promise((resolve) => { finishMount = resolve; });
+  const actionGate = new Promise((resolve) => { finishAction = resolve; });
+  const events = [];
+  let cleanups = 0;
+  const host = createAugmentationRuntimeHost({factories: new Map([['reader', async () => {
+    await mountGate;
+    return {packageId: 'reader', dispatch: async () => { events.push('action'); await actionGate; events.push('finished'); },
+      unmount: () => { cleanups++; events.push('cleanup'); }};
+  }]])});
+  const mount = host.mount({packageId: 'reader', augmentationId: 'article'});
+  const action = host.call('article', {});
+  const first = host.unmount('article', 'reader');
+  const second = assert.rejects(host.unmount('article', 'reader'), /does not exist/);
+  finishMount();
+  await mount;
+  assert.equal(cleanups, 0);
+  finishAction();
+  await Promise.all([action, first, second]);
+  assert.deepEqual(events, ['action', 'finished', 'cleanup']);
+  assert.equal(cleanups, 1);
+  assert.deepEqual(host.list(), []);
+  await assert.rejects(host.call('article', {}), /does not exist/);
+});
+
+test('runtime failures permit cleanup retry and remount; invalid factories are cleaned', async () => {
+  let attempts = 0, invalidCleanup = 0;
+  const host = createAugmentationRuntimeHost({factories: new Map([
+    ['reader', () => ({packageId: 'reader', dispatch: () => { throw new Error('action failed'); },
+      unmount: () => { if (++attempts === 1) throw new Error('cleanup failed'); }})],
+    ['invalid', () => ({packageId: 'other', unmount: () => { invalidCleanup++; }})],
+  ])});
+  await assert.rejects(host.mount({packageId: 'invalid', augmentationId: 'bad'}), /invalid runtime/);
+  assert.equal(invalidCleanup, 1);
+  assert.deepEqual(host.list(), []);
+  await host.mount({packageId: 'reader', augmentationId: 'article'});
+  await assert.rejects(host.call('article', {}), /action failed/);
+  await assert.rejects(host.unmount('article'), /cleanup failed/);
+  assert.deepEqual(host.list(), ['article']);
+  await host.unmount('article');
+  await host.mount({packageId: 'reader', augmentationId: 'article'});
+  assert.deepEqual(host.list(), ['article']);
+});
+
 test('page bridge exposes only allowed page actions', async () => {
   const listeners = new Set();
   const target = {

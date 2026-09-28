@@ -5,6 +5,13 @@ import test from 'node:test';
 const root = new URL('../', import.meta.url);
 const source = (path) => readFile(new URL(path, root), 'utf8');
 
+test('Camera Kit capability lifetime conforms to the shared protocol', async () => {
+  const schema = JSON.parse(await source('src/protocol/cymonkey/v1alpha2/protocol.schema.json'));
+  const implementation = await source('pkg/snapchat-camera-kit-cymonkey/dist/index.js');
+  const lifetime = implementation.match(/lifetime: ['"]([^'"]+)['"]/)?.[1];
+  assert.ok(schema.$defs.capability.properties.lifetime.enum.includes(lifetime), `unsupported capability lifetime: ${lifetime}`);
+});
+
 test('Camera Kit declares a target-owned Cymonkey runtime with explicit user consent', async () => {
   const [declaration, implementation] = await Promise.all([
     source('pkg/snapchat-camera-kit-cymonkey/dist/index.d.ts'),

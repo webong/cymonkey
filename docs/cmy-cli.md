@@ -248,6 +248,15 @@ flags.
 Disabling or uninstalling prevents future execution; it cannot undo changes
 already made to an open page. See [userscripts](userscripts.md).
 
+## Bookmarklets
+
+`cmy bookmarklet export --source tool.js` prints a portable `javascript:` URL.
+Add `--format html --name 'My tool'` to generate a draggable installation page.
+`cmy bookmarklet import --source bookmark.txt` decodes an existing URL to source
+for review. Both commands write to stdout and neither executes source nor edits
+browser bookmarks. See [bookmarklets](bookmarklets.md) for installation, the
+reversible highlighter example, compatibility limits and live tests.
+
 ## Jangolova interaction provider
 
 List the registered interaction engines, their availability, and their

@@ -94,7 +94,7 @@ export class CameraKitCymonkey {
   capabilities() {
     return actions.map((name) => ({
       name, domain: 'render', runtime: CAMERA_KIT_RUNTIME, driver: CAMERA_KIT_DRIVER,
-      support: 'native', lifetime: 'document', persistence: 'ephemeral',
+      support: 'native', lifetime: 'surface', persistence: 'ephemeral',
       effect: name.includes('describe') ? 'read' : 'write',
       inputSchema: {type: 'object', additionalProperties: true},
     }));

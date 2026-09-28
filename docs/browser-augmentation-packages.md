@@ -15,6 +15,29 @@ Jangolova's CDP and WebDriver BiDi worker can attach to a caller-owned
 browser endpoint and apply approved augmentations without an extension. The
 local [`cmy userscript` flow](userscripts.md) uses this route.
 
+For one-click tools, [`cmy bookmarklet`](bookmarklets.md) exports JavaScript as
+a bookmark URL or a draggable installation page and imports existing bookmarklet
+URLs for review. Bookmarklets run through the browser's ordinary page execution;
+they do not need an extension or a running operator.
+
+## Lifecycle verification
+
+The runtime host serializes mount, action and unmount for each augmentation.
+Unmount waits for earlier actions; competing cleanup requests cannot run the
+same cleanup twice. A failed cleanup leaves the runtime registered for retry.
+Factories must release partially-created resources when they throw. Callbacks
+must settle, and must not await calls back into the same augmentation's queue.
+Independent augmentations can proceed concurrently.
+
+`npm run test:browser-adapter` covers ownership, approval scope/replay, lifecycle
+races and cleanup retries. `npm run test:augmentation:live` runs the library in
+a disposable real browser with a consuming web-host fixture: approval/denial,
+mount, DOM change, events, unmount, remount and reload. Set
+`CYMONKEY_BROWSER_BIN` and optionally `CYMONKEY_BROWSER_PRODUCT=firefox`.
+This fixture supplies routing and reviewed assets; it does not certify a
+third-party extension's privileged APIs or UI. Real extension fixtures, Safari
+execution and signed bundle distribution remain separate integration work.
+
 ## Integrating extension
 
 An extension can bundle reviewed files below `augmentations/<owner>/`, then

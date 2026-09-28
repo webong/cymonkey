@@ -760,6 +760,13 @@ async function disconnect() {
     for (const { page, handle } of registration.handles) await removePreloadScript(page, handle).catch(() => {});
   }
   registrations.clear();
+  // Firefox permits only one BiDi session. Dropping its socket leaves the
+  // session active, preventing the next attachment. Puppeteer's BiDi detach
+  // ends that automation session without closing the caller's browser.
+  if (targetProtocol === "webdriver-bidi" && browser) {
+    const bidiSession = browser;
+    await bidiSession.disconnect();
+  }
   // Never call Playwright Browser.close() here: the target belongs to the
   // caller. Ending this worker releases its remote connection without asking
   // the browser to close its target, contexts, or pages.

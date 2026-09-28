@@ -50,6 +50,17 @@
 
 ## Phase 2b: Augmented browsing
 
+- [x] Add Jangolova bookmarklet URL import/export and draggable HTML installers
+  through `cmy bookmarklet`, with reversible example and real Chrome/Firefox
+  link-activation checks.
+- [x] Serialize per-augmentation lifecycle operations and test action/cleanup
+  races, cleanup retries, and invalid-runtime cleanup.
+- [x] End Firefox BiDi automation sessions on detach and verify fresh attachment
+  preserves the caller's browser/page and removes managed preloads.
+- [x] Align Camera Kit's page-bound capability lifetime with the shared schema.
+- [ ] Validate native bookmarks-bar installation and activation on Safari/Edge
+  and mobile browsers; link fixtures do not certify browser-toolbar behavior.
+
 - [x] Define the Cymonkey page-safe and privileged-extension trust boundary.
 - [x] Add the nested `window.cymonkey.jangolova` page bridge.
 - [x] Define `cymonkey/v1alpha1`, the augmentation schema, backend

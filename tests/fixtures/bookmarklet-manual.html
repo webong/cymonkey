@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Jangolova bookmarklet validation</title>
+<style>
+  body { max-width: 48rem; margin: 3rem auto; padding: 0 1rem; font: 20px system-ui; }
+  li { margin: 1rem 0; }
+  output { display: block; padding: 1rem; background: #eee; color: #111; }
+</style>
+<h1>Jangolova bookmarklet validation</h1>
+<p>This local fixture observes the example highlighter; it does not install or invoke it.</p>
+<ul>
+  <li><a href="#first">First sample link</a></li>
+  <li><a href="#second">Unicode sample: café · 日本語</a></li>
+  <li><a href="#third">Symbols: + % # &amp;</a></li>
+</ul>
+<output id="status" aria-live="polite">Highlighter absent</output>
+<p>Click the saved <strong>Highlight links</strong> bookmark: all three links should
+  have gold outlines and the status should become “Highlighter active”. Click
+  again to remove it. Reload: it must remain absent until explicitly clicked.</p>
+<script>
+  const status = document.getElementById('status');
+  function update() {
+    const active = !!document.getElementById('jangolova-bookmarklet-highlight-links');
+    status.textContent = active ? 'Highlighter active' : 'Highlighter absent';
+  }
+  new MutationObserver(update).observe(document.head, { childList: true });
+  update();
+</script>
+</html>

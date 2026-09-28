@@ -111,9 +111,9 @@ Augmented Browsing task owns that assertion and its live browser tests.
   current binaries, licensing, and platform behavior still require live checks.
 - macOS/Windows helper tests use fixtures; the optional real Swift helper was
   not configured. No native desktop or GPU rendering validation is claimed.
-- Camera Kit currently advertises `lifetime: document`, which is outside the
-  shared wire validator's accepted lifetimes. This was reported to the browser
-  task; strict activation will reject it until reconciled.
+- Camera Kit's former `lifetime: document` mismatch was corrected to `surface`
+  during the augmentation stability pass. A shared-schema regression check
+  covers its descriptor; this does not claim live camera/media validation.
 - SDK publication as an independent Go module, signed production registry
   metadata, and published runtime artifacts remain release work. The `cymonkey modules` interface
   supports discovery/pull; runtime-specific activation is an explicit host API,
