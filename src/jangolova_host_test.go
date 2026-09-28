@@ -1,4 +1,4 @@
-package hostbinding
+package main
 
 import (
 	"context"
@@ -15,7 +15,7 @@ func TestTargetBoundaryPreservesHostRotationAndIsolatesMetadata(t *testing.T) {
 	material := &orchestrator.EndpointConnection{}
 	revision := material.ReplaceCredential(map[string]string{"Authorization": "Bearer fixture"}, time.Now().Add(time.Hour))
 	original := orchestrator.EngineTarget{Kind: "blender", Metadata: map[string]string{"runtime": "blender"}, Endpoints: []orchestrator.TargetEndpoint{{Protocol: "websocket", URL: "ws://127.0.0.1:9321", Metadata: map[string]string{"scope": "fixture"}, Connection: material}}}
-	target := Target(original)
+	target := jangolovaTarget(original)
 	target.Metadata["runtime"] = "changed"
 	target.Endpoints[0].Metadata["scope"] = "changed"
 	if original.Metadata["runtime"] != "blender" || original.Endpoints[0].Metadata["scope"] != "fixture" {
@@ -45,11 +45,11 @@ func TestTargetBoundaryPreservesHostRotationAndIsolatesMetadata(t *testing.T) {
 	if ack != next {
 		t.Fatal("acknowledgement did not reach host")
 	}
-	if err := Services().Validate(target.Endpoints[0]); err != nil {
+	if err := jangolovaServices().Validate(target.Endpoints[0]); err != nil {
 		t.Fatal(err)
 	}
 	material.ReplaceCredential(map[string]string{"Authorization": "Bearer expired"}, time.Now().Add(-time.Minute))
-	if err := Services().Validate(target.Endpoints[0]); err == nil {
+	if err := jangolovaServices().Validate(target.Endpoints[0]); err == nil {
 		t.Fatal("expired host material accepted")
 	}
 }
@@ -86,7 +86,7 @@ func (s *fixtureSession) EngineCallerLaunch() sdk.CallerLaunch {
 }
 func TestHostBindingForwardsCallsEventsAndDisconnect(t *testing.T) {
 	source := &fixtureSession{events: make(chan sdk.EngineEvent, 1)}
-	instance, err := Wrap(fixtureAdapter{source}).Connect(context.Background(), manifest.EngineSpec{}, orchestrator.EngineTarget{})
+	instance, err := wrapJangolova(fixtureAdapter{source}).Connect(context.Background(), manifest.EngineSpec{}, orchestrator.EngineTarget{})
 	if err != nil {
 		t.Fatal(err)
 	}

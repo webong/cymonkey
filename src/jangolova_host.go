@@ -1,6 +1,6 @@
-// Package hostbinding binds Cymonkey's private host services to the public
-// Jangolova SDK. Runtime modules never import this package.
-package hostbinding
+// Cymonkey composes its private host services with the public Jangolova SDK
+// at the executable edge. Internal packages receive only a neutral registry.
+package main
 
 import (
 	"context"
@@ -33,7 +33,7 @@ func (v materialView) Snapshot() sdk.EndpointConnectionSnapshot {
 }
 func (v materialView) Updates() <-chan uint64 { return v.source.Updates() }
 func (v materialView) Acknowledge(r uint64)   { v.source.Acknowledge(r) }
-func Target(t orchestrator.EngineTarget) sdk.EngineTarget {
+func jangolovaTarget(t orchestrator.EngineTarget) sdk.EngineTarget {
 	result := sdk.EngineTarget{APIVersion: t.APIVersion, TargetID: t.TargetID, Kind: t.Kind, Handles: maps.Clone(t.Handles), Metadata: maps.Clone(t.Metadata)}
 	for _, e := range t.Endpoints {
 		next := sdk.TargetEndpoint{Name: e.Name, Protocol: e.Protocol, URL: e.URL, CredentialRef: e.CredentialRef, TLSRef: e.TLSRef, Audience: e.Audience, Metadata: maps.Clone(e.Metadata)}
@@ -76,7 +76,7 @@ func (l listener) WaitConnection(ctx context.Context) (sdk.Transport, error) {
 	return l.source.WaitConnection(ctx)
 }
 
-func Services() sdk.Host {
+func jangolovaServices() sdk.Host {
 	return host.Services(host.Dependencies{
 		ValidateEndpoint: func(e sdk.TargetEndpoint) error {
 			p, err := endpoint(e)
@@ -144,9 +144,9 @@ func Services() sdk.Host {
 	})
 }
 
-// Wrap adapts data across the public boundary explicitly; no private type is
+// wrapJangolova adapts data across the public boundary explicitly; no private type is
 // re-exported or used in a public module signature.
-func Wrap(adapter sdk.EngineAdapter) orchestrator.EngineAdapter { return adapterBinding{adapter} }
+func wrapJangolova(adapter sdk.EngineAdapter) orchestrator.EngineAdapter { return adapterBinding{adapter} }
 
 type adapterBinding struct{ source sdk.EngineAdapter }
 
@@ -158,7 +158,7 @@ func (a adapterBinding) InspectEngine(ctx context.Context) orchestrator.EngineIn
 	return orchestrator.EngineInspection{Available: true}
 }
 func (a adapterBinding) Connect(ctx context.Context, s manifest.EngineSpec, t orchestrator.EngineTarget) (orchestrator.EngineInstance, error) {
-	i, err := a.source.Connect(ctx, sdk.EngineSpec{Adapter: s.Adapter, RequiredCapabilities: s.RequiredCapabilities, Source: s.Source, Options: s.Options}, Target(t))
+	i, err := a.source.Connect(ctx, sdk.EngineSpec{Adapter: s.Adapter, RequiredCapabilities: s.RequiredCapabilities, Source: s.Source, Options: s.Options}, jangolovaTarget(t))
 	if err != nil {
 		return nil, err
 	}

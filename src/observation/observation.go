@@ -1,4 +1,6 @@
-package cymonkeyhost
+// Package observation coordinates one Jangolova capture with a Blockade
+// inference request at Cymonkey's composition boundary.
+package observation
 
 import (
 	"bytes"
@@ -15,6 +17,7 @@ import (
 	"time"
 
 	"blockade"
+	cymonkeyhost "cymonkey/src/internal/host"
 )
 
 const ObservationAPIVersion = "cymonkey.observation/v1alpha1"
@@ -38,12 +41,12 @@ type ObservationResponse struct {
 }
 
 type ObservationCoordinator struct {
-	config     ObservationConfig
+	config     cymonkeyhost.ObservationConfig
 	token      string
 	httpClient *http.Client
 }
 
-func NewObservationCoordinator(config ObservationConfig) (*ObservationCoordinator, error) {
+func NewObservationCoordinator(config cymonkeyhost.ObservationConfig) (*ObservationCoordinator, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}

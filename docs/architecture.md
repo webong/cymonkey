@@ -3,21 +3,24 @@
 Cymonkey is the operator, host, and extension boundary. Jangolova owns display
 interfaces for interaction and presentation; Blockade owns inference
 interfaces for image and sound across local and cloud backends. Cymonkey
-composes and supervises their processes and coordinates cross-subsystem
-workflows while preserving their standalone boundaries. Blockade's implemented
+links their public Go libraries into its command binary and can supervise
+separate provider processes for long-running workflows. Optional installed
+executables register as providers through the same library interfaces. See
+[executable provider plugins](cymonkey-plugins.md). Blockade's implemented
 public request currently handles images; sound inference remains to be
 defined. See
 [Cymonkey naming migration](naming-migration.md).
 
-The dependency direction is one way: Cymonkey imports the public Jangolova and
-Blockade modules. Each library can run or be embedded with another host, and
-neither imports Cymonkey. Cymonkey-specific worker discovery, approval, and
-event compatibility live at the Cymonkey host boundary.
+The dependency direction is one way: Cymonkey imports the public Jangolova,
+Blockade, and Board modules. Each library can run or be embedded with another
+host, and none imports Cymonkey. Cymonkey-specific worker discovery, approval,
+and event compatibility live at the Cymonkey host boundary.
 
-The host boundary is executable-oriented: it starts standalone `jangolova` and
-`blockade` processes from a `cymonkey.config/v1alpha1` manifest. It may
-coordinate their endpoints, but it does not embed their implementation or
-transfer target ownership to either subsystem. See
+The host boundary has two modes today: direct library calls from the Cymonkey
+executable and supervised provider processes from a `cymonkey.config/v1alpha1`
+manifest. The `observe` command uses provider HTTP endpoints so it can reach a
+long-running Jangolova session and a Blockade inference backend. Neither mode
+transfers target ownership to a library. See
 [Cymonkey host and operator](cymonkey-host.md).
 
 Unity, Unreal, Godot, Blender, and Three.js are Jangolova runtime libraries. Cymonkey
@@ -29,7 +32,7 @@ supervisor separately owns target and display lifecycle. See
 Jangolova is an independent interaction and presentation toolbox that Cymonkey
 can host. External agents, IDEs, and applications own planning and decisions;
 Xallet, a native host, or another operator owns the target runtimes with which
-Jangolova interacts. Blockade is the separate inference service. In the
+Jangolova interacts. Blockade can run in process or serve HTTP. In the
 implemented image workflow, Cymonkey requests screenshots through Jangolova's
 display interface and sends them to Blockade.
 
@@ -161,12 +164,13 @@ The authenticated, provider-neutral `interaction.engine/v1alpha1` HTTP API trans
 calls. The cooperative Unity bridge implements the same vocabulary.
 
 The repository uses `src/` for Cymonkey provider code, generic contracts,
-adapters, and protocol assets. Standalone Jangolova and Blockade libraries live
-under root `lib/`; `src/main.go` is the single Cymonkey interface binary. `pkg/`
-remains the distribution surface for runtime packages and platform products,
-while `tests/` remains the conformance and fixture surface. The Jangolova and Blockade
-libraries are separate Go modules (`jangolova` and `blockade`) joined to the
-Cymonkey module through `go.work` and local replacements.
+adapters, and protocol assets. Standalone Jangolova, Blockade, and Board
+libraries live under root `lib/`; `src/main.go` is the single Cymonkey interface
+binary. `pkg/` remains the distribution surface for runtime packages and platform
+products, while `tests/` remains the conformance and fixture surface. The
+Jangolova, Blockade, and Board libraries are separate Go modules (`jangolova`,
+`blockade`, and `board`). They share the neutral `providerplugin` transport
+module and join the Cymonkey module through `go.work` and local replacements.
 
 ## Package direction
 
@@ -183,10 +187,15 @@ src/adapters/webpresentation/   declarative web presentation adapter
 src/internal/engineprovider/    target-in / semantic-call protocol
 src/internal/orchestrator/      interaction lifecycle and target contracts
 src/internal/bridge/            engine-neutral semantic methods
-src/internal/builtin/           built-in engine registration
-src/internal/hostbinding/       Cymonkey binding into the Jangolova host boundary
+src/jangolova_*.go              Executable-side Jangolova host services and engine registration
+src/observation/                Jangolova capture and Blockade inference workflow
+lib/board/                      standalone Board device library
+lib/board/drive.go              read-only mounted-drive provider
+lib/board/macoskeyboard/         explicit-PID macOS keyboard provider
+lib/board/host/                 provider registration and grant selection
+lib/board/cli/                  standalone Board command surface
 src/internal/core/              core registry/composition/conformance code
-src/internal/host/              Cymonkey host supervisor and observation coordinator
+src/internal/host/              Cymonkey host configuration and process supervisor
 lib/jangolova/                  standalone Jangolova library and host boundary
 lib/jangolova/host/             Jangolova host service injection contract
 lib/blockade/                   standalone Blockade inference library

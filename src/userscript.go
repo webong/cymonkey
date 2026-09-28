@@ -13,8 +13,8 @@ import (
 	"regexp"
 	"strings"
 
-	"cymonkey/src/internal/userscripts"
 	"cymonkey/src/internal/provider"
+	"cymonkey/src/internal/userscripts"
 	"jangolova/browserextension"
 )
 
@@ -133,7 +133,7 @@ func userscriptCommand(args []string, stdout io.Writer) error {
 			return err
 		}
 		if *endpoint != "" {
-			return provider.ConnectEngine([]string{"--target-kind", "browser", "--endpoint", *endpoint, "--userscripts-target", resolvedTarget, "--userscripts-store", *store}, stdout)
+			return provider.ConnectEngine([]string{"--target-kind", "browser", "--endpoint", *endpoint, "--userscripts-target", resolvedTarget, "--userscripts-store", *store}, stdout, engineRegistry)
 		}
 		return nil
 	case "list":

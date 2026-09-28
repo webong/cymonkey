@@ -64,8 +64,8 @@ func TestRegistryListsAndGatesKeyboard(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := connection.Invoke(ctx, Action{Capability: KeyboardType, Input: json.RawMessage(`{"text":"secret"}`)}); err == nil {
-		t.Fatal("ungranted keyboard typing reached provider")
+	if _, err := connection.Invoke(ctx, Action{Capability: KeyboardType, Input: json.RawMessage(`{"text":"secret"}`)}); !errors.Is(err, ErrNotGranted) {
+		t.Fatalf("ungranted keyboard typing = %v, want ErrNotGranted", err)
 	}
 	if len(provider.session.invocations) != 0 {
 		t.Fatal("ungranted action reached provider")
@@ -108,8 +108,8 @@ func TestDriveGrantRequiresResourceScope(t *testing.T) {
 	if _, err := connection.Invoke(ctx, Action{Capability: DriveList}); err == nil {
 		t.Fatal("drive action without resource ID was accepted")
 	}
-	if _, err := connection.Invoke(ctx, Action{Capability: DriveList, ResourceID: "other-root"}); err == nil {
-		t.Fatal("drive action outside granted resource root was accepted")
+	if _, err := connection.Invoke(ctx, Action{Capability: DriveList, ResourceID: "other-root"}); !errors.Is(err, ErrNotGranted) {
+		t.Fatalf("drive action outside granted resource root = %v, want ErrNotGranted", err)
 	}
 	if _, err := connection.Invoke(ctx, Action{Capability: DriveList, ResourceID: "photos-root"}); err != nil {
 		t.Fatal(err)
@@ -134,5 +134,19 @@ func TestRegistryRejectsUnknownCapabilitiesAndDuplicateProviders(t *testing.T) {
 	})
 	if err == nil || provider.session != nil {
 		t.Fatalf("unadvertised capability was accepted: %v", err)
+	}
+}
+
+func TestRegistryIdentifiesUnknownProviderAndDevice(t *testing.T) {
+	provider := &fakeProvider{devices: []Device{{ID: "keyboard-1", Kind: "keyboard", Capabilities: []CapabilityDescriptor{capability(KeyboardPress)}}}}
+	registry, err := NewRegistry(provider)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := registry.Open(context.Background(), OpenRequest{ProviderID: "absent"}); !errors.Is(err, ErrUnknownProvider) {
+		t.Fatalf("unknown provider = %v", err)
+	}
+	if _, err := registry.Open(context.Background(), OpenRequest{ProviderID: "test", DeviceID: "absent"}); !errors.Is(err, ErrUnknownDevice) {
+		t.Fatalf("unknown device = %v", err)
 	}
 }

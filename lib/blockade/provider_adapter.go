@@ -71,6 +71,9 @@ type ProviderAdapterRuntime struct {
 	ID       string
 	Settings map[string]string
 	Secrets  ProviderAdapterSecrets
+	// SecretNames lists only configured logical secret names, allowing an
+	// external adapter to request those values without seeing host variables.
+	SecretNames []string
 }
 
 type ProviderAdapterSecrets interface {
@@ -261,6 +264,7 @@ func StartConfiguredProviderAdapter(ctx context.Context, config ProviderAdapterC
 			references: maps.Clone(config.Secrets),
 			resolver:   resolver,
 		},
+		SecretNames: slices.Sorted(maps.Keys(config.Secrets)),
 	}
 	adapter, err := factory(ctx, runtime)
 	if err != nil {

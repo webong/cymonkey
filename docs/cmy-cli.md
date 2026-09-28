@@ -29,10 +29,10 @@ go build -o .cache/bin/cymonkey ./src
 Run commands from the repository root when using its relative example paths.
 Most one-shot commands write JSON to standard output. Servers keep running
 until interrupted. An error writes to standard error and exits nonzero.
-`cmy help`, `cmy modules help`, and `cmy provider help` show the built-in
-summaries; `cmy userscript help` lists its lifecycle commands. Other command
-groups are documented below; they do not all expose a subcommand-specific
-help page.
+`cmy help`, `cmy modules help`, `cmy provider help`, and `cmy board help` show
+the built-in summaries; `cmy userscript help` lists its lifecycle commands.
+Other command groups are documented below; they do not all expose a
+subcommand-specific help page.
 
 ## Command map
 
@@ -46,8 +46,49 @@ help page.
 | `cmy extension ...` | Inspect, package, stage, activate, or install a caller-supplied browser extension. |
 | `cmy userscript ...` | Store, list, update, enable, disable, or remove extension-free userscripts for a selected browser target. |
 | `cmy provider engines`, `connect-engine`, `serve-engine-provider`, `serve-mcp` | Discover or connect interaction engines, or run Jangolova interfaces. |
+| `cmy board devices`, `drive-list`, `drive-read` | List host-approved mounted drives, list entries, or stream one selected file. |
+| `cmy board keyboard-press`, `keyboard-type` | Send a key or bounded text to an explicitly selected macOS process. |
+| `cmy board provider-devices`, `provider-invoke`, `provider-stream` | Use installed Board providers under an explicit device grant. |
 | `cmy blockade validate`, `observe`, `serve` | Validate image inference configuration, infer from an image, or run the Blockade service. |
+| `cmy plugins install`, `upgrade`, `list`, `remove` | Manage local executable providers for Jangolova, Blockade, and Board. |
 | `cmy native-bridge-fixture` | Run the native bridge test fixture; this is for development. |
+
+## Board device providers
+
+A host names an already mounted directory with `--root NAME=PATH`. Board
+publishes `NAME` as an opaque resource handle; action results never expose the
+host path. The list is bounded, and the read command refuses files larger than
+its stream limit before writing anything to stdout.
+
+```sh
+cmy board devices --root photos=/Volumes/CAMERA
+cmy board drive-list --root photos=/Volumes/CAMERA --path DCIM --recursive
+cmy board drive-read --root photos=/Volumes/CAMERA \
+  --path DCIM/100CANON/IMG_0001.JPG > photo.jpg
+```
+
+Each command creates a fresh attachment. The host path must still refer to the
+approved directory for every action. Drive reads are read-only and limited to
+32 MiB by default; `--max-bytes` can tighten that bound. `drive-list` accepts
+`--limit`, `--recursive`, and `--json`.
+
+On macOS, grant Accessibility permission to the terminal or host process,
+choose an existing process ID, then submit a key or text. Text comes from
+stdin, so it does not appear in the command line. `keyboard-type` accepts at
+most 1,024 Unicode code points and no control characters; use
+`keyboard-press` for Enter, Tab, and shortcuts.
+
+```sh
+cmy board keyboard-press --pid 12345 --key Command+O
+printf 'photo caption' | cmy board keyboard-type --pid 12345
+cmy board keyboard-press --pid 12345 --key Enter
+```
+
+Both keyboard commands return `{"submitted":true}` when macOS accepted the
+events for posting. The target application may ignore them. The provider
+refuses a process that has exited or changed identity. These commands require
+macOS with cgo; other builds report that the provider is unavailable. See
+[Board](../lib/board/README.md) for provider registration and lifecycle.
 
 ## Host and coordinated observation
 

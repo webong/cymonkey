@@ -22,6 +22,8 @@ presenting a new dynamic one.
   and browser-local WebLLM paths. Blockade also defines a provider interface
   for separately supplied cloud inference adapters.
 - Prepare typed, host-approved input and output device bindings through Board.
+- Install optional executable providers for Jangolova, Blockade, and Board
+  without rebuilding Cymonkey.
 - Preserve target ownership: a connection may detach, but it never quits a
   browser, terminates an application, or destroys a scene.
 
@@ -40,15 +42,21 @@ agent or application
 
 Jangolova provides interfaces for operating and presenting on displays.
 Blockade provides inference interfaces for image and sound across local and
-cloud backends. Board defines the provider and grant contract for device I/O;
-native providers and a Cymonkey binding are still to be implemented. The
-current Blockade request contract is image-based; sound inference is part of
-its intended scope and is not implemented yet. Cymonkey provides the boundary
-through which callers extend and coordinate these libraries.
+cloud backends. Board defines the provider and grant contract for device I/O and
+ships a read-only mounted-drive provider and a macOS keyboard provider. Hotplug
+events are still to be implemented. Board's host API requires an explicit
+authorization decision; Cymonkey routes its `board` command to Board's CLI.
+The current Blockade request contract is image-based; sound inference is part
+of its intended scope and is not implemented yet. Cymonkey provides the
+boundary through which callers extend and coordinate these libraries.
 
 All three libraries are independently usable. Cymonkey can compose their public
 Go modules and supply the host services that its workflows need; none
 imports Cymonkey or requires the Cymonkey executable.
+
+Built-in adapters remain linked into Cymonkey. Optional providers use the
+[executable plugin protocol](docs/cymonkey-plugins.md), with one installer and
+separate library-owned adapters.
 
 ## Quick start
 

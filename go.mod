@@ -3,7 +3,9 @@ module cymonkey
 go 1.26.5
 
 require (
+	board v0.0.0
 	blockade v0.0.0
+	providerplugin v0.0.0
 	github.com/google/go-cmp v0.7.0
 	github.com/gorilla/websocket v1.5.3
 	gopkg.in/yaml.v3 v3.0.1
@@ -11,6 +13,10 @@ require (
 )
 
 replace blockade => ./lib/blockade
+
+replace board => ./lib/board
+
+replace providerplugin => ./lib/plugin
 
 replace jangolova => ./lib/jangolova
 

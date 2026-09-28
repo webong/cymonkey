@@ -1,4 +1,4 @@
-package hostbinding
+package main
 
 import (
 	"errors"

@@ -1,4 +1,4 @@
-package builtin
+package main
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 )
 
 func TestRegistryHasNoStandaloneRenderAdapter(t *testing.T) {
-	registry, err := EngineRegistry()
+	registry, err := engineRegistry()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -18,7 +18,7 @@ func TestRegistryHasNoStandaloneRenderAdapter(t *testing.T) {
 }
 
 func TestRegistryPinsBrowserAutomationToCymonkeyDrivers(t *testing.T) {
-	registry, err := EngineRegistry()
+	registry, err := engineRegistry()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +34,7 @@ func TestRegistryPinsBrowserAutomationToCymonkeyDrivers(t *testing.T) {
 }
 
 func TestRegistryIncludesProviderVisibleCymonkey(t *testing.T) {
-	registry, err := EngineRegistry()
+	registry, err := engineRegistry()
 	if err != nil {
 		t.Fatal(err)
 	}

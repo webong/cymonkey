@@ -65,6 +65,9 @@ type Action struct {
 	Input      json.RawMessage `json:"input,omitempty"`
 }
 
+// Result carries one small structured answer. It is JSON so a host can log,
+// compare, or forward a result without special-casing device output. Resource
+// bytes do not belong here; a provider delivers those through Stream.
 type Result struct {
 	Output json.RawMessage `json:"output,omitempty"`
 }
@@ -85,7 +88,12 @@ type Session interface {
 	Close(context.Context) error
 }
 
-var ErrClosed = errors.New("board session is closed")
+var (
+	ErrClosed          = errors.New("board session is closed")
+	ErrNotGranted      = errors.New("board capability or resource is not granted")
+	ErrUnknownProvider = errors.New("board provider is not registered")
+	ErrUnknownDevice   = errors.New("board device is not registered")
+)
 
 type Registry struct {
 	providers map[string]Provider
@@ -155,7 +163,7 @@ func (r *Registry) Open(ctx context.Context, request OpenRequest) (*Connection, 
 	}
 	provider, exists := r.providers[request.ProviderID]
 	if !exists {
-		return nil, fmt.Errorf("unknown board provider %q", request.ProviderID)
+		return nil, fmt.Errorf("%w: %q", ErrUnknownProvider, request.ProviderID)
 	}
 	devices, err := provider.List(ctx)
 	if err != nil {
@@ -169,7 +177,7 @@ func (r *Registry) Open(ctx context.Context, request OpenRequest) (*Connection, 
 		}
 	}
 	if selected == nil {
-		return nil, fmt.Errorf("unknown board device %q", request.DeviceID)
+		return nil, fmt.Errorf("%w: %q", ErrUnknownDevice, request.DeviceID)
 	}
 	if err := validateCapabilities(selected.Capabilities); err != nil {
 		return nil, fmt.Errorf("board device %q: %w", request.DeviceID, err)
@@ -226,24 +234,34 @@ type Connection struct {
 func (c *Connection) Invoke(ctx context.Context, action Action) (Result, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if err := c.authorize(action); err != nil {
+		return Result{}, err
+	}
+	return c.session.Invoke(ctx, action)
+}
+
+// authorize is the single gate every action passes through, whether it returns
+// a Result or a content stream. Keeping one implementation means a new action
+// path cannot forget a check the grant already depends on.
+func (c *Connection) authorize(action Action) error {
 	if c.closed {
-		return Result{}, ErrClosed
+		return ErrClosed
 	}
 	if _, allowed := c.allowed[action.Capability]; !allowed {
-		return Result{}, fmt.Errorf("board capability %q is not granted", action.Capability)
+		return fmt.Errorf("%w: capability %q", ErrNotGranted, action.Capability)
 	}
 	if isDriveCapability(action.Capability) && strings.TrimSpace(action.ResourceID) == "" {
-		return Result{}, errors.New("drive action needs a resource ID")
+		return errors.New("drive action needs a resource ID")
 	}
 	if isDriveCapability(action.Capability) {
 		if _, allowed := c.resources[action.ResourceID]; !allowed {
-			return Result{}, fmt.Errorf("board resource %q is not granted", action.ResourceID)
+			return fmt.Errorf("%w: resource %q", ErrNotGranted, action.ResourceID)
 		}
 	}
 	if len(action.Input) > 0 && !json.Valid(action.Input) {
-		return Result{}, errors.New("board action input is invalid JSON")
+		return errors.New("board action input is invalid JSON")
 	}
-	return c.session.Invoke(ctx, action)
+	return nil
 }
 
 func (c *Connection) Close(ctx context.Context) error {
@@ -258,6 +276,18 @@ func (c *Connection) Close(ctx context.Context) error {
 
 func isDriveCapability(capability Capability) bool {
 	return capability == DriveList || capability == DriveRead
+}
+
+// IsDriveCapability reports whether any of the given capabilities acts on a
+// drive resource root. A host that builds grants uses it to enforce the same
+// rule Board does: a drive capability requires at least one resource ID.
+func IsDriveCapability(capabilities ...Capability) bool {
+	for _, capability := range capabilities {
+		if isDriveCapability(capability) {
+			return true
+		}
+	}
+	return false
 }
 
 func hasDriveCapability(capabilities map[Capability]struct{}) bool {

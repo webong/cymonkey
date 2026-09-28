@@ -3,13 +3,18 @@ package cymonkeyhost
 import (
 	"context"
 	"os"
+	"os/signal"
+	"syscall"
 	"testing"
 	"time"
 )
 
 func TestSupervisorStopsComponentsOnCancellation(t *testing.T) {
 	if os.Getenv("CYMONKEY_HOST_CHILD") == "1" {
-		select {}
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer stop()
+		<-ctx.Done()
+		return
 	}
 	config := Config{
 		APIVersion: ConfigAPIVersion,

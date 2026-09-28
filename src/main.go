@@ -15,9 +15,11 @@ import (
 	"blockade"
 	blockadecli "blockade/cli"
 	blockadewebllm "blockade/webllm"
+	boardcli "board/cli"
 	nativebridge "cymonkey/src/fixtures/native-bridge"
 	"cymonkey/src/internal/host"
 	"cymonkey/src/internal/provider"
+	"cymonkey/src/observation"
 )
 
 func main() {
@@ -29,7 +31,7 @@ func main() {
 
 func run(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("cymonkey requires a command: validate, run, observe, modules, browser, extension, userscript, bookmarklet, provider, blockade, or native-bridge-fixture")
+		return errors.New("cymonkey requires a command: validate, run, observe, modules, browser, extension, userscript, bookmarklet, provider, board, blockade, plugins, or native-bridge-fixture")
 	}
 	switch args[0] {
 	case "validate":
@@ -49,9 +51,13 @@ func run(args []string, stdout, stderr io.Writer) error {
 	case "browser":
 		return browserCommand(args[1:], stdout)
 	case "provider":
-		return provider.Run(args[1:], stderr)
+		return provider.Run(args[1:], stderr, engineRegistry)
+	case "board":
+		return runBoard(args[1:], stdout, stderr)
 	case "blockade":
 		return runBlockade(args[1:], stdout, stderr)
+	case "plugins":
+		return pluginsCommand(args[1:], stdout, stderr)
 	case "native-bridge-fixture":
 		nativebridge.Run()
 		return nil
@@ -90,11 +96,11 @@ func observe(args []string, stdout io.Writer) error {
 	if config.Observation == nil {
 		return errors.New("Cymonkey host config has no observation coordinator")
 	}
-	coordinator, err := cymonkeyhost.NewObservationCoordinator(*config.Observation)
+	coordinator, err := observation.NewObservationCoordinator(*config.Observation)
 	if err != nil {
 		return err
 	}
-	result, err := coordinator.Observe(context.Background(), cymonkeyhost.ObservationRequest{
+	result, err := coordinator.Observe(context.Background(), observation.ObservationRequest{
 		InstanceID: *instanceID, Prompt: *prompt, FullPage: *fullPage, ApprovalID: *approvalID,
 	})
 	if err != nil {
@@ -156,7 +162,21 @@ func runBlockade(args []string, stdout, stderr io.Writer) error {
 	if err := blockadewebllm.Register(registry); err != nil {
 		return err
 	}
+	if err := registerBlockadePlugins(registry); err != nil {
+		return err
+	}
 	return blockadecli.RunWithProviderAdapters(args, stdout, stderr, registry, blockade.EnvironmentSecretResolver{})
+}
+
+func runBoard(args []string, stdout, stderr io.Writer) error {
+	if len(args) > 0 && strings.HasPrefix(args[0], "provider-") {
+		providers, err := boardPluginProviders()
+		if err != nil {
+			return err
+		}
+		return boardcli.RunWithProviders(args, os.Stdin, stdout, stderr, providers)
+	}
+	return boardcli.RunWithInput(args, os.Stdin, stdout, stderr)
 }
 
 func envOrDefault(name, fallback string) string {
@@ -179,6 +199,8 @@ Commands:
   userscript              Store and replay approved extension-free userscripts
   bookmarklet             Import or export user-activated browser bookmarklets
   provider                Run the Jangolova provider/MCP interface
+  board                   Run the Board device interface
   blockade                Run the Blockade inference interface
+  plugins                 Install and inspect executable providers
   native-bridge-fixture   Run the native bridge fixture`)
 }

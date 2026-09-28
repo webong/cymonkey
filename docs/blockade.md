@@ -36,8 +36,9 @@ never initiates an action from an observation.
 
 ## Cymonkey/Jangolova composition
 
-Cymonkey may supervise the standalone `blockade` executable alongside the
-standalone `jangolova` tool server. Blockade remains usable without Cymonkey:
+Cymonkey registers Blockade adapters in process for its CLI and may supervise a
+Blockade HTTP service alongside its Jangolova provider. Blockade remains usable
+without Cymonkey:
 
 ```sh
 cymonkey blockade serve --config infra/deploy/blockade/blockade.example.yaml

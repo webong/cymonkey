@@ -14,15 +14,14 @@ import (
 	"syscall"
 	"time"
 
-	"cymonkey/src/internal/builtin"
 	"cymonkey/src/internal/engineprovider"
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
-	"cymonkey/src/internal/userscripts"
 	"cymonkey/src/internal/targetconn"
+	"cymonkey/src/internal/userscripts"
 )
 
-func enginesCommand(args []string) error {
+func enginesCommand(args []string, registryFactory RegistryFactory) error {
 	flags := flag.NewFlagSet("engines", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	jsonOutput := flags.Bool("json", false, "write the interaction-engine inventory as JSON")
@@ -32,7 +31,7 @@ func enginesCommand(args []string) error {
 	if flags.NArg() != 0 {
 		return errors.New("engines accepts flags only")
 	}
-	registry, err := builtin.EngineRegistry()
+	registry, err := registryFrom(registryFactory)
 	if err != nil {
 		return err
 	}
@@ -54,11 +53,15 @@ func enginesCommand(args []string) error {
 }
 
 // ConnectEngine attaches to a caller-owned browser from another local CLI flow.
-func ConnectEngine(args []string, stdout io.Writer) error { return connectEngine(args, stdout) }
+func ConnectEngine(args []string, stdout io.Writer, registryFactory RegistryFactory) error {
+	return connectEngine(args, stdout, registryFactory)
+}
 
-func connectEngineCommand(args []string) error { return connectEngine(args, os.Stdout) }
+func connectEngineCommand(args []string, registryFactory RegistryFactory) error {
+	return connectEngine(args, os.Stdout, registryFactory)
+}
 
-func connectEngine(args []string, stdout io.Writer) error {
+func connectEngine(args []string, stdout io.Writer, registryFactory RegistryFactory) error {
 	flags := flag.NewFlagSet("connect-engine", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	adapterName := flags.String("adapter", "auto", "interaction-engine adapter name or auto")
@@ -114,7 +117,7 @@ func connectEngine(args []string, stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
-	registry, err := builtin.EngineRegistry()
+	registry, err := registryFrom(registryFactory)
 	if err != nil {
 		return err
 	}

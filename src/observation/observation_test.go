@@ -1,4 +1,4 @@
-package cymonkeyhost
+package observation
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"blockade"
+	cymonkeyhost "cymonkey/src/internal/host"
 )
 
 func TestObservationCoordinatorCoordinatesJangolovaAndBlockade(t *testing.T) {
@@ -52,9 +53,9 @@ func TestObservationCoordinatorCoordinatesJangolovaAndBlockade(t *testing.T) {
 	defer blockadeServer.Close()
 
 	t.Setenv("CYMONKEY_TEST_TOKEN", "test-token")
-	coordinator, err := NewObservationCoordinator(ObservationConfig{
-		Jangolova: ObservationJangolovaConfig{Endpoint: jangolova.URL, TokenEnvironment: "CYMONKEY_TEST_TOKEN"},
-		Blockade:  ObservationBlockadeConfig{Endpoint: blockadeServer.URL},
+	coordinator, err := NewObservationCoordinator(cymonkeyhost.ObservationConfig{
+		Jangolova: cymonkeyhost.ObservationJangolovaConfig{Endpoint: jangolova.URL, TokenEnvironment: "CYMONKEY_TEST_TOKEN"},
+		Blockade:  cymonkeyhost.ObservationBlockadeConfig{Endpoint: blockadeServer.URL},
 	})
 	if err != nil {
 		t.Fatal(err)

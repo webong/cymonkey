@@ -13,11 +13,10 @@ import (
 	"syscall"
 	"time"
 
-	"cymonkey/src/internal/builtin"
 	"cymonkey/src/internal/engineprovider"
 )
 
-func serveMCPCommand(args []string) error {
+func serveMCPCommand(args []string, registryFactory RegistryFactory) error {
 	flags := flag.NewFlagSet("serve-mcp", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	bind := flags.String("bind", "", "optional MCP Streamable HTTP bind address; empty uses stdio")
@@ -31,7 +30,7 @@ func serveMCPCommand(args []string) error {
 	if token == "" {
 		return errors.New("JANGOLOVA_PROVIDER_TOKEN is required")
 	}
-	registry, err := builtin.EngineRegistry()
+	registry, err := registryFrom(registryFactory)
 	if err != nil {
 		return err
 	}

@@ -8,7 +8,7 @@ Its production dependency graph contains no private Cymonkey packages.
 The old private wire files were moved to the public contract package; the wire
 identifier remains `cymonkey/v1alpha1` for compatibility.
 
-`src/internal/hostbinding` supplies Cymonkey's private worker, credential, listener,
+`src/jangolova_*.go` supplies Cymonkey's private worker, credential, listener,
 and Safari services through SDK ports and explicitly converts target/session
 data. It preserves credential revision notifications and acknowledgements.
 The operator still owns policy and approval. Jangolova owns runtime modules and
@@ -79,7 +79,7 @@ Passed focused race checks:
 
 ```sh
 go test -race ./lib/jangolova ./lib/jangolova/... \
-  ./src/internal/hostbinding ./src/internal/builtin ./src/internal/engineprovider \
+  ./src ./src/internal/engineprovider \
   ./src/internal/provider ./pkg/lens-studio-cymonkey
 ```
 

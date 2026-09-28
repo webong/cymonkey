@@ -13,12 +13,11 @@ import (
 	"syscall"
 	"time"
 
-	"cymonkey/src/internal/builtin"
 	"cymonkey/src/internal/engineprovider"
 	"cymonkey/src/internal/orchestrator"
 )
 
-func serveEngineProviderCommand(args []string) error {
+func serveEngineProviderCommand(args []string, registryFactory RegistryFactory) error {
 	flags := flag.NewFlagSet("serve-engine-provider", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	bind := flags.String(
@@ -36,7 +35,7 @@ func serveEngineProviderCommand(args []string) error {
 	if token == "" {
 		return errors.New("JANGOLOVA_PROVIDER_TOKEN is required")
 	}
-	registry, err := builtin.EngineRegistry()
+	registry, err := registryFrom(registryFactory)
 	if err != nil {
 		return err
 	}

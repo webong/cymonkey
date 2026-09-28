@@ -16,13 +16,15 @@ public request handles images. Jangolova does not configure or call Blockade.
 | `src/internal/targetconn` | Caller-owned endpoint, credential, and TLS material handling. |
 | `lib/jangolova/registry` | Metadata discovery, verified retrieval, and explicit activation. |
 | `lib/jangolova/host` | Jangolova-owned host service boundary and dependency injection contract. |
-| `src/internal/hostbinding` | Cymonkey-specific binding from private provider services into the Jangolova host boundary. |
+| `src/jangolova_*.go` | Executable-side composition of Cymonkey host services and public Jangolova adapters. |
 | `src/internal/core` | Cymonkey's private composition and coordination implementation. |
 | `pkg/` | Distributable runtime packages. |
 
 `lib/jangolova` imports public Jangolova packages and has no transitive
 dependency on `cymonkey/src/internal`, the private adapter implementations, or
-`src/internal/targetconn`. `TestPublicIntegrationHasNoPrivateDependencies` checks this graph.
+`src/internal/targetconn`. Its optional process adapter imports only the
+standalone `providerplugin` transport. `TestPublicIntegrationHasNoPrivateDependencies`
+checks the graph.
 
 There is deliberately no `cymonkey/cymonkey` re-export package. The core remains
 private; code in this repository imports `cymonkey/src/internal/core`
@@ -40,10 +42,12 @@ cleanup remain host responsibilities.
 The host supplies worker startup, credential-aware connection setup, cooperative
 listeners, and the legacy Safari connection. Missing services fail explicitly.
 `lib/jangolova/host.Services` defines the Jangolova-owned host boundary.
-`src/internal/hostbinding.Services` injects Cymonkey's private services into it;
-`hostbinding.Wrap` converts the public adapter/session into the private provider contract.
-The standalone `jangolova` executable receives this binding through its builtin
-registry, preserving the same browser/helper behavior.
+The Cymonkey executable supplies private services through the public host
+contract and converts public adapter sessions into the private provider
+contract. Its `engineRegistry` registers Jangolova adapters at startup and
+passes the resulting registry into the private provider. No `src/internal`
+package imports Jangolova. This is in-process library integration; the
+provider HTTP endpoint remains available for remote clients.
 
 ## Adding a runtime
 
