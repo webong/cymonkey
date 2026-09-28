@@ -54,5 +54,5 @@ External Go modules cannot import this private core package. They should
 integrate through the supported Jangolova module/registry boundary instead of
 depending on Cymonkey's internal implementation.
 
-See [the module contract](../../docs/cymonkey-modules.md) for the full policy,
+See [the module contract](cymonkey-modules.md) for the full policy,
 composition, lifecycle, and conformance requirements.
