@@ -3,8 +3,8 @@
 For step-by-step terminal commands, see [Install browser extensions with `cmy`](cmy-extension-cli.md).
 
 Cymonkey manages browser extensions supplied by users and other tools, just as
-it manages userscripts. It does not author, modify, or bundle those extensions
-into its own browser extension. Jangolova owns the browser-specific inspection,
+it manages userscripts. It does not author or modify their source, or bundle
+them into a Cymonkey-owned browser extension. Jangolova owns browser-specific inspection,
 packaging, staging, and installation adapters in
 `lib/jangolova/browserextension`; Cymonkey exposes their semantic workflow.
 The caller retains ownership of the submitted extension and its source.
@@ -111,6 +111,17 @@ key, file count, byte count, and a content revision. It never returns source.
 CRX, signed Firefox XPI, Safari app, or Web Store listing. Keep a Chromium
 signing key outside this ZIP; a ZIP without a manifest public key has no stable
 Chromium extension ID.
+
+`extension sign` can now ask the caller's Chrome-family executable to create
+a CRX locally, generating or reusing the caller's private key. It can also
+run `web-ext sign` with the caller's `WEB_EXT_API_KEY` and
+`WEB_EXT_API_SECRET` to download an unlisted Mozilla-signed XPI. For Safari,
+`extension build-safari` builds and signs the caller-owned Xcode project using
+their Apple team. These artifact steps are separate from installation. Use
+the returned `artifactRevision` with `extension install` for Firefox and
+Safari. A CRX made locally does not change Chrome's installation rules, and
+the current Chrome/Chromium/Edge local install adapter takes the original ZIP
+or unpacked directory. See the [CLI guide](cmy-extension-cli.md) for commands.
 
 `install` supports a persistent unpacked extension in a user-selected Chrome,
 Chromium, or Edge profile on macOS or Linux. `--profile` is the browser's **user
@@ -220,8 +231,9 @@ enabled flag, install type, and declared permissions, when that API exists.
 ## Firefox
 
 Firefox accepts a signed XPI for permanent installation. The caller owns the
-extension and obtains Mozilla signing (listed or unlisted); Cymonkey does not
-hold signing credentials. The XPI must remain intact because re-zipping it
+extension; `extension sign --browser firefox` can invoke `web-ext` with the
+caller's environment credentials for Mozilla's unlisted signing service.
+Cymonkey does not store those credentials. The XPI must remain intact because re-zipping it
 would invalidate the signature. Firefox verifies the signature itself.
 
 ```sh
@@ -256,8 +268,8 @@ cymonkey extension package-safari --source /absolute/path/to/extension.zip \
   --bundle-id com.example.myextension --app-name 'My Extension'
 ```
 
-The caller builds and signs the generated app with its own Apple developer
-identity. For a built app containing a Safari WebExtension:
+`extension build-safari` can build and sign the generated app with the caller's
+Apple developer team in Xcode. For a built app containing a Safari WebExtension:
 
 ```sh
 cymonkey extension prepare --source /absolute/path/to/MyExtension.app

@@ -78,7 +78,7 @@ extension and userscript requests refer to files on the operator's machine.
 | `POST /v1/browser-sessions` | Select a browser/profile, resolve an existing endpoint, and create a callable session. |
 | `GET /v1/engines`, `POST /v1/instances`, `GET/DELETE /v1/instances/{id}`, `POST /v1/instances/{id}/call` | Existing Jangolova discovery, connection, action, and disconnect operations. Approval, event, and reconcile routes remain available. |
 | `POST /v1/userscripts/{prepare,install,update,list,describe,enable,disable,uninstall}` | Store and manage approved local userscripts; apply changes to matching operator browser sessions. |
-| `POST /v1/extensions/actions` | Run the structured extension manager actions. `extension.install` and `extension.run` require a prepared revision and stream newline-delimited JSON until the browser flow ends. |
+| `POST /v1/extensions/actions` | Run the structured extension manager actions, including `extension.sign` and `extension.build-safari`. Signing uses the operator machine's browser/Xcode tools or Mozilla credentials. `extension.install` and `extension.run` require a prepared revision and stream newline-delimited JSON until the browser flow ends. |
 | `POST /v1/observations` | Capture from an operator session and send the image to Blockade. Start with `--blockade-url` or `--config` and a running Blockade service. |
 | `GET /v1/board/devices` | List devices from installed Board provider executables. |
 | `POST /v1/board/actions` | Invoke a Board action with an explicit device and capability grant; returns JSON. |

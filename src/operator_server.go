@@ -204,7 +204,7 @@ func (server *operatorServer) handleExtension(w http.ResponseWriter, r *http.Req
 		}
 		return
 	}
-	value, err := extensionAction(request.Name, request.Input)
+	value, err := extensionActionContext(r.Context(), request.Name, request.Input)
 	if err != nil {
 		operatorError(w, http.StatusUnprocessableEntity, "extension_action_failed", err.Error())
 		return

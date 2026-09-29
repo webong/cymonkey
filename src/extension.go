@@ -20,7 +20,7 @@ import (
 // by external callers. Jangolova implements the browser-specific operations.
 func extensionCommand(args []string, stdout io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("extension requires act, capabilities, prepare, inspect, package, package-safari, install, run, stage, or install-store")
+		return errors.New("extension requires act, capabilities, prepare, inspect, package, sign, package-safari, build-safari, install, run, stage, or install-store")
 	}
 	flags := flag.NewFlagSet("cymonkey extension "+args[0], flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
@@ -31,6 +31,10 @@ func extensionCommand(args []string, stdout io.Writer) error {
 	targetID := flags.String("target", "", "ID returned by cymonkey browser targets")
 	bundleID := flags.String("bundle-id", "", "caller-owned Safari app bundle ID")
 	appName := flags.String("app-name", "", "caller-owned Safari app name")
+	project := flags.String("project", "", "absolute path to a caller-owned Safari Xcode project")
+	scheme := flags.String("scheme", "", "Safari Xcode app scheme")
+	teamID := flags.String("team-id", "", "caller's Apple developer team ID")
+	keyPath := flags.String("key", "", "existing Chromium private key; omit to generate one next to the CRX")
 	revision := flags.String("revision", "", "revision returned by extension inspect")
 	executable := flags.String("browser-bin", "", "absolute path to the selected browser executable")
 	profile := flags.String("profile", "", "absolute path to Chromium user data directory or Firefox profile")
@@ -63,7 +67,9 @@ func extensionCommand(args []string, stdout io.Writer) error {
 			}
 			return installNativeExtension(ctx, target, input.Source, input.Destination, input.Revision, stdout)
 		}
-		result, err = extensionAction(*name, []byte(*input))
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer stop()
+		result, err = extensionActionContext(ctx, *name, []byte(*input))
 	case "install":
 		flags.Visit(func(item *flag.Flag) {
 			if item.Name == "headless" && *headless {
@@ -105,8 +111,30 @@ func extensionCommand(args []string, stdout io.Writer) error {
 		result, err = inspectExtensionSource(*source)
 	case "package":
 		result, err = browserextension.Package(*source, *output)
+	case "sign":
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer stop()
+		switch *browserName {
+		case "firefox":
+			if *targetID != "" {
+				return errors.New("Firefox signing does not select a browser profile; use --browser firefox")
+			}
+			result, err = browserextension.SignFirefoxXPI(ctx, *source, *output, *revision)
+		case "chrome", "chromium", "edge", "":
+			target, resolveErr := resolveSigningTarget(*targetID, *browserName, *executable)
+			if resolveErr != nil {
+				return resolveErr
+			}
+			result, err = browserextension.SignChromiumCRX(ctx, target.Browser, target.ExecutablePath, *source, *output, *revision, *keyPath)
+		default:
+			return errors.New("sign supports chrome, chromium, edge, or firefox; use build-safari for Safari")
+		}
 	case "package-safari":
 		result, err = browserextension.PackageSafariProject(context.Background(), *source, *output, *revision, *bundleID, *appName)
+	case "build-safari":
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer stop()
+		result, err = browserextension.BuildSafariApp(ctx, *project, *scheme, *output, *teamID)
 	case "stage":
 		selectedBrowser := *browserName
 		if *targetID != "" {
@@ -120,7 +148,7 @@ func extensionCommand(args []string, stdout io.Writer) error {
 	case "install-store":
 		result, err = browserextension.RequestChromeWebStoreInstall(*id, *externalDirectory)
 	default:
-		return errors.New("extension requires act, capabilities, prepare, inspect, package, package-safari, install, run, stage, or install-store")
+		return errors.New("extension requires act, capabilities, prepare, inspect, package, sign, package-safari, build-safari, install, run, stage, or install-store")
 	}
 	if err != nil {
 		return err
@@ -185,6 +213,36 @@ func resolveCLITarget(id, browser, executable, profile, directory string) (brows
 	return browserextension.DevToolsTarget{Browser: browser, ExecutablePath: executable, ProfilePath: profile, ProfileDirectory: directory}, nil
 }
 
+func resolveSigningTarget(id, browser, executable string) (browserextension.DevToolsTarget, error) {
+	if id != "" {
+		return resolveCLITarget(id, browser, executable, "", "")
+	}
+	if browser == "" {
+		return browserextension.DevToolsTarget{}, errors.New("select --target or --browser for CRX signing")
+	}
+	if executable != "" {
+		return browserextension.DevToolsTarget{Browser: browser, ExecutablePath: executable}, nil
+	}
+	targets, err := browserextension.DiscoverTargets()
+	if err != nil {
+		return browserextension.DevToolsTarget{}, err
+	}
+	var selected string
+	for _, target := range targets {
+		if target.Browser != browser {
+			continue
+		}
+		if selected != "" && selected != target.ExecutablePath {
+			return browserextension.DevToolsTarget{}, errors.New("multiple browser executables found; supply --target or --browser-bin")
+		}
+		selected = target.ExecutablePath
+	}
+	if selected == "" {
+		return browserextension.DevToolsTarget{}, errors.New("browser executable not discovered; supply --browser-bin")
+	}
+	return browserextension.DevToolsTarget{Browser: browser, ExecutablePath: selected}, nil
+}
+
 func inspectExtensionSource(source string) (browserextension.Description, error) {
 	if strings.EqualFold(filepath.Ext(source), ".app") {
 		return browserextension.InspectSafariApp(context.Background(), source)
@@ -201,6 +259,10 @@ type extensionActionInput struct {
 	ExternalDirectory string `json:"externalDirectory"`
 	BundleID          string `json:"bundleId"`
 	AppName           string `json:"appName"`
+	Project           string `json:"project"`
+	Scheme            string `json:"scheme"`
+	TeamID            string `json:"teamId"`
+	KeyPath           string `json:"keyPath"`
 	Headless          *bool  `json:"headless,omitempty"`
 	Target            struct {
 		ID               string `json:"id"`
@@ -248,6 +310,10 @@ func resolveActionTarget(input extensionActionInput) (browserextension.DevToolsT
 // extensionAction handles the one-shot structured actions used by local tools.
 // The long-running extension.install action is dispatched by extensionCommand.
 func extensionAction(name string, raw []byte) (any, error) {
+	return extensionActionContext(context.Background(), name, raw)
+}
+
+func extensionActionContext(ctx context.Context, name string, raw []byte) (any, error) {
 	input, err := parseExtensionActionInput(raw)
 	if err != nil {
 		return nil, err
@@ -265,8 +331,19 @@ func extensionAction(name string, raw []byte) (any, error) {
 		return inspectExtensionSource(input.Source)
 	case "extension.package":
 		return browserextension.Package(input.Source, input.Output)
+	case "extension.sign":
+		if input.Target.Browser == "firefox" {
+			return browserextension.SignFirefoxXPI(ctx, input.Source, input.Output, input.Revision)
+		}
+		target, err := resolveActionSigningTarget(input)
+		if err != nil {
+			return nil, err
+		}
+		return browserextension.SignChromiumCRX(ctx, target.Browser, target.ExecutablePath, input.Source, input.Output, input.Revision, input.KeyPath)
 	case "extension.package-safari":
 		return browserextension.PackageSafariProject(context.Background(), input.Source, input.Output, input.Revision, input.BundleID, input.AppName)
+	case "extension.build-safari":
+		return browserextension.BuildSafariApp(ctx, input.Project, input.Scheme, input.Output, input.TeamID)
 	case "extension.install":
 		return nil, errors.New("extension.install is long-running; invoke it through the cymonkey extension act command")
 	case "extension.stage":
@@ -280,4 +357,11 @@ func extensionAction(name string, raw []byte) (any, error) {
 	default:
 		return nil, errors.New("unsupported extension manager action")
 	}
+}
+
+func resolveActionSigningTarget(input extensionActionInput) (browserextension.DevToolsTarget, error) {
+	if input.Target.ProfilePath != "" || input.Target.ProfileDirectory != "" {
+		return browserextension.DevToolsTarget{}, errors.New("CRX signing selects a browser executable, not a profile")
+	}
+	return resolveSigningTarget(input.Target.ID, input.Target.Browser, input.Target.ExecutablePath)
 }

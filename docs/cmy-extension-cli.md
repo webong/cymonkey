@@ -75,14 +75,78 @@ cmy extension package --source /absolute/path/to/unpacked-extension \
 cmy extension prepare --source /absolute/path/to/extension.zip
 ```
 
-The ZIP command does not sign a Firefox XPI or build a Safari app.
+The ZIP command is useful for review and for Chrome's unpacked install flow.
+To produce a signed artifact, use `extension sign` or `extension build-safari`
+below. These commands run on the machine running `cmy` with that user's tools
+and signing identity. They do not install or publish the extension.
+
+### Optional signing and bundling
+
+For Chrome, Chromium, or Edge, use an installed browser executable to produce
+a `.crx` locally. `--target` selects a discovered executable; signing does not
+read or modify that target's profile. You can also use `--browser chrome
+--browser-bin /absolute/path/to/browser`:
+
+```sh
+cmy extension sign --target 'chrome:ID_FROM_TARGETS' \
+  --source /absolute/path/to/unpacked-extension \
+  --revision 'sha256:VALUE_FROM_PREPARE' \
+  --output /absolute/path/to/extension.crx
+```
+
+Without `--key`, the browser creates a new private key at
+`/absolute/path/to/extension.pem` (mode `0600`). Keep it safe: updates must use
+the same key with `--key /absolute/path/to/extension.pem` to retain the
+extension ID. The result includes `artifactRevision`, a hash of the CRX, and
+`sourceRevision`. On macOS and Windows Chrome, a locally signed CRX does not
+grant a general direct-install route; use the original source with `extension
+install` or `extension run`, or publish through the Chrome Web Store. [Chrome's
+installation rules](https://developer.chrome.com/docs/extensions/how-to/distribute/install-extensions)
+still apply.
+
+For Firefox, install `web-ext` on the same machine and provide your Mozilla
+add-on API credentials as environment variables. `cmy` does not accept those
+secrets as flags. This submits the caller's staged source to Mozilla for
+**unlisted** signing and downloads the resulting XPI:
+
+```sh
+export WEB_EXT_API_KEY='YOUR_AMO_KEY'
+export WEB_EXT_API_SECRET='YOUR_AMO_SECRET'
+cmy extension sign --browser firefox \
+  --source /absolute/path/to/unpacked-extension \
+  --revision 'sha256:VALUE_FROM_PREPARE' \
+  --output /absolute/path/to/signed-extension.xpi
+```
+
+The result's `artifactRevision` is the revision to use when installing that
+XPI. Manifest V3 extensions need a Firefox extension ID in their manifest;
+Mozilla may also require information or review for a first submission. The
+signing service and account belong to the caller.
+
+For Safari on macOS, generate the Xcode project as shown below, then build a
+signed app using your Xcode team. Supply the generated `.xcodeproj` path and
+its app scheme:
+
+```sh
+cmy extension build-safari \
+  --project /absolute/path/to/project/MyExtension.xcodeproj \
+  --scheme MyExtension --team-id YOUR_APPLE_TEAM_ID \
+  --output /absolute/path/to/MyExtension.app
+```
+
+The build verifies the app signature and embedded Safari WebExtension. Its
+`artifactRevision` starts with `cdhash:` and is the revision for `extension
+install`. A local signed app can be used with Safari's enablement flow;
+distribution outside the Mac App Store may require Developer ID signing and
+Apple notarization. That distribution step is not performed by this command.
 
 ## 4. Install in the selected browser
 
 ### Firefox
 
-Use a **Mozilla-signed XPI** and close the selected Firefox profile before
-starting. Prepare the XPI itself, then install it into the discovered target:
+Use a **Mozilla-signed XPI** from the optional signing step above or another
+source, and close the selected Firefox profile before starting. Prepare the
+XPI itself, then install it into the discovered target:
 
 ```sh
 cmy extension prepare --source /absolute/path/to/signed-extension.xpi
@@ -145,8 +209,9 @@ cmy extension package-safari --source /absolute/path/to/extension.zip \
   --bundle-id com.example.myextension --app-name 'My Extension'
 ```
 
-Build and sign that project as your own app. Then prepare the **signed app**;
-this produces a different revision, beginning with `cdhash:`:
+Use `extension build-safari` above to build and sign that project as your own
+app. Then prepare the **signed app**; this produces a different revision,
+beginning with `cdhash:`:
 
 ```sh
 cmy extension prepare --source /absolute/path/to/MyExtension.app
@@ -168,6 +233,7 @@ not accepted for Safari.
 | `installed` | Jangolova verified a persistent installation after restart. |
 | `activated` | The extension is active only for the controlled browser session started by `extension run`. |
 | `packaged` | Safari project files were generated; build and sign the app before installing. |
+| `signed` | A CRX, XPI, or Safari app artifact was produced. This does not mean it is installed. |
 
 The `install` command may print multiple JSON lines as its state changes.
 `source`, `profile`, and browser-assigned `id` in those lines help confirm

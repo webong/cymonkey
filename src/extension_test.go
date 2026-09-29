@@ -51,6 +51,69 @@ func TestExtensionCLIInspectAndInstallHandoff(t *testing.T) {
 	}
 }
 
+func TestExtensionSigningCLIAndStructuredAction(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("shell signer fixture")
+	}
+	source := filepath.Join(t.TempDir(), "extension")
+	if err := os.Mkdir(source, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(source, "manifest.json"), []byte(`{"manifest_version":3,"name":"Signing Test","version":"1.0"}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	prepared, err := inspectExtensionSource(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	browser := filepath.Join(t.TempDir(), "chrome")
+	script := `#!/bin/sh
+set -eu
+for arg in "$@"; do
+  case "$arg" in --pack-extension=*) extension="${arg#*=}";; esac
+done
+printf 'Cr24fixture' > "${extension}.crx"
+printf 'private key' > "${extension}.pem"
+`
+	if err := os.WriteFile(browser, []byte(script), 0755); err != nil {
+		t.Fatal(err)
+	}
+	output := filepath.Join(t.TempDir(), "signed.crx")
+	var response bytes.Buffer
+	if err := run([]string{"extension", "sign", "--browser", "chrome", "--browser-bin", browser,
+		"--source", source, "--revision", prepared.Revision, "--output", output}, &response, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	var signed struct {
+		Status           string `json:"status"`
+		ArtifactRevision string `json:"artifactRevision"`
+		KeyPath          string `json:"keyPath"`
+	}
+	if err := json.Unmarshal(response.Bytes(), &signed); err != nil {
+		t.Fatal(err)
+	}
+	if signed.Status != "signed" || signed.ArtifactRevision == "" || signed.KeyPath == "" {
+		t.Fatalf("unexpected signing output: %+v", signed)
+	}
+	request, err := json.Marshal(map[string]any{"source": source, "revision": prepared.Revision,
+		"output": filepath.Join(t.TempDir(), "second.crx"), "keyPath": signed.KeyPath,
+		"target": map[string]string{"browser": "chrome", "executablePath": browser}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := extensionAction("extension.sign", request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, err := json.Marshal(result)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(encoded, []byte(`"status":"signed"`)) {
+		t.Fatalf("structured signing did not return an artifact: %s", encoded)
+	}
+}
+
 func TestExtensionActionForOtherLocalTools(t *testing.T) {
 	source := filepath.Join(t.TempDir(), "extension")
 	if err := os.Mkdir(source, 0755); err != nil {

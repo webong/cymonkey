@@ -163,8 +163,10 @@ exact returned revision when installing or staging those same files.
 | Extension command | Main flags and result |
 | --- | --- |
 | `prepare`, `inspect` | `--source PATH`; inspect a directory, ZIP, signed XPI, or Safari app and return its revision. |
-| `package` | `--source DIRECTORY --output ZIP`; create a deterministic ZIP. This does not sign an XPI or build a Safari app. |
+| `package` | `--source DIRECTORY --output ZIP`; create a deterministic ZIP. |
+| `sign` | `--browser firefox|chrome|chromium|edge --source PATH --revision VALUE --output PATH`; use the caller's Mozilla account or local Chromium executable to produce a signed XPI or CRX. Chromium accepts `--target ID` or `--browser-bin PATH`, and optional `--key PATH` to retain its extension ID. |
 | `package-safari` | `--source PATH --output DIRECTORY --revision VALUE --bundle-id ID --app-name NAME`; generate a caller-owned Xcode project. |
+| `build-safari` | `--project XCODEPROJ --scheme NAME --team-id ID --output APP`; build and sign the caller-owned Safari app with their local Xcode team. |
 | `capabilities` | `--browser NAME` or `--target ID`; report what that browser supports. |
 | `install` | `--target ID` or explicit browser/profile paths, plus `--source PATH --revision VALUE`; perform the browser-specific installation workflow. Chromium may also need `--destination DIRECTORY`. |
 | `run` | Same target, source, and revision selection as `install`; load the extension in a controlled browser session. `--headless` defaults to true; use `--headless=false` for a visible session. The reported state is `activated` for that session. |
@@ -183,7 +185,7 @@ installation requires a visible browser; `install --headless=true` is
 rejected.
 
 `act` accepts these names: `extension.targets`, `extension.capabilities`,
-`extension.prepare`, `extension.package`, `extension.package-safari`,
+`extension.prepare`, `extension.package`, `extension.sign`, `extension.package-safari`, `extension.build-safari`,
 `extension.install`, `extension.stage`, and `extension.install-store`. Its
 `--input` is one JSON object. For example:
 
