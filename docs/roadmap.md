@@ -13,6 +13,8 @@
   host that composes standalone Jangolova and Blockade processes.
 - [ ] Add host-level component health, discovery, restart policy, and
   coordinated routing.
+- [x] Add a loopback authenticated operator surface for browser selection,
+  persistent interaction calls, userscripts, extensions, and image observation.
 
 ## Phase 1: Correct interaction boundary
 

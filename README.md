@@ -99,6 +99,7 @@ audit events, reviewed packages, and caller-supplied target connections.
 - [Extension manager library for other browser extensions](pkg/extension-manager/README.md)
 - [Composable browser adapter library](pkg/browser-adapter/README.md)
 - [Use the `cmy` CLI](docs/cmy-cli.md)
+- [Persistent operator API](docs/operator-api.md)
 - [Install extensions with the `cmy` CLI](docs/cmy-extension-cli.md)
 - [Manage userscripts without an extension](docs/userscripts.md#extension-free-local-manager)
 - [Target connection security](docs/target-connection-security.md)

@@ -6,6 +6,8 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"blockade"
@@ -18,11 +20,22 @@ import (
 )
 
 func installedPlugins() ([]providerplugin.Installed, error) {
-	root, err := providerplugin.DefaultRoot()
+	root, err := defaultPluginRoot()
 	if err != nil {
 		return nil, err
 	}
 	return providerplugin.List(root)
+}
+
+func defaultPluginRoot() (string, error) {
+	if value := os.Getenv("CYMONKEY_PLUGIN_DIR"); value != "" {
+		return filepath.Abs(value)
+	}
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "cymonkey", "plugins"), nil
 }
 
 func registerJangolovaPlugins(registry *orchestrator.Registry) error {
@@ -30,11 +43,9 @@ func registerJangolovaPlugins(registry *orchestrator.Registry) error {
 	if err != nil {
 		return err
 	}
-	for _, item := range installed {
-		if item.Manifest.Kind == providerplugin.JangolovaEngine {
-			if err := registry.RegisterEngine(item.Manifest.Name, wrapJangolova(jangolovaplugin.Adapter{Installed: item})); err != nil {
-				return err
-			}
+	for _, item := range jangolovaplugin.Adapters(installed) {
+		if err := registry.RegisterEngine(item.Name, wrapJangolova(item.Adapter)); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -44,34 +55,21 @@ func registerBlockadePlugins(registry *blockade.ProviderAdapterRegistry) error {
 	if err != nil {
 		return err
 	}
-	for _, item := range installed {
-		if item.Manifest.Kind == providerplugin.BlockadeProvider {
-			if err := blockadeplugin.Register(registry, item); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
+	return blockadeplugin.RegisterInstalled(registry, installed)
 }
 func boardPluginProviders() ([]board.Provider, error) {
 	installed, err := installedPlugins()
 	if err != nil {
 		return nil, err
 	}
-	var providers []board.Provider
-	for _, item := range installed {
-		if item.Manifest.Kind == providerplugin.BoardProvider {
-			providers = append(providers, boardplugin.Provider{Installed: item})
-		}
-	}
-	return providers, nil
+	return boardplugin.Providers(installed), nil
 }
 
 func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
 		return errors.New("plugins requires install, upgrade, list, or remove")
 	}
-	root, err := providerplugin.DefaultRoot()
+	root, err := defaultPluginRoot()
 	if err != nil {
 		return err
 	}

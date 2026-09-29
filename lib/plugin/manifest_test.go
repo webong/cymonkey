@@ -17,7 +17,7 @@ func TestInstallReverifiesExecutableAndRejectsTampering(t *testing.T) {
 		t.Fatal(err)
 	}
 	digest := sha256.Sum256(contents)
-	manifest := Manifest{APIVersion: APIVersion, Name: "fixture", Version: "1.0.0", Kind: BoardProvider, Command: "provider", SHA256: hex.EncodeToString(digest[:])}
+	manifest := Manifest{APIVersion: APIVersion, Name: "fixture", Version: "1.0.0", Kind: "sample.provider", Command: "provider", SHA256: hex.EncodeToString(digest[:])}
 	encoded, _ := json.Marshal(manifest)
 	path := filepath.Join(source, "plugin.json")
 	if err := os.WriteFile(path, encoded, 0600); err != nil {
@@ -41,8 +41,8 @@ func TestInstallReverifiesExecutableAndRejectsTampering(t *testing.T) {
 	}
 }
 
-func TestManifestRejectsTraversalAndUnknownKinds(t *testing.T) {
-	m := Manifest{APIVersion: APIVersion, Name: "fixture", Version: "1.0.0", Kind: BoardProvider, Command: "../provider", SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+func TestManifestRejectsTraversalAndInvalidKinds(t *testing.T) {
+	m := Manifest{APIVersion: APIVersion, Name: "fixture", Version: "1.0.0", Kind: "sample.provider", Command: "../provider", SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
 	if m.Validate() == nil {
 		t.Fatal("accepted command traversal")
 	}
@@ -50,7 +50,15 @@ func TestManifestRejectsTraversalAndUnknownKinds(t *testing.T) {
 	m.SHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 	m.Kind = "other"
 	if m.Validate() == nil {
-		t.Fatal("accepted unknown plugin kind")
+		t.Fatal("accepted undotted plugin kind")
+	}
+	m.Kind = "another.provider"
+	if err := m.Validate(); err != nil {
+		t.Fatalf("rejected a library-defined plugin kind: %v", err)
+	}
+	m.APIVersion = legacyAPIVersion
+	if err := m.Validate(); err != nil {
+		t.Fatalf("rejected an installed legacy protocol version: %v", err)
 	}
 }
 
@@ -63,7 +71,7 @@ func TestUpgradeReplacesVersionAndPreservesIdentity(t *testing.T) {
 			t.Fatal(err)
 		}
 		hash := sha256.Sum256(content)
-		m := Manifest{APIVersion: APIVersion, Name: "fixture", Version: version, Kind: BoardProvider, Command: "provider", SHA256: hex.EncodeToString(hash[:])}
+		m := Manifest{APIVersion: APIVersion, Name: "fixture", Version: version, Kind: "sample.provider", Command: "provider", SHA256: hex.EncodeToString(hash[:])}
 		encoded, _ := json.Marshal(m)
 		path := filepath.Join(dir, "plugin.json")
 		if err := os.WriteFile(path, encoded, 0600); err != nil {

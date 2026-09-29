@@ -45,6 +45,7 @@ type Service struct {
 	recoveryInitialBackoff time.Duration
 	recoveryMaximumBackoff time.Duration
 	recoveryConnectTimeout time.Duration
+	afterRecovery          func(context.Context, string) error
 }
 
 type runningInstance struct {
@@ -79,6 +80,11 @@ type ServiceOption func(*Service)
 
 func WithTargetResolver(resolver targetconn.Resolver) ServiceOption {
 	return func(service *Service) { service.resolver = resolver }
+}
+
+// WithRecoveryHook runs host reconciliation after an engine instance is replaced.
+func WithRecoveryHook(hook func(context.Context, string) error) ServiceOption {
+	return func(service *Service) { service.afterRecovery = hook }
 }
 
 func NewService(registry *orchestrator.Registry, token string, options ...ServiceOption) (*Service, error) {
@@ -655,6 +661,17 @@ func (s *Service) recoverInstance(
 				Type: "instance.recovered", Status: "connected", OccurredAt: time.Now().UTC(),
 			})
 			s.mu.Unlock()
+			if s.afterRecovery != nil {
+				if err := s.afterRecovery(ctx, id); err != nil {
+					s.mu.Lock()
+					if current, exists := s.instances[id]; exists && current == record {
+						appendInstanceEvent(record, orchestrator.EngineEvent{
+							Type: "instance.reconciliation_failed", Status: "error", Message: err.Error(), OccurredAt: time.Now().UTC(),
+						})
+					}
+					s.mu.Unlock()
+				}
+			}
 			if source, ok := candidate.(orchestrator.EngineEventSource); ok {
 				if events := source.EngineEvents(); events != nil {
 					go s.watchInstanceEvents(id, record, candidate, events)

@@ -201,6 +201,7 @@ type extensionActionInput struct {
 	ExternalDirectory string `json:"externalDirectory"`
 	BundleID          string `json:"bundleId"`
 	AppName           string `json:"appName"`
+	Headless          *bool  `json:"headless,omitempty"`
 	Target            struct {
 		ID               string `json:"id"`
 		Browser          string `json:"browser"`

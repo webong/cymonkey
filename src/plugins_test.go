@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,9 +15,12 @@ import (
 	"testing"
 
 	"blockade"
+	blockadeplugin "blockade/plugin"
 	"board"
+	boardplugin "board/plugin"
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
+	jangolovaplugin "jangolova/plugin"
 	"jangolova/sdk"
 	"providerplugin"
 )
@@ -35,7 +39,7 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 		t.Fatal(err)
 	}
 	digest := sha256.Sum256(data)
-	for _, item := range []struct{ name, kind string }{{"display-fixture", providerplugin.JangolovaEngine}, {"vision-fixture", providerplugin.BlockadeProvider}, {"device-fixture", providerplugin.BoardProvider}} {
+	for _, item := range []struct{ name, kind string }{{"display-fixture", jangolovaplugin.Kind}, {"vision-fixture", blockadeplugin.Kind}, {"device-fixture", boardplugin.Kind}, {"future-fixture", "future.provider"}} {
 		source := filepath.Join(root, item.name)
 		if err := os.Mkdir(source, 0700); err != nil {
 			t.Fatal(err)
@@ -57,13 +61,16 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 	if err := pluginsCommand([]string{"list"}, &listed, io.Discard); err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Contains(listed.Bytes(), []byte("display-fixture")) || !bytes.Contains(listed.Bytes(), []byte("vision-fixture")) || !bytes.Contains(listed.Bytes(), []byte("device-fixture")) {
+	if !bytes.Contains(listed.Bytes(), []byte("display-fixture")) || !bytes.Contains(listed.Bytes(), []byte("vision-fixture")) || !bytes.Contains(listed.Bytes(), []byte("device-fixture")) || !bytes.Contains(listed.Bytes(), []byte("future-fixture")) {
 		t.Fatalf("installed inventory: %s", listed.String())
 	}
 
 	engines, err := engineRegistry()
 	if err != nil {
 		t.Fatal(err)
+	}
+	if _, ok := engines.Engine("future-fixture"); ok {
+		t.Fatal("unhandled package kind registered as a Jangolova engine")
 	}
 	engine, ok := engines.Engine("display-fixture")
 	if !ok {
@@ -140,6 +147,19 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 	}
 	if boardOutput.String() != "content" {
 		t.Fatalf("Board CLI plugin stream = %q", boardOutput.String())
+	}
+	operator, err := newOperatorServer(orchestrator.NewRegistry(), "secret", t.TempDir(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer operator.Close(context.Background())
+	operatorDevices := operatorTestRequest(operator, "secret", http.MethodGet, "/v1/board/devices", "")
+	if operatorDevices.Code != http.StatusOK || !bytes.Contains(operatorDevices.Body.Bytes(), []byte(`"providerId":"device-fixture"`)) {
+		t.Fatalf("Board operator devices = %d %s", operatorDevices.Code, operatorDevices.Body.String())
+	}
+	operatorStream := operatorTestRequest(operator, "secret", http.MethodPost, "/v1/board/streams", `{"open":{"providerId":"device-fixture","deviceId":"device","grant":{"capabilities":["drive.read"],"resourceIds":["root"]}},"action":{"capability":"drive.read","resourceId":"root","input":{}}}`)
+	if operatorStream.Code != http.StatusOK || operatorStream.Body.String() != "content" {
+		t.Fatalf("Board operator stream = %d %q", operatorStream.Code, operatorStream.Body.String())
 	}
 	if err := pluginsCommand([]string{"remove", "device-fixture"}, io.Discard, io.Discard); err != nil {
 		t.Fatal(err)

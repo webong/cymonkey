@@ -15,6 +15,19 @@ import (
 
 type Provider struct{ Installed providerplugin.Installed }
 
+const Kind = "board.provider"
+
+// Providers selects Board executables from a shared installation inventory.
+func Providers(installed []providerplugin.Installed) []board.Provider {
+	var providers []board.Provider
+	for _, item := range installed {
+		if item.Manifest.Kind == Kind {
+			providers = append(providers, Provider{Installed: item})
+		}
+	}
+	return providers
+}
+
 func (p Provider) ID() string { return p.Installed.Manifest.Name }
 
 func (p Provider) List(ctx context.Context) ([]board.Device, error) {
@@ -84,7 +97,7 @@ func (s *session) Stream(ctx context.Context, action board.Action) (board.Conten
 	if result.ID == "" || result.Size < 0 || result.Size > 128<<20 {
 		return nil, errors.New("board plugin returned invalid stream metadata")
 	}
-	c := &content{session: s, id: result.ID, size: result.Size, truncated: result.Truncated}
+	c := &content{session: s, ctx: ctx, id: result.ID, size: result.Size, truncated: result.Truncated}
 	s.mu.Lock()
 	if s.closed {
 		s.mu.Unlock()
@@ -122,6 +135,7 @@ func (s *session) Close(ctx context.Context) error {
 
 type content struct {
 	session   *session
+	ctx       context.Context
 	id        string
 	size      int64
 	truncated bool
@@ -140,6 +154,9 @@ func (c *content) Read(dst []byte) (int, error) {
 	if c.closed {
 		return 0, board.ErrClosed
 	}
+	if err := c.ctx.Err(); err != nil {
+		return 0, err
+	}
 	if len(dst) == 0 {
 		return 0, nil
 	}
@@ -148,7 +165,7 @@ func (c *content) Read(dst []byte) (int, error) {
 			Data []byte `json:"data"`
 			EOF  bool   `json:"eof"`
 		}
-		if err := c.session.proc.Call(context.Background(), "board.stream.read", map[string]any{"id": c.id, "maxBytes": 32768}, &result); err != nil {
+		if err := c.session.proc.Call(c.ctx, "board.stream.read", map[string]any{"id": c.id, "maxBytes": 32768}, &result); err != nil {
 			return 0, err
 		}
 		if len(result.Data) > 32768 || c.read+int64(len(result.Data)) > c.size {

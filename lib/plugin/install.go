@@ -11,17 +11,6 @@ import (
 	"path/filepath"
 )
 
-func DefaultRoot() (string, error) {
-	if value := os.Getenv("CYMONKEY_PLUGIN_DIR"); value != "" {
-		return filepath.Abs(value)
-	}
-	dir, err := os.UserConfigDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(dir, "cymonkey", "plugins"), nil
-}
-
 // Install copies a reviewed local executable and its manifest into the user
 // plugin directory. Discovery never executes a plugin and installation does
 // not replace an existing name.

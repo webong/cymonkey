@@ -13,7 +13,7 @@ SHA-256 of the executable):
 
 ```json
 {
-  "apiVersion": "cymonkey.plugin/v1alpha1",
+  "apiVersion": "provider.plugin/v1alpha1",
   "name": "my-display",
   "version": "1.0.0",
   "kind": "jangolova.engine",
@@ -23,12 +23,17 @@ SHA-256 of the executable):
 }
 ```
 
-`kind` is one of `jangolova.engine`, `blockade.provider`, or `board.provider`.
+The shipped libraries recognize `jangolova.engine`, `blockade.provider`, and
+`board.provider`. Each library defines its own `kind` identifier. The shared
+installer accepts other dotted identifiers; such packages remain installed but
+inactive until a corresponding library handler is registered.
 `platform` is optional; when supplied it must match `GOOS-GOARCH`. `command`
 is a filename in the manifest directory, without path separators. Plugin names
 are lower-case identifiers. An installed name is also the Jangolova engine
 name, Blockade provider-adapter kind, or Board provider ID. A name already used
 by a built-in adapter cannot be registered again.
+Previously installed packages with `cymonkey.plugin/v1alpha1` remain loadable;
+new packages use the host-neutral `provider.plugin/v1alpha1` envelope.
 
 ```sh
 cymonkey plugins install --manifest /path/to/plugin.json
@@ -73,7 +78,7 @@ and connection material travel in explicit request fields.
 
 ```json
 {"id":1,"method":"plugin.hello"}
-{"id":1,"result":{"apiVersion":"cymonkey.plugin/v1alpha1","name":"my-display","kind":"jangolova.engine"}}
+{"id":1,"result":{"apiVersion":"provider.plugin/v1alpha1","name":"my-display","kind":"jangolova.engine"}}
 ```
 
 The first call must be `plugin.hello`. Its version, name, and kind must match

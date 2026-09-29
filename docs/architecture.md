@@ -2,7 +2,8 @@
 
 Cymonkey is the operator, host, and extension boundary. Jangolova owns display
 interfaces for interaction and presentation; Blockade owns inference
-interfaces for image and sound across local and cloud backends. Cymonkey
+interfaces for image and sound across local and cloud backends; Board owns the
+input and output device contract. Cymonkey
 links their public Go libraries into its command binary and can supervise
 separate provider processes for long-running workflows. Optional installed
 executables register as providers through the same library interfaces. See
@@ -171,6 +172,10 @@ products, while `tests/` remains the conformance and fixture surface. The
 Jangolova, Blockade, and Board libraries are separate Go modules (`jangolova`,
 `blockade`, and `board`). They share the neutral `providerplugin` transport
 module and join the Cymonkey module through `go.work` and local replacements.
+Each library's plugin adapter selects the executable kinds it understands;
+`providerplugin` checks package structure and integrity without enumerating
+libraries. Cymonkey supplies the plugin directory and registers the public
+library adapters at its executable boundary.
 
 ## Package direction
 

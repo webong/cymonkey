@@ -103,7 +103,7 @@ func Open(ctx context.Context, installed Installed) (*Process, error) {
 		_ = p.Close()
 		return nil, fmt.Errorf("plugin handshake: %w", err)
 	}
-	if hello.APIVersion != APIVersion || hello.Name != installed.Manifest.Name || hello.Kind != installed.Manifest.Kind {
+	if hello.APIVersion != installed.Manifest.APIVersion || hello.Name != installed.Manifest.Name || hello.Kind != installed.Manifest.Kind {
 		_ = p.Close()
 		return nil, errors.New("plugin handshake does not match installed manifest")
 	}

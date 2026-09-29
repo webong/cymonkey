@@ -43,6 +43,7 @@ subcommand-specific help page.
 | `cmy observe` | Capture an authorized Jangolova screenshot and send it to Blockade for observation. |
 | `cmy modules discover`, `pull` | Read a reviewed module registry and retrieve a selected artifact. |
 | `cmy browser targets` | Find local browsers and profiles on the machine running the command. |
+| `cmy operator serve`, `targets`, `connect`, `call`, `disconnect`, `observe`, `userscript`, `extension`, `board` | Keep browser sessions and library providers callable through one authenticated local operator API. |
 | `cmy extension ...` | Inspect, package, stage, activate, or install a caller-supplied browser extension. |
 | `cmy userscript ...` | Store, list, update, enable, disable, or remove extension-free userscripts for a selected browser target. |
 | `cmy provider engines`, `connect-engine`, `serve-engine-provider`, `serve-mcp` | Discover or connect interaction engines, or run Jangolova interfaces. |
@@ -140,6 +141,11 @@ endpoints. `pull` does not activate a module. See the
 [registry guide](jangolova-module-registry.md).
 
 ## Browsers and extensions
+
+For a persistent browser session that other tools can call, use
+[`cmy operator serve`](operator-api.md). It accepts a discovered target ID or
+explicit browser/profile paths, uses an existing endpoint when available, and
+keeps the interaction and manager API alive.
 
 ```sh
 cmy browser targets

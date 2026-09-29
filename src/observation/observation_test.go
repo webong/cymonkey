@@ -68,3 +68,32 @@ func TestObservationCoordinatorCoordinatesJangolovaAndBlockade(t *testing.T) {
 		t.Fatalf("result = %#v", result)
 	}
 }
+
+func TestObservationCoordinatorAcceptsHostCapture(t *testing.T) {
+	blockadeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var request struct {
+			Image string `json:"image"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil || request.Image != "cG5n" {
+			t.Fatalf("Blockade request = %#v, %v", request, err)
+		}
+		_ = json.NewEncoder(w).Encode(blockade.ObserveResponse{APIVersion: blockade.APIVersion, RequestID: "host-capture"})
+	}))
+	defer blockadeServer.Close()
+	coordinator, err := NewObservationCoordinatorWithCapture(cymonkeyhost.ObservationConfig{
+		Jangolova: cymonkeyhost.ObservationJangolovaConfig{Endpoint: "http://127.0.0.1:7395", TokenEnvironment: "UNUSED_TOKEN"},
+		Blockade:  cymonkeyhost.ObservationBlockadeConfig{Endpoint: blockadeServer.URL},
+	}, func(_ context.Context, request ObservationRequest) ([]byte, error) {
+		if request.InstanceID != "browser-one" {
+			t.Fatalf("capture request = %#v", request)
+		}
+		return []byte("png"), nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := coordinator.Observe(context.Background(), ObservationRequest{InstanceID: "browser-one"})
+	if err != nil || result.Observation.RequestID != "host-capture" {
+		t.Fatalf("observation = %#v, %v", result, err)
+	}
+}

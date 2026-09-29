@@ -31,7 +31,7 @@ func main() {
 
 func run(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("cymonkey requires a command: validate, run, observe, modules, browser, extension, userscript, bookmarklet, provider, board, blockade, plugins, or native-bridge-fixture")
+		return errors.New("cymonkey requires a command: validate, run, observe, modules, browser, extension, userscript, bookmarklet, provider, operator, board, blockade, plugins, or native-bridge-fixture")
 	}
 	switch args[0] {
 	case "validate":
@@ -52,6 +52,8 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return browserCommand(args[1:], stdout)
 	case "provider":
 		return provider.Run(args[1:], stderr, engineRegistry)
+	case "operator":
+		return operatorCommand(args[1:], stdout, stderr)
 	case "board":
 		return runBoard(args[1:], stdout, stderr)
 	case "blockade":
@@ -199,6 +201,7 @@ Commands:
   userscript              Store and replay approved extension-free userscripts
   bookmarklet             Import or export user-activated browser bookmarklets
   provider                Run the Jangolova provider/MCP interface
+  operator                Serve or call the unified Cymonkey operator API
   board                   Run the Board device interface
   blockade                Run the Blockade inference interface
   plugins                 Install and inspect executable providers

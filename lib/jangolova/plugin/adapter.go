@@ -15,6 +15,24 @@ import (
 
 type Adapter struct{ Installed providerplugin.Installed }
 
+const Kind = "jangolova.engine"
+
+type NamedAdapter struct {
+	Name    string
+	Adapter Adapter
+}
+
+// Adapters selects Jangolova engines from a shared installation inventory.
+func Adapters(installed []providerplugin.Installed) []NamedAdapter {
+	var adapters []NamedAdapter
+	for _, item := range installed {
+		if item.Manifest.Kind == Kind {
+			adapters = append(adapters, NamedAdapter{Name: item.Manifest.Name, Adapter: Adapter{Installed: item}})
+		}
+	}
+	return adapters
+}
+
 func (a Adapter) InspectEngine(ctx context.Context) sdk.EngineInspection {
 	proc, err := providerplugin.Open(ctx, a.Installed)
 	if err != nil {

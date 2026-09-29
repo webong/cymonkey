@@ -44,6 +44,7 @@ type ObservationCoordinator struct {
 	config     cymonkeyhost.ObservationConfig
 	token      string
 	httpClient *http.Client
+	captureFn  func(context.Context, ObservationRequest) ([]byte, error)
 }
 
 func NewObservationCoordinator(config cymonkeyhost.ObservationConfig) (*ObservationCoordinator, error) {
@@ -57,6 +58,19 @@ func NewObservationCoordinator(config cymonkeyhost.ObservationConfig) (*Observat
 	return &ObservationCoordinator{config: config, token: token, httpClient: &http.Client{Timeout: 35 * time.Second}}, nil
 }
 
+// NewObservationCoordinatorWithCapture coordinates a capture already available
+// to the Cymonkey host with Blockade, without making another provider request.
+func NewObservationCoordinatorWithCapture(config cymonkeyhost.ObservationConfig, capture func(context.Context, ObservationRequest) ([]byte, error)) (*ObservationCoordinator, error) {
+	parsed, err := url.Parse(strings.TrimSpace(config.Blockade.Endpoint))
+	if err != nil || parsed.Host == "" || parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return nil, errors.New("Blockade endpoint must be an HTTP URL")
+	}
+	if capture == nil {
+		return nil, errors.New("observation capture function is required")
+	}
+	return &ObservationCoordinator{config: config, captureFn: capture, httpClient: &http.Client{Timeout: 35 * time.Second}}, nil
+}
+
 func (c *ObservationCoordinator) Observe(ctx context.Context, request ObservationRequest) (ObservationResponse, error) {
 	if c == nil {
 		return ObservationResponse{}, errors.New("Cymonkey observation coordinator is required")
@@ -64,7 +78,13 @@ func (c *ObservationCoordinator) Observe(ctx context.Context, request Observatio
 	if strings.TrimSpace(request.InstanceID) == "" {
 		return ObservationResponse{}, errors.New("Cymonkey observation instanceId is required")
 	}
-	image, err := c.capture(ctx, request)
+	var image []byte
+	var err error
+	if c.captureFn != nil {
+		image, err = c.captureFn(ctx, request)
+	} else {
+		image, err = c.capture(ctx, request)
+	}
 	if err != nil {
 		return ObservationResponse{}, err
 	}

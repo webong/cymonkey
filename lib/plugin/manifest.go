@@ -18,15 +18,11 @@ import (
 	"strings"
 )
 
-const APIVersion = "cymonkey.plugin/v1alpha1"
-
-const (
-	JangolovaEngine  = "jangolova.engine"
-	BlockadeProvider = "blockade.provider"
-	BoardProvider    = "board.provider"
-)
+const APIVersion = "provider.plugin/v1alpha1"
+const legacyAPIVersion = "cymonkey.plugin/v1alpha1"
 
 var namePattern = regexp.MustCompile(`^[a-z][a-z0-9-]{0,62}$`)
+var kindPattern = regexp.MustCompile(`^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$`)
 var digestPattern = regexp.MustCompile(`^[a-f0-9]{64}$`)
 var versionPattern = regexp.MustCompile(`^v?[0-9]+\.[0-9]+\.[0-9]+(?:[-+][A-Za-z0-9.-]+)?$`)
 
@@ -43,7 +39,7 @@ type Manifest struct {
 }
 
 func (m Manifest) Validate() error {
-	if m.APIVersion != APIVersion {
+	if m.APIVersion != APIVersion && m.APIVersion != legacyAPIVersion {
 		return fmt.Errorf("plugin apiVersion must be %q", APIVersion)
 	}
 	if !namePattern.MatchString(m.Name) {
@@ -55,10 +51,8 @@ func (m Manifest) Validate() error {
 	if m.Platform != "" && m.Platform != runtime.GOOS+"-"+runtime.GOARCH {
 		return errors.New("plugin platform does not match this host")
 	}
-	switch m.Kind {
-	case JangolovaEngine, BlockadeProvider, BoardProvider:
-	default:
-		return errors.New("plugin kind is invalid")
+	if len(m.Kind) > 128 || !kindPattern.MatchString(m.Kind) {
+		return errors.New("plugin kind must be a dotted lower-case identifier")
 	}
 	if m.Command == "" || m.Command == "." || m.Command == ".." || m.Command == "plugin.json" || filepath.Base(m.Command) != m.Command || strings.ContainsAny(m.Command, `/\\`) {
 		return errors.New("plugin command must be a filename")

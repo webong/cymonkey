@@ -10,6 +10,20 @@ import (
 	"providerplugin"
 )
 
+const Kind = "blockade.provider"
+
+// RegisterInstalled selects Blockade adapters from a shared installation inventory.
+func RegisterInstalled(registry *blockade.ProviderAdapterRegistry, installed []providerplugin.Installed) error {
+	for _, item := range installed {
+		if item.Manifest.Kind == Kind {
+			if err := Register(registry, item); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func Register(registry *blockade.ProviderAdapterRegistry, installed providerplugin.Installed) error {
 	return registry.Register(installed.Manifest.Name, func(ctx context.Context, runtime blockade.ProviderAdapterRuntime) (blockade.ProviderAdapter, error) {
 		proc, err := providerplugin.Open(ctx, installed)

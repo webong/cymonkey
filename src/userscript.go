@@ -59,6 +59,32 @@ func userscriptCommand(args []string, stdout io.Writer) error {
 	if flags.NArg() != 0 {
 		return errors.New("userscript commands accept flags only")
 	}
+	return executeUserscriptAction(userscriptOptions{
+		Command: command, Store: *store, Target: *target, ID: *id, Name: *name,
+		Source: *source, Revision: *revision, Endpoint: *endpoint,
+		Matches: []string(matches), Excludes: []string(excludes),
+	}, stdout)
+}
+
+type userscriptOptions struct {
+	Command  string
+	Store    string
+	Target   string
+	ID       string
+	Name     string
+	Source   string
+	Revision string
+	Endpoint string
+	Matches  []string
+	Excludes []string
+}
+
+// executeUserscriptAction is shared by the CLI and the operator HTTP surface.
+func executeUserscriptAction(options userscriptOptions, stdout io.Writer) error {
+	command := options.Command
+	store, target, id, name := &options.Store, &options.Target, &options.ID, &options.Name
+	source, revision, endpoint := &options.Source, &options.Revision, &options.Endpoint
+	matches, excludes := repeatFlag(options.Matches), repeatFlag(options.Excludes)
 	encoder := json.NewEncoder(stdout)
 	switch command {
 	case "prepare", "install", "update":
