@@ -1,11 +1,12 @@
 # Cymonkey, Jangolova, Blockade, and Board boundaries
 
-Jangolova provides display interfaces. Blockade provides inference interfaces
-for image and sound across local and cloud backends. Board defines input and
+Jangolova provides display interfaces. Blockade observes and interprets text,
+image, and sound content through local and cloud models. Board defines input and
 output device interfaces. Cymonkey is the operator, entry, and extension layer
-that composes these modules. Blockade's current public request is image-based;
-sound inference has not been implemented. Board ships a read-only mounted-drive
-provider and a macOS keyboard provider, but no hotplug events yet. The libraries are
+that composes these modules. Blockade has an image observation contract and a
+provider-backed content contract for text, image, and audio. Board ships a
+read-only mounted-drive provider and a macOS keyboard provider, but no hotplug
+events yet. The libraries are
 standalone: Cymonkey depends on their public APIs; none depends on Cymonkey or
 another domain library. All three may use the shared executable plugin transport.
 
@@ -13,7 +14,7 @@ another domain library. All three may use the shared executable plugin transport
 caller or agent
   → Cymonkey authorizes and coordinates extensions to the system
     → Jangolova operates or presents on caller-owned displays and runtimes
-    → Blockade runs local or cloud inference and returns evidence
+    → Blockade uses local or cloud models to return evidence or interpretation
     → Board binds host-approved input and output devices
 ```
 
@@ -40,10 +41,11 @@ and coordinate that runtime, not a requirement baked into the library.
 
 ## Blockade inference interfaces
 
-Blockade owns local and cloud inference integrations. Its current image request
-receives pixels and returns normalized observations. Sound is part of its
-inference scope but needs a separate public contract. Cymonkey may coordinate
-a Jangolova screenshot with Blockade, but neither Jangolova nor Blockade
+Blockade owns local and cloud model integrations for interpreting content. Its
+image request receives pixels and returns normalized observations. Its separate
+content contract accepts text, images, and audio through capable providers.
+Cymonkey may
+coordinate a Jangolova screenshot with Blockade, but neither Jangolova nor Blockade
 imports or configures the other.
 
 Provider APIs and VLMs are Blockade adapter integrations, not local engines.

@@ -2,7 +2,7 @@
 
 `cmy operator serve` keeps browser interaction sessions alive and exposes one
 authenticated HTTP surface for callers. The operator uses Jangolova for display
-actions, Blockade for configured image observations, and installed Board
+actions, Blockade for image observations and content interpretation, and installed Board
 providers for device operations. Browser extensions and userscripts remain
 caller supplied.
 
@@ -34,7 +34,7 @@ The server prints a JSON interaction instance and stays running on
   --name window.screenshot --input '{}'
 ```
 
-To enable image observations, start Blockade separately and add
+To enable image observations and content interpretation, start Blockade separately and add
 `--blockade-url http://127.0.0.1:8091` to `operator serve`. A Cymonkey host
 manifest with an observation component can also be supplied through `--config`.
 
@@ -53,6 +53,10 @@ The same CLI reaches the operator's managers:
 .cache/bin/cmy operator extension --name extension.prepare \
   --input '{"source":"/absolute/path/to/extension.zip"}'
 .cache/bin/cmy operator board devices
+.cache/bin/cmy operator interpret --text-file /absolute/path/to/note.txt \
+  --prompt 'Summarize this'
+.cache/bin/cmy operator interpret --audio /absolute/path/to/recording.wav \
+  --audio-type audio/wav --prompt 'Transcribe speech'
 .cache/bin/cmy operator board invoke --provider DEVICE_PROVIDER --device DEVICE_ID \
   --capability drive.list --resource APPROVED_ROOT --input '{}'
 .cache/bin/cmy operator board stream --provider DEVICE_PROVIDER --device DEVICE_ID \
@@ -80,6 +84,7 @@ extension and userscript requests refer to files on the operator's machine.
 | `POST /v1/userscripts/{prepare,install,update,list,describe,enable,disable,uninstall}` | Store and manage approved local userscripts; apply changes to matching operator browser sessions. |
 | `POST /v1/extensions/actions` | Run the structured extension manager actions, including `extension.sign` and `extension.build-safari`. Signing uses the operator machine's browser/Xcode tools or Mozilla credentials. `extension.install` and `extension.run` require a prepared revision and stream newline-delimited JSON until the browser flow ends. |
 | `POST /v1/observations` | Capture from an operator session and send the image to Blockade. Start with `--blockade-url` or `--config` and a running Blockade service. |
+| `POST /v1/interpretations` | Forward caller-supplied text, image, or audio content to a capable Blockade provider; returns source-linked findings. |
 | `GET /v1/board/devices` | List devices from installed Board provider executables. |
 | `POST /v1/board/actions` | Invoke a Board action with an explicit device and capability grant; returns JSON. |
 | `POST /v1/board/streams` | Read bounded Board content with an explicit grant; returns bytes, up to 16 MiB. |
@@ -115,6 +120,18 @@ For a managed image observation:
 ```json
 {"instanceId":"browser-one","prompt":"find the primary action"}
 ```
+
+For content interpretation, send the `blockade.content/v1alpha1` request body
+to `POST /v1/interpretations`:
+
+```json
+{"apiVersion":"blockade.content/v1alpha1","parts":[{"kind":"text","text":"Meeting starts at 9."}],"prompt":"Summarize"}
+```
+
+`cmy operator interpret` reads files on the caller's machine and sends their
+bytes to the operator. The Blockade service must have a provider that
+advertises the requested modality; the base library does not bundle text or
+audio models. Mixed content requires `multimodal.interpret`.
 
 Interaction calls reuse the provider's capability policy, action approvals,
 and audit events. Extension and userscript management requires the operator

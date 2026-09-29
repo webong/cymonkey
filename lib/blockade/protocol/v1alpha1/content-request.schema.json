@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:blockade:protocol:v1alpha1:content-request",
+  "title": "Blockade content interpretation request",
+  "type": "object",
+  "required": ["apiVersion", "parts"],
+  "properties": {
+    "apiVersion": {"const": "blockade.content/v1alpha1"},
+    "requestId": {"type": "string", "maxLength": 128},
+    "prompt": {"type": "string", "maxLength": 16384},
+    "parts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["kind", "text"],
+            "properties": {
+              "kind": {"const": "text"},
+              "text": {"type": "string", "minLength": 1}
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": ["kind", "mediaType", "data"],
+            "properties": {
+              "kind": {"const": "image"},
+              "mediaType": {"type": "string", "pattern": "^image/"},
+              "data": {"type": "string", "contentEncoding": "base64", "minLength": 1}
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": ["kind", "mediaType", "data"],
+            "properties": {
+              "kind": {"const": "audio"},
+              "mediaType": {"type": "string", "pattern": "^audio/"},
+              "data": {"type": "string", "contentEncoding": "base64", "minLength": 1}
+            },
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}

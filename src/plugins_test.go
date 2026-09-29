@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"os"
@@ -39,7 +40,7 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 		t.Fatal(err)
 	}
 	digest := sha256.Sum256(data)
-	for _, item := range []struct{ name, kind string }{{"display-fixture", jangolovaplugin.Kind}, {"vision-fixture", blockadeplugin.Kind}, {"device-fixture", boardplugin.Kind}, {"future-fixture", "future.provider"}} {
+	for _, item := range []struct{ name, kind string }{{"display-fixture", jangolovaplugin.Kind}, {"vision-fixture", blockadeplugin.Kind}, {"content-fixture", blockadeplugin.Kind}, {"legacy-vision-fixture", blockadeplugin.Kind}, {"device-fixture", boardplugin.Kind}, {"future-fixture", "future.provider"}} {
 		source := filepath.Join(root, item.name)
 		if err := os.Mkdir(source, 0700); err != nil {
 			t.Fatal(err)
@@ -61,7 +62,7 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 	if err := pluginsCommand([]string{"list"}, &listed, io.Discard); err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Contains(listed.Bytes(), []byte("display-fixture")) || !bytes.Contains(listed.Bytes(), []byte("vision-fixture")) || !bytes.Contains(listed.Bytes(), []byte("device-fixture")) || !bytes.Contains(listed.Bytes(), []byte("future-fixture")) {
+	if !bytes.Contains(listed.Bytes(), []byte("display-fixture")) || !bytes.Contains(listed.Bytes(), []byte("vision-fixture")) || !bytes.Contains(listed.Bytes(), []byte("content-fixture")) || !bytes.Contains(listed.Bytes(), []byte("legacy-vision-fixture")) || !bytes.Contains(listed.Bytes(), []byte("device-fixture")) || !bytes.Contains(listed.Bytes(), []byte("future-fixture")) {
 		t.Fatalf("installed inventory: %s", listed.String())
 	}
 
@@ -103,7 +104,51 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 	if observed.RequestID != "request-1" {
 		t.Fatalf("Blockade plugin request ID = %q", observed.RequestID)
 	}
+	interpreter, ok := backend.(blockade.ContentEngine)
+	if !ok {
+		t.Fatal("Blockade plugin has no content interpretation interface")
+	}
+	for _, request := range []blockade.InterpretRequest{
+		{RequestID: "text-1", Parts: []blockade.ContentPart{{Kind: "text", Text: "Summarize this note"}}},
+		{RequestID: "image-1", Parts: []blockade.ContentPart{{Kind: "image", MediaType: "image/png", Data: []byte("image")}}},
+		{RequestID: "audio-1", Parts: []blockade.ContentPart{{Kind: "audio", MediaType: "audio/wav", Data: []byte("audio")}}},
+	} {
+		interpreted, err := interpreter.Interpret(context.Background(), request)
+		if err != nil || interpreted.RequestID != request.RequestID || len(interpreted.Findings) != 1 {
+			t.Fatalf("Blockade plugin interpretation: %#v %v", interpreted, err)
+		}
+	}
 	if err := backend.Close(); err != nil {
+		t.Fatal(err)
+	}
+	contentOnly, err := blockade.StartConfiguredProviderAdapter(context.Background(), blockade.ProviderAdapterConfig{ID: "content", Kind: "content-fixture"}, vision, blockade.EnvironmentSecretResolver{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := contentOnly.Observe(context.Background(), blockade.ObserveRequest{Image: []byte("image")}); !errors.Is(err, blockade.ErrModalityUnsupported) {
+		t.Fatalf("content-only plugin image call = %v", err)
+	}
+	contentInterpreter := contentOnly.(blockade.ContentEngine)
+	for _, part := range []blockade.ContentPart{
+		{Kind: "text", Text: "Summarize"},
+		{Kind: "audio", MediaType: "audio/wav", Data: []byte("sound")},
+	} {
+		response, err := contentInterpreter.Interpret(context.Background(), blockade.InterpretRequest{Parts: []blockade.ContentPart{part}})
+		if err != nil || len(response.Findings) != 1 {
+			t.Fatalf("content-only plugin %s = %#v %v", part.Kind, response, err)
+		}
+	}
+	if err := contentOnly.Close(); err != nil {
+		t.Fatal(err)
+	}
+	legacyImage, err := blockade.StartConfiguredProviderAdapter(context.Background(), blockade.ProviderAdapterConfig{ID: "legacy-vision", Kind: "legacy-vision-fixture"}, vision, blockade.EnvironmentSecretResolver{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := legacyImage.Observe(context.Background(), blockade.ObserveRequest{Image: []byte("image")}); err != nil {
+		t.Fatalf("legacy image plugin observation: %v", err)
+	}
+	if err := legacyImage.Close(); err != nil {
 		t.Fatal(err)
 	}
 

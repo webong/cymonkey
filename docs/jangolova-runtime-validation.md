@@ -12,7 +12,8 @@ identifier remains `cymonkey/v1alpha1` for compatibility.
 and Safari services through SDK ports and explicitly converts target/session
 data. It preserves credential revision notifications and acknowledgements.
 The operator still owns policy and approval. Jangolova owns runtime modules and
-semantic operations. Blockade owns visual inference and cloud/VLM adapters.
+semantic operations. Blockade owns content interpretation, including visual
+inference and cloud/VLM adapters.
 
 External modules register `jangolova.Backend` implementations on
 `Adapter.Backends`; all signature types, including `Options`, are public.

@@ -93,7 +93,7 @@ After the handshake, methods depend on `kind`:
 | Kind | Methods |
 | --- | --- |
 | Jangolova | `jangolova.inspect`, `jangolova.connect`, `jangolova.authorize`, `jangolova.call`, `jangolova.health`, `jangolova.events`, `jangolova.material`, `jangolova.disconnect` |
-| Blockade | `blockade.start`, `blockade.observe`, `blockade.health`, `blockade.capabilities`, `blockade.close` |
+| Blockade | `blockade.start`, `blockade.observe`, `blockade.interpret`, `blockade.health`, `blockade.capabilities`, `blockade.close` |
 | Board | `board.list`, `board.open`, `board.invoke`, `board.stream.open`, `board.stream.read`, `board.stream.close`, `board.close` |
 
 Jangolova uses the public `sdk.EngineSpec` and target fields for connect.
@@ -110,6 +110,14 @@ and only the logical secrets configured for that adapter. Its response is a
 `ProviderAdapterObserveResponse`; Blockade still validates the normalized
 observation and request ID. Health and capabilities use Blockade's public
 provider-adapter types.
+
+`blockade.interpret` is the optional content method. It receives a
+`ProviderAdapterInterpretRequest` containing the separate
+`blockade.content/v1alpha1` text, image, or audio request and returns a
+`ProviderAdapterInterpretResponse`. A content-only executable advertises only
+the modalities it supports and does not need to implement `blockade.observe`.
+The adapter validates output findings, source-part indexes, payload limits,
+request ID, and version before returning them to the caller.
 
 Board `board.list` returns `[]board.Device`. `board.open` receives a device ID
 and `board.Grant`. Invoke uses `board.Action` and returns `board.Result`.

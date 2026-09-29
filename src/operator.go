@@ -27,7 +27,7 @@ const defaultOperatorURL = "http://127.0.0.1:7395"
 
 func operatorCommand(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("operator requires serve, targets, connect, call, disconnect, observe, userscript, extension, or board")
+		return errors.New("operator requires serve, targets, connect, call, disconnect, observe, interpret, userscript, extension, or board")
 	}
 	switch args[0] {
 	case "serve":
@@ -36,6 +36,8 @@ func operatorCommand(args []string, stdout, stderr io.Writer) error {
 		return operatorClient(args[0], args[1:], stdout)
 	case "userscript":
 		return operatorUserscriptClient(args[1:], stdout)
+	case "interpret":
+		return operatorInterpretClient(args[1:], stdout)
 	case "extension":
 		return operatorExtensionClient(args[1:], stdout)
 	case "board":

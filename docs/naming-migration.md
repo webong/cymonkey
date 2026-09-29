@@ -40,6 +40,8 @@ surface:
 
 The central rule is that host composition must not silently change ownership:
 Jangolova executes approved display interaction and presentation calls, while
-Blockade runs inference through local or cloud backends. Its current public
-request uses images; sound remains to be defined. Cymonkey coordinates and
-extends these modules; external agents still own planning and decisions.
+Blockade interprets text, image, and sound content through local or cloud
+models. Its image observation contract remains stable; the separate content
+contract accepts text, image, and audio through capable providers. Cymonkey
+coordinates and extends these modules; external agents
+still own planning and decisions.

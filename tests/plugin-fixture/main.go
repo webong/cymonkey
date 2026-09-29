@@ -63,7 +63,13 @@ func main() {
 		case "blockade.health":
 			answer.Result = map[string]any{"APIVersion": "blockade.provider-adapter/v1alpha1", "Ready": true}
 		case "blockade.capabilities":
-			answer.Result = map[string]any{"APIVersion": "blockade.provider-adapter/v1alpha1", "Capabilities": []string{"image.observe"}}
+			capabilities := []string{"image.observe", "text.interpret", "audio.interpret", "multimodal.interpret"}
+			if manifest.Name == "content-fixture" {
+				capabilities = []string{"text.interpret", "audio.interpret"}
+			} else if manifest.Name == "legacy-vision-fixture" {
+				capabilities = []string{"image.describe"}
+			}
+			answer.Result = map[string]any{"APIVersion": "blockade.provider-adapter/v1alpha1", "Capabilities": capabilities}
 		case "blockade.observe":
 			var params struct {
 				Request struct {
@@ -74,6 +80,23 @@ func main() {
 			}
 			_ = json.Unmarshal(call.Params, &params)
 			answer.Result = map[string]any{"apiVersion": "blockade.provider-adapter/v1alpha1", "response": map[string]any{"apiVersion": "blockade.observation/v1alpha1", "requestId": params.Request.Request.RequestID, "observations": []any{}}}
+		case "blockade.interpret":
+			var params struct {
+				Request struct {
+					Request struct {
+						RequestID string `json:"requestId"`
+						Parts     []struct {
+							Kind string `json:"kind"`
+						} `json:"parts"`
+					} `json:"request"`
+				} `json:"request"`
+			}
+			_ = json.Unmarshal(call.Params, &params)
+			kind := "summary"
+			if len(params.Request.Request.Parts) > 0 && params.Request.Request.Parts[0].Kind == "audio" {
+				kind = "transcript"
+			}
+			answer.Result = map[string]any{"apiVersion": "blockade.provider-adapter/v1alpha1", "response": map[string]any{"apiVersion": "blockade.content/v1alpha1", "requestId": params.Request.Request.RequestID, "findings": []any{map[string]any{"kind": kind, "text": "fixture interpretation", "sourceParts": []int{0}}}}}
 		case "board.list":
 			answer.Result = []any{map[string]any{"id": "device", "kind": "drive", "capabilities": []any{map[string]any{"name": "drive.read", "inputSchema": map[string]any{"type": "object"}}}}}
 		case "board.open":

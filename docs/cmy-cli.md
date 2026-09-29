@@ -43,14 +43,14 @@ subcommand-specific help page.
 | `cmy observe` | Capture an authorized Jangolova screenshot and send it to Blockade for observation. |
 | `cmy modules discover`, `pull` | Read a reviewed module registry and retrieve a selected artifact. |
 | `cmy browser targets` | Find local browsers and profiles on the machine running the command. |
-| `cmy operator serve`, `targets`, `connect`, `call`, `disconnect`, `observe`, `userscript`, `extension`, `board` | Keep browser sessions and library providers callable through one authenticated local operator API. |
+| `cmy operator serve`, `targets`, `connect`, `call`, `disconnect`, `observe`, `interpret`, `userscript`, `extension`, `board` | Keep browser sessions and library providers callable through one authenticated local operator API. |
 | `cmy extension ...` | Inspect, package, stage, activate, or install a caller-supplied browser extension. |
 | `cmy userscript ...` | Store, list, update, enable, disable, or remove extension-free userscripts for a selected browser target. |
 | `cmy provider engines`, `connect-engine`, `serve-engine-provider`, `serve-mcp` | Discover or connect interaction engines, or run Jangolova interfaces. |
 | `cmy board devices`, `drive-list`, `drive-read` | List host-approved mounted drives, list entries, or stream one selected file. |
 | `cmy board keyboard-press`, `keyboard-type` | Send a key or bounded text to an explicitly selected macOS process. |
 | `cmy board provider-devices`, `provider-invoke`, `provider-stream` | Use installed Board providers under an explicit device grant. |
-| `cmy blockade validate`, `observe`, `serve` | Validate image inference configuration, infer from an image, or run the Blockade service. |
+| `cmy blockade validate`, `observe`, `interpret`, `serve` | Validate model configuration, observe an image, interpret content with a capable provider, or run Blockade. |
 | `cmy plugins install`, `upgrade`, `list`, `remove` | Manage local executable providers for Jangolova, Blockade, and Board. |
 | `cmy native-bridge-fixture` | Run the native bridge test fixture; this is for development. |
 
@@ -386,6 +386,21 @@ cmy blockade observe --config /absolute/path/to/blockade.yaml \
 `--inference` to use the config's default backend. `--engine` remains a
 deprecated alias for `--inference`; supply only one of them. The result is
 JSON.
+
+Interpret text or audio with a configured executable model provider:
+
+```sh
+cmy blockade interpret --config /absolute/path/to/blockade.yaml \
+  --inference content-model --text-file note.txt --prompt 'Summarize'
+cmy blockade interpret --config /absolute/path/to/blockade.yaml \
+  --inference content-model --audio recording.wav --audio-type audio/wav \
+  --prompt 'Transcribe speech'
+```
+
+`interpret` also accepts `--text` and `--image`; combine content flags only
+when the provider advertises `multimodal.interpret`. The selected provider must
+advertise the requested modality. The base Blockade build does not bundle a
+text or audio model.
 
 Start the HTTP inference service with the same config and backend selection:
 

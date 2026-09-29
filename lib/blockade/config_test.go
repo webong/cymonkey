@@ -165,6 +165,12 @@ func TestExecutionProviderConfigurationValidation(t *testing.T) {
 	}
 
 	tests := map[string]Config{
+		"ONNX SAM only": {APIVersion: ConfigAPIVersion, Engines: []EngineConfig{{
+			ID: "onnx-sam", Kind: "onnx", SAMModel: "sam.onnx",
+		}}},
+		"ONNX YOLO with unsupported SAM": {APIVersion: ConfigAPIVersion, Engines: []EngineConfig{{
+			ID: "onnx-mixed", Kind: "onnx", YOLOModel: "yolo.onnx", SAMModel: "sam.onnx",
+		}}},
 		"unknown provider": validOnnx(ExecutionProviderConfig{Name: "metal"}),
 		"duplicate provider": validOnnx(
 			ExecutionProviderConfig{Name: "CUDA"},
@@ -183,7 +189,7 @@ func TestExecutionProviderConfigurationValidation(t *testing.T) {
 	for name, config := range tests {
 		t.Run(name, func(t *testing.T) {
 			if err := config.Validate(); err == nil {
-				t.Fatal("expected invalid execution-provider configuration")
+				t.Fatal("expected invalid ONNX engine configuration")
 			}
 		})
 	}

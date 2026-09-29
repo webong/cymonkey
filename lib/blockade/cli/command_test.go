@@ -87,3 +87,54 @@ func TestSelectInferenceRejectsAmbiguousFlags(t *testing.T) {
 		t.Fatal("expected --inference and --engine together to fail")
 	}
 }
+
+type cliContentAdapter struct {
+	request blockade.ProviderAdapterInterpretRequest
+}
+
+func (*cliContentAdapter) Observe(context.Context, blockade.ProviderAdapterObserveRequest) (blockade.ProviderAdapterObserveResponse, error) {
+	return blockade.ProviderAdapterObserveResponse{}, blockade.ErrModalityUnsupported
+}
+func (a *cliContentAdapter) Interpret(_ context.Context, request blockade.ProviderAdapterInterpretRequest) (blockade.ProviderAdapterInterpretResponse, error) {
+	a.request = request
+	return blockade.ProviderAdapterInterpretResponse{APIVersion: blockade.ProviderAdapterAPIVersion,
+		Response: blockade.InterpretResponse{APIVersion: blockade.ContentAPIVersion, RequestID: request.Request.RequestID,
+			Findings: []blockade.ContentFinding{{Kind: "summary", Text: "fixture interpretation", SourceParts: []int{0, 1}}}}}, nil
+}
+func (*cliContentAdapter) Capabilities(context.Context) (blockade.ProviderAdapterCapabilities, error) {
+	return blockade.ProviderAdapterCapabilities{APIVersion: blockade.ProviderAdapterAPIVersion, Capabilities: []string{blockade.CapabilityMultimodalInterpret}}, nil
+}
+func (*cliContentAdapter) Health(context.Context) (blockade.ProviderAdapterHealth, error) {
+	return blockade.ProviderAdapterHealth{APIVersion: blockade.ProviderAdapterAPIVersion, Ready: true}, nil
+}
+func (*cliContentAdapter) Close() error { return nil }
+
+func TestInterpretCommandPassesTextAndAudioToProvider(t *testing.T) {
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "blockade.yaml")
+	audioPath := filepath.Join(dir, "speech.wav")
+	if err := os.WriteFile(configPath, []byte("apiVersion: blockade.config/v1alpha1\nproviderAdapters:\n  - id: content-fixture\n    kind: fixture\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(audioPath, []byte("audio bytes"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	adapter := &cliContentAdapter{}
+	registry := blockade.NewProviderAdapterRegistry()
+	if err := registry.Register("fixture", func(context.Context, blockade.ProviderAdapterRuntime) (blockade.ProviderAdapter, error) {
+		return adapter, nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var output bytes.Buffer
+	if err := RunWithProviderAdapters([]string{"interpret", "--config", configPath, "--text", "Agenda", "--audio", audioPath, "--audio-type", "audio/wav"}, &output, &bytes.Buffer{}, registry, nil); err != nil {
+		t.Fatal(err)
+	}
+	var response blockade.InterpretResponse
+	if err := json.Unmarshal(output.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if len(response.Findings) != 1 || response.Findings[0].Text != "fixture interpretation" || len(adapter.request.Request.Parts) != 2 || adapter.request.Request.Parts[0].Text != "Agenda" || string(adapter.request.Request.Parts[1].Data) != "audio bytes" {
+		t.Fatalf("CLI interpretation = %#v, request = %#v", response, adapter.request)
+	}
+}

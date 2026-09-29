@@ -79,3 +79,73 @@ func (c Client) Observe(ctx context.Context, request ObserveRequest) (ObserveRes
 	}
 	return result, nil
 }
+
+func (c Client) Interpret(ctx context.Context, request InterpretRequest) (InterpretResponse, error) {
+	if request.APIVersion == "" {
+		request.APIVersion = ContentAPIVersion
+	}
+	if err := ValidateInterpretRequest(request); err != nil {
+		return InterpretResponse{}, err
+	}
+	if c.Engine != nil {
+		engine, ok := c.Engine.(ContentEngine)
+		if !ok {
+			return InterpretResponse{}, ErrModalityUnsupported
+		}
+		result, err := engine.Interpret(ctx, request)
+		if err != nil {
+			return InterpretResponse{}, err
+		}
+		if err := ValidateInterpretResponse(result, request); err != nil {
+			return InterpretResponse{}, err
+		}
+		return result, nil
+	}
+	if c.WorkerPool != nil {
+		return InterpretResponse{}, ErrModalityUnsupported
+	}
+	hc, err := c.client()
+	if err != nil {
+		return InterpretResponse{}, err
+	}
+	data, err := json.Marshal(request)
+	if err != nil {
+		return InterpretResponse{}, fmt.Errorf("encode Blockade content request: %w", err)
+	}
+	url := strings.TrimRight(c.BaseURL, "/") + "/v1/interpret"
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(data))
+	if err != nil {
+		return InterpretResponse{}, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := hc.Do(req)
+	if err != nil {
+		return InterpretResponse{}, fmt.Errorf("call Blockade: %w", err)
+	}
+	defer resp.Body.Close()
+	responseData, err := io.ReadAll(io.LimitReader(resp.Body, 16<<20))
+	if err != nil {
+		return InterpretResponse{}, err
+	}
+	if resp.StatusCode/100 != 2 {
+		if resp.StatusCode == http.StatusNotImplemented {
+			return InterpretResponse{}, ErrModalityUnsupported
+		}
+		var failure struct {
+			Error string                   `json:"error"`
+			Kind  ProviderAdapterErrorKind `json:"kind"`
+		}
+		if json.Unmarshal(responseData, &failure) == nil && validProviderAdapterErrorKind(failure.Kind) {
+			return InterpretResponse{}, newProviderAdapterError("", failure.Kind, fmt.Errorf("Blockade returned HTTP %d: %s", resp.StatusCode, failure.Error))
+		}
+		return InterpretResponse{}, fmt.Errorf("Blockade returned HTTP %d", resp.StatusCode)
+	}
+	var result InterpretResponse
+	if err := json.Unmarshal(responseData, &result); err != nil {
+		return InterpretResponse{}, fmt.Errorf("decode Blockade content response: %w", err)
+	}
+	if err := ValidateInterpretResponse(result, request); err != nil {
+		return InterpretResponse{}, err
+	}
+	return result, nil
+}

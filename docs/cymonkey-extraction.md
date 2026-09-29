@@ -2,9 +2,10 @@
 
 Cymonkey owns operator policy, approval, credential resolution, extension,
 coordination, and host resource management. Jangolova owns display-interface
-modules, protocol negotiation, and semantic actions. Blockade owns inference
-interfaces for image and sound across local and cloud backends. Its current
-public request handles images. Jangolova does not configure or call Blockade.
+modules, protocol negotiation, and semantic actions. Blockade owns model-backed
+observation and interpretation of text, images, and sound through local and
+cloud backends. Its image observation and provider-backed content contracts
+are separate. Jangolova does not configure or call Blockade.
 
 ## Public module interface
 

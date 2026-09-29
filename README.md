@@ -18,9 +18,9 @@ presenting a new dynamic one.
   presentation, and runtime-specific scene controls.
 - Operate explicit Three.js, Godot, Unity, Unreal, and Blender resources through their
   runtime libraries.
-- Request image inference through Blockade, including local YOLO, SAM, ONNX,
-  and browser-local WebLLM paths. Blockade also defines a provider interface
-  for separately supplied cloud inference adapters.
+- Request image observations or text, image, and audio interpretations through
+  Blockade. The configured model backend determines which tasks it supports;
+  Blockade returns results through its stable contracts.
 - Prepare typed, host-approved input and output device bindings through Board.
 - Install optional executable providers for Jangolova, Blockade, and Board
   without rebuilding Cymonkey.
@@ -34,21 +34,25 @@ agent or application
   → Cymonkey
     → Jangolova display interfaces
       → browser, desktop surface, Three.js, Godot, Unity, Unreal, or Blender
-    → Blockade inference interfaces
-      → local or cloud backends for image and, as the contract grows, sound
+    → Blockade content interpretation interfaces
+      → local or cloud models for text, image, and sound
     → Board input and output device interfaces
       → registered keyboard, drive, and future device providers
 ```
 
 Jangolova provides interfaces for operating and presenting on displays.
-Blockade provides inference interfaces for image and sound across local and
-cloud backends. Board defines the provider and grant contract for device I/O and
-ships a read-only mounted-drive provider and a macOS keyboard provider. Hotplug
-events are still to be implemented. Board's host API requires an explicit
+Blockade owns model-backed observation and interpretation of text, image, and
+sound through local and cloud backends. Board defines the provider and grant
+contract for device I/O and ships a read-only mounted-drive provider and a
+macOS keyboard provider. Hotplug events are still to be implemented. Board's
+host API requires an explicit
 authorization decision; Cymonkey routes its `board` command to Board's CLI.
-The current Blockade request contract is image-based; sound inference is part
-of its intended scope and is not implemented yet. Cymonkey provides the
-boundary through which callers extend and coordinate these libraries.
+Blockade has separate image observation and provider-backed content contracts.
+Its current local image backends run YOLO and SAM model weights in Ultralytics
+workers, or a YOLO ONNX model in ONNX Runtime. Browser-local WebLLM and installed
+provider executables are other inference paths. Text and sound need a capable
+model provider; none is bundled yet. Cymonkey provides the boundary through
+which callers extend and coordinate these libraries.
 
 All three libraries are independently usable. Cymonkey can compose their public
 Go modules and supply the host services that its workflows need; none

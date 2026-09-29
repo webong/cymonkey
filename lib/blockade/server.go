@@ -31,6 +31,7 @@ func (s *HTTPServer) Routes() http.Handler {
 	mux.HandleFunc("/healthz", s.health)
 	mux.HandleFunc("/capabilities", s.capabilities)
 	mux.HandleFunc("/v1/observe", s.observe)
+	mux.HandleFunc("/v1/interpret", s.interpret)
 	return mux
 }
 
@@ -111,6 +112,47 @@ func (s *HTTPServer) observe(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
+func (s *HTTPServer) interpret(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	var request InterpretRequest
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<20))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&request); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "invalid interpretation request")
+		return
+	}
+	var trailing any
+	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
+		writeJSONError(w, http.StatusBadRequest, "interpretation request must contain one JSON value")
+		return
+	}
+	if request.APIVersion == "" {
+		request.APIVersion = ContentAPIVersion
+	}
+	if err := ValidateInterpretRequest(request); err != nil {
+		writeJSONError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	engine, ok := s.engine.(ContentEngine)
+	if !ok {
+		writeJSONError(w, http.StatusNotImplemented, ErrModalityUnsupported.Error())
+		return
+	}
+	result, err := engine.Interpret(r.Context(), request)
+	if err != nil {
+		writeEngineError(w, err, http.StatusBadGateway)
+		return
+	}
+	if err := ValidateInterpretResponse(result, request); err != nil {
+		writeJSONError(w, http.StatusBadGateway, "engine returned invalid interpretation response")
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
 func writeJSON(w http.ResponseWriter, status int, value any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -122,6 +164,10 @@ func writeJSONError(w http.ResponseWriter, status int, message string) {
 }
 
 func writeEngineError(w http.ResponseWriter, err error, fallbackStatus int) {
+	if errors.Is(err, ErrModalityUnsupported) {
+		writeJSONError(w, http.StatusNotImplemented, err.Error())
+		return
+	}
 	kind, ok := ProviderAdapterErrorKindOf(err)
 	if !ok {
 		writeJSONError(w, fallbackStatus, err.Error())

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:blockade:protocol:v1alpha1:content-response",
+  "title": "Blockade content interpretation response",
+  "type": "object",
+  "required": ["apiVersion", "findings"],
+  "properties": {
+    "apiVersion": {"const": "blockade.content/v1alpha1"},
+    "requestId": {"type": "string"},
+    "findings": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "required": ["kind", "text", "sourceParts"],
+        "properties": {
+          "kind": {"type": "string", "minLength": 1},
+          "text": {"type": "string", "minLength": 1, "maxLength": 1048576},
+          "sourceParts": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"type": "integer", "minimum": 0}
+          },
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

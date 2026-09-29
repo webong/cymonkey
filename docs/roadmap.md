@@ -154,9 +154,9 @@
 - [ ] Verify native-host and Xallet-provided display contracts with the same
   adapter conformance suite.
 
-## Phase 4b: Blockade inference interfaces
+## Phase 4b: Blockade content interpretation
 
-- [x] Define the provider-neutral Blockade observation contract.
+- [x] Define the provider-neutral Blockade image observation contract.
 - [x] Add managed Python Ultralytics workers for local YOLO/SAM inference.
 - [x] Add worker-pool lifecycle, framed stdin/stdout IPC, and shutdown.
 - [x] Add YAML engine configuration and local model-file validation.
@@ -187,9 +187,26 @@
   representative model set.
 - [ ] Add the first real cloud/VLM package (fal.ai or similar) to Blockade's
   adapter registry and map its native response to the observation contract.
-- [ ] Define Blockade's sound inference request, response, and capability
-  contract before adding local or cloud sound adapters.
-- [ ] Expose Cymonkey observation coordination as an authenticated operator API.
+- [x] Define Blockade's separate text, image, and audio content request,
+  interpretation response, capability, and multimodal composition contract.
+- [x] Route the content contract through Blockade's HTTP, CLI, and executable
+  provider adapter path while retaining the image observation API.
+- [ ] Add a production text model provider package and validate its native
+  response mapping against the content contract.
+- [ ] Add a production sound model provider package for transcription and/or
+  sound-event interpretation.
+- [ ] Define a model registration and installation contract separate from
+  provider installation, including artifact digests, associated files,
+  capability declarations, and provider compatibility checks.
+- [ ] Add a Blockade model installer and registry for local artifacts; support
+  remote model identifiers for cloud providers without downloading weights.
+- [ ] Move the built-in Ultralytics and ONNX paths and bundled WebLLM adapter
+  behind the same provider boundary, retaining existing configurations during
+  migration.
+- [ ] Verify one local and one cloud provider through the same contract and
+  normalized result tests.
+- [x] Expose the current image observation coordination through an
+  authenticated Cymonkey operator API.
 - [ ] Capture screenshots from additional Cymonkey and display targets for
   Blockade.
 - [ ] Add the full screenshot → observation → external-agent decision →

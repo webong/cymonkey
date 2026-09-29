@@ -26,9 +26,8 @@ const (
 	maximumProviderAdapterMaxPayloadBytes = int64(10 << 20)
 )
 
-// ProviderAdapterObserveRequest is the versioned boundary between Blockade
-// and a hosted vision/VLM adapter. The nested request remains the public
-// blockade.observation/v1alpha1 request consumed by every inference backend.
+// ProviderAdapterObserveRequest is the image observation boundary. The nested
+// request remains the public blockade.observation/v1alpha1 request.
 type ProviderAdapterObserveRequest struct {
 	APIVersion string         `json:"apiVersion"`
 	Request    ObserveRequest `json:"request"`
@@ -39,6 +38,18 @@ type ProviderAdapterObserveRequest struct {
 type ProviderAdapterObserveResponse struct {
 	APIVersion string          `json:"apiVersion"`
 	Response   ObserveResponse `json:"response"`
+}
+
+// ProviderAdapterInterpretRequest and Response carry the separate content
+// contract through provider adapters without changing the image wire format.
+type ProviderAdapterInterpretRequest struct {
+	APIVersion string           `json:"apiVersion"`
+	Request    InterpretRequest `json:"request"`
+}
+
+type ProviderAdapterInterpretResponse struct {
+	APIVersion string            `json:"apiVersion"`
+	Response   InterpretResponse `json:"response"`
 }
 
 type ProviderAdapterCapabilities struct {
@@ -52,15 +63,18 @@ type ProviderAdapterHealth struct {
 	Detail     string `json:"detail,omitempty"`
 }
 
-// ProviderAdapter is implemented by Blockade-owned provider integration
-// packages. Implementations keep provider-native requests and responses behind
-// this interface, return only normalized observation data, and must support
-// concurrent method calls until Close begins.
+// ProviderAdapter keeps the existing image observation entry point for source
+// compatibility. Content-only adapters return ErrModalityUnsupported from
+// Observe and advertise only their supported content capabilities.
 type ProviderAdapter interface {
 	Observe(context.Context, ProviderAdapterObserveRequest) (ProviderAdapterObserveResponse, error)
 	Capabilities(context.Context) (ProviderAdapterCapabilities, error)
 	Health(context.Context) (ProviderAdapterHealth, error)
 	Close() error
+}
+
+type ContentProviderAdapter interface {
+	Interpret(context.Context, ProviderAdapterInterpretRequest) (ProviderAdapterInterpretResponse, error)
 }
 
 type ProviderAdapterFactory func(context.Context, ProviderAdapterRuntime) (ProviderAdapter, error)
@@ -329,6 +343,64 @@ func (e *providerAdapterEngine) Observe(ctx context.Context, request ObserveRequ
 	return result.Response, nil
 }
 
+func (e *providerAdapterEngine) Interpret(ctx context.Context, request InterpretRequest) (InterpretResponse, error) {
+	if e == nil {
+		return InterpretResponse{}, newProviderAdapterError("", ProviderAdapterErrorUnavailable, errors.New("adapter is closed"))
+	}
+	if request.APIVersion == "" {
+		request.APIVersion = ContentAPIVersion
+	}
+	if err := ValidateInterpretRequest(request); err != nil {
+		return InterpretResponse{}, newProviderAdapterError(e.id, ProviderAdapterErrorInvalidRequest, err)
+	}
+	size := len(request.Prompt)
+	for _, part := range request.Parts {
+		size += len(part.Text) + len(part.Data)
+	}
+	if int64(size) > e.maxPayloadBytes {
+		return InterpretResponse{}, newProviderAdapterError(e.id, ProviderAdapterErrorInvalidRequest, fmt.Errorf("request exceeds %d-byte payload limit", e.maxPayloadBytes))
+	}
+	if request.RequestID == "" {
+		request.RequestID = fmt.Sprintf("blockade-content-%d", time.Now().UnixNano())
+	}
+	capabilities, err := e.Capabilities(ctx)
+	if err != nil {
+		return InterpretResponse{}, err
+	}
+	required := requiredContentCapability(request.Parts)
+	if !slices.Contains(capabilities, required) && !slices.Contains(capabilities, CapabilityMultimodalInterpret) {
+		return InterpretResponse{}, ErrModalityUnsupported
+	}
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	if e.adapter == nil {
+		return InterpretResponse{}, newProviderAdapterError(e.id, ProviderAdapterErrorUnavailable, errors.New("adapter is closed"))
+	}
+	adapter, ok := e.adapter.(ContentProviderAdapter)
+	if !ok {
+		return InterpretResponse{}, ErrModalityUnsupported
+	}
+	callCtx, cancel := context.WithTimeout(ctx, e.timeout)
+	defer cancel()
+	result, err := adapter.Interpret(callCtx, ProviderAdapterInterpretRequest{
+		APIVersion: ProviderAdapterAPIVersion,
+		Request:    request,
+	})
+	if err != nil {
+		return InterpretResponse{}, normalizeProviderAdapterError(e.id, callCtx, err)
+	}
+	if err := callCtx.Err(); err != nil {
+		return InterpretResponse{}, normalizeProviderAdapterError(e.id, callCtx, err)
+	}
+	if result.APIVersion != ProviderAdapterAPIVersion {
+		return InterpretResponse{}, newProviderAdapterError(e.id, ProviderAdapterErrorInvalidResponse, fmt.Errorf("unsupported adapter apiVersion %q", result.APIVersion))
+	}
+	if err := ValidateInterpretResponse(result.Response, request); err != nil {
+		return InterpretResponse{}, newProviderAdapterError(e.id, ProviderAdapterErrorInvalidResponse, err)
+	}
+	return result.Response, nil
+}
+
 func (e *providerAdapterEngine) Capabilities(ctx context.Context) ([]string, error) {
 	if e == nil {
 		return nil, newProviderAdapterError("", ProviderAdapterErrorUnavailable, errors.New("adapter is closed"))
@@ -350,7 +422,13 @@ func (e *providerAdapterEngine) Capabilities(ctx context.Context) ([]string, err
 	if result.APIVersion != ProviderAdapterAPIVersion {
 		return nil, newProviderAdapterError(e.id, ProviderAdapterErrorInvalidResponse, fmt.Errorf("unsupported capabilities apiVersion %q", result.APIVersion))
 	}
-	capabilities := append([]string{CapabilityImageObserve}, result.Capabilities...)
+	capabilities := append([]string(nil), result.Capabilities...)
+	// Existing image-only adapters inherited image.observe before the content
+	// contract existed. Preserve that behavior without assigning it to a
+	// content-only adapter.
+	if _, content := e.adapter.(ContentProviderAdapter); !content || slices.Contains(capabilities, CapabilityImageObserve) {
+		capabilities = append(capabilities, CapabilityImageObserve)
+	}
 	for i := range capabilities {
 		capabilities[i] = strings.TrimSpace(capabilities[i])
 		if capabilities[i] == "" {

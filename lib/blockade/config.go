@@ -40,7 +40,7 @@ type ExecutionProviderConfig struct {
 	Options map[string]string `yaml:"options,omitempty"`
 }
 
-// ProviderAdapterConfig selects a Blockade-owned hosted vision/VLM adapter.
+// ProviderAdapterConfig selects a Blockade-owned model adapter.
 // Settings are non-secret provider configuration. Secrets can only name
 // environment variables and are resolved lazily at runtime.
 type ProviderAdapterConfig struct {
@@ -99,8 +99,11 @@ func (c Config) Validate() error {
 				return fmt.Errorf("Blockade local engine %q cannot configure ONNX Runtime execution providers", engine.ID)
 			}
 		case "onnx":
-			if engine.YOLOModel == "" && engine.SAMModel == "" {
-				return fmt.Errorf("Blockade ONNX engine %q requires a model", engine.ID)
+			if engine.YOLOModel == "" {
+				return fmt.Errorf("Blockade ONNX engine %q requires yoloModel", engine.ID)
+			}
+			if engine.SAMModel != "" {
+				return fmt.Errorf("Blockade ONNX engine %q does not support samModel", engine.ID)
 			}
 			if err := validateExecutionProviders(engine.ID, engine.ExecutionProviders); err != nil {
 				return err

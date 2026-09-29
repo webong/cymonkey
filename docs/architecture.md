@@ -1,15 +1,15 @@
 # Cymonkey architecture
 
 Cymonkey is the operator, host, and extension boundary. Jangolova owns display
-interfaces for interaction and presentation; Blockade owns inference
-interfaces for image and sound across local and cloud backends; Board owns the
-input and output device contract. Cymonkey
-links their public Go libraries into its command binary and can supervise
-separate provider processes for long-running workflows. Optional installed
-executables register as providers through the same library interfaces. See
-[executable provider plugins](cymonkey-plugins.md). Blockade's implemented
-public request currently handles images; sound inference remains to be
-defined. See
+interfaces for interaction and presentation; Blockade owns model-backed
+observation and interpretation of text, images, and sound; Board owns the input
+and output device contract. Cymonkey links their public Go libraries into its
+command binary and can supervise separate provider processes for long-running
+workflows. Optional installed executables register as providers through the
+same library interfaces. See
+[executable provider plugins](cymonkey-plugins.md). Blockade exposes the
+existing image observation contract and a separate provider-backed content
+contract for text, images, and audio. See
 [Cymonkey naming migration](naming-migration.md).
 
 The dependency direction is one way: Cymonkey imports the public Jangolova,
@@ -95,16 +95,16 @@ External agent, IDE, or application
     │   ├─ browser and desktop interaction
     │   └─ dynamic web and render presentation
     │       → caller-owned targets
-    └─ Blockade inference interfaces
+    └─ Blockade content interpretation interfaces
         ├─ local model backends
         └─ registered cloud/provider adapters
-            → normalized inference evidence
+            → normalized evidence and interpretations
 ```
 
 Jangolova supports Playwright, Puppeteer, CDP, WebDriver BiDi, Safari MCP,
 caller-owned WebExtensions, desktop helpers, and render libraries. Blockade
-currently accepts images from approved captures or other callers. Sound
-inference belongs to its boundary once its request contract is defined.
+accepts images from approved captures or other callers. Its content contract
+also accepts text and audio when a capable model provider is installed.
 
 Endpoint and handle flow is inward: the operator creates a target and gives
 Jangolova its connection coordinates. Jangolova never returns a newly created

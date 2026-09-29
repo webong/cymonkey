@@ -5,6 +5,8 @@
   "oneOf": [
     {"$ref": "#/$defs/observeRequest"},
     {"$ref": "#/$defs/observeResponse"},
+    {"$ref": "#/$defs/interpretRequest"},
+    {"$ref": "#/$defs/interpretResponse"},
     {"$ref": "#/$defs/capabilities"},
     {"$ref": "#/$defs/health"}
   ],
@@ -35,6 +37,24 @@
       "properties": {
         "apiVersion": {"const": "blockade.provider-adapter/v1alpha1"},
         "response": {"$ref": "observation.schema.json"}
+      },
+      "additionalProperties": false
+    },
+    "interpretRequest": {
+      "type": "object",
+      "required": ["apiVersion", "request"],
+      "properties": {
+        "apiVersion": {"const": "blockade.provider-adapter/v1alpha1"},
+        "request": {"$ref": "content-request.schema.json"}
+      },
+      "additionalProperties": false
+    },
+    "interpretResponse": {
+      "type": "object",
+      "required": ["apiVersion", "response"],
+      "properties": {
+        "apiVersion": {"const": "blockade.provider-adapter/v1alpha1"},
+        "response": {"$ref": "content-response.schema.json"}
       },
       "additionalProperties": false
     },

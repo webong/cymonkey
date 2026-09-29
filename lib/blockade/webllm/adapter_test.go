@@ -237,7 +237,7 @@ func TestCapabilitiesReportVisionLanguage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if capabilities.APIVersion != blockade.ProviderAdapterAPIVersion || len(capabilities.Capabilities) != 1 || capabilities.Capabilities[0] != blockade.CapabilityVisionLanguage {
+	if capabilities.APIVersion != blockade.ProviderAdapterAPIVersion || len(capabilities.Capabilities) != 2 || capabilities.Capabilities[0] != blockade.CapabilityImageObserve || capabilities.Capabilities[1] != blockade.CapabilityVisionLanguage {
 		t.Fatalf("capabilities = %#v", capabilities)
 	}
 }

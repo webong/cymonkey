@@ -374,7 +374,7 @@ func (a *Adapter) Capabilities(ctx context.Context) (blockade.ProviderAdapterCap
 	}
 	return blockade.ProviderAdapterCapabilities{
 		APIVersion:   blockade.ProviderAdapterAPIVersion,
-		Capabilities: []string{blockade.CapabilityVisionLanguage},
+		Capabilities: []string{blockade.CapabilityImageObserve, blockade.CapabilityVisionLanguage},
 	}, nil
 }
 

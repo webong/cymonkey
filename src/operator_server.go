@@ -76,6 +76,8 @@ func (server *operatorServer) Routes() http.Handler {
 			server.handleExtension(w, r)
 		case "/v1/observations":
 			server.handleObservation(w, r)
+		case "/v1/interpretations":
+			server.handleInterpretation(w, r)
 		case "/v1/board/devices":
 			server.handleBoardDevices(w, r)
 		case "/v1/board/actions":
@@ -224,10 +226,6 @@ func (server *operatorServer) handleObservation(w http.ResponseWriter, r *http.R
 		operatorError(w, http.StatusMethodNotAllowed, "method_not_allowed", "POST is required")
 		return
 	}
-	if server.config == "" && server.blockadeURL == "" {
-		operatorError(w, http.StatusServiceUnavailable, "observation_unconfigured", "start the operator with --blockade-url or --config to enable observations")
-		return
-	}
 	var request observationOperatorRequest
 	if err := decodeOperatorJSON(w, r, &request); err != nil {
 		operatorError(w, http.StatusBadRequest, "invalid_request", err.Error())
@@ -237,14 +235,10 @@ func (server *operatorServer) handleObservation(w http.ResponseWriter, r *http.R
 		operatorError(w, http.StatusUnprocessableEntity, "invalid_request", "instanceId is required")
 		return
 	}
-	blockadeURL := server.blockadeURL
-	if blockadeURL == "" {
-		config, err := cymonkeyhost.LoadConfig(server.config)
-		if err != nil || config.Observation == nil {
-			operatorError(w, http.StatusServiceUnavailable, "observation_unconfigured", "observation configuration is unavailable")
-			return
-		}
-		blockadeURL = config.Observation.Blockade.Endpoint
+	blockadeURL, err := server.blockadeEndpoint()
+	if err != nil {
+		operatorError(w, http.StatusServiceUnavailable, "observation_unconfigured", err.Error())
+		return
 	}
 	coordinator, err := observation.NewObservationCoordinatorWithCapture(cymonkeyhost.ObservationConfig{Blockade: cymonkeyhost.ObservationBlockadeConfig{Endpoint: blockadeURL}}, server.captureLocal)
 	if err != nil {
@@ -298,7 +292,11 @@ func (server *operatorServer) engineRequest(ctx context.Context, method, path st
 }
 
 func decodeOperatorJSON(w http.ResponseWriter, r *http.Request, value any) error {
-	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1024*1024))
+	return decodeOperatorJSONLimit(w, r, value, 1024*1024)
+}
+
+func decodeOperatorJSONLimit(w http.ResponseWriter, r *http.Request, value any, limit int64) error {
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, limit))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(value); err != nil {
 		return err

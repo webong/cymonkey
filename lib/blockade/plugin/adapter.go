@@ -4,6 +4,7 @@ package blockadeplugin
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	"blockade"
@@ -34,7 +35,32 @@ func Register(registry *blockade.ProviderAdapterRegistry, installed providerplug
 			_ = proc.Close()
 			return nil, err
 		}
-		return &adapter{proc: proc, runtime: runtime}, nil
+		base := &adapter{proc: proc, runtime: runtime}
+		reported, err := base.Capabilities(ctx)
+		if err != nil {
+			_ = proc.Close()
+			return nil, err
+		}
+		image := slices.Contains(reported.Capabilities, blockade.CapabilityImageObserve) ||
+			slices.Contains(reported.Capabilities, blockade.CapabilityObjectDetect) ||
+			slices.Contains(reported.Capabilities, blockade.CapabilityObjectSegment) ||
+			slices.Contains(reported.Capabilities, blockade.CapabilityVisionLanguage)
+		content := slices.Contains(reported.Capabilities, blockade.CapabilityTextInterpret) ||
+			slices.Contains(reported.Capabilities, blockade.CapabilityAudioInterpret) ||
+			slices.Contains(reported.Capabilities, blockade.CapabilityImageInterpret) ||
+			slices.Contains(reported.Capabilities, blockade.CapabilityMultimodalInterpret)
+		switch {
+		case image && content:
+			return &multiAdapter{base}, nil
+		case image:
+			return &imageAdapter{base}, nil
+		case content:
+			return &contentAdapter{base}, nil
+		default:
+			// Older image providers may advertise their own capability names.
+			// They used blockade.observe before the content contract existed.
+			return &imageAdapter{base}, nil
+		}
 	})
 }
 
@@ -43,7 +69,7 @@ type adapter struct {
 	runtime blockade.ProviderAdapterRuntime
 }
 
-func (a *adapter) Observe(ctx context.Context, request blockade.ProviderAdapterObserveRequest) (blockade.ProviderAdapterObserveResponse, error) {
+func (a *adapter) observe(ctx context.Context, request blockade.ProviderAdapterObserveRequest) (blockade.ProviderAdapterObserveResponse, error) {
 	secrets := make(map[string]string, len(a.runtime.SecretNames))
 	for _, name := range a.runtime.SecretNames {
 		value, err := a.runtime.Secrets.Resolve(ctx, name)
@@ -55,6 +81,44 @@ func (a *adapter) Observe(ctx context.Context, request blockade.ProviderAdapterO
 	var result blockade.ProviderAdapterObserveResponse
 	err := a.proc.Call(ctx, "blockade.observe", map[string]any{"request": request, "secrets": secrets}, &result)
 	return result, err
+}
+func (a *adapter) interpret(ctx context.Context, request blockade.ProviderAdapterInterpretRequest) (blockade.ProviderAdapterInterpretResponse, error) {
+	secrets := make(map[string]string, len(a.runtime.SecretNames))
+	for _, name := range a.runtime.SecretNames {
+		value, err := a.runtime.Secrets.Resolve(ctx, name)
+		if err != nil {
+			return blockade.ProviderAdapterInterpretResponse{}, err
+		}
+		secrets[name] = value
+	}
+	var result blockade.ProviderAdapterInterpretResponse
+	err := a.proc.Call(ctx, "blockade.interpret", map[string]any{"request": request, "secrets": secrets}, &result)
+	return result, err
+}
+
+type imageAdapter struct{ *adapter }
+
+func (a *imageAdapter) Observe(ctx context.Context, request blockade.ProviderAdapterObserveRequest) (blockade.ProviderAdapterObserveResponse, error) {
+	return a.observe(ctx, request)
+}
+
+type contentAdapter struct{ *adapter }
+
+func (a *contentAdapter) Observe(context.Context, blockade.ProviderAdapterObserveRequest) (blockade.ProviderAdapterObserveResponse, error) {
+	return blockade.ProviderAdapterObserveResponse{}, blockade.ErrModalityUnsupported
+}
+
+func (a *contentAdapter) Interpret(ctx context.Context, request blockade.ProviderAdapterInterpretRequest) (blockade.ProviderAdapterInterpretResponse, error) {
+	return a.interpret(ctx, request)
+}
+
+type multiAdapter struct{ *adapter }
+
+func (a *multiAdapter) Observe(ctx context.Context, request blockade.ProviderAdapterObserveRequest) (blockade.ProviderAdapterObserveResponse, error) {
+	return a.observe(ctx, request)
+}
+func (a *multiAdapter) Interpret(ctx context.Context, request blockade.ProviderAdapterInterpretRequest) (blockade.ProviderAdapterInterpretResponse, error) {
+	return a.interpret(ctx, request)
 }
 func (a *adapter) Capabilities(ctx context.Context) (blockade.ProviderAdapterCapabilities, error) {
 	var value blockade.ProviderAdapterCapabilities

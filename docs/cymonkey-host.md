@@ -1,15 +1,16 @@
 # Cymonkey host and operator
 
-Cymonkey is the composition layer around two standalone libraries:
+Cymonkey is the composition layer around three standalone libraries:
 
 ```text
 Cymonkey host
-  ├─ blockade     local and cloud inference interfaces (image now; sound planned)
-  └─ jangolova    display interaction, presentation, and direct MCP tools
+  ├─ blockade     image observation and provider-backed content interpretation
+  ├─ jangolova    display interaction, presentation, and direct MCP tools
+  └─ board        input and output device providers
 ```
 
 The host owns process lifecycle, composition configuration, and operator-level
-coordination. It does not absorb either library's implementation or make the
+coordination. It does not absorb any library's implementation or make the
 libraries depend on the host.
 
 ## Standalone boundaries

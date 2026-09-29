@@ -26,18 +26,105 @@ func Run(args []string, stdout, stderr io.Writer) error {
 
 func RunWithProviderAdapters(args []string, stdout, stderr io.Writer, registry *blockade.ProviderAdapterRegistry, resolver blockade.SecretResolver) error {
 	if len(args) == 0 {
-		return errors.New("blockade requires validate, observe, or serve")
+		return errors.New("blockade requires validate, observe, interpret, or serve")
 	}
 	switch args[0] {
 	case "validate":
 		return validateCommand(args[1:], stdout)
 	case "observe":
 		return observeCommand(args[1:], stdout, registry, resolver)
+	case "interpret":
+		return interpretCommand(args[1:], stdout, registry, resolver)
 	case "serve":
 		return serveCommand(args[1:], stderr, registry, resolver)
 	default:
 		return fmt.Errorf("unknown blockade command %q", args[0])
 	}
+}
+
+func interpretCommand(args []string, stdout io.Writer, registry *blockade.ProviderAdapterRegistry, resolver blockade.SecretResolver) error {
+	flags := flag.NewFlagSet("blockade interpret", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	configPath := flags.String("config", "", "Blockade YAML config")
+	inferenceID := flags.String("inference", "", "model adapter id")
+	text := flags.String("text", "", "text content")
+	textFile := flags.String("text-file", "", "UTF-8 text file")
+	imagePath := flags.String("image", "", "image file")
+	audioPath := flags.String("audio", "", "audio file")
+	audioType := flags.String("audio-type", "", "audio MIME type, such as audio/wav")
+	prompt := flags.String("prompt", "", "optional interpretation prompt")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if flags.NArg() != 0 || strings.TrimSpace(*configPath) == "" {
+		return errors.New("blockade interpret requires --config and content flags")
+	}
+	parts := make([]blockade.ContentPart, 0, 4)
+	if *text != "" {
+		parts = append(parts, blockade.ContentPart{Kind: "text", Text: *text})
+	}
+	if *textFile != "" {
+		data, err := readInterpretFile(*textFile)
+		if err != nil {
+			return err
+		}
+		parts = append(parts, blockade.ContentPart{Kind: "text", Text: string(data)})
+	}
+	if *imagePath != "" {
+		data, err := readInterpretFile(*imagePath)
+		if err != nil {
+			return err
+		}
+		parts = append(parts, blockade.ContentPart{Kind: "image", MediaType: http.DetectContentType(data), Data: data})
+	}
+	if *audioPath != "" {
+		if *audioType == "" {
+			return errors.New("--audio-type is required with --audio")
+		}
+		data, err := readInterpretFile(*audioPath)
+		if err != nil {
+			return err
+		}
+		parts = append(parts, blockade.ContentPart{Kind: "audio", MediaType: *audioType, Data: data})
+	}
+	request := blockade.InterpretRequest{APIVersion: blockade.ContentAPIVersion, Parts: parts, Prompt: *prompt}
+	if err := blockade.ValidateInterpretRequest(request); err != nil {
+		return err
+	}
+	config, err := blockade.LoadConfig(*configPath)
+	if err != nil {
+		return err
+	}
+	selected, err := selectInference(config, *inferenceID, "")
+	if err != nil {
+		return err
+	}
+	started, err := blockade.StartConfiguredInference(context.Background(), selected, registry, resolver)
+	if err != nil {
+		return err
+	}
+	defer started.Close()
+	result, err := (blockade.Client{Engine: started}).Interpret(context.Background(), request)
+	if err != nil {
+		return err
+	}
+	return json.NewEncoder(stdout).Encode(result)
+}
+
+func readInterpretFile(path string) ([]byte, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	data, err := io.ReadAll(io.LimitReader(file, (10<<20)+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(data) > 10<<20 {
+		return nil, errors.New("content file exceeds 10 MiB")
+	}
+	return data, nil
 }
 
 func validateCommand(args []string, stdout io.Writer) error {
