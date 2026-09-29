@@ -1,9 +1,9 @@
 # Unreal Cymonkey GPU fixture
 
 This image is the packaged Unreal 5.8 conformance fixture built from
-`pkg/unreal-cymonkey` and `tests/unreal-cymonkey-fixture`. It is intended for
+`pkg/unreal` and `tests/unreal-cymonkey-fixture`. It is intended for
 headless CI, RunPod, or another Linux `amd64` container host. It is separate
-from the distributable plugin: use the [plugin README](../../../pkg/unreal-cymonkey/README.md)
+from the distributable plugin: use the [plugin README](../../../pkg/unreal/README.md)
 when integrating Cymonkey into your own Unreal project.
 
 ## Pull the published image

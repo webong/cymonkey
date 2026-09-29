@@ -44,7 +44,7 @@ The host mounts this backend explicitly:
 ```go
 import (
     jangolova "jangolova"
-    effecthouse "cymonkey/pkg/effect-house-cymonkey"
+    effecthouse "cymonkey/pkg/effect-house"
 )
 
 adapter := jangolova.Adapter{
@@ -107,7 +107,7 @@ the replacement to fail rather than overwrite it.
 Run the deterministic fixture:
 
 ```sh
-go test ./pkg/effect-house-cymonkey
+go test ./pkg/effect-house
 ```
 
 It verifies contract conformance, explicit resource visibility, stale-write

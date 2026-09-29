@@ -214,10 +214,10 @@ src/protocol/browser-extension/ schema, recorded exchanges, and generated bindin
 tests/cymonkey-core-conformance.mjs  portable Cymonkey contract checks
 pkg/browser-adapter/            composable browser API, policy, and package library
 pkg/extension-manager/         management API interface with optional host installation adapter
-pkg/macos-cymonkey-helper/       caller-owned Swift Apple Events/Accessibility binding
+pkg/macos-helper/       caller-owned Swift Apple Events/Accessibility binding
 pkg/macos-browser-adapter/      reusable Swift catalog and managed-runtime controller
 pkg/userscript-runtime/          shared userscript validation and registration planning
-pkg/threejs-cymonkey/            explicit-registration Three.js runtime
+pkg/threejs/            explicit-registration Three.js runtime
 pkg/                             distributable Godot, Unity, and Unreal Cymonkey packages
 tests/godot-cymonkey-fixture/    license-free Godot conformance project
 tests/unreal-cymonkey-fixture/   caller-owned Unreal conformance project

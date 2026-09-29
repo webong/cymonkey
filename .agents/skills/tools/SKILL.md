@@ -1,5 +1,5 @@
 ---
-name: jangolova-agent-tools
+name: tools
 description: Attach and operate caller-owned Jangolova targets through MCP, HTTP, or CLI. Use when an agent needs to control a browser, native viewer, or Cymonkey render runtime; do not use to provision or launch a target runtime.
 ---
 

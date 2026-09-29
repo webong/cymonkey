@@ -16,4 +16,4 @@ security policy, browser permissions, consent UI,
 and offscreen document that actually obtains media. A sandbox must not receive
 privileged extension APIs or a general remote-code loader. Camera Kit is an
 example package that needs such a host; its runtime code is in
-[`pkg/snapchat-camera-kit-cymonkey`](../pkg/snapchat-camera-kit-cymonkey/README.md).
+[`pkg/snapchat-camera-kit`](../pkg/snapchat-camera-kit/README.md).

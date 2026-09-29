@@ -2,12 +2,12 @@ ARG GODOT_IMAGE=barichello/godot-ci:4.3
 FROM ${GODOT_IMAGE}
 
 WORKDIR /workspace
-COPY pkg/godot-cymonkey ./pkg/godot-cymonkey
+COPY pkg/godot ./pkg/godot
 COPY tests/godot-cymonkey-fixture ./tests/godot-cymonkey-fixture
-COPY deploy/godot-cymonkey-gpu/run-fixture.sh /usr/local/bin/run-godot-cymonkey-gpu
+COPY infra/deploy/godot-cymonkey-gpu/run-fixture.sh /usr/local/bin/run-godot-cymonkey-gpu
 
 RUN mkdir -p tests/godot-cymonkey-fixture/addons \
-    && cp -R pkg/godot-cymonkey/addons/jangolova_cymonkey tests/godot-cymonkey-fixture/addons/jangolova_cymonkey \
+    && cp -R pkg/godot/addons/jangolova_cymonkey tests/godot-cymonkey-fixture/addons/jangolova_cymonkey \
     && mkdir -p /workspace/artifacts \
     && chmod 0777 /workspace/artifacts \
     && chmod +x /usr/local/bin/run-godot-cymonkey-gpu \

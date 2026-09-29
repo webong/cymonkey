@@ -80,7 +80,7 @@ Passed focused race checks:
 ```sh
 go test -race ./lib/jangolova ./lib/jangolova/... \
   ./src ./src/internal/engineprovider \
-  ./src/internal/provider ./pkg/lens-studio-cymonkey
+  ./src/internal/provider ./pkg/lens-studio
 ```
 
 Includes public dependency enforcement, external backend registration, explicit

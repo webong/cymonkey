@@ -17,7 +17,7 @@ or control of the Windows secure desktop.
 Build on a Windows machine or cross-compile from the repository root:
 
 ```powershell
-go build -o cymonkey-windows-helper.exe ./pkg/windows-cymonkey-helper
+go build -o cymonkey-windows-helper.exe ./pkg/windows-helper
 ```
 
 Set these launch variables; do not put them in the JSON configuration:

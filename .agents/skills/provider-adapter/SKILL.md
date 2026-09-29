@@ -1,5 +1,5 @@
 ---
-name: blockade-provider-adapter
+name: provider-adapter
 description: Create or update Blockade-owned custom vision/VLM provider adapters that map provider responses to Blockade observations. Use when adding a hosted VLM, cloud-vision endpoint, or provider-specific response mapping; do not use for Blockade local inference engines or Jangolova target interaction.
 ---
 

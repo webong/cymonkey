@@ -28,11 +28,11 @@ The stable public names are module IDs, not repository directory names:
 | Module ID | Runtime | State | Current distribution path |
 | --- | --- | --- | --- |
 | `render/browser-dom` | Browser document/augmentation | implemented | `scripts/cymonkey-worker.mjs`, `pkg/browser-adapter` |
-| `render/threejs` | Three.js | implemented | `pkg/threejs-cymonkey` |
-| `render/godot` | Godot 4 | implemented | `pkg/godot-cymonkey` |
-| `render/unity` | Unity | implemented | `pkg/unity-cymonkey` |
-| `render/unreal` | Unreal Engine | implemented | `pkg/unreal-cymonkey` |
-| `render/snapchat-camera-kit` | Snap Camera Kit Web | implemented | `pkg/snapchat-camera-kit-cymonkey` |
+| `render/threejs` | Three.js | implemented | `pkg/threejs` |
+| `render/godot` | Godot 4 | implemented | `pkg/godot` |
+| `render/unity` | Unity | implemented | `pkg/unity` |
+| `render/unreal` | Unreal Engine | implemented | `pkg/unreal` |
+| `render/snapchat-camera-kit` | Snap Camera Kit Web | implemented | `pkg/snapchat-camera-kit` |
 | `render/blender` | Blender | implemented | `pkg/blender` |
 
 The `*-cymonkey` directories are compatibility source paths retained while

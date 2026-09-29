@@ -1,4 +1,0 @@
-interface:
-  display_name: "Jangolova Engine Setup"
-  short_description: "Provision Cymonkey engine runtimes"
-  default_prompt: "Use $jangolova-engine-setup to provision and verify a Jangolova Cymonkey engine runtime."

@@ -31,7 +31,7 @@ a composed Chrome/Edge extension.
 Build the package with:
 
 ```sh
-npm --prefix pkg/snapchat-camera-kit-cymonkey run build
+npm --prefix pkg/snapchat-camera-kit run build
 ```
 
 The integrating extension decides where to include the output and how to

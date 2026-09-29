@@ -5,12 +5,12 @@ FROM ${UE_BUILD_IMAGE} AS builder
 ARG UE_ROOT=/opt/UnrealEngine
 USER root
 WORKDIR /workspace
-COPY pkg/unreal-cymonkey ./pkg/unreal-cymonkey
+COPY pkg/unreal ./pkg/unreal
 COPY tests/unreal-cymonkey-fixture ./tests/unreal-cymonkey-fixture
 
 RUN test -x "${UE_ROOT}/Engine/Build/BatchFiles/RunUAT.sh"
 RUN "${UE_ROOT}/Engine/Build/BatchFiles/RunUAT.sh" BuildPlugin \
-    -Plugin="/workspace/pkg/unreal-cymonkey/JangolovaCymonkey.uplugin" \
+    -Plugin="/workspace/pkg/unreal/JangolovaCymonkey.uplugin" \
     -Package="/out/JangolovaCymonkey" \
     -Rocket \
     -TargetPlatforms=Linux \
@@ -44,7 +44,7 @@ ARG UE_RUNTIME_USER=root
 USER root
 WORKDIR /opt/unreal-cymonkey-fixture
 COPY --from=builder /out/UnrealPacmanFixture ./
-COPY deploy/unreal-cymonkey-gpu/run-fixture.sh /usr/local/bin/run-unreal-cymonkey-gpu
+COPY infra/deploy/unreal-cymonkey-gpu/run-fixture.sh /usr/local/bin/run-unreal-cymonkey-gpu
 
 RUN chmod +x /usr/local/bin/run-unreal-cymonkey-gpu \
     && mkdir -p /workspace/artifacts \

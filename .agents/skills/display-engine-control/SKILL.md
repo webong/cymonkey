@@ -1,5 +1,5 @@
 ---
-name: jangolova-engine-control
+name: display-engine-control
 description: Connect Jangolova to an authenticated Cymonkey WebSocket and control explicitly registered engine resources using hello, capabilities, describe, act, events, and health. Use when an agent needs to inspect or manipulate a running Godot, Unity, or Unreal runtime.
 ---
 

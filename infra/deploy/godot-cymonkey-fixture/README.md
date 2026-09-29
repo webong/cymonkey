@@ -1,7 +1,7 @@
 # Godot Cymonkey fixture image
 
 This image is the first license-free Cymonkey render runtime environment. It uses a
-Godot 4 Linux image, copies `pkg/godot-cymonkey` into the fixture project, and
+Godot 4 Linux image, copies `pkg/godot` into the fixture project, and
 starts Godot headless. The runtime has no display or GPU requirement.
 
 Build locally or in CI:

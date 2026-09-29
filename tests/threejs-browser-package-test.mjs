@@ -8,8 +8,8 @@ const source = (path) => readFile(new URL(path, root), 'utf8');
 
 test('Three.js is a reusable augmentation package', async () => {
   const [manifestText, packageSource] = await Promise.all([
-    source('pkg/threejs-cymonkey/browser-package.json'),
-    source('pkg/threejs-cymonkey/src/content.ts'),
+    source('pkg/threejs/browser-package.json'),
+    source('pkg/threejs/src/content.ts'),
   ]);
   const manifest = JSON.parse(manifestText);
   assert.deepEqual(manifest.spec.deliveries, [{
@@ -23,7 +23,7 @@ test('Three.js is a reusable augmentation package', async () => {
 });
 
 test('the bundled content entrypoint registers a usable private factory', async () => {
-  const bundle = await source('pkg/threejs-cymonkey/dist/content.js');
+  const bundle = await source('pkg/threejs/dist/content.js');
   const context = vm.createContext({});
   vm.runInContext(bundle, context);
   const factory = vm.runInContext("globalThis[Symbol.for('cymonkey.jangolova.browser-package.factories')].get('threejs')", context);

@@ -4,9 +4,9 @@ FROM ${UNITY_EDITOR_IMAGE}
 ARG UNITY_CONTAINER_USER=root
 USER root
 WORKDIR /workspace
-COPY pkg/unity-cymonkey ./pkg/unity-cymonkey
+COPY pkg/unity ./pkg/unity
 COPY tests/unity-cymonkey-fixture ./tests/unity-cymonkey-fixture
-COPY deploy/unity-cymonkey-gpu/run-fixture.sh /usr/local/bin/run-unity-cymonkey-gpu
+COPY infra/deploy/unity-cymonkey-gpu/run-fixture.sh /usr/local/bin/run-unity-cymonkey-gpu
 
 RUN chmod +x /usr/local/bin/run-unity-cymonkey-gpu \
     && chmod -R a+rwX /workspace/tests/unity-cymonkey-fixture \

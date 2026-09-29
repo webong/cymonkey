@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const root = new URL("../pkg/unreal-cymonkey/", import.meta.url);
+const root = new URL("../pkg/unreal/", import.meta.url);
 const plugin = JSON.parse(await readFile(new URL("JangolovaCymonkey.uplugin", root)));
 const protocol = await readFile(new URL("Source/JangolovaCymonkey/Public/CymonkeyProtocol.h", root), "utf8");
 const registryHeader = await readFile(new URL("Source/JangolovaCymonkey/Public/CymonkeyRegistryComponent.h", root), "utf8");

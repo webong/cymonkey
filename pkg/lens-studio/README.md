@@ -38,7 +38,7 @@ The runtime owner registers the package explicitly; importing it is not enough:
 ```go
 import (
     jangolova "jangolova"
-    lensstudio "cymonkey/pkg/lens-studio-cymonkey"
+    lensstudio "cymonkey/pkg/lens-studio"
 )
 
 adapter := jangolova.Adapter{
@@ -103,7 +103,7 @@ write and for preview execution.
 Run the deterministic MCP fixture tests:
 
 ```sh
-go test ./pkg/lens-studio-cymonkey
+go test ./pkg/lens-studio
 ```
 
 The fixture covers the Streamable HTTP initialization sequence, session reuse,

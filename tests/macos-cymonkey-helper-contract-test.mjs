@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-const root = new URL('../pkg/macos-cymonkey-helper/', import.meta.url);
+const root = new URL('../pkg/macos-helper/', import.meta.url);
 const source = async (path) => readFile(new URL(path, root), 'utf8');
 
 test('macOS helper is caller-owned and consumes Cymonkey v1alpha1', async () => {

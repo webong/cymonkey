@@ -1,5 +1,5 @@
 ---
-name: jangolova-engine-setup
+name: display-engine-setup
 description: Provision and verify Jangolova Cymonkey render integrations and headless container environments for Godot, Unity, and Unreal. Use when setting up a Cymonkey runtime, building or pulling an engine image, configuring a server, or preparing a RunPod or CPU test host.
 ---
 
@@ -10,7 +10,7 @@ Use this skill when an agent must make an engine controllable by Jangolova. Keep
 ## Choose the runtime
 
 - Godot: build `infra/deploy/godot-cymonkey-gpu/Containerfile`; it is the license-free reference runtime.
-- Unreal: pull `ghcr.io/webong/jangolova/unreal-cymonkey-gpu:5.8` for the packaged fixture, or install `pkg/unreal-cymonkey` from the GitHub Release for a custom project.
+- Unreal: pull `ghcr.io/webong/jangolova/unreal-cymonkey-gpu:5.8` for the packaged fixture, or install `pkg/unreal` from the GitHub Release for a custom project.
 - Unity: supply a licensed private Unity Linux Editor base; never invent or embed Unity credentials.
 
 Read [references/runtime-matrix.md](references/runtime-matrix.md) for engine-specific requirements.

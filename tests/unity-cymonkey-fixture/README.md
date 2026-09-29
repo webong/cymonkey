@@ -1,6 +1,6 @@
 # Unity Cymonkey headless fixture
 
-This source-only Unity 2022.3 project exercises `pkg/unity-cymonkey` in an
+This source-only Unity 2022.3 project exercises `pkg/unity` in an
 operator-supplied Linux Editor container. It deliberately does not depend on a
 Unity installation on the developer's Mac.
 

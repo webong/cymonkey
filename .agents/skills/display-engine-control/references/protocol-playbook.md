@@ -1,4 +1,4 @@
-# Cymonkey engine-profile protocol playbook
+# Display engine-profile protocol playbook
 
 Shared methods:
 

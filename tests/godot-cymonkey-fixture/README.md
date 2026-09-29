@@ -1,7 +1,7 @@
 # Godot Cymonkey headless fixture
 
 This Godot 4 project is the license-free reference fixture for
-`pkg/godot-cymonkey`. The container copies the package into the project, launches
+`pkg/godot`. The container copies the package into the project, launches
 the scene with `--headless`, and exposes the explicitly registered
 The fixture draws a small house from Godot primitives and exposes its
 explicitly registered semantic resources through an authenticated `websocket`

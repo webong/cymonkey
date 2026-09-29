@@ -1,0 +1,4 @@
+interface:
+  display_name: "Engine Control"
+  short_description: "Control registered Cymonkey resources"
+  default_prompt: "Use $display-engine-control to inspect and control a running Cymonkey endpoint."

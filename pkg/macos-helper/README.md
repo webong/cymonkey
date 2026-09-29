@@ -25,8 +25,8 @@ system-wide Accessibility tree dumps.
 ## Build and test
 
 ```sh
-swift build --package-path pkg/macos-cymonkey-helper
-swift test --package-path pkg/macos-cymonkey-helper
+swift build --package-path pkg/macos-helper
+swift test --package-path pkg/macos-helper
 ```
 
 The resulting command-line executable is intentionally unsigned in repository
@@ -44,7 +44,7 @@ release binary with:
 
 ```sh
 CODESIGN_IDENTITY="Developer ID Application: Example Corp (TEAMID)" \
-  pkg/macos-cymonkey-helper/scripts/build-and-sign.sh /owner/output/cymonkey-macos-helper
+  pkg/macos-helper/scripts/build-and-sign.sh /owner/output/cymonkey-macos-helper
 ```
 
 Set `CYMONKEY_ENTITLEMENTS` only when the chosen distribution model requires a

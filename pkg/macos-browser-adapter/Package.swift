@@ -8,13 +8,13 @@ let package = Package(
         .library(name: "JangolovaMacCore", targets: ["JangolovaMacCore"]),
     ],
     dependencies: [
-        .package(path: "../macos-cymonkey-helper"),
+        .package(path: "../macos-helper"),
     ],
     targets: [
         .target(
             name: "JangolovaMacCore",
             dependencies: [
-                .product(name: "CymonkeyMacOSRuntime", package: "macos-cymonkey-helper"),
+                .product(name: "CymonkeyMacOSRuntime", package: "macos-helper"),
             ]
         ),
         .testTarget(name: "JangolovaMacCoreTests", dependencies: ["JangolovaMacCore"]),

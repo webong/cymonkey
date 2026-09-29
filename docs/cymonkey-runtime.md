@@ -229,7 +229,7 @@ does not authorize an Accessibility mutation, and vice versa.
 
 ## Native helper attachment
 
-`pkg/macos-cymonkey-helper` is the reference Swift binding. It uses AppKit's
+`pkg/macos-helper` is the reference Swift binding. It uses AppKit's
 Apple Event descriptors and the `AXUIElement` APIs, but remains a process owned
 by the native target provider:
 

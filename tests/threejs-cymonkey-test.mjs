@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { CYMONKEY_PROTOCOL_VERSION, CYMONKEY_RUNTIME_SYMBOL, ThreeJSCymonkey } from "../pkg/threejs-cymonkey/dist/index.js";
+import { CYMONKEY_PROTOCOL_VERSION, CYMONKEY_RUNTIME_SYMBOL, ThreeJSCymonkey } from "../pkg/threejs/dist/index.js";
 
 test("Three.js Cymonkey exposes only explicitly registered resources", async () => {
   const runtime = new ThreeJSCymonkey();
