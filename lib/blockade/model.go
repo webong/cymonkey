@@ -255,7 +255,7 @@ func parseModelReference(reference string) (string, string, error) {
 }
 
 // ResolveInstalledModel re-verifies artifact digests before a provider loads
-// the model. The provider name comes from the configured provider executable.
+// the model. The provider name comes from the configured provider package.
 func ResolveInstalledModel(root, provider, reference string) (InstalledModel, error) {
 	if !modelNamePattern.MatchString(provider) {
 		return InstalledModel{}, errors.New("model provider name is invalid")

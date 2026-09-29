@@ -1,0 +1,8 @@
+{
+  "apiVersion": "blockade.provider-package/v1alpha1",
+  "runtime": {
+    "name": "python",
+    "version": "3.12.8"
+  },
+  "entrypoint": "python/provider.py"
+}

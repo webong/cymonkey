@@ -12,8 +12,8 @@ agent or application
   -> Cymonkey coordination, when used
   -> Blockade public request
   -> Blockade validation and provider selection
-  -> executable provider
-       -> local model runtime, operating system runtime, browser runtime,
+  -> provider package
+       -> Blockade-managed local runtime, operating system runtime, browser runtime,
           or cloud model service
   -> Blockade validated response
   -> agent or application decides what happens next
@@ -25,7 +25,7 @@ flow, Jangolova captures approved pixels, Cymonkey passes those pixels to
 Blockade, and the caller decides whether to request a later action.
 
 Neither Blockade nor its providers depend on Cymonkey. Cymonkey discovers
-installed executables through a generic package inventory and hands packages
+installed packages through a generic package inventory and hands packages
 that declare `blockade.provider@v1alpha1` to Blockade's plugin adapter. Its
 internal orchestration packages do not know provider names such as `onnx`,
 `local-ultralytics`, or `webllm`.
@@ -56,7 +56,7 @@ Example `plugin.json`:
 }
 ```
 
-`blockade.provider` is the protocol an executable implements. It is not an
+`blockade.provider` is the protocol a package implements. It is not an
 implementation name and it does not mean Cymonkey contains ONNX or any other
 runtime.
 
@@ -73,6 +73,12 @@ The provider process supports a handshake plus Blockade owned methods:
 The request and response envelope is
 `blockade.provider-adapter/v1alpha1`. Blockade validates versions, request IDs,
 payload bounds, capabilities, normalized output, timeouts, and error kinds.
+
+For a source package, Blockade ownership means Blockade installs and verifies a
+complete runtime distribution, chooses the runtime executable, creates the
+configured number of processes, and stops them. The provider cannot supply a
+host command or fall back to `python3` on `PATH`; it supplies its entrypoint and
+the files needed by its inference implementation.
 
 ## Configuration
 
@@ -98,7 +104,7 @@ providers:
         env: BLOCKADE_CONTENT_TOKEN
 ```
 
-`id` names a configured instance. `provider` names an installed executable.
+`id` names a configured instance. `provider` names an installed package.
 `--inference` selects the instance ID. Provider settings remain opaque strings
 to Blockade. Credential shaped settings are rejected; secrets use environment
 references and are resolved only when requested.
@@ -108,7 +114,7 @@ references and are resolved only when requested.
 Provider installation and model installation are separate:
 
 ```text
-install provider executable
+install provider package
   -> Blockade can speak to a runtime implementation
 
 install model manifest and artifacts
@@ -121,7 +127,8 @@ install model manifest and artifacts
 start inference
   -> verify installed digests
   -> pass installed model to the selected provider
-  -> provider initializes its runtime
+  -> Blockade starts configured workers
+  -> provider initializes inference
 ```
 
 The inspection process is separate from provider startup. This lets an ONNX
@@ -148,8 +155,10 @@ which roles, formats, architectures, and capabilities it accepts.
 | [`providers/blockade-webllm`](../providers/blockade-webllm/) | Remote WebLLM model ID and local browser cache | Image observation and vision language output through WebGPU. |
 
 The providers are repository modules for development and distribution. The
-Cymonkey binary does not import them. Build each executable, create its
-manifest, and install it through `cymonkey plugins install`.
+Cymonkey binary does not import them. ONNX and WebLLM build as executables.
+Ultralytics is packaged as source and runs with a Python distribution installed
+through `cymonkey blockade runtime install`. All use `cymonkey plugins install`
+for the provider package itself.
 
 Text and audio contracts are complete, but this repository does not yet ship a
 production text or sound provider. A separately supplied executable can

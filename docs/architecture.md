@@ -7,7 +7,7 @@ and output device contract. Cymonkey links their public Go libraries into its
 command binary and can supervise separate provider processes for long-running
 workflows. Optional installed executables register as providers through the
 same library interfaces. See
-[executable provider plugins](cymonkey-plugins.md). Blockade exposes the
+[provider packages](cymonkey-plugins.md). Blockade exposes the
 existing image observation contract and a separate provider-backed content
 contract for text, images, and audio. See
 [Cymonkey naming migration](naming-migration.md).

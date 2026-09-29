@@ -200,6 +200,6 @@ Commands:
   operator                Serve or call the unified Cymonkey operator API
   board                   Run the Board device interface
   blockade                Run the Blockade inference interface
-  plugins                 Install and inspect executable providers
+  plugins                 Install and inspect provider packages
   native-bridge-fixture   Run the native bridge fixture`)
 }

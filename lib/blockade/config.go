@@ -28,6 +28,7 @@ type ProviderAdapterConfig struct {
 	Provider        string                     `yaml:"provider"`
 	Model           string                     `yaml:"model,omitempty"`
 	ModelRoot       string                     `yaml:"modelRoot,omitempty"`
+	Workers         int                        `yaml:"workers,omitempty"`
 	Timeout         string                     `yaml:"timeout,omitempty"`
 	MaxPayloadBytes int64                      `yaml:"maxPayloadBytes,omitempty"`
 	Settings        map[string]string          `yaml:"settings,omitempty"`
@@ -132,6 +133,9 @@ func (c ProviderAdapterConfig) validate() error {
 	if c.ModelRoot != "" && !filepath.IsAbs(c.ModelRoot) {
 		return fmt.Errorf("Blockade provider adapter %q modelRoot must be absolute", c.ID)
 	}
+	if c.Workers < 0 || c.Workers > 32 {
+		return fmt.Errorf("Blockade provider adapter %q workers must be between 1 and 32 when set", c.ID)
+	}
 	if _, err := c.parsedTimeout(); err != nil {
 		return err
 	}
@@ -152,6 +156,13 @@ func (c ProviderAdapterConfig) validate() error {
 		}
 	}
 	return nil
+}
+
+func (c ProviderAdapterConfig) workers() int {
+	if c.Workers == 0 {
+		return 1
+	}
+	return c.Workers
 }
 
 func (c ProviderAdapterConfig) parsedTimeout() (time.Duration, error) {

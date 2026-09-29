@@ -157,9 +157,9 @@
 ## Phase 4b: Blockade content interpretation
 
 - [x] Define the provider-neutral Blockade image observation contract.
-- [x] Add a standalone Ultralytics provider with embedded managed Python
-  workers for local YOLO/SAM inference.
-- [x] Add worker-pool lifecycle, framed stdin/stdout IPC, and shutdown.
+- [x] Add a standalone Ultralytics source provider for local YOLO/SAM inference.
+- [x] Make Blockade own managed Python installation, worker-pool lifecycle,
+  framed stdin/stdout IPC, and shutdown.
 - [x] Add provider-only YAML configuration and installed-model validation.
 - [x] Add `cymonkey blockade validate` and `cymonkey blockade observe` CLI flows.
 - [x] Keep Blockade as a read-only observation capability for external agents
@@ -201,9 +201,9 @@
   capability declarations, and provider compatibility checks.
 - [x] Add a Blockade model installer and registry for local artifacts; support
   remote model identifiers for cloud providers without downloading weights.
-- [x] Extract Ultralytics, ONNX, and WebLLM into standalone executable provider
-  modules behind the same contract; remove the legacy engine configuration and
-  direct Python HTTP integration.
+- [x] Extract Ultralytics, ONNX, and WebLLM into standalone provider packages
+  behind the same contract; support both executable and Blockade-run source
+  packages, and remove the direct Python HTTP integration.
 - [x] Separate staged model inspection from long lived inference startup and
   add model list and removal lifecycle commands.
 - [ ] Verify one local and one cloud provider through the same contract and

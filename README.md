@@ -22,7 +22,7 @@ presenting a new dynamic one.
   Blockade. The configured model backend determines which tasks it supports;
   Blockade returns results through its stable contracts.
 - Prepare typed, host-approved input and output device bindings through Board.
-- Install optional executable providers for Jangolova, Blockade, and Board
+- Install optional provider packages for Jangolova, Blockade, and Board
   without rebuilding Cymonkey.
 - Preserve target ownership: a connection may detach, but it never quits a
   browser, terminates an application, or destroys a scene.
@@ -49,8 +49,9 @@ host API requires an explicit
 authorization decision; Cymonkey routes its `board` command to Board's CLI.
 Blockade has separate image observation and provider-backed content contracts.
 Its current provider modules include YOLO/SAM through Ultralytics, YOLO through
-ONNX Runtime, and browser-local WebLLM. They build as separately installed
-executables and are not imported by the Cymonkey binary. Text and sound need a
+ONNX Runtime, and browser-local WebLLM. They are separately installed packages
+and are not imported by the Cymonkey binary. Blockade runs the Ultralytics
+source package through its own managed Python runtime. Text and sound need a
 capable model provider; none is bundled yet. Cymonkey provides the boundary
 through which callers extend and coordinate these libraries.
 
@@ -58,8 +59,8 @@ All three libraries are independently usable. Cymonkey can compose their public
 Go modules and supply the host services that its workflows need; none
 imports Cymonkey or requires the Cymonkey executable.
 
-Library adapters connect at Cymonkey's executable edge. Runtime providers use
-the [executable plugin protocol](docs/cymonkey-plugins.md), with one generic
+Library adapters connect at Cymonkey's package edge. Runtime providers use
+the [provider package protocol](docs/cymonkey-plugins.md), with one generic
 installer and separate library-owned protocol adapters.
 
 ## Quick start

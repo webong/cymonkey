@@ -67,7 +67,34 @@ func Open(ctx context.Context, installed Installed) (*Process, error) {
 	if err != nil {
 		return nil, err
 	}
-	cmd := exec.Command(path)
+	return OpenCommand(ctx, installed, Command{Executable: path})
+}
+
+// Command is a domain-owned launch decision for a verified source package.
+// Executable may live outside the package, such as a Blockade-managed runtime.
+type Command struct {
+	Executable  string
+	Arguments   []string
+	Environment []string
+}
+
+// OpenCommand verifies the entire package before starting it with a runtime
+// chosen by the domain library. The same manifest handshake is still required.
+func OpenCommand(ctx context.Context, installed Installed, launch Command) (*Process, error) {
+	if err := installed.Verify(); err != nil {
+		return nil, err
+	}
+	if launch.Executable == "" {
+		return nil, errors.New("plugin launch executable is required")
+	}
+	info, err := os.Lstat(launch.Executable)
+	if err != nil {
+		return nil, err
+	}
+	if !info.Mode().IsRegular() {
+		return nil, errors.New("plugin launch executable must be a regular file")
+	}
+	cmd := exec.Command(launch.Executable, launch.Arguments...)
 	cmd.WaitDelay = 2 * time.Second
 	cmd.Dir = installed.Directory
 	// Do not inherit arbitrary host credentials. Plugins receive only explicit
@@ -76,6 +103,7 @@ func Open(ctx context.Context, installed Installed) (*Process, error) {
 	if runtime.GOOS == "windows" {
 		cmd.Env = append(cmd.Env, "SystemRoot="+os.Getenv("SystemRoot"))
 	}
+	cmd.Env = append(cmd.Env, launch.Environment...)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, err

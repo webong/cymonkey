@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -60,6 +61,12 @@ func TestManifestRejectsTraversalAndInvalidKinds(t *testing.T) {
 	if err := m.Validate(); err != nil {
 		t.Fatalf("rejected an installed legacy protocol version: %v", err)
 	}
+	m.APIVersion = APIVersion
+	m.Command, m.SHA256 = "", ""
+	m.Files = []PackageFile{{Path: "..", SHA256: strings.Repeat("a", 64)}}
+	if err := m.Validate(); err == nil {
+		t.Fatal("accepted package file traversal")
+	}
 }
 
 func TestManifestSupportsVersionedContracts(t *testing.T) {
@@ -77,6 +84,48 @@ func TestManifestSupportsVersionedContracts(t *testing.T) {
 	m.Kind = "blockade.provider"
 	if err := m.Validate(); err == nil {
 		t.Fatal("accepted ambiguous contracts and legacy kind")
+	}
+}
+
+func TestInstallSourcePackageAndRejectsResourceTampering(t *testing.T) {
+	source := t.TempDir()
+	root := t.TempDir()
+	files := map[string][]byte{
+		"blockade.json":      []byte(`{"runtime":{"name":"python"}}`),
+		"source/provider.py": []byte("print('provider')\n"),
+	}
+	manifest := Manifest{APIVersion: APIVersion, Name: "source-fixture", Version: "1.0.0", Contracts: []Contract{{Name: "blockade.provider", Version: "v1alpha1"}}}
+	for name, content := range files {
+		path := filepath.Join(source, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, content, 0600); err != nil {
+			t.Fatal(err)
+		}
+		hash := sha256.Sum256(content)
+		manifest.Files = append(manifest.Files, PackageFile{Path: name, SHA256: hex.EncodeToString(hash[:])})
+	}
+	encoded, _ := json.Marshal(manifest)
+	manifestPath := filepath.Join(source, "plugin.json")
+	if err := os.WriteFile(manifestPath, encoded, 0600); err != nil {
+		t.Fatal(err)
+	}
+	installed, err := Install(root, manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := installed.Resource("source/provider.py"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := installed.Executable(); err == nil {
+		t.Fatal("source package unexpectedly exposed an executable")
+	}
+	if err := os.WriteFile(filepath.Join(installed.Directory, "source", "provider.py"), []byte("changed"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := List(root); err == nil {
+		t.Fatal("tampered source package remained loadable")
 	}
 }
 

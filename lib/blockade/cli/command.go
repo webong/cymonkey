@@ -26,13 +26,15 @@ func Run(args []string, stdout, stderr io.Writer) error {
 
 func RunWithProviderAdapters(args []string, stdout, stderr io.Writer, registry *blockade.ProviderAdapterRegistry, resolver blockade.SecretResolver) error {
 	if len(args) == 0 {
-		return errors.New("blockade requires validate, model, observe, interpret, or serve")
+		return errors.New("blockade requires validate, model, runtime, observe, interpret, or serve")
 	}
 	switch args[0] {
 	case "validate":
 		return validateCommand(args[1:], stdout)
 	case "model":
 		return modelCommand(args[1:], stdout, registry, resolver)
+	case "runtime":
+		return runtimeCommand(args[1:], stdout)
 	case "observe":
 		return observeCommand(args[1:], stdout, registry, resolver)
 	case "interpret":
@@ -41,6 +43,115 @@ func RunWithProviderAdapters(args []string, stdout, stderr io.Writer, registry *
 		return serveCommand(args[1:], stderr, registry, resolver)
 	default:
 		return fmt.Errorf("unknown blockade command %q", args[0])
+	}
+}
+
+func runtimeCommand(args []string, stdout io.Writer) error {
+	if len(args) == 0 {
+		return errors.New("blockade runtime requires manifest, install, list, or remove")
+	}
+	switch args[0] {
+	case "manifest":
+		flags := flag.NewFlagSet("blockade runtime manifest", flag.ContinueOnError)
+		flags.SetOutput(io.Discard)
+		source := flags.String("source", "", "self-contained runtime directory")
+		name := flags.String("name", "", "runtime name")
+		version := flags.String("version", "", "runtime semantic version")
+		executable := flags.String("executable", "", "runtime-relative executable path")
+		output := flags.String("output", "", "output runtime.json path")
+		if err := flags.Parse(args[1:]); err != nil {
+			return err
+		}
+		if flags.NArg() != 0 || strings.TrimSpace(*source) == "" || strings.TrimSpace(*name) == "" || strings.TrimSpace(*version) == "" || strings.TrimSpace(*executable) == "" || strings.TrimSpace(*output) == "" {
+			return errors.New("blockade runtime manifest requires --source, --name, --version, --executable, and --output")
+		}
+		manifest, err := blockade.BuildRuntimeManifest(*source, strings.TrimSpace(*name), strings.TrimSpace(*version), strings.TrimSpace(*executable))
+		if err != nil {
+			return err
+		}
+		encoded, err := json.MarshalIndent(manifest, "", "  ")
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(*output, append(encoded, '\n'), 0600); err != nil {
+			return err
+		}
+		_, err = fmt.Fprintln(stdout, *output)
+		return err
+	case "install":
+		flags := flag.NewFlagSet("blockade runtime install", flag.ContinueOnError)
+		flags.SetOutput(io.Discard)
+		manifestPath := flags.String("manifest", "", "local runtime.json path")
+		runtimeRoot := flags.String("root", "", "installed runtime directory")
+		if err := flags.Parse(args[1:]); err != nil {
+			return err
+		}
+		if flags.NArg() != 0 || strings.TrimSpace(*manifestPath) == "" {
+			return errors.New("blockade runtime install requires --manifest")
+		}
+		root := strings.TrimSpace(*runtimeRoot)
+		var err error
+		if root == "" {
+			root, err = blockade.DefaultRuntimeRoot()
+			if err != nil {
+				return err
+			}
+		}
+		installed, err := blockade.InstallRuntime(root, *manifestPath)
+		if err != nil {
+			return err
+		}
+		return json.NewEncoder(stdout).Encode(installed)
+	case "list":
+		flags := flag.NewFlagSet("blockade runtime list", flag.ContinueOnError)
+		flags.SetOutput(io.Discard)
+		runtimeRoot := flags.String("root", "", "installed runtime directory")
+		if err := flags.Parse(args[1:]); err != nil {
+			return err
+		}
+		if flags.NArg() != 0 {
+			return errors.New("blockade runtime list accepts flags only")
+		}
+		root := strings.TrimSpace(*runtimeRoot)
+		var err error
+		if root == "" {
+			root, err = blockade.DefaultRuntimeRoot()
+			if err != nil {
+				return err
+			}
+		}
+		runtimes, err := blockade.ListInstalledRuntimes(root)
+		if err != nil {
+			return err
+		}
+		return json.NewEncoder(stdout).Encode(map[string]any{"runtimes": runtimes})
+	case "remove":
+		flags := flag.NewFlagSet("blockade runtime remove", flag.ContinueOnError)
+		flags.SetOutput(io.Discard)
+		name := flags.String("name", "", "installed runtime name")
+		version := flags.String("version", "", "installed runtime version")
+		runtimeRoot := flags.String("root", "", "installed runtime directory")
+		if err := flags.Parse(args[1:]); err != nil {
+			return err
+		}
+		if flags.NArg() != 0 || strings.TrimSpace(*name) == "" || strings.TrimSpace(*version) == "" {
+			return errors.New("blockade runtime remove requires --name and --version")
+		}
+		root := strings.TrimSpace(*runtimeRoot)
+		var err error
+		if root == "" {
+			root, err = blockade.DefaultRuntimeRoot()
+			if err != nil {
+				return err
+			}
+		}
+		if err := blockade.RemoveInstalledRuntime(root, strings.TrimSpace(*name), strings.TrimSpace(*version)); err != nil {
+			return err
+		}
+		_, err = fmt.Fprintf(stdout, "removed runtime %s@%s\n", strings.TrimSpace(*name), strings.TrimSpace(*version))
+		return err
+	default:
+		return fmt.Errorf("unknown blockade runtime command %q", args[0])
 	}
 }
 
@@ -159,7 +270,7 @@ func selectModelProvider(config blockade.Config, providerName, id string) (block
 		return blockade.ProviderAdapterConfig{}, fmt.Errorf("provider %q does not use model provider %q", id, providerName)
 	}
 	if len(matches) == 0 {
-		return blockade.ProviderAdapterConfig{}, fmt.Errorf("config has no provider executable named %q", providerName)
+		return blockade.ProviderAdapterConfig{}, fmt.Errorf("config has no provider package named %q", providerName)
 	}
 	return blockade.ProviderAdapterConfig{}, fmt.Errorf("config has multiple providers using %q; select one with --provider", providerName)
 }

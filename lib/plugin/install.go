@@ -11,16 +11,16 @@ import (
 	"path/filepath"
 )
 
-// Install copies a reviewed local executable and its manifest into the user
-// plugin directory. Discovery never executes a plugin and installation does
-// not replace an existing name.
+// Install copies every reviewed payload and its manifest into the user plugin
+// directory. Discovery never executes a plugin and installation does not
+// replace an existing name.
 func Install(root, manifestPath string) (Installed, error) {
 	m, err := LoadManifest(manifestPath)
 	if err != nil {
 		return Installed{}, err
 	}
 	source := Installed{Manifest: m, Directory: filepath.Dir(manifestPath)}
-	if _, err := source.executable(); err != nil {
+	if err := source.Verify(); err != nil {
 		return Installed{}, err
 	}
 	if err := os.MkdirAll(root, 0700); err != nil {
@@ -37,26 +37,15 @@ func Install(root, manifestPath string) (Installed, error) {
 		return Installed{}, err
 	}
 	defer os.RemoveAll(staging)
-	input, err := os.Open(filepath.Join(source.Directory, m.Command))
-	if err != nil {
-		return Installed{}, err
+	if m.Command != "" {
+		if err := copyPackageFile(source.Directory, staging, m.Command, m.SHA256, 128<<20, 0700); err != nil {
+			return Installed{}, err
+		}
 	}
-	defer input.Close()
-	output, err := os.OpenFile(filepath.Join(staging, m.Command), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0700)
-	if err != nil {
-		return Installed{}, err
-	}
-	h := sha256.New()
-	n, err := io.Copy(output, io.TeeReader(io.LimitReader(input, (128<<20)+1), h))
-	closeErr := output.Close()
-	if err != nil {
-		return Installed{}, err
-	}
-	if closeErr != nil {
-		return Installed{}, closeErr
-	}
-	if n > 128<<20 || hex.EncodeToString(h.Sum(nil)) != m.SHA256 {
-		return Installed{}, errors.New("plugin executable changed during install")
+	for _, file := range m.Files {
+		if err := copyPackageFile(source.Directory, staging, file.Path, file.SHA256, 4<<30, 0600); err != nil {
+			return Installed{}, err
+		}
 	}
 	encoded, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {
@@ -68,7 +57,42 @@ func Install(root, manifestPath string) (Installed, error) {
 	if err := os.Rename(staging, destination); err != nil {
 		return Installed{}, err
 	}
-	return Installed{Manifest: m, Directory: destination}, nil
+	installed := Installed{Manifest: m, Directory: destination}
+	if err := installed.Verify(); err != nil {
+		_ = os.RemoveAll(destination)
+		return Installed{}, err
+	}
+	return installed, nil
+}
+
+func copyPackageFile(sourceRoot, destinationRoot, name, digest string, maximum int64, mode os.FileMode) error {
+	source, err := secureRegularFile(sourceRoot, name)
+	if err != nil {
+		return err
+	}
+	destination := filepath.Join(destinationRoot, filepath.FromSlash(name))
+	if err := os.MkdirAll(filepath.Dir(destination), 0700); err != nil {
+		return err
+	}
+	input, err := os.Open(source)
+	if err != nil {
+		return err
+	}
+	defer input.Close()
+	output, err := os.OpenFile(destination, os.O_WRONLY|os.O_CREATE|os.O_EXCL, mode)
+	if err != nil {
+		return err
+	}
+	hash := sha256.New()
+	n, copyErr := io.Copy(output, io.TeeReader(io.LimitReader(input, maximum+1), hash))
+	closeErr := output.Close()
+	if copyErr != nil || closeErr != nil {
+		return errors.Join(copyErr, closeErr)
+	}
+	if n > maximum || hex.EncodeToString(hash.Sum(nil)) != digest {
+		return errors.New("plugin package file changed during install")
+	}
+	return nil
 }
 
 // Upgrade installs a new local revision of the same plugin. The prior

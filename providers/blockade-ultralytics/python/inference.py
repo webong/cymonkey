@@ -2,6 +2,10 @@ import contextlib
 import os
 import sys
 
+_vendor = os.path.join(os.path.dirname(__file__), "vendor")
+if os.path.isdir(_vendor):
+    sys.path.insert(0, _vendor)
+
 import cv2
 import numpy as np
 
@@ -12,10 +16,10 @@ with contextlib.redirect_stdout(sys.stderr):
 
 
 class Worker:
-    def __init__(self):
+    def __init__(self, yolo_model: str, sam_model: str):
         with contextlib.redirect_stdout(sys.stderr):
-            self.yolo = YOLO(os.environ["BLOCKADE_YOLO_MODEL"])
-            self.sam = SAM(os.environ["BLOCKADE_SAM_MODEL"])
+            self.yolo = YOLO(yolo_model)
+            self.sam = SAM(sam_model)
 
     def observe(self, image: bytes, request_id: str):
         array = cv2.imdecode(np.frombuffer(image, np.uint8), cv2.IMREAD_COLOR)
@@ -29,18 +33,20 @@ class Worker:
             model_class = int(box.cls[0].cpu().item())
             confidence = float(box.conf[0].cpu().item())
             label = detections.names.get(model_class, str(model_class))
-            observations.append({
-                "kind": "object",
-                "label": label,
-                "confidence": confidence,
-                "region": {
-                    "x": x1,
-                    "y": y1,
-                    "width": x2 - x1,
-                    "height": y2 - y1,
-                },
-                "evidence": f"{request_id}:detection-{index}",
-            })
+            observations.append(
+                {
+                    "kind": "object",
+                    "label": label,
+                    "confidence": confidence,
+                    "region": {
+                        "x": x1,
+                        "y": y1,
+                        "width": x2 - x1,
+                        "height": y2 - y1,
+                    },
+                    "evidence": f"{request_id}:detection-{index}",
+                }
+            )
         if observations:
             boxes = [
                 [
@@ -60,5 +66,7 @@ class Worker:
                     if ok:
                         import base64
 
-                        item["mask"] = base64.b64encode(encoded.tobytes()).decode("ascii")
+                        item["mask"] = base64.b64encode(encoded.tobytes()).decode(
+                            "ascii"
+                        )
         return observations

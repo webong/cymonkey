@@ -88,6 +88,7 @@ type ProviderModelInspectFunc func(context.Context, ProviderAdapterRuntime, Inst
 // Secret values never appear in the YAML-backed configuration value.
 type ProviderAdapterRuntime struct {
 	ID       string
+	Workers  int
 	Settings map[string]string
 	Model    *InstalledModel
 	Secrets  ProviderAdapterSecrets
@@ -294,7 +295,7 @@ func StartConfiguredProviderAdapter(ctx context.Context, config ProviderAdapterC
 	}
 	factory, ok := registry.factory(config.Provider)
 	if !ok {
-		return nil, fmt.Errorf("Blockade provider %q uses unregistered executable %q", config.ID, config.Provider)
+		return nil, fmt.Errorf("Blockade provider %q uses unregistered package %q", config.ID, config.Provider)
 	}
 	if resolver == nil {
 		resolver = EnvironmentSecretResolver{}
@@ -363,6 +364,7 @@ func InspectConfiguredProviderModel(ctx context.Context, config ProviderAdapterC
 func providerAdapterRuntime(config ProviderAdapterConfig, resolver SecretResolver, model *InstalledModel) ProviderAdapterRuntime {
 	return ProviderAdapterRuntime{
 		ID:       config.ID,
+		Workers:  config.workers(),
 		Settings: maps.Clone(config.Settings),
 		Model:    model,
 		Secrets: configuredProviderAdapterSecrets{

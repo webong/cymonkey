@@ -1,11 +1,14 @@
-// Package blockadeplugin adapts an installed executable to Blockade's
+// Package blockadeplugin adapts an installed provider package to Blockade's
 // provider interface. Blockade still validates every normalized response.
 package blockadeplugin
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"path/filepath"
 	"slices"
+	"sync/atomic"
 	"time"
 
 	"blockade"
@@ -32,23 +35,37 @@ func RegisterInstalled(registry *blockade.ProviderAdapterRegistry, installed []p
 }
 
 func Register(registry *blockade.ProviderAdapterRegistry, installed providerplugin.Installed) error {
+	launch, err := newLaunchPlan(installed)
+	if err != nil {
+		return err
+	}
 	factory := func(ctx context.Context, runtime blockade.ProviderAdapterRuntime) (blockade.ProviderAdapter, error) {
-		proc, err := providerplugin.Open(ctx, installed)
-		if err != nil {
-			return nil, err
+		pool := &processPool{}
+		workers := runtime.Workers
+		if workers == 0 {
+			workers = 1
 		}
-		start := map[string]any{"id": runtime.ID, "settings": runtime.Settings}
-		if runtime.Model != nil {
-			start["model"] = runtime.Model
+		for range workers {
+			proc, err := launch.open(ctx)
+			if err != nil {
+				_ = pool.Close()
+				return nil, err
+			}
+			start := map[string]any{"id": runtime.ID, "settings": runtime.Settings}
+			if runtime.Model != nil {
+				start["model"] = runtime.Model
+			}
+			if err := proc.Call(ctx, "blockade.start", start, nil); err != nil {
+				_ = proc.Close()
+				_ = pool.Close()
+				return nil, err
+			}
+			pool.processes = append(pool.processes, proc)
 		}
-		if err := proc.Call(ctx, "blockade.start", start, nil); err != nil {
-			_ = proc.Close()
-			return nil, err
-		}
-		base := &adapter{proc: proc, runtime: runtime}
+		base := &adapter{pool: pool, runtime: runtime}
 		reported, err := base.Capabilities(ctx)
 		if err != nil {
-			_ = proc.Close()
+			_ = pool.Close()
 			return nil, err
 		}
 		image := slices.Contains(reported.Capabilities, blockade.CapabilityImageObserve) ||
@@ -73,7 +90,7 @@ func Register(registry *blockade.ProviderAdapterRegistry, installed providerplug
 		}
 	}
 	inspect := func(ctx context.Context, runtime blockade.ProviderAdapterRuntime, model blockade.InstalledModel) error {
-		proc, err := providerplugin.Open(ctx, installed)
+		proc, err := launch.open(ctx)
 		if err != nil {
 			return err
 		}
@@ -83,8 +100,88 @@ func Register(registry *blockade.ProviderAdapterRegistry, installed providerplug
 	return registry.RegisterWithModelInspector(installed.Manifest.Name, factory, inspect)
 }
 
+type launchPlan struct {
+	installed  providerplugin.Installed
+	descriptor *blockade.ProviderPackage
+}
+
+func newLaunchPlan(installed providerplugin.Installed) (launchPlan, error) {
+	plan := launchPlan{installed: installed}
+	if installed.Manifest.Command != "" {
+		return plan, nil
+	}
+	if err := installed.Verify(); err != nil {
+		return launchPlan{}, err
+	}
+	descriptorPath, err := installed.Resource("blockade.json")
+	if err != nil {
+		return launchPlan{}, fmt.Errorf("Blockade source provider descriptor: %w", err)
+	}
+	descriptor, err := blockade.LoadProviderPackage(descriptorPath)
+	if err != nil {
+		return launchPlan{}, err
+	}
+	if _, err := installed.Resource(descriptor.Entrypoint); err != nil {
+		return launchPlan{}, fmt.Errorf("Blockade source provider entrypoint: %w", err)
+	}
+	plan.descriptor = &descriptor
+	return plan, nil
+}
+
+func (p launchPlan) open(ctx context.Context) (*providerplugin.Process, error) {
+	if p.descriptor == nil {
+		return providerplugin.Open(ctx, p.installed)
+	}
+	root, err := blockade.DefaultRuntimeRoot()
+	if err != nil {
+		return nil, err
+	}
+	runtime, err := blockade.ResolveInstalledRuntime(root, p.descriptor.Runtime.Name, p.descriptor.Runtime.Version)
+	if err != nil {
+		return nil, fmt.Errorf("resolve Blockade runtime %s@%s: %w", p.descriptor.Runtime.Name, p.descriptor.Runtime.Version, err)
+	}
+	entrypoint, err := p.installed.Resource(p.descriptor.Entrypoint)
+	if err != nil {
+		return nil, err
+	}
+	return providerplugin.OpenCommand(ctx, p.installed, providerplugin.Command{
+		Executable: runtime.ExecutablePath(),
+		Arguments:  []string{"-B", entrypoint},
+		Environment: []string{
+			"PYTHONNOUSERSITE=1",
+			"PYTHONDONTWRITEBYTECODE=1",
+			"BLOCKADE_PLUGIN_MANIFEST=" + filepath.Join(p.installed.Directory, "plugin.json"),
+		},
+	})
+}
+
+type processPool struct {
+	processes []*providerplugin.Process
+	next      atomic.Uint64
+}
+
+func (p *processPool) Call(ctx context.Context, method string, params, result any) error {
+	if p == nil || len(p.processes) == 0 {
+		return errors.New("Blockade provider process pool is empty")
+	}
+	index := int((p.next.Add(1) - 1) % uint64(len(p.processes)))
+	return p.processes[index].Call(ctx, method, params, result)
+}
+
+func (p *processPool) Close() error {
+	if p == nil {
+		return nil
+	}
+	var result error
+	for _, proc := range p.processes {
+		result = errors.Join(result, proc.Close())
+	}
+	p.processes = nil
+	return result
+}
+
 type adapter struct {
-	proc    *providerplugin.Process
+	pool    *processPool
 	runtime blockade.ProviderAdapterRuntime
 }
 
@@ -98,7 +195,7 @@ func (a *adapter) observe(ctx context.Context, request blockade.ProviderAdapterO
 		secrets[name] = value
 	}
 	var result blockade.ProviderAdapterObserveResponse
-	err := a.proc.Call(ctx, "blockade.observe", map[string]any{"request": request, "secrets": secrets}, &result)
+	err := a.pool.Call(ctx, "blockade.observe", map[string]any{"request": request, "secrets": secrets}, &result)
 	return result, err
 }
 func (a *adapter) interpret(ctx context.Context, request blockade.ProviderAdapterInterpretRequest) (blockade.ProviderAdapterInterpretResponse, error) {
@@ -111,7 +208,7 @@ func (a *adapter) interpret(ctx context.Context, request blockade.ProviderAdapte
 		secrets[name] = value
 	}
 	var result blockade.ProviderAdapterInterpretResponse
-	err := a.proc.Call(ctx, "blockade.interpret", map[string]any{"request": request, "secrets": secrets}, &result)
+	err := a.pool.Call(ctx, "blockade.interpret", map[string]any{"request": request, "secrets": secrets}, &result)
 	return result, err
 }
 
@@ -162,17 +259,19 @@ func (a *multiAdapter) Interpret(ctx context.Context, request blockade.ProviderA
 }
 func (a *adapter) Capabilities(ctx context.Context) (blockade.ProviderAdapterCapabilities, error) {
 	var value blockade.ProviderAdapterCapabilities
-	err := a.proc.Call(ctx, "blockade.capabilities", nil, &value)
+	err := a.pool.Call(ctx, "blockade.capabilities", nil, &value)
 	return value, err
 }
 func (a *adapter) Health(ctx context.Context) (blockade.ProviderAdapterHealth, error) {
 	var value blockade.ProviderAdapterHealth
-	err := a.proc.Call(ctx, "blockade.health", nil, &value)
+	err := a.pool.Call(ctx, "blockade.health", nil, &value)
 	return value, err
 }
 func (a *adapter) Close() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	_ = a.proc.Call(ctx, "blockade.close", nil, nil)
-	return a.proc.Close()
+	for _, proc := range a.pool.processes {
+		_ = proc.Call(ctx, "blockade.close", nil, nil)
+	}
+	return a.pool.Close()
 }

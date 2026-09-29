@@ -1,15 +1,16 @@
-# Executable provider packages
+# Provider packages
 
 Cymonkey has one generic installer and process transport for optional provider
-executables. Jangolova, Blockade, and Board each own their public protocol and
-decide which installed packages they can use.
+packages. Jangolova, Blockade, and Board each own their public protocol and
+decide which installed packages they can use. A package can contain a reviewed
+executable or reviewed source files for a runtime owned by a library.
 
 The generic installer does not contain a list of ONNX runtimes, display
 engines, device drivers, or other implementations.
 
 ## Package manifest
 
-Place `plugin.json` beside an executable:
+An executable package uses `command` and `sha256`:
 
 ```json
 {
@@ -35,6 +36,31 @@ The fields have separate jobs:
 | `platform` | Optional `GOOS-GOARCH` restriction. |
 | `command` | A filename beside `plugin.json`. It is never interpreted by a shell. |
 | `sha256` | The executable digest reviewed at installation and checked again before every launch. |
+
+A source package replaces `command` and `sha256` with a `files` array. Every
+path is relative to `plugin.json`, cannot traverse or contain a symbolic link,
+and is checked during install, discovery, and launch:
+
+```json
+{
+  "apiVersion": "provider.plugin/v1alpha1",
+  "name": "local-ultralytics",
+  "version": "1.0.0",
+  "contracts": [
+    {"name": "blockade.provider", "version": "v1alpha1"}
+  ],
+  "platform": "darwin-arm64",
+  "files": [
+    {"path": "blockade.json", "sha256": "<sha256>"},
+    {"path": "python/provider.py", "sha256": "<sha256>"}
+  ]
+}
+```
+
+The generic layer does not interpret `blockade.json` or Python. Blockade sees
+the declared contract, reads its own descriptor, resolves its managed runtime,
+and launches the entrypoint. Jangolova and Board continue to use executable
+packages unless their libraries add a source runtime of their own.
 
 Current library contracts are:
 
@@ -62,8 +88,8 @@ cymonkey plugins upgrade --manifest /path/to/new/plugin.json
 cymonkey plugins remove onnx
 ```
 
-Install and upgrade read local files, verify the executable, and copy it into
-the user plugin directory. They do not execute the provider. Set
+Install and upgrade read local files, verify every declared payload, and copy
+them into the user plugin directory. They do not execute the provider. Set
 `CYMONKEY_PLUGIN_DIR` to override that directory.
 
 Runtime discovery verifies the digest again. The domain edge then filters by
@@ -75,7 +101,9 @@ contract:
 
 ## Process transport
 
-The host starts the executable directly. Requests and responses are JSON
+For an executable package, the library starts the package command directly.
+For a source package, the library starts its verified entrypoint with a runtime
+it owns. Requests and responses are JSON
 objects separated by newlines. Standard error is diagnostic output. The host
 passes a minimal environment containing `PATH` and, on Windows, `SystemRoot`.
 Secrets and connection material use explicit domain request fields.
@@ -127,9 +155,9 @@ protocol mapping. Cymonkey connects those packages only at its executable edge;
 ## Domain notes
 
 Blockade starts a provider with one configured instance, opaque settings,
-resolved secret access, and an optional verified local model. Model inspection
-uses a separate short lived process before model installation. Blockade still
-validates every normalized result.
+resolved secret access, and an optional verified local model. It also owns the
+process count for local workers. Model inspection uses a separate short lived
+process before model installation. Blockade validates every normalized result.
 
 Board checks an explicit device and capability grant before opening a provider
 session and before each operation. The executable must enforce the grant it

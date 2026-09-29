@@ -3,12 +3,10 @@ providers:
   - id: local-yolo-sam
     provider: local-ultralytics
     model: yolo-sam@1.0.0
+    workers: 1
     timeout: 2m
     maxPayloadBytes: 8388608
-    settings:
-      workers: "1"
 
-# The local-ultralytics provider embeds its Python bridge. Install the pinned
-# packages from providers/blockade-ultralytics/python/requirements.txt in the
-# Python environment available on PATH. The model bundle must contain one
-# `yolo` .pt artifact and one `sam` .pt artifact.
+# Blockade launches this source package with its installed python@3.12.8
+# runtime. The provider bundle includes its Python source and vendored packages.
+# The model bundle must contain one `yolo` .pt artifact and one `sam` .pt artifact.

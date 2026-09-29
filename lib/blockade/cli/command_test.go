@@ -172,6 +172,49 @@ func TestModelInstallUsesProviderInspectionAndStartsWithInstalledModel(t *testin
 	}
 }
 
+func TestRuntimeManifestInstallListAndRemove(t *testing.T) {
+	dir := t.TempDir()
+	source := filepath.Join(dir, "python-tree")
+	executable := filepath.Join(source, "bin", "python3")
+	if err := os.MkdirAll(filepath.Dir(executable), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(executable, []byte("runtime"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	manifestPath := filepath.Join(source, "runtime.json")
+	runtimeRoot := filepath.Join(dir, "installed")
+	registry := blockade.NewProviderAdapterRegistry()
+	var output bytes.Buffer
+	if err := RunWithProviderAdapters([]string{
+		"runtime", "manifest", "--source", source, "--name", "python", "--version", "3.12.8",
+		"--executable", "bin/python3", "--output", manifestPath,
+	}, &output, &bytes.Buffer{}, registry, nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := blockade.LoadRuntimeManifest(manifestPath); err != nil {
+		t.Fatal(err)
+	}
+	output.Reset()
+	if err := RunWithProviderAdapters([]string{"runtime", "install", "--manifest", manifestPath, "--root", runtimeRoot}, &output, &bytes.Buffer{}, registry, nil); err != nil {
+		t.Fatal(err)
+	}
+	output.Reset()
+	if err := RunWithProviderAdapters([]string{"runtime", "list", "--root", runtimeRoot}, &output, &bytes.Buffer{}, registry, nil); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(output.Bytes(), []byte(`"name":"python"`)) {
+		t.Fatalf("runtime list = %s", output.String())
+	}
+	output.Reset()
+	if err := RunWithProviderAdapters([]string{"runtime", "remove", "--name", "python", "--version", "3.12.8", "--root", runtimeRoot}, &output, &bytes.Buffer{}, registry, nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := blockade.ResolveInstalledRuntime(runtimeRoot, "python", "3.12.8"); !os.IsNotExist(err) {
+		t.Fatalf("removed runtime resolution = %v", err)
+	}
+}
+
 func mustReadFile(t *testing.T, path string) []byte {
 	t.Helper()
 	data, err := os.ReadFile(path)

@@ -50,8 +50,8 @@ subcommand-specific help page.
 | `cmy board devices`, `drive-list`, `drive-read` | List host-approved mounted drives, list entries, or stream one selected file. |
 | `cmy board keyboard-press`, `keyboard-type` | Send a key or bounded text to an explicitly selected macOS process. |
 | `cmy board provider-devices`, `provider-invoke`, `provider-stream` | Use installed Board providers under an explicit device grant. |
-| `cmy blockade validate`, `model install/list/remove`, `observe`, `interpret`, `serve` | Validate configuration, manage provider-owned local models, request inference, or run Blockade. |
-| `cmy plugins install`, `upgrade`, `list`, `remove` | Manage local executable providers for Jangolova, Blockade, and Board. |
+| `cmy blockade validate`, `runtime manifest/install/list/remove`, `model install/list/remove`, `observe`, `interpret`, `serve` | Validate configuration, manage Blockade runtimes and provider-owned local models, request inference, or run Blockade. |
+| `cmy plugins install`, `upgrade`, `list`, `remove` | Manage local provider packages for Jangolova, Blockade, and Board. |
 | `cmy native-bridge-fixture` | Run the native bridge test fixture; this is for development. |
 
 ## Board device providers
@@ -171,7 +171,9 @@ exact returned revision when installing or staging those same files.
 | `install` | `--target ID` or explicit browser/profile paths, plus `--source PATH --revision VALUE`; perform the browser-specific installation workflow. Chromium may also need `--destination DIRECTORY`. |
 | `run` | Same target, source, and revision selection as `install`; load the extension in a controlled browser session. `--headless` defaults to true; use `--headless=false` for a visible session. The reported state is `activated` for that session. |
 | `stage` | `--browser NAME` or `--target ID`, with `--source PATH --destination DIRECTORY --revision VALUE`; prepare an unpacked Chromium extension for manual loading. |
-| `install-store` | `--id CHROME_WEB_STORE_ID --external-dir DIRECTORY`; write a Chrome External Extensions install request where that deployment method is supported. |
+| `install-store` | `--browser chrome|edge --id STORE_ID [--store chrome|edge] [--external-dir DIRECTORY]`; request a published store extension through the browser's external-install mechanism. Windows uses PowerShell and the machine registry; macOS/Linux use documented JSON locations. |
+| `remove-store` | The same selection flags as `install-store`; remove the matching external-install request. This does not remove an independently installed extension. |
+| `policy` | `--browser chrome|edge --id STORE_ID --mode force|unforce|block|unblock [--store chrome|edge]`; change administrator-owned force-install or block policies on Windows, or Chrome managed policy on Linux. |
 | `act` | `--name ACTION --input JSON`; call the local structured extension manager interface. |
 
 For `install` and `run`, a discovered `--target ID` cannot be mixed with the
@@ -186,7 +188,8 @@ rejected.
 
 `act` accepts these names: `extension.targets`, `extension.capabilities`,
 `extension.prepare`, `extension.package`, `extension.sign`, `extension.package-safari`, `extension.build-safari`,
-`extension.install`, `extension.stage`, and `extension.install-store`. Its
+`extension.install`, `extension.stage`, `extension.install-store`, and
+`extension.remove-store`, and `extension.policy`. Its
 `--input` is one JSON object. For example:
 
 ```sh
@@ -404,11 +407,27 @@ cmy blockade model list
 cmy blockade model remove --provider onnx --model yolo11n@1.0.0
 ```
 
-The manifest names the installed provider executable and includes every
+The manifest names the installed provider package and includes every
 artifact's role and SHA-256 digest. Blockade copies and verifies the files,
 asks that provider to inspect compatibility, then registers the installed
 version. Use `--root` on model commands or `BLOCKADE_MODEL_DIR` to choose a
 different model registry.
+
+Install, list, and remove a Blockade-owned runtime for source providers:
+
+```sh
+cmy blockade runtime manifest --source /absolute/path/to/python-tree \
+  --name python --version 3.12.8 --executable bin/python3 \
+  --output /absolute/path/to/python-tree/runtime.json
+cmy blockade runtime install --manifest /absolute/path/to/runtime.json
+cmy blockade runtime list
+cmy blockade runtime remove --name python --version 3.12.8
+```
+
+`manifest` inventories a self-contained runtime tree and records all digests.
+Use `--root` or `BLOCKADE_RUNTIME_DIR` to choose the runtime registry. Runtime
+files and the selected executable are digest checked; Blockade does not use an
+ambient executable from `PATH`.
 
 `interpret` also accepts `--text` and `--image`; combine content flags only
 when the provider advertises `multimodal.interpret`. The selected provider must

@@ -4,17 +4,23 @@ Blockade defines stable contracts for model backed observation and content
 interpretation. It accepts text, image, and audio content, selects a configured
 provider, validates the result, and returns provider neutral output.
 
-Blockade does not implement inference runtimes. ONNX Runtime, Ultralytics,
-WebLLM, operating system model frameworks, and cloud APIs belong in provider
-executables.
+Blockade does not implement model inference. ONNX Runtime, Ultralytics, WebLLM,
+operating system model frameworks, and cloud APIs belong in providers.
+Blockade can own a language runtime and worker lifecycle for source providers;
+the inference implementation remains in the provider package.
+
+Here, runtime ownership means the Blockade registry contains the complete,
+digest checked distribution and Blockade alone selects its executable and
+supervises provider processes. A source provider cannot choose an ambient
+Python installation.
 
 ## Boundary
 
 ```text
 caller
   -> Blockade request and validation
-  -> selected provider executable
-  -> local runtime or cloud service
+  -> selected provider package
+  -> Blockade-managed local runtime or provider-managed cloud service
   -> normalized Blockade response
 ```
 
@@ -25,12 +31,14 @@ Blockade owns:
 - provider registration, selection, limits, readiness, and error mapping;
 - local model installation, digest verification, inspection, lookup, and
   removal;
+- local runtime installation, digest verification, lookup, and removal;
+- source provider process pools and shutdown;
 - the HTTP and CLI surfaces.
 
 A provider owns:
 
 - model format support;
-- runtime initialization and hardware selection;
+- inference initialization and hardware selection;
 - preprocessing, inference, and postprocessing;
 - conversion from native results to Blockade responses;
 - any remote service integration.
@@ -43,7 +51,7 @@ These are separate concepts:
 | --- | --- | --- |
 | Model family | YOLO, SAM, a speech model, a vision language model | The trained behavior and architecture. |
 | Artifact format | `.pt`, `.onnx`, `.gguf`, `.safetensors`, `.mlpackage` | How model data is stored. |
-| Provider | `onnx`, `local-ultralytics`, `webllm`, a cloud adapter | The executable that can load or call the model and speak Blockade's protocol. |
+| Provider | `onnx`, `local-ultralytics`, `webllm`, a cloud adapter | The package that can load or call the model and speak Blockade's protocol. |
 | Hardware backend | CPU, CUDA, TensorRT, OpenVINO, Core ML, WebGPU | Where a provider executes supported work. |
 
 Blockade does not infer compatibility from an extension. The selected provider
@@ -65,7 +73,7 @@ the existing ONNX provider's Core ML setting instead executes a compatible
 ## Configure a provider
 
 Every entry creates one configured provider instance. `provider` is the name
-from the installed executable's `plugin.json`. `id` is the instance selected
+from the installed package's `plugin.json`. `id` is the instance selected
 with `--inference`.
 
 ```yaml
@@ -74,6 +82,7 @@ providers:
   - id: local-yolo
     provider: onnx
     model: yolo11n@1.0.0
+    workers: 1
     timeout: 30s
     maxPayloadBytes: 8388608
     settings:
@@ -116,7 +125,7 @@ roles, and SHA-256 digests:
 ```
 
 Keep `model.json` and its artifacts in the same source directory. Install the
-provider executable first, configure a matching provider instance, and then
+provider package first, configure a matching provider instance, and then
 install the model:
 
 ```sh
@@ -139,6 +148,26 @@ can select an absolute root with `modelRoot`.
 
 Cloud providers normally put a remote model ID in their own settings and omit
 the local `model` field.
+
+## Install a local runtime
+
+Source providers name an exact Blockade runtime in `blockade.json`. A runtime
+distribution has a `runtime.json` that lists its name, version, platform,
+executable, and every file digest. Install, list, and remove it with:
+
+```sh
+cymonkey blockade runtime manifest --source /runtimes/python-tree \
+  --name python --version 3.12.8 --executable bin/python3 \
+  --output /runtimes/python-tree/runtime.json
+cymonkey blockade runtime install --manifest /runtimes/python/runtime.json
+cymonkey blockade runtime list
+cymonkey blockade runtime remove --name python --version 3.12.8
+```
+
+The `manifest` command inventories a self-contained distribution and records
+every file digest. `BLOCKADE_RUNTIME_DIR` or `--root` changes the registry. Blockade rejects
+symbolic links, verifies every file again before launch, and never searches
+`PATH` for a replacement runtime.
 
 ## Requests
 
