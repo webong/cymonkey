@@ -15,13 +15,18 @@ import (
 
 type Provider struct{ Installed providerplugin.Installed }
 
-const Kind = "board.provider"
+const ContractName = "board.provider"
+const ContractVersion = "v1alpha1"
+
+// Kind is retained for source compatibility with the original manifest field.
+// Deprecated: use ContractName.
+const Kind = ContractName
 
 // Providers selects Board executables from a shared installation inventory.
 func Providers(installed []providerplugin.Installed) []board.Provider {
 	var providers []board.Provider
 	for _, item := range installed {
-		if item.Manifest.Kind == Kind {
+		if item.Manifest.Supports(ContractName, ContractVersion) {
 			providers = append(providers, Provider{Installed: item})
 		}
 	}

@@ -1,4 +1,4 @@
-package blockade
+package main
 
 import (
 	"errors"
@@ -24,23 +24,23 @@ var supportedExecutionProviders = []string{
 	executionProviderCoreML,
 }
 
-func validateExecutionProviders(engineID string, providers []ExecutionProviderConfig) error {
+func validateExecutionProviders(providers []executionProviderConfig) error {
 	seen := make(map[string]bool, len(providers))
 	for index, provider := range providers {
 		name, err := canonicalExecutionProviderName(provider.Name)
 		if err != nil {
-			return fmt.Errorf("Blockade ONNX engine %q executionProviders[%d]: %w", engineID, index, err)
+			return fmt.Errorf("executionProviders[%d]: %w", index, err)
 		}
 		if seen[name] {
-			return fmt.Errorf("Blockade ONNX engine %q repeats execution provider %q", engineID, name)
+			return fmt.Errorf("execution provider %q is repeated", name)
 		}
 		seen[name] = true
 		if name == executionProviderCPU {
 			if len(provider.Options) != 0 {
-				return fmt.Errorf("Blockade ONNX engine %q CPU execution provider does not accept options", engineID)
+				return errors.New("CPU execution provider does not accept options")
 			}
 			if index != len(providers)-1 {
-				return fmt.Errorf("Blockade ONNX engine %q CPU execution provider must be last", engineID)
+				return errors.New("CPU execution provider must be last")
 			}
 		}
 	}
@@ -57,12 +57,9 @@ func canonicalExecutionProviderName(name string) (string, error) {
 	return "", fmt.Errorf("unsupported execution provider %q (supported: %s)", name, strings.Join(supportedExecutionProviders, ", "))
 }
 
-// configureOnnxExecutionProviders applies providers in priority order and
-// returns the effective order for provenance. CPU is ONNX Runtime's implicit
-// final fallback even when it is omitted from the manifest.
-func configureOnnxExecutionProviders(engineID string, providers []ExecutionProviderConfig) (*ort.SessionOptions, []string, error) {
-	if err := validateExecutionProviders(engineID, providers); err != nil {
-		return nil, nil, err
+func configureOnnxExecutionProviders(id string, providers []executionProviderConfig) (*ort.SessionOptions, []string, error) {
+	if err := validateExecutionProviders(providers); err != nil {
+		return nil, nil, fmt.Errorf("ONNX provider %q: %w", id, err)
 	}
 	if len(providers) == 0 || (len(providers) == 1 && strings.EqualFold(strings.TrimSpace(providers[0].Name), executionProviderCPU)) {
 		return nil, []string{executionProviderCPU}, nil
@@ -80,7 +77,7 @@ func configureOnnxExecutionProviders(engineID string, providers []ExecutionProvi
 		}
 		if err := appendOnnxExecutionProvider(options, name, provider.Options); err != nil {
 			_ = options.Destroy()
-			return nil, nil, fmt.Errorf("configure Blockade ONNX engine %q execution provider %q: %w", engineID, name, err)
+			return nil, nil, fmt.Errorf("configure ONNX provider %q execution provider %q: %w", id, name, err)
 		}
 		effective = append(effective, name)
 	}

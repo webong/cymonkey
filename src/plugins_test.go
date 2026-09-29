@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"blockade"
@@ -40,7 +41,17 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 		t.Fatal(err)
 	}
 	digest := sha256.Sum256(data)
-	for _, item := range []struct{ name, kind string }{{"display-fixture", jangolovaplugin.Kind}, {"vision-fixture", blockadeplugin.Kind}, {"content-fixture", blockadeplugin.Kind}, {"legacy-vision-fixture", blockadeplugin.Kind}, {"device-fixture", boardplugin.Kind}, {"future-fixture", "future.provider"}} {
+	for _, item := range []struct {
+		name, contract string
+		legacy         bool
+	}{
+		{"display-fixture", jangolovaplugin.ContractName, false},
+		{"vision-fixture", blockadeplugin.ContractName, false},
+		{"content-fixture", blockadeplugin.ContractName, false},
+		{"legacy-vision-fixture", blockadeplugin.ContractName, true},
+		{"device-fixture", boardplugin.ContractName, false},
+		{"future-fixture", "future.provider", false},
+	} {
 		source := filepath.Join(root, item.name)
 		if err := os.Mkdir(source, 0700); err != nil {
 			t.Fatal(err)
@@ -48,7 +59,12 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(source, "provider"), data, 0700); err != nil {
 			t.Fatal(err)
 		}
-		m := providerplugin.Manifest{APIVersion: providerplugin.APIVersion, Name: item.name, Version: "1.0.0", Kind: item.kind, Command: "provider", SHA256: hex.EncodeToString(digest[:])}
+		m := providerplugin.Manifest{APIVersion: providerplugin.APIVersion, Name: item.name, Version: "1.0.0", Command: "provider", SHA256: hex.EncodeToString(digest[:])}
+		if item.legacy {
+			m.Kind = item.contract
+		} else {
+			m.Contracts = []providerplugin.Contract{{Name: item.contract, Version: "v1alpha1"}}
+		}
 		encoded, _ := json.Marshal(m)
 		manifestPath := filepath.Join(source, "plugin.json")
 		if err := os.WriteFile(manifestPath, encoded, 0600); err != nil {
@@ -71,7 +87,7 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, ok := engines.Engine("future-fixture"); ok {
-		t.Fatal("unhandled package kind registered as a Jangolova engine")
+		t.Fatal("unhandled package contract registered as a Jangolova engine")
 	}
 	engine, ok := engines.Engine("display-fixture")
 	if !ok {
@@ -93,7 +109,17 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 	if err := registerBlockadePlugins(vision); err != nil {
 		t.Fatal(err)
 	}
-	backend, err := blockade.StartConfiguredProviderAdapter(context.Background(), blockade.ProviderAdapterConfig{ID: "vision", Kind: "vision-fixture"}, vision, blockade.EnvironmentSecretResolver{})
+	if err := blockade.InspectConfiguredProviderModel(context.Background(), blockade.ProviderAdapterConfig{ID: "vision", Provider: "vision-fixture"}, blockade.InstalledModel{
+		Manifest: blockade.ModelManifest{
+			APIVersion: blockade.ModelManifestAPIVersion, Name: "fixture", Version: "1.0.0", Provider: "vision-fixture",
+			Capabilities: []string{blockade.CapabilityTextInterpret},
+			Artifacts:    []blockade.ModelArtifact{{Role: "weights", File: "weights.gguf", SHA256: strings.Repeat("0", 64)}},
+		},
+		Directory: t.TempDir(),
+	}, vision, blockade.EnvironmentSecretResolver{}); err != nil {
+		t.Fatalf("Blockade plugin model inspection before startup: %v", err)
+	}
+	backend, err := blockade.StartConfiguredProviderAdapter(context.Background(), blockade.ProviderAdapterConfig{ID: "vision", Provider: "vision-fixture"}, vision, blockade.EnvironmentSecretResolver{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,7 +147,7 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 	if err := backend.Close(); err != nil {
 		t.Fatal(err)
 	}
-	contentOnly, err := blockade.StartConfiguredProviderAdapter(context.Background(), blockade.ProviderAdapterConfig{ID: "content", Kind: "content-fixture"}, vision, blockade.EnvironmentSecretResolver{})
+	contentOnly, err := blockade.StartConfiguredProviderAdapter(context.Background(), blockade.ProviderAdapterConfig{ID: "content", Provider: "content-fixture"}, vision, blockade.EnvironmentSecretResolver{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +167,7 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 	if err := contentOnly.Close(); err != nil {
 		t.Fatal(err)
 	}
-	legacyImage, err := blockade.StartConfiguredProviderAdapter(context.Background(), blockade.ProviderAdapterConfig{ID: "legacy-vision", Kind: "legacy-vision-fixture"}, vision, blockade.EnvironmentSecretResolver{})
+	legacyImage, err := blockade.StartConfiguredProviderAdapter(context.Background(), blockade.ProviderAdapterConfig{ID: "legacy-vision", Provider: "legacy-vision-fixture"}, vision, blockade.EnvironmentSecretResolver{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -208,6 +234,52 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 	}
 	if err := pluginsCommand([]string{"remove", "device-fixture"}, io.Discard, io.Discard); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestStandaloneOnnxProviderUsesExecutableBoundary(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("CYMONKEY_PLUGIN_DIR", filepath.Join(root, "installed"))
+	source := filepath.Join(root, "onnx")
+	if err := os.Mkdir(source, 0700); err != nil {
+		t.Fatal(err)
+	}
+	executable := filepath.Join(source, "provider")
+	build := exec.Command("go", "build", "-o", executable, "./providers/blockade-onnx")
+	build.Dir = filepath.Dir(filepath.Dir(fixtureSourcePath(t)))
+	if output, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("build ONNX provider: %v\n%s", err, output)
+	}
+	data, err := os.ReadFile(executable)
+	if err != nil {
+		t.Fatal(err)
+	}
+	digest := sha256.Sum256(data)
+	pluginManifest := providerplugin.Manifest{
+		APIVersion: providerplugin.APIVersion, Name: "onnx", Version: "1.0.0",
+		Contracts: []providerplugin.Contract{{Name: blockadeplugin.ContractName, Version: blockadeplugin.ContractVersion}},
+		Command:   "provider", SHA256: hex.EncodeToString(digest[:]),
+	}
+	encoded, _ := json.Marshal(pluginManifest)
+	manifestPath := filepath.Join(source, "plugin.json")
+	if err := os.WriteFile(manifestPath, encoded, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := pluginsCommand([]string{"install", "--manifest", manifestPath}, io.Discard, io.Discard); err != nil {
+		t.Fatal(err)
+	}
+	registry := blockade.NewProviderAdapterRegistry()
+	if err := registerBlockadePlugins(registry); err != nil {
+		t.Fatal(err)
+	}
+	model := blockade.InstalledModel{Manifest: blockade.ModelManifest{
+		APIVersion: blockade.ModelManifestAPIVersion, Name: "detector", Version: "1.0.0", Provider: "onnx",
+		Capabilities: []string{blockade.CapabilityObjectDetect},
+		Artifacts:    []blockade.ModelArtifact{{Role: "yolo", File: "detector.gguf", SHA256: strings.Repeat("0", 64)}},
+	}, Directory: t.TempDir()}
+	err = blockade.InspectConfiguredProviderModel(context.Background(), blockade.ProviderAdapterConfig{ID: "onnx", Provider: "onnx"}, model, registry, nil)
+	if kind, ok := blockade.ProviderAdapterErrorKindOf(err); !ok || kind != blockade.ProviderAdapterErrorInvalidRequest {
+		t.Fatalf("standalone ONNX provider inspection error = %v, kind = %q", err, kind)
 	}
 }
 

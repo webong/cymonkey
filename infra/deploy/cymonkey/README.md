@@ -5,6 +5,10 @@ libraries. It exposes their interfaces through one `cymonkey` executable.
 
 Validate and run a host manifest from the repository root:
 
+The example Blockade component uses the provider-only configuration in
+`infra/deploy/blockade`. Install its provider and local model first by following
+the [Blockade deployment guide](../blockade/README.md).
+
 ```sh
 mkdir -p .cache/bin
 go build -o .cache/bin/cymonkey ./src

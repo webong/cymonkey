@@ -185,3 +185,4 @@ async function start() {
 
 addEventListener("unhandledrejection", (event) => report("error", safeMessage(event.reason)));
 start().catch((error) => report("error", safeMessage(error)));
+

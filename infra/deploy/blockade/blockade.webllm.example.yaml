@@ -1,7 +1,7 @@
 apiVersion: blockade.config/v1alpha1
-providerAdapters:
+providers:
   - id: browser-vlm
-    kind: webllm
+    provider: webllm
     timeout: 2m
     maxPayloadBytes: 8388608
     settings:

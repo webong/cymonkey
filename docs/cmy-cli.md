@@ -50,7 +50,7 @@ subcommand-specific help page.
 | `cmy board devices`, `drive-list`, `drive-read` | List host-approved mounted drives, list entries, or stream one selected file. |
 | `cmy board keyboard-press`, `keyboard-type` | Send a key or bounded text to an explicitly selected macOS process. |
 | `cmy board provider-devices`, `provider-invoke`, `provider-stream` | Use installed Board providers under an explicit device grant. |
-| `cmy blockade validate`, `observe`, `interpret`, `serve` | Validate model configuration, observe an image, interpret content with a capable provider, or run Blockade. |
+| `cmy blockade validate`, `model install/list/remove`, `observe`, `interpret`, `serve` | Validate configuration, manage provider-owned local models, request inference, or run Blockade. |
 | `cmy plugins install`, `upgrade`, `list`, `remove` | Manage local executable providers for Jangolova, Blockade, and Board. |
 | `cmy native-bridge-fixture` | Run the native bridge test fixture; this is for development. |
 
@@ -370,9 +370,9 @@ cmy blockade validate --config infra/deploy/blockade/blockade.example.yaml
 cmy blockade validate --config infra/deploy/blockade/blockade.example.yaml --check-files
 ```
 
-`validate` checks the Blockade YAML. `--check-files` additionally checks
-referenced local model files. The example model paths need real models before
-that check or inference can succeed.
+`validate` checks the Blockade YAML. `--check-files` additionally verifies the
+digests of installed provider models. A referenced local model must be
+installed before that check or inference can succeed.
 
 Observe a PNG or JPEG file with a configured inference backend:
 
@@ -383,9 +383,7 @@ cmy blockade observe --config /absolute/path/to/blockade.yaml \
 ```
 
 `--config` and `--image` are required; `--prompt` is optional. Omit
-`--inference` to use the config's default backend. `--engine` remains a
-deprecated alias for `--inference`; supply only one of them. The result is
-JSON.
+`--inference` to use the config's first provider. The result is JSON.
 
 Interpret text or audio with a configured executable model provider:
 
@@ -396,6 +394,21 @@ cmy blockade interpret --config /absolute/path/to/blockade.yaml \
   --inference content-model --audio recording.wav --audio-type audio/wav \
   --prompt 'Transcribe speech'
 ```
+
+Install, list, and remove a provider-owned local model:
+
+```sh
+cmy blockade model install --manifest /absolute/path/to/model.json \
+  --config /absolute/path/to/blockade.yaml
+cmy blockade model list
+cmy blockade model remove --provider onnx --model yolo11n@1.0.0
+```
+
+The manifest names the installed provider executable and includes every
+artifact's role and SHA-256 digest. Blockade copies and verifies the files,
+asks that provider to inspect compatibility, then registers the installed
+version. Use `--root` on model commands or `BLOCKADE_MODEL_DIR` to choose a
+different model registry.
 
 `interpret` also accepts `--text` and `--image`; combine content flags only
 when the provider advertises `multimodal.interpret`. The selected provider must

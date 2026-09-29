@@ -27,7 +27,12 @@ func main() {
 	var manifest struct {
 		APIVersion string `json:"apiVersion"`
 		Name       string `json:"name"`
-		Kind       string `json:"kind"`
+		Version    string `json:"version"`
+		Kind       string `json:"kind,omitempty"`
+		Contracts  []struct {
+			Name    string `json:"name"`
+			Version string `json:"version"`
+		} `json:"contracts,omitempty"`
 	}
 	if json.Unmarshal(manifestBytes, &manifest) != nil {
 		os.Exit(2)
@@ -35,6 +40,7 @@ func main() {
 	reader := bufio.NewScanner(os.Stdin)
 	reader.Buffer(make([]byte, 4096), 24<<20)
 	writer := bufio.NewWriter(os.Stdout)
+	started := false
 	for reader.Scan() {
 		var call request
 		if json.Unmarshal(reader.Bytes(), &call) != nil {
@@ -58,7 +64,11 @@ func main() {
 			answer.Result = map[string]any{"cursor": "0", "events": []any{}}
 		case "jangolova.material", "jangolova.disconnect":
 			answer.Result = map[string]any{}
-		case "blockade.start", "blockade.close":
+		case "blockade.start":
+			started = true
+			answer.Result = map[string]any{}
+		case "blockade.close":
+			started = false
 			answer.Result = map[string]any{}
 		case "blockade.health":
 			answer.Result = map[string]any{"APIVersion": "blockade.provider-adapter/v1alpha1", "Ready": true}
@@ -97,6 +107,12 @@ func main() {
 				kind = "transcript"
 			}
 			answer.Result = map[string]any{"apiVersion": "blockade.provider-adapter/v1alpha1", "response": map[string]any{"apiVersion": "blockade.content/v1alpha1", "requestId": params.Request.Request.RequestID, "findings": []any{map[string]any{"kind": kind, "text": "fixture interpretation", "sourceParts": []int{0}}}}}
+		case "blockade.model.inspect":
+			if started {
+				answer.Error = "model inspection must happen before provider startup"
+			} else {
+				answer.Result = map[string]any{"apiVersion": "blockade.provider-adapter/v1alpha1", "compatible": true}
+			}
 		case "board.list":
 			answer.Result = []any{map[string]any{"id": "device", "kind": "drive", "capabilities": []any{map[string]any{"name": "drive.read", "inputSchema": map[string]any{"type": "object"}}}}}
 		case "board.open":

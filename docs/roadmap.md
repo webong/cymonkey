@@ -157,9 +157,10 @@
 ## Phase 4b: Blockade content interpretation
 
 - [x] Define the provider-neutral Blockade image observation contract.
-- [x] Add managed Python Ultralytics workers for local YOLO/SAM inference.
+- [x] Add a standalone Ultralytics provider with embedded managed Python
+  workers for local YOLO/SAM inference.
 - [x] Add worker-pool lifecycle, framed stdin/stdout IPC, and shutdown.
-- [x] Add YAML engine configuration and local model-file validation.
+- [x] Add provider-only YAML configuration and installed-model validation.
 - [x] Add `cymonkey blockade validate` and `cymonkey blockade observe` CLI flows.
 - [x] Keep Blockade as a read-only observation capability for external agents
   and applications.
@@ -167,7 +168,7 @@
   (docs/cymonkey-display-plane-merge.md).
 - [x] Add reproducible model-cache mounts and a real YOLO/SAM fixture launcher.
 - [x] Run the fixture with pinned weights and add a real inference smoke test.
-- [x] Add native ONNX Runtime inference.
+- [x] Add native ONNX Runtime inference as a standalone executable provider.
 - [x] Add ordered ONNX Runtime execution-provider configuration with explicit
   TensorRT, CUDA, OpenVINO, and Core ML adapters plus an implicit CPU fallback.
 - [x] Make the ONNX smoke fixture execution-provider-selectable and validate a
@@ -195,14 +196,16 @@
   response mapping against the content contract.
 - [ ] Add a production sound model provider package for transcription and/or
   sound-event interpretation.
-- [ ] Define a model registration and installation contract separate from
+- [x] Define a model registration and installation contract separate from
   provider installation, including artifact digests, associated files,
   capability declarations, and provider compatibility checks.
-- [ ] Add a Blockade model installer and registry for local artifacts; support
+- [x] Add a Blockade model installer and registry for local artifacts; support
   remote model identifiers for cloud providers without downloading weights.
-- [ ] Move the built-in Ultralytics and ONNX paths and bundled WebLLM adapter
-  behind the same provider boundary, retaining existing configurations during
-  migration.
+- [x] Extract Ultralytics, ONNX, and WebLLM into standalone executable provider
+  modules behind the same contract; remove the legacy engine configuration and
+  direct Python HTTP integration.
+- [x] Separate staged model inspection from long lived inference startup and
+  add model list and removal lifecycle commands.
 - [ ] Verify one local and one cloud provider through the same contract and
   normalized result tests.
 - [x] Expose the current image observation coordination through an

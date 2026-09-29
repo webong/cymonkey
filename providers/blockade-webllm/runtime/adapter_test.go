@@ -1,4 +1,4 @@
-package blockadewebllm
+package webllmruntime
 
 import (
 	"bytes"
@@ -25,7 +25,6 @@ func newProtocolTestAdapter(state string) *Adapter {
 		pending: make(map[string]*runtimeCall), queue: make(chan *runtimeCall),
 	}
 }
-
 func TestRuntimeBridgeRoundTrip(t *testing.T) {
 	adapter := newProtocolTestAdapter("ready")
 	request := blockade.ProviderAdapterObserveRequest{

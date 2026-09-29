@@ -4,6 +4,7 @@ package blockadeplugin
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"time"
 
@@ -11,12 +12,17 @@ import (
 	"providerplugin"
 )
 
-const Kind = "blockade.provider"
+const ContractName = "blockade.provider"
+const ContractVersion = "v1alpha1"
+
+// Kind is retained for source compatibility with the original manifest field.
+// Deprecated: use ContractName.
+const Kind = ContractName
 
 // RegisterInstalled selects Blockade adapters from a shared installation inventory.
 func RegisterInstalled(registry *blockade.ProviderAdapterRegistry, installed []providerplugin.Installed) error {
 	for _, item := range installed {
-		if item.Manifest.Kind == Kind {
+		if item.Manifest.Supports(ContractName, ContractVersion) {
 			if err := Register(registry, item); err != nil {
 				return err
 			}
@@ -26,12 +32,16 @@ func RegisterInstalled(registry *blockade.ProviderAdapterRegistry, installed []p
 }
 
 func Register(registry *blockade.ProviderAdapterRegistry, installed providerplugin.Installed) error {
-	return registry.Register(installed.Manifest.Name, func(ctx context.Context, runtime blockade.ProviderAdapterRuntime) (blockade.ProviderAdapter, error) {
+	factory := func(ctx context.Context, runtime blockade.ProviderAdapterRuntime) (blockade.ProviderAdapter, error) {
 		proc, err := providerplugin.Open(ctx, installed)
 		if err != nil {
 			return nil, err
 		}
-		if err := proc.Call(ctx, "blockade.start", map[string]any{"id": runtime.ID, "settings": runtime.Settings}, nil); err != nil {
+		start := map[string]any{"id": runtime.ID, "settings": runtime.Settings}
+		if runtime.Model != nil {
+			start["model"] = runtime.Model
+		}
+		if err := proc.Call(ctx, "blockade.start", start, nil); err != nil {
 			_ = proc.Close()
 			return nil, err
 		}
@@ -61,7 +71,16 @@ func Register(registry *blockade.ProviderAdapterRegistry, installed providerplug
 			// They used blockade.observe before the content contract existed.
 			return &imageAdapter{base}, nil
 		}
-	})
+	}
+	inspect := func(ctx context.Context, runtime blockade.ProviderAdapterRuntime, model blockade.InstalledModel) error {
+		proc, err := providerplugin.Open(ctx, installed)
+		if err != nil {
+			return err
+		}
+		defer proc.Close()
+		return inspectModel(ctx, proc, runtime.Settings, model)
+	}
+	return registry.RegisterWithModelInspector(installed.Manifest.Name, factory, inspect)
 }
 
 type adapter struct {
@@ -94,6 +113,27 @@ func (a *adapter) interpret(ctx context.Context, request blockade.ProviderAdapte
 	var result blockade.ProviderAdapterInterpretResponse
 	err := a.proc.Call(ctx, "blockade.interpret", map[string]any{"request": request, "secrets": secrets}, &result)
 	return result, err
+}
+
+func inspectModel(ctx context.Context, proc *providerplugin.Process, settings map[string]string, model blockade.InstalledModel) error {
+	var result struct {
+		APIVersion string `json:"apiVersion"`
+		Compatible bool   `json:"compatible"`
+		Detail     string `json:"detail,omitempty"`
+	}
+	if err := proc.Call(ctx, "blockade.model.inspect", map[string]any{"settings": settings, "model": model}, &result); err != nil {
+		return err
+	}
+	if result.APIVersion != blockade.ProviderAdapterAPIVersion {
+		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidResponse, fmt.Errorf("model inspection returned unsupported apiVersion %q", result.APIVersion))
+	}
+	if !result.Compatible {
+		if result.Detail == "" {
+			return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, fmt.Errorf("model inspection rejected by provider"))
+		}
+		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, fmt.Errorf("model inspection rejected by provider: %s", result.Detail))
+	}
+	return nil
 }
 
 type imageAdapter struct{ *adapter }

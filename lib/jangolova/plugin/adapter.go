@@ -15,7 +15,12 @@ import (
 
 type Adapter struct{ Installed providerplugin.Installed }
 
-const Kind = "jangolova.engine"
+const ContractName = "jangolova.engine"
+const ContractVersion = "v1alpha1"
+
+// Kind is retained for source compatibility with the original manifest field.
+// Deprecated: use ContractName.
+const Kind = ContractName
 
 type NamedAdapter struct {
 	Name    string
@@ -26,7 +31,7 @@ type NamedAdapter struct {
 func Adapters(installed []providerplugin.Installed) []NamedAdapter {
 	var adapters []NamedAdapter
 	for _, item := range installed {
-		if item.Manifest.Kind == Kind {
+		if item.Manifest.Supports(ContractName, ContractVersion) {
 			adapters = append(adapters, NamedAdapter{Name: item.Manifest.Name, Adapter: Adapter{Installed: item}})
 		}
 	}

@@ -13,8 +13,8 @@ import (
 func TestRegisterInstalledSelectsOnlyBlockadeProviders(t *testing.T) {
 	registry := blockade.NewProviderAdapterRegistry()
 	installed := []providerplugin.Installed{
-		{Manifest: providerplugin.Manifest{Name: "vision", Kind: Kind}},
-		{Manifest: providerplugin.Manifest{Name: "camera", Kind: "board.provider"}},
+		{Manifest: providerplugin.Manifest{Name: "vision", Contracts: []providerplugin.Contract{{Name: ContractName, Version: ContractVersion}}}},
+		{Manifest: providerplugin.Manifest{Name: "camera", Contracts: []providerplugin.Contract{{Name: "board.provider", Version: "v1alpha1"}}}},
 	}
 	if err := RegisterInstalled(registry, installed); err != nil {
 		t.Fatal(err)

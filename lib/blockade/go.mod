@@ -4,7 +4,6 @@ go 1.26.5
 
 require (
 	providerplugin v0.0.0
-	github.com/yalue/onnxruntime_go v1.35.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

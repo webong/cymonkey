@@ -1,4 +1,4 @@
-package blockade
+package main
 
 import (
 	"image"
@@ -7,7 +7,24 @@ import (
 	"math"
 	"sort"
 	"strconv"
+
+	"blockade"
 )
+
+var cocoClassNames = []string{
+	"person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck",
+	"boat", "traffic light", "fire hydrant", "stop sign", "parking meter", "bench",
+	"bird", "cat", "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra",
+	"giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee",
+	"skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove",
+	"skateboard", "surfboard", "tennis racket", "bottle", "wine glass", "cup",
+	"fork", "knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange",
+	"broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "couch",
+	"potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse",
+	"remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink",
+	"refrigerator", "book", "clock", "vase", "scissors", "teddy bear",
+	"hair drier", "toothbrush",
+}
 
 type letterboxScale struct {
 	scale float64
@@ -15,27 +32,19 @@ type letterboxScale struct {
 	padY  float64
 }
 
-// rasterize letterboxes an image into a fixed square input with gray padding,
-// returning normalized NCHW planar pixels ready for a YOLO ONNX model.
 func rasterize(img image.Image, targetW, targetH int) ([]float32, letterboxScale) {
 	bounds := img.Bounds()
 	width, height := bounds.Dx(), bounds.Dy()
 	scale := math.Min(float64(targetW)/float64(width), float64(targetH)/float64(height))
-	resizedW := int(math.Round(float64(width) * scale))
-	resizedH := int(math.Round(float64(height) * scale))
-	if resizedW < 1 {
-		resizedW = 1
-	}
-	if resizedH < 1 {
-		resizedH = 1
-	}
+	resizedW := max(int(math.Round(float64(width)*scale)), 1)
+	resizedH := max(int(math.Round(float64(height)*scale)), 1)
 	padX := float64(targetW-resizedW) / 2
 	padY := float64(targetH-resizedH) / 2
 
 	scaled := image.NewRGBA(image.Rect(0, 0, resizedW, resizedH))
-	for y := 0; y < resizedH; y++ {
+	for y := range resizedH {
 		sourceY := bounds.Min.Y + int(math.Min(float64(y)/scale, float64(height-1)))
-		for x := 0; x < resizedW; x++ {
+		for x := range resizedW {
 			sourceX := bounds.Min.X + int(math.Min(float64(x)/scale, float64(width-1)))
 			scaled.Set(x, y, img.At(sourceX, sourceY))
 		}
@@ -46,8 +55,8 @@ func rasterize(img image.Image, targetW, targetH int) ([]float32, letterboxScale
 
 	plane := targetW * targetH
 	data := make([]float32, 3*plane)
-	for y := 0; y < targetH; y++ {
-		for x := 0; x < targetW; x++ {
+	for y := range targetH {
+		for x := range targetW {
 			r, g, b, _ := canvas.At(x, y).RGBA()
 			index := y*targetW + x
 			data[index] = float32(r>>8) / 255
@@ -64,46 +73,35 @@ type rawDetection struct {
 	classIndex int
 }
 
-// observationsFromDetections maps raw YOLO ONNX tensor output onto normalized
-// observations, undoing the letterbox transform and applying threshold plus NMS.
-func observationsFromDetections(
-	data []float32,
-	layout outputLayout,
-	numClasses int,
-	letterbox letterboxScale,
-	bounds image.Rectangle,
-	confidenceThreshold float64,
-	iouThreshold float64,
-	evidence string,
-) []Observation {
+func observationsFromDetections(data []float32, layout outputLayout, numClasses int, letterbox letterboxScale, bounds image.Rectangle, confidenceThreshold, iouThreshold float64, evidence string) []blockade.Observation {
 	channels := numClasses + 4
 	candidates := len(data) / channels
 	detections := make([]rawDetection, 0, candidates)
-	for j := 0; j < candidates; j++ {
+	for candidate := range candidates {
 		var centerX, centerY, boxWidth, boxHeight float64
 		bestClass, bestScore := -1, 0.0
 		switch layout {
 		case layoutChannelsFirst:
-			centerX = float64(data[j])
-			centerY = float64(data[candidates+j])
-			boxWidth = float64(data[2*candidates+j])
-			boxHeight = float64(data[3*candidates+j])
-			for c := 0; c < numClasses; c++ {
-				score := float64(data[(4+c)*candidates+j])
+			centerX = float64(data[candidate])
+			centerY = float64(data[candidates+candidate])
+			boxWidth = float64(data[2*candidates+candidate])
+			boxHeight = float64(data[3*candidates+candidate])
+			for class := range numClasses {
+				score := float64(data[(4+class)*candidates+candidate])
 				if score > bestScore {
-					bestClass, bestScore = c, score
+					bestClass, bestScore = class, score
 				}
 			}
 		case layoutCandidatesFirst:
-			base := j * channels
+			base := candidate * channels
 			centerX = float64(data[base])
 			centerY = float64(data[base+1])
 			boxWidth = float64(data[base+2])
 			boxHeight = float64(data[base+3])
-			for c := 0; c < numClasses; c++ {
-				score := float64(data[base+4+c])
+			for class := range numClasses {
+				score := float64(data[base+4+class])
 				if score > bestScore {
-					bestClass, bestScore = c, score
+					bestClass, bestScore = class, score
 				}
 			}
 		default:
@@ -113,29 +111,18 @@ func observationsFromDetections(
 			continue
 		}
 		detections = append(detections, rawDetection{
-			xyxy: [4]float64{
-				centerX - boxWidth/2,
-				centerY - boxHeight/2,
-				centerX + boxWidth/2,
-				centerY + boxHeight/2,
-			},
-			score:      bestScore,
-			classIndex: bestClass,
+			xyxy:  [4]float64{centerX - boxWidth/2, centerY - boxHeight/2, centerX + boxWidth/2, centerY + boxHeight/2},
+			score: bestScore, classIndex: bestClass,
 		})
 	}
-	sort.SliceStable(detections, func(i, j int) bool {
-		return detections[i].score > detections[j].score
-	})
+	sort.SliceStable(detections, func(i, j int) bool { return detections[i].score > detections[j].score })
 	kept := nonMaxSuppression(detections, iouThreshold)
-	observations := make([]Observation, 0, len(kept))
+	observations := make([]blockade.Observation, 0, len(kept))
 	for _, index := range kept {
 		box := detections[index]
-		observations = append(observations, Observation{
-			Kind:       "object",
-			Label:      className(box.classIndex),
-			Confidence: clamp01(box.score),
-			Region:     regionFromLetterboxed(box.xyxy, letterbox, bounds),
-			Evidence:   evidence,
+		observations = append(observations, blockade.Observation{
+			Kind: "object", Label: className(box.classIndex), Confidence: clamp01(box.score),
+			Region: regionFromLetterboxed(box.xyxy, letterbox, bounds), Evidence: evidence,
 		})
 	}
 	return observations
@@ -163,9 +150,7 @@ func intersectionOverUnion(a, b [4]float64) float64 {
 	intersectY1 := math.Max(a[1], b[1])
 	intersectX2 := math.Min(a[2], b[2])
 	intersectY2 := math.Min(a[3], b[3])
-	intersectWidth := math.Max(intersectX2-intersectX1, 0)
-	intersectHeight := math.Max(intersectY2-intersectY1, 0)
-	intersection := intersectWidth * intersectHeight
+	intersection := math.Max(intersectX2-intersectX1, 0) * math.Max(intersectY2-intersectY1, 0)
 	areaA := (a[2] - a[0]) * (a[3] - a[1])
 	areaB := (b[2] - b[0]) * (b[3] - b[1])
 	union := areaA + areaB - intersection
@@ -175,13 +160,13 @@ func intersectionOverUnion(a, b [4]float64) float64 {
 	return intersection / union
 }
 
-func regionFromLetterboxed(xyxy [4]float64, letterbox letterboxScale, bounds image.Rectangle) Region {
+func regionFromLetterboxed(xyxy [4]float64, letterbox letterboxScale, bounds image.Rectangle) blockade.Region {
 	width, height := float64(bounds.Dx()), float64(bounds.Dy())
 	x1 := clampFloat((xyxy[0]-letterbox.padX)/letterbox.scale, 0, width)
 	y1 := clampFloat((xyxy[1]-letterbox.padY)/letterbox.scale, 0, height)
 	x2 := clampFloat((xyxy[2]-letterbox.padX)/letterbox.scale, 0, width)
 	y2 := clampFloat((xyxy[3]-letterbox.padY)/letterbox.scale, 0, height)
-	return Region{X: x1, Y: y1, Width: math.Max(x2-x1, 0), Height: math.Max(y2-y1, 0)}
+	return blockade.Region{X: x1, Y: y1, Width: math.Max(x2-x1, 0), Height: math.Max(y2-y1, 0)}
 }
 
 func className(index int) string {
@@ -195,6 +180,4 @@ func clampFloat(value, minimum, maximum float64) float64 {
 	return math.Max(minimum, math.Min(maximum, value))
 }
 
-func clamp01(value float64) float64 {
-	return clampFloat(value, 0, 1)
-}
+func clamp01(value float64) float64 { return clampFloat(value, 0, 1) }

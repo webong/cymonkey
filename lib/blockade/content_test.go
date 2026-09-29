@@ -45,7 +45,7 @@ func startContentFixture(t *testing.T, adapter *contentAdapterFixture) Engine {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	engine, err := StartConfiguredProviderAdapter(context.Background(), ProviderAdapterConfig{ID: "fixture", Kind: "fixture", MaxPayloadBytes: 1024}, registry, nil)
+	engine, err := StartConfiguredProviderAdapter(context.Background(), ProviderAdapterConfig{ID: "fixture", Provider: "fixture", MaxPayloadBytes: 1024}, registry, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,4 +1,4 @@
-package blockadewebllm
+package webllmruntime
 
 import (
 	"context"
@@ -55,7 +55,6 @@ func TestWebLLMRuntimeBootProbe(t *testing.T) {
 		}
 	}
 }
-
 // TestWebLLMFixtureSmoke is opt-in because it requires Chromium, WebGPU, and
 // several gigabytes of model artifacts on a cold cache.
 func TestWebLLMFixtureSmoke(t *testing.T) {

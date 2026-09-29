@@ -14,7 +14,6 @@ import (
 
 	"blockade"
 	blockadecli "blockade/cli"
-	blockadewebllm "blockade/webllm"
 	boardcli "board/cli"
 	nativebridge "cymonkey/src/fixtures/native-bridge"
 	"cymonkey/src/internal/host"
@@ -161,9 +160,6 @@ func runHost(args []string, stdout, stderr io.Writer) error {
 
 func runBlockade(args []string, stdout, stderr io.Writer) error {
 	registry := blockade.NewProviderAdapterRegistry()
-	if err := blockadewebllm.Register(registry); err != nil {
-		return err
-	}
 	if err := registerBlockadePlugins(registry); err != nil {
 		return err
 	}

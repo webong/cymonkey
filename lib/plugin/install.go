@@ -83,8 +83,8 @@ func Upgrade(root, manifestPath string) (Installed, error) {
 	if err != nil {
 		return Installed{}, err
 	}
-	if old.Name != m.Name || old.Kind != m.Kind {
-		return Installed{}, errors.New("plugin upgrade must keep name and kind")
+	if old.Name != m.Name || !sameContractIdentity(old.Kind, old.Contracts, m.Kind, m.Contracts) {
+		return Installed{}, errors.New("plugin upgrade must keep name and contracts")
 	}
 	if old.Version == m.Version {
 		return Installed{}, errors.New("plugin upgrade requires a new version")

@@ -62,6 +62,24 @@ func TestManifestRejectsTraversalAndInvalidKinds(t *testing.T) {
 	}
 }
 
+func TestManifestSupportsVersionedContracts(t *testing.T) {
+	m := Manifest{
+		APIVersion: APIVersion, Name: "fixture", Version: "1.0.0",
+		Contracts: []Contract{{Name: "blockade.provider", Version: "v1alpha1"}},
+		Command:   "provider", SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+	}
+	if err := m.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	if !m.Supports("blockade.provider", "v1alpha1") || m.Supports("board.provider", "v1alpha1") {
+		t.Fatalf("contract matching failed: %#v", m.Contracts)
+	}
+	m.Kind = "blockade.provider"
+	if err := m.Validate(); err == nil {
+		t.Fatal("accepted ambiguous contracts and legacy kind")
+	}
+}
+
 func TestUpgradeReplacesVersionAndPreservesIdentity(t *testing.T) {
 	root := t.TempDir()
 	write := func(version string, content []byte) string {

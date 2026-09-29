@@ -79,11 +79,17 @@ type ContentProviderAdapter interface {
 
 type ProviderAdapterFactory func(context.Context, ProviderAdapterRuntime) (ProviderAdapter, error)
 
+// ProviderModelInspectFunc validates a staged model without starting an
+// inference runtime. Providers that accept local models register this callback
+// beside their normal factory.
+type ProviderModelInspectFunc func(context.Context, ProviderAdapterRuntime, InstalledModel) error
+
 // ProviderAdapterRuntime contains non-secret settings and a lazy secret source.
 // Secret values never appear in the YAML-backed configuration value.
 type ProviderAdapterRuntime struct {
 	ID       string
 	Settings map[string]string
+	Model    *InstalledModel
 	Secrets  ProviderAdapterSecrets
 	// SecretNames lists only configured logical secret names, allowing an
 	// external adapter to request those values without seeing host variables.
@@ -137,49 +143,72 @@ func (s configuredProviderAdapterSecrets) Resolve(ctx context.Context, name stri
 	return value, nil
 }
 
-// ProviderAdapterRegistry maps provider-neutral adapter kinds to factories.
+// ProviderAdapterRegistry maps installed provider names to factories.
 // A Blockade build opts into real providers by registering their packages.
 type ProviderAdapterRegistry struct {
-	mu        sync.RWMutex
-	factories map[string]ProviderAdapterFactory
+	mu         sync.RWMutex
+	factories  map[string]ProviderAdapterFactory
+	inspectors map[string]ProviderModelInspectFunc
 }
 
 func NewProviderAdapterRegistry() *ProviderAdapterRegistry {
-	return &ProviderAdapterRegistry{factories: make(map[string]ProviderAdapterFactory)}
+	return &ProviderAdapterRegistry{
+		factories:  make(map[string]ProviderAdapterFactory),
+		inspectors: make(map[string]ProviderModelInspectFunc),
+	}
 }
 
-func (r *ProviderAdapterRegistry) Register(kind string, factory ProviderAdapterFactory) error {
+func (r *ProviderAdapterRegistry) Register(name string, factory ProviderAdapterFactory) error {
+	return r.RegisterWithModelInspector(name, factory, nil)
+}
+
+// RegisterWithModelInspector registers provider startup and optional staged
+// model inspection as separate lifecycle operations.
+func (r *ProviderAdapterRegistry) RegisterWithModelInspector(name string, factory ProviderAdapterFactory, inspect ProviderModelInspectFunc) error {
 	if r == nil {
 		return errors.New("Blockade provider adapter registry is required")
 	}
-	kind = canonicalAdapterKind(kind)
-	if kind == "" {
-		return errors.New("Blockade provider adapter kind is required")
+	name = canonicalProviderName(name)
+	if !modelNamePattern.MatchString(name) {
+		return errors.New("Blockade provider name is invalid")
 	}
 	if factory == nil {
-		return fmt.Errorf("Blockade provider adapter %q factory is required", kind)
+		return fmt.Errorf("Blockade provider %q factory is required", name)
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if _, exists := r.factories[kind]; exists {
-		return fmt.Errorf("Blockade provider adapter kind %q is already registered", kind)
+	if _, exists := r.factories[name]; exists {
+		return fmt.Errorf("Blockade provider %q is already registered", name)
 	}
-	r.factories[kind] = factory
+	r.factories[name] = factory
+	if inspect != nil {
+		r.inspectors[name] = inspect
+	}
 	return nil
 }
 
-func (r *ProviderAdapterRegistry) factory(kind string) (ProviderAdapterFactory, bool) {
+func (r *ProviderAdapterRegistry) factory(name string) (ProviderAdapterFactory, bool) {
 	if r == nil {
 		return nil, false
 	}
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	factory, ok := r.factories[canonicalAdapterKind(kind)]
+	factory, ok := r.factories[canonicalProviderName(name)]
 	return factory, ok
 }
 
-func canonicalAdapterKind(kind string) string {
-	return strings.ToLower(strings.TrimSpace(kind))
+func (r *ProviderAdapterRegistry) inspector(name string) (ProviderModelInspectFunc, bool) {
+	if r == nil {
+		return nil, false
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	inspect, ok := r.inspectors[canonicalProviderName(name)]
+	return inspect, ok
+}
+
+func canonicalProviderName(name string) string {
+	return strings.ToLower(strings.TrimSpace(name))
 }
 
 type ProviderAdapterErrorKind string
@@ -263,23 +292,30 @@ func StartConfiguredProviderAdapter(ctx context.Context, config ProviderAdapterC
 	if err := config.validate(); err != nil {
 		return nil, err
 	}
-	factory, ok := registry.factory(config.Kind)
+	factory, ok := registry.factory(config.Provider)
 	if !ok {
-		return nil, fmt.Errorf("Blockade provider adapter %q has unregistered kind %q", config.ID, config.Kind)
+		return nil, fmt.Errorf("Blockade provider %q uses unregistered executable %q", config.ID, config.Provider)
 	}
 	if resolver == nil {
 		resolver = EnvironmentSecretResolver{}
 	}
-	runtime := ProviderAdapterRuntime{
-		ID:       config.ID,
-		Settings: maps.Clone(config.Settings),
-		Secrets: configuredProviderAdapterSecrets{
-			adapterID:  config.ID,
-			references: maps.Clone(config.Secrets),
-			resolver:   resolver,
-		},
-		SecretNames: slices.Sorted(maps.Keys(config.Secrets)),
+	var model *InstalledModel
+	if config.Model != "" {
+		root := config.ModelRoot
+		if root == "" {
+			var err error
+			root, err = DefaultModelRoot()
+			if err != nil {
+				return nil, err
+			}
+		}
+		installed, err := ResolveInstalledModel(root, canonicalProviderName(config.Provider), config.Model)
+		if err != nil {
+			return nil, fmt.Errorf("load model for provider %q: %w", config.Provider, err)
+		}
+		model = &installed
 	}
+	runtime := providerAdapterRuntime(config, resolver, model)
 	adapter, err := factory(ctx, runtime)
 	if err != nil {
 		return nil, normalizeProviderAdapterError(config.ID, ctx, err)
@@ -293,6 +329,49 @@ func StartConfiguredProviderAdapter(ctx context.Context, config ProviderAdapterC
 		timeout:         config.timeout(),
 		maxPayloadBytes: config.maxPayloadBytes(),
 	}, nil
+}
+
+// InspectConfiguredProviderModel asks the selected provider to validate a
+// staged model without constructing or starting its inference runtime.
+func InspectConfiguredProviderModel(ctx context.Context, config ProviderAdapterConfig, model InstalledModel, registry *ProviderAdapterRegistry, resolver SecretResolver) error {
+	config.Model = ""
+	config.ModelRoot = ""
+	if err := config.validate(); err != nil {
+		return err
+	}
+	if canonicalProviderName(model.Manifest.Provider) != canonicalProviderName(config.Provider) {
+		return fmt.Errorf("model provider %q does not match configured provider %q", model.Manifest.Provider, config.Provider)
+	}
+	inspect, ok := registry.inspector(config.Provider)
+	if !ok {
+		return fmt.Errorf("Blockade provider %q cannot inspect local models", config.ID)
+	}
+	if resolver == nil {
+		resolver = EnvironmentSecretResolver{}
+	}
+	callCtx, cancel := context.WithTimeout(ctx, config.timeout())
+	defer cancel()
+	if err := inspect(callCtx, providerAdapterRuntime(config, resolver, nil), model); err != nil {
+		return normalizeProviderAdapterError(config.ID, callCtx, err)
+	}
+	if err := callCtx.Err(); err != nil {
+		return normalizeProviderAdapterError(config.ID, callCtx, err)
+	}
+	return nil
+}
+
+func providerAdapterRuntime(config ProviderAdapterConfig, resolver SecretResolver, model *InstalledModel) ProviderAdapterRuntime {
+	return ProviderAdapterRuntime{
+		ID:       config.ID,
+		Settings: maps.Clone(config.Settings),
+		Model:    model,
+		Secrets: configuredProviderAdapterSecrets{
+			adapterID:  config.ID,
+			references: maps.Clone(config.Secrets),
+			resolver:   resolver,
+		},
+		SecretNames: slices.Sorted(maps.Keys(config.Secrets)),
+	}
 }
 
 func (e *providerAdapterEngine) Observe(ctx context.Context, request ObserveRequest) (ObserveResponse, error) {

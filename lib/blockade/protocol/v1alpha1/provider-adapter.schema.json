@@ -7,6 +7,8 @@
     {"$ref": "#/$defs/observeResponse"},
     {"$ref": "#/$defs/interpretRequest"},
     {"$ref": "#/$defs/interpretResponse"},
+    {"$ref": "#/$defs/modelInspectRequest"},
+    {"$ref": "#/$defs/modelInspectResponse"},
     {"$ref": "#/$defs/capabilities"},
     {"$ref": "#/$defs/health"}
   ],
@@ -55,6 +57,37 @@
       "properties": {
         "apiVersion": {"const": "blockade.provider-adapter/v1alpha1"},
         "response": {"$ref": "content-response.schema.json"}
+      },
+      "additionalProperties": false
+    },
+    "installedModel": {
+      "type": "object",
+      "required": ["manifest", "directory"],
+      "properties": {
+        "manifest": {"$ref": "model-manifest.schema.json"},
+        "directory": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "modelInspectRequest": {
+      "type": "object",
+      "required": ["model"],
+      "properties": {
+        "settings": {
+          "type": "object",
+          "additionalProperties": {"type": "string"}
+        },
+        "model": {"$ref": "#/$defs/installedModel"}
+      },
+      "additionalProperties": false
+    },
+    "modelInspectResponse": {
+      "type": "object",
+      "required": ["apiVersion", "compatible"],
+      "properties": {
+        "apiVersion": {"const": "blockade.provider-adapter/v1alpha1"},
+        "compatible": {"type": "boolean"},
+        "detail": {"type": "string"}
       },
       "additionalProperties": false
     },

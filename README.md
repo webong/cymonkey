@@ -48,23 +48,27 @@ macOS keyboard provider. Hotplug events are still to be implemented. Board's
 host API requires an explicit
 authorization decision; Cymonkey routes its `board` command to Board's CLI.
 Blockade has separate image observation and provider-backed content contracts.
-Its current local image backends run YOLO and SAM model weights in Ultralytics
-workers, or a YOLO ONNX model in ONNX Runtime. Browser-local WebLLM and installed
-provider executables are other inference paths. Text and sound need a capable
-model provider; none is bundled yet. Cymonkey provides the boundary through
-which callers extend and coordinate these libraries.
+Its current provider modules include YOLO/SAM through Ultralytics, YOLO through
+ONNX Runtime, and browser-local WebLLM. They build as separately installed
+executables and are not imported by the Cymonkey binary. Text and sound need a
+capable model provider; none is bundled yet. Cymonkey provides the boundary
+through which callers extend and coordinate these libraries.
 
 All three libraries are independently usable. Cymonkey can compose their public
 Go modules and supply the host services that its workflows need; none
 imports Cymonkey or requires the Cymonkey executable.
 
-Built-in adapters remain linked into Cymonkey. Optional providers use the
-[executable plugin protocol](docs/cymonkey-plugins.md), with one installer and
-separate library-owned adapters.
+Library adapters connect at Cymonkey's executable edge. Runtime providers use
+the [executable plugin protocol](docs/cymonkey-plugins.md), with one generic
+installer and separate library-owned protocol adapters.
 
 ## Quick start
 
 Build the executables and start Cymonkey:
+
+The example Blockade component expects the `local-ultralytics` provider and a
+`yolo-sam@1.0.0` model to be installed first. Follow the
+[Blockade configuration guide](infra/deploy/blockade/README.md) once per host.
 
 ```bash
 mkdir -p .cache/bin

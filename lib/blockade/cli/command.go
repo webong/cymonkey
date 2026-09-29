@@ -17,20 +17,22 @@ import (
 	"blockade"
 )
 
-// Run executes the standalone Blockade command surface with no provider
-// packages registered. A distribution containing provider integrations can
-// call RunWithProviderAdapters with its registry.
+// Run executes Blockade without pre-registered providers. Applications supply
+// installed providers through RunWithProviderAdapters.
 func Run(args []string, stdout, stderr io.Writer) error {
-	return RunWithProviderAdapters(args, stdout, stderr, blockade.NewProviderAdapterRegistry(), blockade.EnvironmentSecretResolver{})
+	registry := blockade.NewProviderAdapterRegistry()
+	return RunWithProviderAdapters(args, stdout, stderr, registry, blockade.EnvironmentSecretResolver{})
 }
 
 func RunWithProviderAdapters(args []string, stdout, stderr io.Writer, registry *blockade.ProviderAdapterRegistry, resolver blockade.SecretResolver) error {
 	if len(args) == 0 {
-		return errors.New("blockade requires validate, observe, interpret, or serve")
+		return errors.New("blockade requires validate, model, observe, interpret, or serve")
 	}
 	switch args[0] {
 	case "validate":
 		return validateCommand(args[1:], stdout)
+	case "model":
+		return modelCommand(args[1:], stdout, registry, resolver)
 	case "observe":
 		return observeCommand(args[1:], stdout, registry, resolver)
 	case "interpret":
@@ -40,6 +42,126 @@ func RunWithProviderAdapters(args []string, stdout, stderr io.Writer, registry *
 	default:
 		return fmt.Errorf("unknown blockade command %q", args[0])
 	}
+}
+
+func modelCommand(args []string, stdout io.Writer, registry *blockade.ProviderAdapterRegistry, resolver blockade.SecretResolver) error {
+	if len(args) == 0 {
+		return errors.New("blockade model requires install, list, or remove")
+	}
+	switch args[0] {
+	case "install":
+		flags := flag.NewFlagSet("blockade model install", flag.ContinueOnError)
+		flags.SetOutput(io.Discard)
+		manifestPath := flags.String("manifest", "", "local model.json path")
+		configPath := flags.String("config", "", "Blockade YAML config containing the provider")
+		providerID := flags.String("provider", "", "provider adapter id when config has more than one matching provider")
+		modelRoot := flags.String("root", "", "installed model directory")
+		if err := flags.Parse(args[1:]); err != nil {
+			return err
+		}
+		if flags.NArg() != 0 || strings.TrimSpace(*manifestPath) == "" || strings.TrimSpace(*configPath) == "" {
+			return errors.New("blockade model install requires --manifest and --config")
+		}
+		manifest, err := blockade.LoadModelManifest(*manifestPath)
+		if err != nil {
+			return err
+		}
+		config, err := blockade.LoadConfig(*configPath)
+		if err != nil {
+			return err
+		}
+		provider, err := selectModelProvider(config, manifest.Provider, *providerID)
+		if err != nil {
+			return err
+		}
+		root := strings.TrimSpace(*modelRoot)
+		if root == "" {
+			root, err = blockade.DefaultModelRoot()
+			if err != nil {
+				return err
+			}
+		}
+		installed, err := blockade.InstallModel(context.Background(), root, *manifestPath, func(ctx context.Context, model blockade.InstalledModel) error {
+			return blockade.InspectConfiguredProviderModel(ctx, provider, model, registry, resolver)
+		})
+		if err != nil {
+			return err
+		}
+		return json.NewEncoder(stdout).Encode(installed)
+	case "list":
+		flags := flag.NewFlagSet("blockade model list", flag.ContinueOnError)
+		flags.SetOutput(io.Discard)
+		modelRoot := flags.String("root", "", "installed model directory")
+		if err := flags.Parse(args[1:]); err != nil {
+			return err
+		}
+		if flags.NArg() != 0 {
+			return errors.New("blockade model list accepts flags only")
+		}
+		root := strings.TrimSpace(*modelRoot)
+		var err error
+		if root == "" {
+			root, err = blockade.DefaultModelRoot()
+			if err != nil {
+				return err
+			}
+		}
+		models, err := blockade.ListInstalledModels(root)
+		if err != nil {
+			return err
+		}
+		return json.NewEncoder(stdout).Encode(map[string]any{"models": models})
+	case "remove":
+		flags := flag.NewFlagSet("blockade model remove", flag.ContinueOnError)
+		flags.SetOutput(io.Discard)
+		provider := flags.String("provider", "", "installed provider name")
+		model := flags.String("model", "", "installed model reference name@version")
+		modelRoot := flags.String("root", "", "installed model directory")
+		if err := flags.Parse(args[1:]); err != nil {
+			return err
+		}
+		if flags.NArg() != 0 || strings.TrimSpace(*provider) == "" || strings.TrimSpace(*model) == "" {
+			return errors.New("blockade model remove requires --provider and --model")
+		}
+		root := strings.TrimSpace(*modelRoot)
+		var err error
+		if root == "" {
+			root, err = blockade.DefaultModelRoot()
+			if err != nil {
+				return err
+			}
+		}
+		if err := blockade.RemoveInstalledModel(root, strings.TrimSpace(*provider), strings.TrimSpace(*model)); err != nil {
+			return err
+		}
+		_, err = fmt.Fprintf(stdout, "removed model %s/%s\n", strings.TrimSpace(*provider), strings.TrimSpace(*model))
+		return err
+	default:
+		return fmt.Errorf("unknown blockade model command %q", args[0])
+	}
+}
+
+func selectModelProvider(config blockade.Config, providerName, id string) (blockade.ProviderAdapterConfig, error) {
+	id = strings.TrimSpace(id)
+	var matches []blockade.ProviderAdapterConfig
+	for _, provider := range config.Providers {
+		if id != "" && provider.ID != id {
+			continue
+		}
+		if strings.EqualFold(strings.TrimSpace(provider.Provider), strings.TrimSpace(providerName)) {
+			matches = append(matches, provider)
+		}
+	}
+	if len(matches) == 1 {
+		return matches[0], nil
+	}
+	if id != "" {
+		return blockade.ProviderAdapterConfig{}, fmt.Errorf("provider %q does not use model provider %q", id, providerName)
+	}
+	if len(matches) == 0 {
+		return blockade.ProviderAdapterConfig{}, fmt.Errorf("config has no provider executable named %q", providerName)
+	}
+	return blockade.ProviderAdapterConfig{}, fmt.Errorf("config has multiple providers using %q; select one with --provider", providerName)
 }
 
 func interpretCommand(args []string, stdout io.Writer, registry *blockade.ProviderAdapterRegistry, resolver blockade.SecretResolver) error {
@@ -95,7 +217,7 @@ func interpretCommand(args []string, stdout io.Writer, registry *blockade.Provid
 	if err != nil {
 		return err
 	}
-	selected, err := selectInference(config, *inferenceID, "")
+	selected, err := selectProvider(config, *inferenceID)
 	if err != nil {
 		return err
 	}
@@ -150,7 +272,7 @@ func validateCommand(args []string, stdout io.Writer) error {
 			return err
 		}
 	}
-	_, err = fmt.Fprintf(stdout, "valid Blockade config: %d engine(s), %d provider adapter(s)\n", len(config.Engines), len(config.ProviderAdapters))
+	_, err = fmt.Fprintf(stdout, "valid Blockade config: %d provider(s)\n", len(config.Providers))
 	return err
 }
 
@@ -158,8 +280,7 @@ func observeCommand(args []string, stdout io.Writer, registry *blockade.Provider
 	flags := flag.NewFlagSet("blockade observe", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	configPath := flags.String("config", "", "Blockade YAML config")
-	inferenceID := flags.String("inference", "", "engine or provider adapter id")
-	engineID := flags.String("engine", "", "deprecated alias for --inference")
+	inferenceID := flags.String("inference", "", "provider instance id")
 	imagePath := flags.String("image", "", "PNG or JPEG image path")
 	prompt := flags.String("prompt", "", "optional observation prompt")
 	if err := flags.Parse(args); err != nil {
@@ -175,7 +296,7 @@ func observeCommand(args []string, stdout io.Writer, registry *blockade.Provider
 	if err != nil {
 		return err
 	}
-	selected, err := selectInference(config, *inferenceID, *engineID)
+	selected, err := selectProvider(config, *inferenceID)
 	if err != nil {
 		return err
 	}
@@ -199,8 +320,7 @@ func serveCommand(args []string, stderr io.Writer, registry *blockade.ProviderAd
 	flags := flag.NewFlagSet("blockade serve", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	configPath := flags.String("config", "", "Blockade YAML config")
-	inferenceID := flags.String("inference", "", "engine or provider adapter id")
-	engineID := flags.String("engine", "", "deprecated alias for --inference")
+	inferenceID := flags.String("inference", "", "provider instance id")
 	bind := flags.String("bind", envOrDefault("BLOCKADE_BIND", "127.0.0.1:8091"), "Blockade HTTP bind address")
 	if err := flags.Parse(args); err != nil {
 		return err
@@ -215,7 +335,7 @@ func serveCommand(args []string, stderr io.Writer, registry *blockade.ProviderAd
 	if err != nil {
 		return err
 	}
-	selected, err := selectInference(config, *inferenceID, *engineID)
+	selected, err := selectProvider(config, *inferenceID)
 	if err != nil {
 		return err
 	}
@@ -226,7 +346,7 @@ func serveCommand(args []string, stderr io.Writer, registry *blockade.ProviderAd
 		return err
 	}
 	defer engine.Close()
-	service, err := blockade.NewHTTPServer(engine, selected.ID())
+	service, err := blockade.NewHTTPServer(engine, selected.ID)
 	if err != nil {
 		return err
 	}
@@ -244,26 +364,18 @@ func serveCommand(args []string, stderr io.Writer, registry *blockade.ProviderAd
 	return nil
 }
 
-func selectInference(config blockade.Config, inferenceID, legacyEngineID string) (blockade.InferenceConfig, error) {
+func selectProvider(config blockade.Config, inferenceID string) (blockade.ProviderAdapterConfig, error) {
 	inferenceID = strings.TrimSpace(inferenceID)
-	legacyEngineID = strings.TrimSpace(legacyEngineID)
-	if inferenceID != "" && legacyEngineID != "" {
-		return blockade.InferenceConfig{}, errors.New("use only one of --inference or --engine")
-	}
-	id := inferenceID
-	if id == "" {
-		id = legacyEngineID
-	}
-	if id == "" {
-		selected, ok := config.DefaultInference()
+	if inferenceID == "" {
+		selected, ok := config.DefaultProvider()
 		if !ok {
-			return blockade.InferenceConfig{}, errors.New("Blockade config has no inference backend")
+			return blockade.ProviderAdapterConfig{}, errors.New("Blockade config has no provider")
 		}
 		return selected, nil
 	}
-	selected, ok := config.Inference(id)
+	selected, ok := config.Provider(inferenceID)
 	if !ok {
-		return blockade.InferenceConfig{}, fmt.Errorf("Blockade inference %q is not configured", id)
+		return blockade.ProviderAdapterConfig{}, fmt.Errorf("Blockade provider %q is not configured", inferenceID)
 	}
 	return selected, nil
 }

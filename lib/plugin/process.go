@@ -93,9 +93,11 @@ func Open(ctx context.Context, installed Installed) (*Process, error) {
 	scanner.Buffer(make([]byte, 4096), maxFrame)
 	p := &Process{cmd: cmd, stdin: stdin, stdoutPipe: stdout, stdout: scanner, stderr: stderr}
 	var hello struct {
-		APIVersion string `json:"apiVersion"`
-		Name       string `json:"name"`
-		Kind       string `json:"kind"`
+		APIVersion string     `json:"apiVersion"`
+		Name       string     `json:"name"`
+		Version    string     `json:"version"`
+		Contracts  []Contract `json:"contracts,omitempty"`
+		Kind       string     `json:"kind,omitempty"`
 	}
 	helloCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
@@ -103,7 +105,7 @@ func Open(ctx context.Context, installed Installed) (*Process, error) {
 		_ = p.Close()
 		return nil, fmt.Errorf("plugin handshake: %w", err)
 	}
-	if hello.APIVersion != installed.Manifest.APIVersion || hello.Name != installed.Manifest.Name || hello.Kind != installed.Manifest.Kind {
+	if hello.APIVersion != installed.Manifest.APIVersion || hello.Name != installed.Manifest.Name || hello.Version != installed.Manifest.Version || !sameContractIdentity(hello.Kind, hello.Contracts, installed.Manifest.Kind, installed.Manifest.Contracts) {
 		_ = p.Close()
 		return nil, errors.New("plugin handshake does not match installed manifest")
 	}

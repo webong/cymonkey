@@ -81,7 +81,7 @@ func startFakeProvider(t *testing.T, config ProviderAdapterConfig, adapter *fake
 	if factory == nil {
 		factory = func(context.Context, ProviderAdapterRuntime) (ProviderAdapter, error) { return adapter, nil }
 	}
-	if err := registry.Register(config.Kind, factory); err != nil {
+	if err := registry.Register(config.Provider, factory); err != nil {
 		t.Fatal(err)
 	}
 	engine, err := StartConfiguredProviderAdapter(context.Background(), config, registry, EnvironmentSecretResolver{})
@@ -96,7 +96,7 @@ func TestProviderAdapterEndToEnd(t *testing.T) {
 	t.Setenv("BLOCKADE_FIXTURE_TOKEN", secretValue)
 	adapter := readyFakeProvider()
 	config := ProviderAdapterConfig{
-		ID: "hosted-fixture", Kind: "fixture", Timeout: "1s", MaxPayloadBytes: 1024,
+		ID: "hosted-fixture", Provider: "fixture", Timeout: "1s", MaxPayloadBytes: 1024,
 		Settings: map[string]string{"model": "fixture-v1"},
 		Secrets:  map[string]SecretReference{"apiToken": {Env: "BLOCKADE_FIXTURE_TOKEN"}},
 	}
@@ -166,7 +166,7 @@ func TestProviderAdapterTypedFailures(t *testing.T) {
 			adapter.observe = func(context.Context, ProviderAdapterObserveRequest) (ProviderAdapterObserveResponse, error) {
 				return ProviderAdapterObserveResponse{}, NewProviderAdapterError(kind, errors.New("provider detail"))
 			}
-			engine := startFakeProvider(t, ProviderAdapterConfig{ID: "fixture", Kind: "fixture"}, adapter, nil)
+			engine := startFakeProvider(t, ProviderAdapterConfig{ID: "fixture", Provider: "fixture"}, adapter, nil)
 			defer engine.Close()
 			_, err := engine.Observe(context.Background(), ObserveRequest{RequestID: "request-1", Image: []byte("image")})
 			if got, ok := ProviderAdapterErrorKindOf(err); !ok || got != kind {
@@ -187,7 +187,7 @@ func TestProviderAdapterTimeoutAndCancellation(t *testing.T) {
 	}
 
 	t.Run("timeout", func(t *testing.T) {
-		engine := startFakeProvider(t, ProviderAdapterConfig{ID: "fixture", Kind: "fixture", Timeout: "10ms"}, blockingAdapter(), nil)
+		engine := startFakeProvider(t, ProviderAdapterConfig{ID: "fixture", Provider: "fixture", Timeout: "10ms"}, blockingAdapter(), nil)
 		defer engine.Close()
 		_, err := engine.Observe(context.Background(), ObserveRequest{Image: []byte("image")})
 		if kind, ok := ProviderAdapterErrorKindOf(err); !ok || kind != ProviderAdapterErrorTimeout {
@@ -196,7 +196,7 @@ func TestProviderAdapterTimeoutAndCancellation(t *testing.T) {
 	})
 
 	t.Run("canceled", func(t *testing.T) {
-		engine := startFakeProvider(t, ProviderAdapterConfig{ID: "fixture", Kind: "fixture", Timeout: "1s"}, blockingAdapter(), nil)
+		engine := startFakeProvider(t, ProviderAdapterConfig{ID: "fixture", Provider: "fixture", Timeout: "1s"}, blockingAdapter(), nil)
 		defer engine.Close()
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
@@ -209,7 +209,7 @@ func TestProviderAdapterTimeoutAndCancellation(t *testing.T) {
 
 func TestProviderAdapterRejectsInvalidPayloadAndResponse(t *testing.T) {
 	t.Run("payload", func(t *testing.T) {
-		engine := startFakeProvider(t, ProviderAdapterConfig{ID: "fixture", Kind: "fixture", MaxPayloadBytes: 4}, readyFakeProvider(), nil)
+		engine := startFakeProvider(t, ProviderAdapterConfig{ID: "fixture", Provider: "fixture", MaxPayloadBytes: 4}, readyFakeProvider(), nil)
 		defer engine.Close()
 		_, err := engine.Observe(context.Background(), ObserveRequest{Image: []byte("12"), Prompt: "345"})
 		if kind, ok := ProviderAdapterErrorKindOf(err); !ok || kind != ProviderAdapterErrorInvalidRequest {
@@ -224,7 +224,7 @@ func TestProviderAdapterRejectsInvalidPayloadAndResponse(t *testing.T) {
 			result.Response.Observations[0].Confidence = 2
 			return result, nil
 		}
-		engine := startFakeProvider(t, ProviderAdapterConfig{ID: "fixture", Kind: "fixture"}, adapter, nil)
+		engine := startFakeProvider(t, ProviderAdapterConfig{ID: "fixture", Provider: "fixture"}, adapter, nil)
 		defer engine.Close()
 		_, err := engine.Observe(context.Background(), ObserveRequest{RequestID: "request-1", Image: []byte("image")})
 		if kind, ok := ProviderAdapterErrorKindOf(err); !ok || kind != ProviderAdapterErrorInvalidResponse {
@@ -237,7 +237,7 @@ func TestProviderAdapterSecretDoesNotAppearInError(t *testing.T) {
 	const secretValue = "do-not-print-this-secret"
 	t.Setenv("BLOCKADE_FIXTURE_TOKEN", secretValue)
 	config := ProviderAdapterConfig{
-		ID: "fixture", Kind: "fixture",
+		ID: "fixture", Provider: "fixture",
 		Secrets: map[string]SecretReference{"apiToken": {Env: "BLOCKADE_FIXTURE_TOKEN"}},
 	}
 	registry := NewProviderAdapterRegistry()
@@ -264,7 +264,7 @@ func TestProviderAdapterHTTPReportsCapabilitiesHealthAndTypedError(t *testing.T)
 	adapter.observe = func(context.Context, ProviderAdapterObserveRequest) (ProviderAdapterObserveResponse, error) {
 		return ProviderAdapterObserveResponse{}, NewProviderAdapterError(ProviderAdapterErrorRateLimit, errors.New("quota"))
 	}
-	engine := startFakeProvider(t, ProviderAdapterConfig{ID: "fixture", Kind: "fixture"}, adapter, nil)
+	engine := startFakeProvider(t, ProviderAdapterConfig{ID: "fixture", Provider: "fixture"}, adapter, nil)
 	defer engine.Close()
 	server, err := NewHTTPServer(engine, "fixture")
 	if err != nil {
@@ -299,7 +299,7 @@ func TestProviderAdapterHTTPHealthNotReady(t *testing.T) {
 	adapter := readyFakeProvider()
 	adapter.health.Ready = false
 	adapter.health.Detail = "provider unavailable"
-	engine := startFakeProvider(t, ProviderAdapterConfig{ID: "fixture", Kind: "fixture"}, adapter, nil)
+	engine := startFakeProvider(t, ProviderAdapterConfig{ID: "fixture", Provider: "fixture"}, adapter, nil)
 	defer engine.Close()
 	server, err := NewHTTPServer(engine, "fixture")
 	if err != nil {
@@ -322,7 +322,7 @@ func TestEnvironmentSecretResolverHonorsCancellation(t *testing.T) {
 }
 
 func TestProviderAdapterTimeoutIsBounded(t *testing.T) {
-	config := ProviderAdapterConfig{ID: "fixture", Kind: "fixture", Timeout: (maximumProviderAdapterTimeout + time.Second).String()}
+	config := ProviderAdapterConfig{ID: "fixture", Provider: "fixture", Timeout: (maximumProviderAdapterTimeout + time.Second).String()}
 	if err := config.validate(); err == nil {
 		t.Fatal("expected excessive timeout to fail validation")
 	}

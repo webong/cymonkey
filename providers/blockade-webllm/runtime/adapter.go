@@ -1,7 +1,7 @@
-// Package blockadewebllm implements Blockade's browser-local WebLLM inference
-// backend. It launches a dedicated Chromium process that is owned by Blockade;
+// Package webllmruntime implements a Blockade browser-local WebLLM provider.
+// It launches a dedicated Chromium process that is owned by the provider;
 // it never attaches to, reads from, or interacts with a caller's target tab.
-package blockadewebllm
+package webllmruntime
 
 import (
 	"context"
@@ -119,7 +119,7 @@ type Adapter struct {
 	queue        chan *runtimeCall
 }
 
-// Register adds the WebLLM adapter kind to a Blockade provider registry.
+// Register adds WebLLM to a Blockade provider registry.
 func Register(registry *blockade.ProviderAdapterRegistry) error {
 	return registry.Register(Kind, New)
 }
@@ -330,7 +330,7 @@ func resolveBrowserExecutable(configured string) (string, error) {
 			return found, nil
 		}
 	}
-	return "", errors.New("no Chromium browser found; configure providerAdapters[].settings.browserExecutable")
+	return "", errors.New("no Chromium browser found; configure providers[].settings.browserExecutable")
 }
 
 func randomToken() (string, error) {

@@ -24,6 +24,10 @@ cymonkey blockade serve --config infra/deploy/blockade/blockade.example.yaml \
   --bind 127.0.0.1:8091
 ```
 
+The Blockade example expects its separately packaged provider and referenced
+local model to be installed first. See
+[`infra/deploy/blockade`](../infra/deploy/blockade/README.md).
+
 For a coordinated observation, Cymonkey requests Jangolova's ordinary,
 policy-authorized `window.screenshot` interaction call, then supplies those
 pixels to Blockade. Jangolova does not import, configure, or call Blockade.

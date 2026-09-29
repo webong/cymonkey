@@ -1,4 +1,4 @@
-package blockade
+package main
 
 import (
 	"bufio"
@@ -12,27 +12,31 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"blockade"
 )
 
-type WorkerConfig struct {
+type workerConfig struct {
 	Command []string
 	Workers int
 	Env     []string
 	Stderr  io.Writer
 }
 
-type WorkerPool struct {
+type workerPool struct {
 	workers []*localWorker
 	next    atomic.Uint64
 	closed  atomic.Bool
 }
+
 type localWorker struct {
-	config WorkerConfig
+	config workerConfig
 	mu     sync.Mutex
 	cmd    *exec.Cmd
 	stdin  io.WriteCloser
 	stdout *bufio.Reader
 }
+
 type workerRequest struct {
 	ID         string `json:"id"`
 	Method     string `json:"method"`
@@ -40,31 +44,39 @@ type workerRequest struct {
 	Image      []byte `json:"image,omitempty"`
 	Prompt     string `json:"prompt,omitempty"`
 }
+
 type workerResponse struct {
-	ID           string        `json:"id"`
-	OK           bool          `json:"ok"`
-	Error        string        `json:"error,omitempty"`
-	APIVersion   string        `json:"apiVersion,omitempty"`
-	Observations []Observation `json:"observations,omitempty"`
+	ID           string                 `json:"id"`
+	OK           bool                   `json:"ok"`
+	Error        string                 `json:"error,omitempty"`
+	APIVersion   string                 `json:"apiVersion,omitempty"`
+	Observations []blockade.Observation `json:"observations,omitempty"`
 }
 
-func NewWorkerPool(ctx context.Context, config WorkerConfig) (*WorkerPool, error) {
+func newWorkerPool(ctx context.Context, config workerConfig) (*workerPool, error) {
 	if len(config.Command) == 0 || config.Command[0] == "" {
-		return nil, errors.New("Blockade worker command is required")
+		return nil, errors.New("worker command is required")
 	}
 	if config.Workers <= 0 {
 		config.Workers = 1
 	}
-	p := &WorkerPool{}
-	for i := 0; i < config.Workers; i++ {
-		w := &localWorker{config: config}
-		if err := w.start(ctx); err != nil {
-			_ = p.Close()
-			return nil, fmt.Errorf("start Blockade worker %d: %w", i, err)
+	pool := &workerPool{}
+	for index := range config.Workers {
+		worker := &localWorker{config: config}
+		if err := worker.start(ctx); err != nil {
+			_ = pool.Close()
+			return nil, fmt.Errorf("start worker %d: %w", index, err)
 		}
-		p.workers = append(p.workers, w)
+		if _, err := worker.call(ctx, workerRequest{ID: fmt.Sprintf("health-%d", index), Method: "health"}); err != nil {
+			worker.mu.Lock()
+			worker.stopLocked()
+			worker.mu.Unlock()
+			_ = pool.Close()
+			return nil, fmt.Errorf("check worker %d: %w", index, err)
+		}
+		pool.workers = append(pool.workers, worker)
 	}
-	return p, nil
+	return pool, nil
 }
 
 func (w *localWorker) start(ctx context.Context) error {
@@ -72,6 +84,7 @@ func (w *localWorker) start(ctx context.Context) error {
 	defer w.mu.Unlock()
 	return w.startLocked(ctx)
 }
+
 func (w *localWorker) startLocked(ctx context.Context) error {
 	if w.cmd != nil && w.cmd.Process != nil {
 		return nil
@@ -99,6 +112,7 @@ func (w *localWorker) startLocked(ctx context.Context) error {
 	w.stdin, w.stdout = stdin, bufio.NewReaderSize(stdout, 16<<20)
 	return nil
 }
+
 func (w *localWorker) stopLocked() {
 	if w.stdin != nil {
 		_ = w.stdin.Close()
@@ -109,6 +123,7 @@ func (w *localWorker) stopLocked() {
 	}
 	w.cmd, w.stdin, w.stdout = nil, nil, nil
 }
+
 func (w *localWorker) call(ctx context.Context, request workerRequest) (workerResponse, error) {
 	if err := ctx.Err(); err != nil {
 		return workerResponse{}, err
@@ -126,72 +141,60 @@ func (w *localWorker) call(ctx context.Context, request workerRequest) (workerRe
 	}
 	if _, err := w.stdin.Write(append(encoded, '\n')); err != nil {
 		w.stopLocked()
-		return workerResponse{}, fmt.Errorf("write Blockade worker request: %w", err)
+		return workerResponse{}, fmt.Errorf("write worker request: %w", err)
 	}
 	line, err := w.stdout.ReadBytes('\n')
 	if err != nil {
 		w.stopLocked()
-		return workerResponse{}, fmt.Errorf("read Blockade worker response: %w", err)
+		return workerResponse{}, fmt.Errorf("read worker response: %w", err)
 	}
 	var response workerResponse
 	if err := json.Unmarshal(line, &response); err != nil {
-		return workerResponse{}, fmt.Errorf("decode Blockade worker response: %w", err)
+		return workerResponse{}, fmt.Errorf("decode worker response: %w", err)
 	}
 	if response.ID != request.ID {
-		return workerResponse{}, fmt.Errorf("Blockade worker response id %q does not match request %q", response.ID, request.ID)
+		return workerResponse{}, fmt.Errorf("worker response id %q does not match request %q", response.ID, request.ID)
 	}
 	if !response.OK {
 		return response, errors.New(response.Error)
 	}
 	return response, nil
 }
-func (p *WorkerPool) Observe(ctx context.Context, request ObserveRequest) (ObserveResponse, error) {
+
+func (p *workerPool) Observe(ctx context.Context, request blockade.ObserveRequest) (blockade.ObserveResponse, error) {
 	if p == nil || len(p.workers) == 0 || p.closed.Load() {
-		return ObserveResponse{}, errors.New("Blockade worker pool is closed")
+		return blockade.ObserveResponse{}, errors.New("worker pool is closed")
 	}
 	if request.APIVersion == "" {
-		request.APIVersion = APIVersion
+		request.APIVersion = blockade.APIVersion
 	}
 	if request.RequestID == "" {
-		request.RequestID = fmt.Sprintf("blockade-%d", time.Now().UnixNano())
+		request.RequestID = fmt.Sprintf("blockade-ultralytics-%d", time.Now().UnixNano())
 	}
-	i := int(p.next.Add(1)-1) % len(p.workers)
-	response, err := p.workers[i].call(ctx, workerRequest{ID: request.RequestID, Method: "observe", APIVersion: request.APIVersion, Image: request.Image, Prompt: request.Prompt})
+	index := int(p.next.Add(1)-1) % len(p.workers)
+	response, err := p.workers[index].call(ctx, workerRequest{
+		ID: request.RequestID, Method: "observe", APIVersion: request.APIVersion,
+		Image: request.Image, Prompt: request.Prompt,
+	})
 	if err != nil {
-		return ObserveResponse{}, err
+		return blockade.ObserveResponse{}, err
 	}
-	if response.APIVersion != APIVersion {
-		return ObserveResponse{}, fmt.Errorf("unsupported Blockade worker apiVersion %q", response.APIVersion)
+	if response.APIVersion != blockade.APIVersion {
+		return blockade.ObserveResponse{}, fmt.Errorf("unsupported worker apiVersion %q", response.APIVersion)
 	}
-	return ObserveResponse{APIVersion: response.APIVersion, RequestID: response.ID, Observations: response.Observations}, nil
+	return blockade.ObserveResponse{
+		APIVersion: response.APIVersion, RequestID: response.ID, Observations: response.Observations,
+	}, nil
 }
 
-func (p *WorkerPool) Capabilities(ctx context.Context) ([]string, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-	if p == nil || len(p.workers) == 0 || p.closed.Load() {
-		return nil, errors.New("Blockade worker pool is closed")
-	}
-	return []string{CapabilityImageObserve, CapabilityObjectDetect, CapabilityObjectSegment}, nil
-}
-
-func (p *WorkerPool) Health(ctx context.Context) (EngineHealth, error) {
-	if err := ctx.Err(); err != nil {
-		return EngineHealth{}, err
-	}
-	ready := p != nil && len(p.workers) != 0 && !p.closed.Load()
-	return EngineHealth{Ready: ready}, nil
-}
-
-func (p *WorkerPool) Close() error {
+func (p *workerPool) Close() error {
 	if p == nil || p.closed.Swap(true) {
 		return nil
 	}
-	for _, w := range p.workers {
-		w.mu.Lock()
-		w.stopLocked()
-		w.mu.Unlock()
+	for _, worker := range p.workers {
+		worker.mu.Lock()
+		worker.stopLocked()
+		worker.mu.Unlock()
 	}
 	return nil
 }

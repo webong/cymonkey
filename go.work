@@ -6,4 +6,7 @@ use (
 	./lib/board
 	./lib/jangolova
 	./lib/plugin
+	./providers/blockade-onnx
+	./providers/blockade-ultralytics
+	./providers/blockade-webllm
 )

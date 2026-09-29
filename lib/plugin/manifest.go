@@ -23,19 +23,28 @@ const legacyAPIVersion = "cymonkey.plugin/v1alpha1"
 
 var namePattern = regexp.MustCompile(`^[a-z][a-z0-9-]{0,62}$`)
 var kindPattern = regexp.MustCompile(`^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$`)
+var contractVersionPattern = regexp.MustCompile(`^v[0-9]+(?:(?:alpha|beta)[0-9]+)?$`)
 var digestPattern = regexp.MustCompile(`^[a-f0-9]{64}$`)
 var versionPattern = regexp.MustCompile(`^v?[0-9]+\.[0-9]+\.[0-9]+(?:[-+][A-Za-z0-9.-]+)?$`)
 
 // Manifest names one reviewed executable. Command is a filename in the same
 // directory, never a shell command or a path outside that directory.
 type Manifest struct {
-	APIVersion string `json:"apiVersion"`
-	Name       string `json:"name"`
-	Version    string `json:"version"`
-	Kind       string `json:"kind"`
-	Platform   string `json:"platform,omitempty"`
-	Command    string `json:"command"`
-	SHA256     string `json:"sha256"`
+	APIVersion string     `json:"apiVersion"`
+	Name       string     `json:"name"`
+	Version    string     `json:"version"`
+	Contracts  []Contract `json:"contracts,omitempty"`
+	// Kind is accepted for compatibility with the original single-contract
+	// manifest. New packages declare versioned Contracts.
+	Kind     string `json:"kind,omitempty"`
+	Platform string `json:"platform,omitempty"`
+	Command  string `json:"command"`
+	SHA256   string `json:"sha256"`
+}
+
+type Contract struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
 }
 
 func (m Manifest) Validate() error {
@@ -51,8 +60,22 @@ func (m Manifest) Validate() error {
 	if m.Platform != "" && m.Platform != runtime.GOOS+"-"+runtime.GOARCH {
 		return errors.New("plugin platform does not match this host")
 	}
-	if len(m.Kind) > 128 || !kindPattern.MatchString(m.Kind) {
+	if (m.Kind == "") == (len(m.Contracts) == 0) {
+		return errors.New("plugin must declare contracts or one legacy kind")
+	}
+	if m.Kind != "" && (len(m.Kind) > 128 || !kindPattern.MatchString(m.Kind)) {
 		return errors.New("plugin kind must be a dotted lower-case identifier")
+	}
+	if len(m.Contracts) > 16 {
+		return errors.New("plugin cannot declare more than 16 contracts")
+	}
+	seenContracts := make(map[string]bool, len(m.Contracts))
+	for _, contract := range m.Contracts {
+		key := contract.Name + "@" + contract.Version
+		if len(contract.Name) > 128 || !kindPattern.MatchString(contract.Name) || !contractVersionPattern.MatchString(contract.Version) || seenContracts[key] {
+			return errors.New("plugin contract name, version, or uniqueness is invalid")
+		}
+		seenContracts[key] = true
 	}
 	if m.Command == "" || m.Command == "." || m.Command == ".." || m.Command == "plugin.json" || filepath.Base(m.Command) != m.Command || strings.ContainsAny(m.Command, `/\\`) {
 		return errors.New("plugin command must be a filename")
@@ -61,6 +84,38 @@ func (m Manifest) Validate() error {
 		return errors.New("plugin sha256 must be 64 lowercase hexadecimal characters")
 	}
 	return nil
+}
+
+// Supports reports whether this package implements a named, versioned public
+// contract. Legacy kind manifests match the name for v1alpha1.
+func (m Manifest) Supports(name, version string) bool {
+	if m.Kind != "" {
+		return m.Kind == name && version == "v1alpha1"
+	}
+	for _, contract := range m.Contracts {
+		if contract.Name == name && contract.Version == version {
+			return true
+		}
+	}
+	return false
+}
+
+func sameContractIdentity(aKind string, aContracts []Contract, bKind string, bContracts []Contract) bool {
+	if aKind != bKind || len(aContracts) != len(bContracts) {
+		return false
+	}
+	remaining := make(map[string]int, len(aContracts))
+	for _, contract := range aContracts {
+		remaining[contract.Name+"@"+contract.Version]++
+	}
+	for _, contract := range bContracts {
+		key := contract.Name + "@" + contract.Version
+		remaining[key]--
+		if remaining[key] < 0 {
+			return false
+		}
+	}
+	return true
 }
 
 func DecodeManifest(reader io.Reader) (Manifest, error) {

@@ -99,8 +99,7 @@ func allowedDeploymentFixture(relative string) bool {
 		"infra/deploy/unity-cymonkey-fixture/Containerfile",
 		"infra/deploy/unity-cymonkey-gpu/Containerfile",
 		"infra/deploy/unreal-cymonkey-fixture/Containerfile",
-		"infra/deploy/unreal-cymonkey-gpu/Containerfile",
-		"infra/deploy/blockade/Containerfile":
+		"infra/deploy/unreal-cymonkey-gpu/Containerfile":
 		return true
 	default:
 		return false
