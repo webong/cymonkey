@@ -52,7 +52,9 @@ func TestRequestChromeWebStoreInstall(t *testing.T) {
 		t.Skip("macOS external preference route")
 	}
 	id := "abcdefghijklmnopabcdefghijklmnop"
-	directory := filepath.Join(t.TempDir(), "Library", "Application Support", "Google", "Chrome", "External Extensions")
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	directory := filepath.Join(home, "Library", "Application Support", "Google", "Chrome", "External Extensions")
 	result, err := RequestChromeWebStoreInstall(id, directory)
 	if err != nil {
 		t.Fatal(err)
@@ -92,6 +94,7 @@ func TestRequestChromeWebStoreRejectsSymlinkedPath(t *testing.T) {
 	if err := os.Symlink(actual, link); err != nil {
 		t.Fatal(err)
 	}
+	t.Setenv("HOME", link)
 	if _, err := RequestChromeWebStoreInstall("abcdefghijklmnopabcdefghijklmnop", filepath.Join(link, "Library", "Application Support", "Google", "Chrome", "External Extensions")); err == nil {
 		t.Fatal("accepted symlinked path")
 	}

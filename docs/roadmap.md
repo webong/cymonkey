@@ -53,7 +53,7 @@
 ## Phase 2b: Augmented browsing
 
 - [x] Add Jangolova bookmarklet URL import/export and draggable HTML installers
-  through `cmy bookmarklet`, with reversible example and real Chrome/Firefox
+  through `cymy bookmarklet`, with reversible example and real Chrome/Firefox
   link-activation checks.
 - [x] Serialize per-augmentation lifecycle operations and test action/cleanup
   races, cleanup retries, and invalid-runtime cleanup.

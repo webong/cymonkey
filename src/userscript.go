@@ -34,7 +34,7 @@ func userscriptCommand(args []string, stdout io.Writer) error {
 	}
 	command := args[0]
 	if command == "help" || command == "-h" || command == "--help" {
-		_, err := fmt.Fprintln(stdout, "Usage: cymonkey userscript <prepare|install|update|list|describe|enable|disable|uninstall> [flags]\n\nInstall accepts --source, infers userscript metadata and a unique local browser target, and optionally connects with --endpoint PROTOCOL=URL. Use --target to select a profile explicitly. Prepare returns an optional review revision.")
+		_, err := fmt.Fprintln(stdout, "Usage: cymy userscript <prepare|install|update|list|describe|enable|disable|uninstall> [flags]\n\nInstall accepts --source, infers userscript metadata and a unique local browser target, and optionally connects with --endpoint PROTOCOL=URL. Use --target to select a profile explicitly. Prepare returns an optional review revision.")
 		return err
 	}
 	defaultStore, err := userscripts.DefaultDirectory()
@@ -276,5 +276,5 @@ func resolveUserscriptTarget(explicit, endpoint string) (string, error) {
 	if len(compatible) == 0 {
 		return "", errors.New("no local browser profile found; pass --target with the browser/profile ID")
 	}
-	return "", errors.New("multiple browser profiles found; select --target from cmy browser targets")
+	return "", errors.New("multiple browser profiles found; select --target from cymy browser targets")
 }

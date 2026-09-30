@@ -1,7 +1,7 @@
 # Browser bookmarklets
 
 Jangolova's `jangolova/bookmarklet` library prepares small, user-activated page
-augmentations. Cymonkey exposes it through `cmy bookmarklet`. A saved bookmarklet
+augmentations. Cymonkey exposes it through `cymy bookmarklet`. A saved bookmarklet
 runs in the current page when clicked; it needs neither an extension nor a
 running Cymonkey process.
 
@@ -11,8 +11,8 @@ From the repository root, build the CLI and export the included reversible
 link-highlighter:
 
 ```sh
-go build -o ./bin/cmy ./src
-./bin/cmy bookmarklet export \
+go build -o ./bin/cymy ./src
+./bin/cymy bookmarklet export \
   --source examples/bookmarklets/highlight-links.js \
   --format html --name 'Highlight links' > /tmp/highlight-links.html
 ```
@@ -26,7 +26,7 @@ For manual bookmark creation, export a URL and paste the complete `javascript:`
 value into the bookmark's URL/location field:
 
 ```sh
-./bin/cmy bookmarklet export --source examples/bookmarklets/highlight-links.js
+./bin/cymy bookmarklet export --source examples/bookmarklets/highlight-links.js
 ```
 
 The CLI does not edit browser profiles or install bookmarks automatically.
@@ -37,8 +37,8 @@ It emits artifacts to stdout; do not redirect output over your input file.
 Save the complete `javascript:` URL in a text file, then decode it for review:
 
 ```sh
-./bin/cmy bookmarklet import --source saved-bookmarklet.txt > reviewed.js
-./bin/cmy bookmarklet export --source reviewed.js --format html --name 'My tool'
+./bin/cymy bookmarklet import --source saved-bookmarklet.txt > reviewed.js
+./bin/cymy bookmarklet export --source reviewed.js --format html --name 'My tool'
 ```
 
 Import decodes percent escapes exactly once and preserves `+` and literal modulo
@@ -76,8 +76,8 @@ and [managed userscripts](userscripts.md) for persistent workflows.
 ```sh
 go test ./lib/jangolova/bookmarklet ./src
 npm run test:browser-adapter
-go build -o .cache/cmy-augmentation ./src
-CYMONKEY_CMY_BIN="$PWD/.cache/cmy-augmentation" \
+go build -o .cache/cymy-augmentation ./src
+CYMONKEY_CYMY_BIN="$PWD/.cache/cymy-augmentation" \
 CYMONKEY_BROWSER_BIN='/Applications/Chrome.app/Contents/MacOS/Google Chrome' \
 npm run test:bookmarklets:live
 ```

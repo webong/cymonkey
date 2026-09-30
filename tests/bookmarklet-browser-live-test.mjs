@@ -9,12 +9,12 @@ import puppeteer from 'puppeteer-core';
 
 // An explicit opt-in fixture: launch only disposable test-owned browser profiles.
 // Missing prerequisites fail rather than silently reporting a skipped success.
-const cmy = process.env.CYMONKEY_CMY_BIN;
+const cymy = process.env.CYMONKEY_CYMY_BIN ?? process.env.CYMONKEY_CMY_BIN;
 const executablePath = process.env.CYMONKEY_BROWSER_BIN;
 const product = process.env.CYMONKEY_BROWSER_PRODUCT || 'chrome';
 
 test('bookmarklet CLI exports executable, reversible links in a real browser', {timeout: 60000}, async () => {
-  assert.ok(cmy && executablePath, 'set CYMONKEY_CMY_BIN and CYMONKEY_BROWSER_BIN');
+  assert.ok(cymy && executablePath, 'set CYMONKEY_CYMY_BIN and CYMONKEY_BROWSER_BIN');
   const temporary = await mkdtemp(path.join(os.tmpdir(), 'jangolova-bookmarklet-'));
   const sourcePath = path.join(temporary, 'source.js');
   const urlPath = path.join(temporary, 'bookmark.txt');
@@ -29,10 +29,10 @@ test('bookmarklet CLI exports executable, reversible links in a real browser', {
     const original = await readFile('examples/bookmarklets/highlight-links.js', 'utf8');
     const source = original + "\nwindow.bookmarkletText = '你好 + café %20 # &';\nreturn '<h1>must not replace the page</h1>'; // trailing comment";
     await writeFile(sourcePath, source);
-    const exported = execFileSync(cmy, ['bookmarklet', 'export', '--source', sourcePath], {encoding: 'utf8'}).trim();
+    const exported = execFileSync(cymy, ['bookmarklet', 'export', '--source', sourcePath], {encoding: 'utf8'}).trim();
     await writeFile(urlPath, exported);
-    assert.equal(execFileSync(cmy, ['bookmarklet', 'import', '--source', urlPath], {encoding: 'utf8'}), source);
-    html = execFileSync(cmy, ['bookmarklet', 'export', '--source', sourcePath, '--format', 'html', '--name', '<script>bad()</script>'], {encoding: 'utf8'});
+    assert.equal(execFileSync(cymy, ['bookmarklet', 'import', '--source', urlPath], {encoding: 'utf8'}), source);
+    html = execFileSync(cymy, ['bookmarklet', 'export', '--source', sourcePath, '--format', 'html', '--name', '<script>bad()</script>'], {encoding: 'utf8'});
     await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
     const address = `http://127.0.0.1:${server.address().port}`;
     browser = await puppeteer.launch({executablePath, browser: product, headless: true,

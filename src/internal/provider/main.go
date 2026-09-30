@@ -43,7 +43,7 @@ func Run(args []string, stderr io.Writer, registryFactory RegistryFactory) error
 }
 
 func usage(w io.Writer) error {
-	_, err := fmt.Fprintln(w, `Usage: cymonkey provider <command>
+	_, err := fmt.Fprintln(w, `Usage: cymy provider <command>
 
 Commands:
   engines                 Discover interaction-engine adapters and availability

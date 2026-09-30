@@ -127,7 +127,7 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 		_, err := fmt.Fprintf(stdout, "removed plugin %s\n", args[1])
 		return err
 	case "help", "-h", "--help":
-		_, err := fmt.Fprintln(stderr, "Usage: cymonkey plugins <install --manifest PATH|upgrade --manifest PATH|list|remove NAME>")
+		_, err := fmt.Fprintln(stderr, "Usage: cymy plugins <install --manifest PATH|upgrade --manifest PATH|list|remove NAME>")
 		return err
 	default:
 		return fmt.Errorf("unknown plugins command %q", args[0])

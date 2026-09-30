@@ -22,7 +22,7 @@ func modulesCommand(args []string, stdout, stderr io.Writer) error {
 	case "pull":
 		return pullModule(args[1:], stdout)
 	case "help", "-h", "--help":
-		_, err := fmt.Fprintln(stderr, "Usage: cymonkey modules <discover|pull> [flags]")
+		_, err := fmt.Fprintln(stderr, "Usage: cymy modules <discover|pull> [flags]")
 		return err
 	default:
 		return fmt.Errorf("unknown modules command %q", args[0])

@@ -13,9 +13,9 @@ their assets in its own build, declares browser permissions, and owns its UI.
 
 Jangolova's CDP and WebDriver BiDi worker can attach to a caller-owned
 browser endpoint and apply approved augmentations without an extension. The
-local [`cmy userscript` flow](userscripts.md) uses this route.
+local [`cymy userscript` flow](userscripts.md) uses this route.
 
-For one-click tools, [`cmy bookmarklet`](bookmarklets.md) exports JavaScript as
+For one-click tools, [`cymy bookmarklet`](bookmarklets.md) exports JavaScript as
 a bookmark URL or a draggable installation page and imports existing bookmarklet
 URLs for review. Bookmarklets run through the browser's ordinary page execution;
 they do not need an extension or a running operator.

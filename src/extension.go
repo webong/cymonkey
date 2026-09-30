@@ -20,7 +20,7 @@ import (
 // by external callers. Jangolova implements the browser-specific operations.
 func extensionCommand(args []string, stdout io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("extension requires act, capabilities, prepare, inspect, package, sign, package-safari, build-safari, install, run, stage, or install-store")
+		return errors.New("extension requires act, capabilities, prepare, inspect, package, sign, package-safari, build-safari, install, run, stage, install-store, remove-store, or policy")
 	}
 	flags := flag.NewFlagSet("cymonkey extension "+args[0], flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
@@ -40,8 +40,10 @@ func extensionCommand(args []string, stdout io.Writer) error {
 	profile := flags.String("profile", "", "absolute path to Chromium user data directory or Firefox profile")
 	profileDirectory := flags.String("profile-directory", "", "profile directory within the browser user data directory")
 	headless := flags.Bool("headless", true, "run a session-only extension load without a browser window")
-	id := flags.String("id", "", "Chrome Web Store extension ID")
-	externalDirectory := flags.String("external-dir", "", "Chrome External Extensions directory")
+	id := flags.String("id", "", "published extension ID")
+	store := flags.String("store", "", "store: chrome or edge (defaults to selected browser)")
+	policyMode := flags.String("mode", "", "managed policy action: force, unforce, block, or unblock")
+	externalDirectory := flags.String("external-dir", "", "macOS or Linux External Extensions directory; defaults to the documented path")
 	name := flags.String("name", "", "extension manager action name")
 	input := flags.String("input", "{}", "JSON input for extension act")
 	if err := flags.Parse(args[1:]); err != nil {
@@ -146,9 +148,34 @@ func extensionCommand(args []string, stdout io.Writer) error {
 		}
 		result, err = browserextension.StageForChromiumWithRevision(selectedBrowser, *source, *destination, *revision)
 	case "install-store":
-		result, err = browserextension.RequestChromeWebStoreInstall(*id, *externalDirectory)
+		if *executable != "" || *profile != "" || *profileDirectory != "" {
+			return errors.New("external store requests select a browser installation, not an executable or profile")
+		}
+		selectedBrowser, selectErr := resolveStoreBrowser(*targetID, *browserName)
+		if selectErr != nil {
+			return selectErr
+		}
+		result, err = browserextension.RequestStoreInstall(selectedBrowser, *store, *id, *externalDirectory)
+	case "remove-store":
+		if *executable != "" || *profile != "" || *profileDirectory != "" {
+			return errors.New("external store requests select a browser installation, not an executable or profile")
+		}
+		selectedBrowser, selectErr := resolveStoreBrowser(*targetID, *browserName)
+		if selectErr != nil {
+			return selectErr
+		}
+		result, err = browserextension.RemoveStoreInstall(selectedBrowser, *store, *id, *externalDirectory)
+	case "policy":
+		if *executable != "" || *profile != "" || *profileDirectory != "" || *externalDirectory != "" {
+			return errors.New("managed policy selects a browser installation; do not pass executable, profile, or external-dir")
+		}
+		selectedBrowser, selectErr := resolveStoreBrowser(*targetID, *browserName)
+		if selectErr != nil {
+			return selectErr
+		}
+		result, err = browserextension.ManageExtensionPolicy(selectedBrowser, *store, *id, *policyMode)
 	default:
-		return errors.New("extension requires act, capabilities, prepare, inspect, package, sign, package-safari, build-safari, install, run, stage, or install-store")
+		return errors.New("extension requires act, capabilities, prepare, inspect, package, sign, package-safari, build-safari, install, run, stage, install-store, remove-store, or policy")
 	}
 	if err != nil {
 		return err
@@ -243,6 +270,30 @@ func resolveSigningTarget(id, browser, executable string) (browserextension.DevT
 	return browserextension.DevToolsTarget{Browser: browser, ExecutablePath: selected}, nil
 }
 
+func resolveStoreBrowser(id, browser string) (string, error) {
+	if id == "" {
+		if browser == "" {
+			return "", errors.New("select --browser or --target for an external store request")
+		}
+		return browser, nil
+	}
+	if browser != "" {
+		return "", errors.New("--target cannot be combined with --browser")
+	}
+	selected, err := browserextension.ResolveTarget(id)
+	if err != nil {
+		return "", err
+	}
+	return selected.Browser, nil
+}
+
+func resolveStoreActionBrowser(input extensionActionInput) (string, error) {
+	if input.Target.ExecutablePath != "" || input.Target.ProfilePath != "" || input.Target.ProfileDirectory != "" {
+		return "", errors.New("external requests and policies select a browser installation, not an executable or profile")
+	}
+	return resolveStoreBrowser(input.Target.ID, input.Target.Browser)
+}
+
 func inspectExtensionSource(source string) (browserextension.Description, error) {
 	if strings.EqualFold(filepath.Ext(source), ".app") {
 		return browserextension.InspectSafariApp(context.Background(), source)
@@ -256,6 +307,8 @@ type extensionActionInput struct {
 	Destination       string `json:"destination"`
 	Revision          string `json:"revision"`
 	ID                string `json:"id"`
+	Store             string `json:"store"`
+	Mode              string `json:"mode"`
 	ExternalDirectory string `json:"externalDirectory"`
 	BundleID          string `json:"bundleId"`
 	AppName           string `json:"appName"`
@@ -353,7 +406,26 @@ func extensionActionContext(ctx context.Context, name string, raw []byte) (any, 
 		}
 		return browserextension.StageForChromiumWithRevision(target.Browser, input.Source, input.Destination, input.Revision)
 	case "extension.install-store":
-		return browserextension.RequestChromeWebStoreInstall(input.ID, input.ExternalDirectory)
+		browser, err := resolveStoreActionBrowser(input)
+		if err != nil {
+			return nil, err
+		}
+		return browserextension.RequestStoreInstall(browser, input.Store, input.ID, input.ExternalDirectory)
+	case "extension.remove-store":
+		browser, err := resolveStoreActionBrowser(input)
+		if err != nil {
+			return nil, err
+		}
+		return browserextension.RemoveStoreInstall(browser, input.Store, input.ID, input.ExternalDirectory)
+	case "extension.policy":
+		if input.ExternalDirectory != "" {
+			return nil, errors.New("managed policy does not use an external extensions directory")
+		}
+		browser, err := resolveStoreActionBrowser(input)
+		if err != nil {
+			return nil, err
+		}
+		return browserextension.ManageExtensionPolicy(browser, input.Store, input.ID, input.Mode)
 	default:
 		return nil, errors.New("unsupported extension manager action")
 	}

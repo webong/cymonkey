@@ -2,16 +2,16 @@
 
 ## Local manager without a browser extension
 
-The `cmy userscript` CLI stores approved source in Cymonkey's private local
+The `cymy userscript` CLI stores approved source in Cymonkey's private local
 store, keyed by a browser/profile target ID. It can infer `@name` and `@match`
 from a userscript and select a unique discovered local profile when possible.
 For example:
 
 ```sh
-cmy userscript install --source ./my-script.user.js --endpoint cdp=http://127.0.0.1:9222
+cymy userscript install --source ./my-script.user.js --endpoint cdp=http://127.0.0.1:9222
 ```
 
-For an existing record, `cmy provider connect-engine --userscripts-target ID`
+For an existing record, `cymy provider connect-engine --userscripts-target ID`
 attaches to the supplied browser endpoint. Jangolova registers each enabled
 script through CDP or WebDriver BiDi and reapplies it after navigation.
 Cymonkey watches the store during that connection and reconciles installs,
@@ -23,7 +23,7 @@ This backend runs in the page world at document start. It supports
 `@grant none` and bounded URL patterns. It does not provide privileged
 userscript grants or browser-native execution while Cymonkey is offline. The
 caller must associate the target ID with the actual browser endpoint it
-supplies. See the [CLI guide](cmy-cli.md#extension-free-userscripts) for the
+supplies. See the [CLI guide](cymy-cli.md#extension-free-userscripts) for the
 commands and limits.
 
 ## Library for consuming extensions

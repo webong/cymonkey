@@ -18,7 +18,7 @@ surface:
 
 | Surface | Current name | Migration policy |
 | --- | --- | --- |
-| Operator/host | Cymonkey | Use `cymonkey` for composition and lifecycle management. |
+| Operator/host | Cymonkey | Use `cymy` as the public CLI; retain `cymonkey` as a compatible executable for existing host deployments. |
 | Interaction/tool server | Jangolova | Keep as a standalone runtime and executable. |
 | Inference subsystem | Blockade | Keep as a standalone runtime and executable. |
 | Cymonkey protocol | `cymonkey/v1alpha1` | Versioned Cymonkey contract; do not rename in place. |

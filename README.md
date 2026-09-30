@@ -74,9 +74,10 @@ The example Blockade component expects the `local-ultralytics` provider and a
 ```bash
 mkdir -p .cache/bin
 go build -o .cache/bin/cymonkey ./src
+go build -o .cache/bin/cymy ./src
 
 export CYMONKEY_JANGOLOVA_TOKEN="replace-with-a-random-secret"
-PATH="$PWD/.cache/bin:$PATH" cymonkey run \
+PATH="$PWD/.cache/bin:$PATH" cymy run \
   --config infra/deploy/cymonkey/cymonkey.example.yaml
 ```
 
@@ -84,7 +85,7 @@ The host manifest starts the display-interface provider and inference service.
 After a target has been connected, request a visual observation with:
 
 ```bash
-PATH="$PWD/.cache/bin:$PATH" cymonkey observe \
+PATH="$PWD/.cache/bin:$PATH" cymy observe \
   --config infra/deploy/cymonkey/cymonkey.example.yaml \
   --instance browser-1 \
   --prompt "find the primary action"
@@ -107,9 +108,9 @@ audit events, reviewed packages, and caller-supplied target connections.
 - [Browser extension manager](docs/browser-extension-installation.md)
 - [Extension manager library for other browser extensions](pkg/extension-manager/README.md)
 - [Composable browser adapter library](pkg/browser-adapter/README.md)
-- [Use the `cmy` CLI](docs/cmy-cli.md)
+- [Use the `cymy` CLI](docs/cymy-cli.md)
 - [Persistent operator API](docs/operator-api.md)
-- [Install extensions with the `cmy` CLI](docs/cmy-extension-cli.md)
+- [Install extensions with the `cymy` CLI](docs/cymy-extension-cli.md)
 - [Manage userscripts without an extension](docs/userscripts.md#extension-free-local-manager)
 - [Target connection security](docs/target-connection-security.md)
 - [Roadmap](docs/roadmap.md)

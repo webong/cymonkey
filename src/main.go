@@ -23,14 +23,14 @@ import (
 
 func main() {
 	if err := run(os.Args[1:], os.Stdout, os.Stderr); err != nil {
-		fmt.Fprintf(os.Stderr, "cymonkey: %v\n", err)
+		fmt.Fprintf(os.Stderr, "cymy: %v\n", err)
 		os.Exit(1)
 	}
 }
 
 func run(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("cymonkey requires a command: validate, run, observe, modules, browser, extension, userscript, bookmarklet, provider, operator, board, blockade, plugins, or native-bridge-fixture")
+		return errors.New("cymy requires a command: validate, run, observe, modules, browser, extension, userscript, bookmarklet, provider, operator, board, blockade, plugins, or native-bridge-fixture")
 	}
 	switch args[0] {
 	case "validate":
@@ -66,7 +66,7 @@ func run(args []string, stdout, stderr io.Writer) error {
 		printUsage(stderr)
 		return nil
 	default:
-		return fmt.Errorf("unknown cymonkey command %q", args[0])
+		return fmt.Errorf("unknown cymy command %q", args[0])
 	}
 }
 
@@ -185,7 +185,7 @@ func envOrDefault(name, fallback string) string {
 }
 
 func printUsage(w io.Writer) {
-	fmt.Fprintln(w, `Usage: cymonkey <command>
+	fmt.Fprintln(w, `Usage: cymy <command>
 
 Commands:
   validate                Validate a Cymonkey host manifest

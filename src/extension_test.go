@@ -9,6 +9,47 @@ import (
 	"testing"
 )
 
+func TestExtensionStoreCLIAndStructuredRemoval(t *testing.T) {
+	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
+		t.Skip("test uses a temporary Unix external extensions path")
+	}
+	id := "abcdefghijklmnopabcdefghijklmnop"
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	directory := filepath.Join(home, ".config", "microsoft-edge", "External Extensions")
+	if runtime.GOOS == "darwin" {
+		directory = filepath.Join(home, "Library", "Application Support", "Microsoft Edge", "External Extensions")
+	}
+	var output bytes.Buffer
+	if err := extensionCommand([]string{"install-store", "--browser", "edge", "--store", "chrome", "--id", id, "--external-dir", directory}, &output); err != nil {
+		t.Fatal(err)
+	}
+	var result struct {
+		Status string `json:"status"`
+	}
+	if err := json.Unmarshal(output.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if result.Status != "requested" && result.Status != "awaiting-browser-confirmation" {
+		t.Fatalf("unexpected request state: %+v", result)
+	}
+	input, err := json.Marshal(map[string]any{"target": map[string]string{"browser": "edge"}, "store": "chrome", "id": id, "externalDirectory": directory})
+	if err != nil {
+		t.Fatal(err)
+	}
+	removed, err := extensionAction("extension.remove-store", input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	removedJSON, err := json.Marshal(removed)
+	if err != nil || !bytes.Contains(removedJSON, []byte(`"request-removed"`)) {
+		t.Fatalf("unexpected removal result: %s (%v)", removedJSON, err)
+	}
+	if _, err := os.Stat(filepath.Join(directory, id+".json")); !os.IsNotExist(err) {
+		t.Fatalf("external request remains: %v", err)
+	}
+}
+
 func TestExtensionCLIInspectAndInstallHandoff(t *testing.T) {
 	source := filepath.Join(t.TempDir(), "extension")
 	if err := os.Mkdir(source, 0755); err != nil {

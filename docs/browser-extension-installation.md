@@ -1,6 +1,6 @@
 # Browser extension manager
 
-For step-by-step terminal commands, see [Install browser extensions with `cmy`](cmy-extension-cli.md).
+For step-by-step terminal commands, see [Install browser extensions with `cymy`](cymy-extension-cli.md).
 
 Cymonkey manages browser extensions supplied by users and other tools, just as
 it manages userscripts. It does not author or modify their source, or bundle
@@ -121,7 +121,7 @@ their Apple team. These artifact steps are separate from installation. Use
 the returned `artifactRevision` with `extension install` for Firefox and
 Safari. A CRX made locally does not change Chrome's installation rules, and
 the current Chrome/Chromium/Edge local install adapter takes the original ZIP
-or unpacked directory. See the [CLI guide](cmy-extension-cli.md) for commands.
+or unpacked directory. See the [CLI guide](cymy-extension-cli.md) for commands.
 
 `install` supports a persistent unpacked extension in a user-selected Chrome,
 Chromium, or Edge profile on macOS or Linux. `--profile` is the browser's **user
@@ -197,7 +197,7 @@ cymonkey extension act --name extension.capabilities \
 
 The supported one-shot actions are `extension.targets`, `extension.capabilities`,
 `extension.prepare`, `extension.package`, `extension.package-safari`, `extension.stage`, and
-`extension.install-store`. `extension.install` is a long-running action for the
+`extension.install-store`, and `extension.remove-store`. `extension.install` is a long-running action for the
 guided native route. A caller can spawn it and read JSON lines for
 `awaiting-browser-action` and, after restart verification, `installed`:
 
@@ -286,26 +286,36 @@ enabled based only on app launch. `--profile` is rejected for Safari because
 that choice belongs to Safari's settings. Apple's temporary developer extension flow
 expires when Safari quits or after 24 hours.
 
-## Published Chrome Web Store extension on macOS
+## Published store extensions on Windows, macOS, and Linux
 
-For a published Chrome Web Store extension, the host can request external
-installation for a particular user by writing Chrome's documented JSON file:
+For a published Chrome Web Store or Edge Add-ons extension, the host can
+register a browser-specific external install request:
 
 ```sh
 cymonkey extension install-store \
-  --id abcdefghijklmnopabcdefghijklmnop \
-  --external-dir "$HOME/Library/Application Support/Google/Chrome/External Extensions"
+  --browser chrome --id abcdefghijklmnopabcdefghijklmnop
 ```
 
-The result is `awaiting-browser-confirmation`. Chrome reads this preference on
-launch and requires the user to enable the extension. The command refuses an
-existing file and symlinks in the chosen profile path.
+On Windows Jangolova invokes PowerShell to write the documented HKLM external
+extension registry key, requiring administrator access. On macOS it writes a
+JSON preference in the current user's documented external extensions folder.
+On Linux Chrome uses its system external extensions folder; Edge has a user
+folder. Use `--external-dir` to select another documented directory. Windows
+and macOS return `awaiting-browser-confirmation`; Linux returns `requested`.
+The command refuses existing files and symlinks in the chosen directory.
+`remove-store` removes a matching request, without claiming an independently
+installed extension has been removed.
 
-This route accepts a **Web Store ID only**. Chrome does not allow a local CRX
-or self-hosted ZIP to be installed through a personal macOS external preference
-file. A managed Chrome deployment can use enterprise policy and a hosted
-update URL; that requires a separate administrator-owned adapter. Windows
-Chromium installation remains unimplemented. Safari app launch does not prove
+For administrator-managed Windows Chrome/Edge or Linux Chrome, the separate
+`extension policy` command updates force-install and block policies. It
+returns `policy-updated`, not `installed`, because the browser must still read
+and apply the policy. macOS policy deployment requires a configuration profile.
+
+This route accepts a **published store ID only**. Chrome does not allow a local CRX
+or self-hosted ZIP through a personal Windows or macOS external request. A
+managed deployment can use enterprise policy and a hosted update URL; that
+requires a separate administrator-owned adapter. Windows Chromium's native
+unpacked installation adapter remains unimplemented. Safari app launch does not prove
 the extension is enabled, so it never reports `installed` by itself.
 
 ## Ownership

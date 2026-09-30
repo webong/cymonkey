@@ -5,7 +5,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY src ./src
 COPY lib ./lib
-RUN CGO_ENABLED=0 go build -o /out/cymonkey ./src
+RUN CGO_ENABLED=0 go build -o /out/cymy ./src
 
 FROM node:22-bookworm
 
@@ -21,10 +21,11 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts
 COPY scripts/browser-worker.mjs ./browser-worker.mjs
 COPY scripts/cymonkey-worker.mjs ./cymonkey-worker.mjs
-COPY --from=builder /out/cymonkey /usr/local/bin/cymonkey
+COPY --from=builder /out/cymy /usr/local/bin/cymy
+COPY --from=builder /out/cymy /usr/local/bin/cymonkey
 
 ENV JANGOLOVA_BROWSER_WORKER=/usr/local/lib/jangolova/browser-worker.mjs
 ENV JANGOLOVA_CYMONKEY_WORKER=/usr/local/lib/jangolova/cymonkey-worker.mjs
 
-ENTRYPOINT ["cymonkey"]
+ENTRYPOINT ["cymy"]
 CMD ["provider", "serve-engine-provider"]

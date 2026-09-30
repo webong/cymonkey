@@ -15,7 +15,7 @@ func bookmarkletCommand(args []string, stdout io.Writer) error {
 		return errors.New("bookmarklet requires export or import; use bookmarklet help")
 	}
 	if args[0] == "help" || args[0] == "--help" || args[0] == "-h" {
-		_, err := fmt.Fprintln(stdout, "Usage: cmy bookmarklet export --source FILE [--format url|html] [--name NAME]\n       cmy bookmarklet import --source FILE\n\nExport writes a javascript: URL or a draggable installation page to stdout. Import decodes a javascript: URL to source for review. Neither command executes code or modifies browser bookmarks.")
+		_, err := fmt.Fprintln(stdout, "Usage: cymy bookmarklet export --source FILE [--format url|html] [--name NAME]\n       cymy bookmarklet import --source FILE\n\nExport writes a javascript: URL or a draggable installation page to stdout. Import decodes a javascript: URL to source for review. Neither command executes code or modifies browser bookmarks.")
 		return err
 	}
 	if args[0] != "export" && args[0] != "import" {

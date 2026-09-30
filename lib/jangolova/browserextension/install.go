@@ -1,22 +1,20 @@
 package browserextension
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
-	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
-	"strings"
 )
-
-var chromeID = regexp.MustCompile(`^[a-p]{32}$`)
 
 // InstallCapability describes the routes available for a caller-owned package
 // in the selected browser. Persistent installation may require browser action.
 type InstallCapability struct {
 	Browser                string   `json:"browser"`
+	ExternalStoreRequest   bool     `json:"externalStoreRequest"`
+	ExternalStoreDriver    string   `json:"externalStoreDriver,omitempty"`
+	SupportedStores        []string `json:"supportedStores,omitempty"`
+	ManagedPolicy          bool     `json:"managedPolicy"`
+	ManagedPolicyDriver    string   `json:"managedPolicyDriver,omitempty"`
 	PersistentLocalInstall bool     `json:"persistentLocalInstall"`
 	InstallDriver          string   `json:"installDriver,omitempty"`
 	RequiresBrowserAction  bool     `json:"requiresBrowserAction"`
@@ -29,14 +27,43 @@ type InstallCapability struct {
 func Capability(browserName string) InstallCapability {
 	switch browserName {
 	case "chrome", "chromium", "edge":
+		storeCapability := InstallCapability{Browser: browserName}
+		if browserName == "chrome" || browserName == "edge" {
+			storeCapability.ExternalStoreRequest = true
+			storeCapability.SupportedStores = []string{browserName}
+			if browserName == "edge" {
+				storeCapability.SupportedStores = []string{"edge", "chrome"}
+			}
+			if runtime.GOOS == "windows" {
+				storeCapability.ExternalStoreDriver = "powershell-registry"
+				storeCapability.ManagedPolicy = true
+				storeCapability.ManagedPolicyDriver = "powershell-registry"
+			} else if runtime.GOOS == "darwin" || runtime.GOOS == "linux" {
+				storeCapability.ExternalStoreDriver = "external-preferences-json"
+				if runtime.GOOS == "linux" && browserName == "chrome" {
+					storeCapability.ManagedPolicy = true
+					storeCapability.ManagedPolicyDriver = "managed-json"
+				}
+			} else {
+				storeCapability.ExternalStoreRequest = false
+			}
+		}
 		if runtime.GOOS == "windows" {
-			return InstallCapability{Browser: browserName, Reason: "the pipe-based extension session adapter is not implemented on Windows"}
+			storeCapability.Reason = "the pipe-based extension session adapter is not implemented on Windows"
+			return storeCapability
 		}
 		reason := "Persistent installation requires the browser's Load unpacked action; DevTools-only loading lasts for the browser session"
 		if browserName == "chrome" {
 			reason += "; Chrome 136+ requires a custom user data directory for debugging-pipe verification"
 		}
-		return InstallCapability{Browser: browserName, PersistentLocalInstall: true, InstallDriver: "native-load-unpacked", RequiresBrowserAction: true, SessionLoad: true, SessionDriver: "cdp-pipe", Requires: []string{"executablePath", "userDataDir", "revision", "source", "destination"}, Reason: reason}
+		storeCapability.PersistentLocalInstall = true
+		storeCapability.InstallDriver = "native-load-unpacked"
+		storeCapability.RequiresBrowserAction = true
+		storeCapability.SessionLoad = true
+		storeCapability.SessionDriver = "cdp-pipe"
+		storeCapability.Requires = []string{"executablePath", "userDataDir", "revision", "source", "destination"}
+		storeCapability.Reason = reason
+		return storeCapability
 	case "firefox":
 		return InstallCapability{Browser: browserName, PersistentLocalInstall: true, InstallDriver: "webdriver-bidi-signed-xpi", RequiresBrowserAction: false,
 			Requires: []string{"executablePath", "profilePath", "source", "revision"},
@@ -105,63 +132,8 @@ func StageForChrome(source, destination string) (InstallResult, error) {
 	return StageForChromium("chrome", source, destination)
 }
 
-// RequestChromeWebStoreInstall writes Chrome's documented external-extension
-// preference for a published Web Store ID on macOS. Chrome still presents its
-// native enable/permission confirmation after it reads the preference.
-// externalDirectory must be the intended profile's External Extensions folder.
+// RequestChromeWebStoreInstall keeps the original Chrome entry point for callers.
+// New callers can select Chrome or Edge with RequestStoreInstall.
 func RequestChromeWebStoreInstall(id, externalDirectory string) (InstallResult, error) {
-	if runtime.GOOS != "darwin" {
-		return InstallResult{}, errors.New("Chrome external preference installation is supported on macOS only")
-	}
-	if !chromeID.MatchString(id) {
-		return InstallResult{}, errors.New("valid Chrome Web Store extension ID is required")
-	}
-	if externalDirectory == "" {
-		return InstallResult{}, errors.New("external extensions directory is required")
-	}
-	absolute, err := filepath.Abs(externalDirectory)
-	if err != nil {
-		return InstallResult{}, err
-	}
-	if !filepath.IsAbs(externalDirectory) || !strings.HasSuffix(filepath.ToSlash(filepath.Clean(absolute)), "/Library/Application Support/Google/Chrome/External Extensions") {
-		return InstallResult{}, errors.New("external extensions directory must be a Chrome macOS External Extensions path")
-	}
-	// Refuse symlinked directories so the destination cannot be redirected.
-	for current := absolute; current != filepath.Dir(current); current = filepath.Dir(current) {
-		info, err := os.Lstat(current)
-		if os.IsNotExist(err) {
-			continue
-		}
-		if err != nil {
-			return InstallResult{}, err
-		}
-		// macOS exposes /var and /tmp as root-owned aliases under /private.
-		// Reject symlinks deeper in a caller-selected profile path.
-		if info.Mode()&os.ModeSymlink != 0 && filepath.Dir(current) != string(filepath.Separator) {
-			return InstallResult{}, fmt.Errorf("external extensions path contains symlink %q", current)
-		}
-	}
-	if err := os.MkdirAll(absolute, 0755); err != nil {
-		return InstallResult{}, err
-	}
-	filePath := filepath.Join(absolute, id+".json")
-	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
-	if err != nil {
-		return InstallResult{}, err
-	}
-	content, _ := json.Marshal(map[string]string{"external_update_url": "https://clients2.google.com/service/update2/crx"})
-	_, writeErr := file.Write(append(content, '\n'))
-	closeErr := file.Close()
-	if writeErr != nil {
-		os.Remove(filePath)
-		return InstallResult{}, writeErr
-	}
-	if closeErr != nil {
-		os.Remove(filePath)
-		return InstallResult{}, closeErr
-	}
-	return InstallResult{
-		Status: "awaiting-browser-confirmation", Browser: "chrome", ID: id, Source: filePath,
-		NextAction: "Restart Chrome, then review and enable the externally installed extension in Chrome's native extension UI.",
-	}, nil
+	return RequestStoreInstall("chrome", "chrome", id, externalDirectory)
 }

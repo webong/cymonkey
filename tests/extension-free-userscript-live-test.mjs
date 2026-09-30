@@ -96,9 +96,9 @@ test('Jangolova reapplies extension-free script after navigation', {timeout: 450
   assert.equal(stderr, '');
 });
 
-test('cmy stores and replays a userscript through Jangolova', {timeout: 45000}, async (t) => {
-  const cmy = process.env.CYMONKEY_CMY_BIN;
-  if (!cmy) { t.skip('set CYMONKEY_CMY_BIN to run the CLI integration test'); return; }
+test('cymy stores and replays a userscript through Jangolova', {timeout: 45000}, async (t) => {
+  const cymy = process.env.CYMONKEY_CYMY_BIN ?? process.env.CYMONKEY_CMY_BIN;
+  if (!cymy) { t.skip('set CYMONKEY_CYMY_BIN to run the CLI integration test'); return; }
   try { await access(browserPath); } catch { t.skip('Chromium executable unavailable'); return; }
   const temporary = await mkdtemp(path.join(os.tmpdir(), 'cymonkey-userscript-cli-'));
   const html = path.join(temporary, 'page.html');
@@ -115,7 +115,7 @@ test('cmy stores and replays a userscript through Jangolova', {timeout: 45000}, 
   let target;
   let provider;
   try {
-    provider = spawn(cmy, [
+    provider = spawn(cymy, [
       'userscript', 'install', '--store', store, '--source', script,
       '--endpoint', `cdp=${browser.wsEndpoint()}`,
     ], {cwd: process.cwd(), stdio: ['ignore', 'pipe', 'pipe']});
@@ -135,7 +135,7 @@ test('cmy stores and replays a userscript through Jangolova', {timeout: 45000}, 
     });
     await page.goto(pathToFileURL(html).href);
     assert.equal(await page.evaluate(() => globalThis.__managedScript), 'active');
-    execFileSync(cmy, ['userscript', 'disable', '--store', store, '--target', target, '--id', 'managed']);
+    execFileSync(cymy, ['userscript', 'disable', '--store', store, '--target', target, '--id', 'managed']);
     let disabled = false;
     for (let attempt = 0; attempt < 20 && !disabled; attempt++) {
       await new Promise((resolve) => setTimeout(resolve, 250));

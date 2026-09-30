@@ -7,7 +7,7 @@ It does not change the ownership of Board, Blockade, or caller-owned browsers.
 ## Implemented
 
 - Standalone `jangolova/bookmarklet` library with source/URL round trips and
-  escaped, draggable HTML installation pages; exposed as `cmy bookmarklet`.
+  escaped, draggable HTML installation pages; exposed as `cymy bookmarklet`.
 - Reversible link-highlighter example, preserving comments, Unicode and `%`/`+`.
   Exported scripts cannot replace the page through a string return value.
 - Per-augmentation serialization of mount/action/unmount, single cleanup under
@@ -44,7 +44,7 @@ must not be included accidentally when staging augmentation work.
 Build the CLI and browser library first:
 
 ```sh
-go build -o .cache/cmy-augmentation ./src
+go build -o .cache/cymy-augmentation ./src
 npm run test:browser-adapter
 go test ./src ./src/internal/userscripts ./src/internal/provider ./lib/jangolova/...
 go test -race ./lib/jangolova/bookmarklet
@@ -54,7 +54,7 @@ For bookmarklet and web-host fixtures, set `CYMONKEY_BROWSER_BIN` to Chrome or
 Firefox's executable. Set `CYMONKEY_BROWSER_PRODUCT=firefox` for Firefox:
 
 ```sh
-CYMONKEY_CMY_BIN="$PWD/.cache/cmy-augmentation" npm run test:bookmarklets:live
+CYMONKEY_CYMY_BIN="$PWD/.cache/cymy-augmentation" npm run test:bookmarklets:live
 npm run test:augmentation:live
 ```
 
@@ -62,8 +62,10 @@ For Chrome userscripts, set `CYMONKEY_CHROME_BIN` if it differs from the fixture
 default, then run:
 
 ```sh
-CYMONKEY_CMY_BIN="$PWD/.cache/cmy-augmentation" npm run test:userscripts:live
+CYMONKEY_CYMY_BIN="$PWD/.cache/cymy-augmentation" npm run test:userscripts:live
 ```
+
+The older `CYMONKEY_CMY_BIN` variable remains accepted by these live tests.
 
 Firefox only supports one active BiDi session. Its dedicated fixture launches
 a disposable browser without a competing automation client:

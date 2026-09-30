@@ -1,7 +1,8 @@
 # Cymonkey host
 
 Cymonkey is the operator and host for the standalone Jangolova and Blockade
-libraries. It exposes their interfaces through one `cymonkey` executable.
+libraries. Its public CLI is `cymy`; the `cymonkey` executable remains for
+existing host manifests.
 
 Validate and run a host manifest from the repository root:
 
@@ -12,13 +13,14 @@ the [Blockade deployment guide](../blockade/README.md).
 ```sh
 mkdir -p .cache/bin
 go build -o .cache/bin/cymonkey ./src
+go build -o .cache/bin/cymy ./src
 
 PATH="$PWD/.cache/bin:$PATH" \
-  cymonkey validate --config infra/deploy/cymonkey/cymonkey.example.yaml
+  cymy validate --config infra/deploy/cymonkey/cymonkey.example.yaml
 
 CYMONKEY_JANGOLOVA_TOKEN="a-random-session-secret" \
 PATH="$PWD/.cache/bin:$PATH" \
-  cymonkey run --config infra/deploy/cymonkey/cymonkey.example.yaml
+  cymy run --config infra/deploy/cymonkey/cymonkey.example.yaml
 ```
 
 The host starts components in manifest order, forwards their stdout and
@@ -30,8 +32,8 @@ know Blockade model internals or Jangolova target-driver internals.
 The library interfaces remain independently usable through Cymonkey:
 
 ```sh
-cymonkey provider serve-mcp
-cymonkey blockade serve --config infra/deploy/blockade/blockade.example.yaml
+cymy provider serve-mcp
+cymy blockade serve --config infra/deploy/blockade/blockade.example.yaml
 ```
 
 To coordinate an observation, use the same token and the interaction instance
@@ -40,7 +42,7 @@ identifier created through Jangolova:
 ```sh
 CYMONKEY_JANGOLOVA_TOKEN="a-random-session-secret" \
 PATH="$PWD/.cache/bin:$PATH" \
-  cymonkey observe --config infra/deploy/cymonkey/cymonkey.example.yaml \
+  cymy observe --config infra/deploy/cymonkey/cymonkey.example.yaml \
   --instance browser-1 --prompt "find the primary action"
 ```
 
