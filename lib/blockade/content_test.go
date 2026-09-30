@@ -110,6 +110,7 @@ func TestContentRequestValidation(t *testing.T) {
 		{APIVersion: ContentAPIVersion, Parts: []ContentPart{{Kind: "text", Text: " "}}},
 		{APIVersion: ContentAPIVersion, Parts: []ContentPart{{Kind: "audio", Data: []byte("sound")}}},
 		{APIVersion: ContentAPIVersion, Parts: []ContentPart{{Kind: "image", Text: "not bytes", MediaType: "image/png"}}},
+		{APIVersion: ContentAPIVersion, Parts: []ContentPart{{Kind: "video", MediaType: "application/octet-stream", Data: []byte("video")}}},
 	} {
 		if err := ValidateInterpretRequest(request); err == nil {
 			t.Fatalf("accepted invalid content request: %#v", request)
@@ -128,5 +129,15 @@ func TestContentRequestValidation(t *testing.T) {
 	var body map[string]string
 	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil || body["error"] == "" {
 		t.Fatalf("unsupported response = %s, %v", response.Body.String(), err)
+	}
+}
+
+func TestVideoContentRequiresVideoCapability(t *testing.T) {
+	request := InterpretRequest{APIVersion: ContentAPIVersion, Parts: []ContentPart{{Kind: "video", MediaType: "video/mp4", Data: []byte("video")}}}
+	if err := ValidateInterpretRequest(request); err != nil {
+		t.Fatal(err)
+	}
+	if capability := requiredContentCapability(request.Parts); capability != CapabilityVideoInterpret {
+		t.Fatalf("required capability = %q", capability)
 	}
 }

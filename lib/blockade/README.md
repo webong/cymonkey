@@ -1,7 +1,7 @@
 # Blockade
 
 Blockade defines stable contracts for model backed observation and content
-interpretation. It accepts text, image, and audio content, selects a configured
+interpretation. It accepts text, image, audio, and video content, selects a configured
 provider, validates the result, and returns provider neutral output.
 
 Blockade does not implement model inference. ONNX Runtime, Ultralytics, WebLLM,
@@ -27,7 +27,7 @@ caller
 Blockade owns:
 
 - `blockade.observation/v1alpha1` for image evidence;
-- `blockade.content/v1alpha1` for text, image, and audio interpretation;
+- `blockade.content/v1alpha1` for text, image, audio, and video interpretation;
 - provider registration, selection, limits, readiness, and error mapping;
 - local model installation, digest verification, inspection, lookup, and
   removal;
@@ -64,6 +64,7 @@ The repository currently contains these separate provider modules:
 | `providers/blockade-onnx` | YOLO detection from one `.onnx` artifact through ONNX Runtime. CPU, CUDA, TensorRT, OpenVINO, and Core ML execution providers are configurable. |
 | `providers/blockade-ultralytics` | YOLO detection and SAM segmentation from two `.pt` artifacts through a managed Python worker. |
 | `providers/blockade-webllm` | Browser local vision language observation through WebLLM and WebGPU. Its remote model ID lives in provider settings, so it does not use Blockade's local model registry. |
+| `providers/blockade-endpoints` | Text, image, audio, video, and multimodal interpretation through compatible HTTP endpoints. |
 
 Other formats become supported when a provider for them is installed. A future
 Core ML provider could load `.mlmodel`, `.mlpackage`, or `.mlmodelc` directly;
@@ -182,14 +183,20 @@ Image observation returns detections, regions, masks, confidence, and
 provenance. Content interpretation returns findings linked to their input part
 indexes. Providers advertise the capabilities they implement, including
 `image.observe`, `object.detect`, `object.segment`, `text.interpret`,
-`audio.interpret`, `image.interpret`, and `multimodal.interpret`.
+`audio.interpret`, `image.interpret`, `video.interpret`, and
+`multimodal.interpret`.
 
 ```sh
 cymonkey blockade observe --config blockade.yaml --inference local-yolo \
   --image screenshot.png --prompt 'find visible controls'
 cymonkey blockade interpret --config blockade.yaml --inference content-model \
   --audio recording.wav --audio-type audio/wav --prompt 'transcribe speech'
+cymonkey blockade interpret --config blockade.yaml --inference video-model \
+  --video clip.mp4 --video-type video/mp4 --prompt 'describe the clip'
 ```
+
+Binary content is limited to 10 MiB per request. Endpoint and model support is
+still explicit: configure `video` only for an adapter and model that accepts it.
 
 The public schemas are in [`protocol/v1alpha1/`](protocol/v1alpha1/). Provider
 packaging and process transport are documented in

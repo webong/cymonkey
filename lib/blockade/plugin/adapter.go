@@ -75,6 +75,7 @@ func Register(registry *blockade.ProviderAdapterRegistry, installed providerplug
 		content := slices.Contains(reported.Capabilities, blockade.CapabilityTextInterpret) ||
 			slices.Contains(reported.Capabilities, blockade.CapabilityAudioInterpret) ||
 			slices.Contains(reported.Capabilities, blockade.CapabilityImageInterpret) ||
+			slices.Contains(reported.Capabilities, blockade.CapabilityVideoInterpret) ||
 			slices.Contains(reported.Capabilities, blockade.CapabilityMultimodalInterpret)
 		switch {
 		case image && content:

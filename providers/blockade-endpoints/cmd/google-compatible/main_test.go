@@ -78,3 +78,39 @@ func TestGoogleCompatibleEscapesModelAsOnePathSegment(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestGoogleCompatibleEncodesVideoInline(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		var body generateRequest
+		if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
+			t.Error(err)
+		}
+		parts := body.Contents[0].Parts
+		if len(parts) != 2 || parts[1].InlineData == nil || parts[1].InlineData.MIMEType != "video/mp4" || parts[1].InlineData.Data == "" {
+			t.Errorf("body = %#v", body)
+		}
+		writer.Header().Set("Content-Type", "application/json")
+		_, _ = writer.Write([]byte(`{"candidates":[{"content":{"parts":[{"text":"video understood"}]}}]}`))
+	}))
+	defer server.Close()
+
+	provider := &provider{client: server.Client()}
+	if err := provider.Start(context.Background(), providerexec.StartRequest{Settings: map[string]string{
+		"baseURL": server.URL, "model": "gemini-test", "modalities": "video",
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	result, err := provider.Interpret(context.Background(), blockade.ProviderAdapterInterpretRequest{
+		APIVersion: blockade.ProviderAdapterAPIVersion,
+		Request: blockade.InterpretRequest{
+			APIVersion: blockade.ContentAPIVersion,
+			Parts:      []blockade.ContentPart{{Kind: "video", MediaType: "video/mp4", Data: []byte("mp4")}},
+		},
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Response.Findings[0].Text != "video understood" {
+		t.Fatalf("response = %#v", result)
+	}
+}

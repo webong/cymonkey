@@ -14,10 +14,10 @@ import (
 
 func TestParseConfigDerivesCapabilities(t *testing.T) {
 	config, err := ParseConfig(map[string]string{
-		"model": "vision-model", "modalities": "text,image", "maxTokens": "2048",
+		"model": "vision-model", "modalities": "text,image,video", "maxTokens": "2048",
 	}, ParseOptions{
 		DefaultBaseURL: "http://127.0.0.1:8000/v1", DefaultModalities: []string{"text"},
-		AllowedModalities: []string{"text", "image"},
+		AllowedModalities: []string{"text", "image", "video"},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -25,7 +25,7 @@ func TestParseConfigDerivesCapabilities(t *testing.T) {
 	if config.Model != "vision-model" || config.MaxTokens != 2048 {
 		t.Fatalf("config = %#v", config)
 	}
-	for _, capability := range []string{blockade.CapabilityTextInterpret, blockade.CapabilityImageInterpret, blockade.CapabilityMultimodalInterpret} {
+	for _, capability := range []string{blockade.CapabilityTextInterpret, blockade.CapabilityImageInterpret, blockade.CapabilityVideoInterpret, blockade.CapabilityMultimodalInterpret} {
 		if !slices.Contains(config.Capabilities, capability) {
 			t.Fatalf("capabilities = %#v", config.Capabilities)
 		}

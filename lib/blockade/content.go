@@ -16,6 +16,7 @@ const (
 	CapabilityTextInterpret       = "text.interpret"
 	CapabilityAudioInterpret      = "audio.interpret"
 	CapabilityImageInterpret      = "image.interpret"
+	CapabilityVideoInterpret      = "video.interpret"
 	CapabilityMultimodalInterpret = "multimodal.interpret"
 	maximumContentParts           = 16
 	maximumContentBytes           = 10 << 20
@@ -26,7 +27,7 @@ const (
 // ContentPart is caller-supplied content, not a path or target handle. Binary
 // data is base64-encoded by JSON. Providers decide which formats they support.
 type ContentPart struct {
-	Kind      string `json:"kind"` // text, image, audio
+	Kind      string `json:"kind"` // text, image, audio, video
 	Text      string `json:"text,omitempty"`
 	MediaType string `json:"mediaType,omitempty"`
 	Data      []byte `json:"data,omitempty"`
@@ -55,7 +56,7 @@ type InterpretResponse struct {
 }
 
 // ContentEngine is optional. Existing image-only engines continue to expose
-// Observe without claiming text or audio interpretation.
+// Observe without claiming text, audio, or video interpretation.
 type ContentEngine interface {
 	Interpret(context.Context, InterpretRequest) (InterpretResponse, error)
 }
@@ -83,7 +84,7 @@ func ValidateInterpretRequest(request InterpretRequest) error {
 			if strings.TrimSpace(part.Text) == "" || !utf8.ValidString(part.Text) || part.MediaType != "" || len(part.Data) != 0 {
 				return fmt.Errorf("part %d must contain text only", i)
 			}
-		case "image", "audio":
+		case "image", "audio", "video":
 			if part.Text != "" || len(part.Data) == 0 {
 				return fmt.Errorf("part %d must contain binary data only", i)
 			}
@@ -147,6 +148,9 @@ func requiredContentCapability(parts []ContentPart) string {
 	}
 	if seen["audio"] {
 		return CapabilityAudioInterpret
+	}
+	if seen["video"] {
+		return CapabilityVideoInterpret
 	}
 	return CapabilityImageInterpret
 }

@@ -17,6 +17,7 @@ assert.match(endpointConfig, /provider: openai-compatible/);
 assert.match(endpointConfig, /profile: ollama/);
 assert.match(endpointConfig, /provider: anthropic-compatible/);
 assert.match(endpointConfig, /provider: google-compatible/);
+assert.match(endpointConfig, /modalities: text,image,audio,video/);
 assert.match(webllmDocs, /provider owned Chromium \+ dedicated Web Worker/);
 assert.match(worker, /method == "blockade\.health"/);
 assert.match(runtime, /YOLO\(/);

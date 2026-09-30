@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"blockade"
@@ -68,5 +69,64 @@ func TestOpenAIProfilesUseExpectedLocalPorts(t *testing.T) {
 				t.Fatalf("baseURL = %q, want %q", got, baseURL)
 			}
 		})
+	}
+}
+
+func TestOpenAICompatibleVideoContentTypes(t *testing.T) {
+	tests := []struct {
+		profile  string
+		typeName string
+	}{
+		{profile: "vllm", typeName: "video_url"},
+		{profile: "llama.cpp", typeName: "input_video"},
+	}
+	for _, test := range tests {
+		t.Run(test.profile, func(t *testing.T) {
+			provider := &provider{}
+			if err := provider.Start(context.Background(), providerexec.StartRequest{Settings: map[string]string{
+				"profile": test.profile, "model": "video-model", "modalities": "video",
+			}}); err != nil {
+				t.Fatal(err)
+			}
+			content, err := provider.openAIContent(blockade.InterpretRequest{
+				Parts: []blockade.ContentPart{{Kind: "video", MediaType: "video/mp4", Data: []byte("mp4")}},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			parts, ok := content.([]chatContent)
+			if !ok || len(parts) != 2 || parts[1].Type != test.typeName {
+				t.Fatalf("content = %#v", content)
+			}
+			if test.typeName == "video_url" && (parts[1].VideoURL == nil || !strings.HasPrefix(parts[1].VideoURL.URL, "data:video/mp4;base64,")) {
+				t.Fatalf("video_url content = %#v", parts[1])
+			}
+			if test.typeName == "input_video" && (parts[1].InputVideo == nil || parts[1].InputVideo.Data == "") {
+				t.Fatalf("input_video content = %#v", parts[1])
+			}
+			capabilities, err := provider.Capabilities(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+			found := false
+			for _, capability := range capabilities.Capabilities {
+				found = found || capability == blockade.CapabilityVideoInterpret
+			}
+			if !found {
+				t.Fatalf("capabilities = %#v", capabilities.Capabilities)
+			}
+		})
+	}
+}
+
+func TestOpenAICompatibleVideoContentTypeOverride(t *testing.T) {
+	provider := &provider{}
+	if err := provider.Start(context.Background(), providerexec.StartRequest{Settings: map[string]string{
+		"profile": "custom", "model": "video-model", "modalities": "video", "videoContentType": "input_video",
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	if provider.videoContentType != "input_video" {
+		t.Fatalf("video content type = %q", provider.videoContentType)
 	}
 }

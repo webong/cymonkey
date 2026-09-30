@@ -28,10 +28,11 @@ var profileBaseURLs = map[string]string{
 }
 
 type provider struct {
-	client *http.Client
-	config endpoint.Config
-	ready  bool
-	format string
+	client           *http.Client
+	config           endpoint.Config
+	ready            bool
+	format           string
+	videoContentType string
 }
 
 type chatRequest struct {
@@ -52,6 +53,8 @@ type chatContent struct {
 	Text       string          `json:"text,omitempty"`
 	ImageURL   *chatImageURL   `json:"image_url,omitempty"`
 	InputAudio *chatInputAudio `json:"input_audio,omitempty"`
+	VideoURL   *chatVideoURL   `json:"video_url,omitempty"`
+	InputVideo *chatInputVideo `json:"input_video,omitempty"`
 }
 
 type chatImageURL struct {
@@ -61,6 +64,14 @@ type chatImageURL struct {
 type chatInputAudio struct {
 	Data   string `json:"data"`
 	Format string `json:"format"`
+}
+
+type chatVideoURL struct {
+	URL string `json:"url"`
+}
+
+type chatInputVideo struct {
+	Data string `json:"data"`
 }
 
 func main() {
@@ -89,8 +100,8 @@ func (p *provider) Start(_ context.Context, request providerexec.StartRequest) e
 	}
 	config, err := endpoint.ParseConfig(request.Settings, endpoint.ParseOptions{
 		DefaultBaseURL: defaultBaseURL, DefaultModalities: []string{"text"},
-		AllowedModalities: []string{"text", "image", "audio"},
-		ExtraSettings:     []string{"profile", "responseFormat"},
+		AllowedModalities: []string{"text", "image", "audio", "video"},
+		ExtraSettings:     []string{"profile", "responseFormat", "videoContentType"},
 	})
 	if err != nil {
 		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, err)
@@ -102,8 +113,19 @@ func (p *provider) Start(_ context.Context, request providerexec.StartRequest) e
 	if format != "none" && format != "json_object" {
 		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, errors.New("responseFormat must be none or json_object"))
 	}
+	videoContentType := strings.ToLower(strings.TrimSpace(request.Settings["videoContentType"]))
+	if videoContentType == "" {
+		videoContentType = "video_url"
+		if profile == "llama.cpp" {
+			videoContentType = "input_video"
+		}
+	}
+	if videoContentType != "video_url" && videoContentType != "input_video" {
+		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, errors.New("videoContentType must be video_url or input_video"))
+	}
 	p.config = config
 	p.format = format
+	p.videoContentType = videoContentType
 	p.ready = true
 	return nil
 }
@@ -129,7 +151,7 @@ func (p *provider) Interpret(ctx context.Context, wrapped blockade.ProviderAdapt
 	if err := p.config.ValidateRequest(wrapped.Request); err != nil {
 		return blockade.ProviderAdapterInterpretResponse{}, err
 	}
-	content, err := openAIContent(wrapped.Request)
+	content, err := p.openAIContent(wrapped.Request)
 	if err != nil {
 		return blockade.ProviderAdapterInterpretResponse{}, err
 	}
@@ -175,7 +197,7 @@ func (p *provider) Close() error {
 	return nil
 }
 
-func openAIContent(request blockade.InterpretRequest) (any, error) {
+func (p *provider) openAIContent(request blockade.InterpretRequest) (any, error) {
 	content := make([]chatContent, 0, len(request.Parts)+1)
 	if prompt := strings.TrimSpace(request.Prompt); prompt != "" {
 		content = append(content, chatContent{Type: "text", Text: "Task: " + prompt})
@@ -194,6 +216,14 @@ func openAIContent(request blockade.InterpretRequest) (any, error) {
 			}
 			content = append(content, chatContent{Type: "text", Text: fmt.Sprintf("Audio content part %d:", index)})
 			content = append(content, chatContent{Type: "input_audio", InputAudio: &chatInputAudio{Data: base64.StdEncoding.EncodeToString(part.Data), Format: format}})
+		case "video":
+			content = append(content, chatContent{Type: "text", Text: fmt.Sprintf("Video content part %d:", index)})
+			encoded := base64.StdEncoding.EncodeToString(part.Data)
+			if p.videoContentType == "input_video" {
+				content = append(content, chatContent{Type: "input_video", InputVideo: &chatInputVideo{Data: encoded}})
+			} else {
+				content = append(content, chatContent{Type: "video_url", VideoURL: &chatVideoURL{URL: "data:" + part.MediaType + ";base64," + encoded}})
+			}
 		}
 	}
 	if len(content) == 1 && content[0].Type == "text" {

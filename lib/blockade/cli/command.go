@@ -285,6 +285,8 @@ func interpretCommand(args []string, stdout io.Writer, registry *blockade.Provid
 	imagePath := flags.String("image", "", "image file")
 	audioPath := flags.String("audio", "", "audio file")
 	audioType := flags.String("audio-type", "", "audio MIME type, such as audio/wav")
+	videoPath := flags.String("video", "", "video file")
+	videoType := flags.String("video-type", "", "video MIME type, such as video/mp4")
 	prompt := flags.String("prompt", "", "optional interpretation prompt")
 	if err := flags.Parse(args); err != nil {
 		return err
@@ -319,6 +321,16 @@ func interpretCommand(args []string, stdout io.Writer, registry *blockade.Provid
 			return err
 		}
 		parts = append(parts, blockade.ContentPart{Kind: "audio", MediaType: *audioType, Data: data})
+	}
+	if *videoPath != "" {
+		if *videoType == "" {
+			return errors.New("--video-type is required with --video")
+		}
+		data, err := readInterpretFile(*videoPath)
+		if err != nil {
+			return err
+		}
+		parts = append(parts, blockade.ContentPart{Kind: "video", MediaType: *videoType, Data: data})
 	}
 	request := blockade.InterpretRequest{APIVersion: blockade.ContentAPIVersion, Parts: parts, Prompt: *prompt}
 	if err := blockade.ValidateInterpretRequest(request); err != nil {

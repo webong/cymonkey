@@ -67,7 +67,7 @@ func (p *provider) Start(_ context.Context, request providerexec.StartRequest) e
 	}
 	config, err := endpoint.ParseConfig(request.Settings, endpoint.ParseOptions{
 		DefaultBaseURL:    "https://generativelanguage.googleapis.com/v1beta",
-		DefaultModalities: []string{"text"}, AllowedModalities: []string{"text", "image", "audio"},
+		DefaultModalities: []string{"text"}, AllowedModalities: []string{"text", "image", "audio", "video"},
 	})
 	if err != nil {
 		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, err)
@@ -107,7 +107,7 @@ func (p *provider) Interpret(ctx context.Context, wrapped blockade.ProviderAdapt
 		switch item.Kind {
 		case "text":
 			parts = append(parts, part{Text: fmt.Sprintf("Content part %d:\n%s", index, item.Text)})
-		case "image", "audio":
+		case "image", "audio", "video":
 			parts = append(parts, part{Text: fmt.Sprintf("%s content part %d:", title(item.Kind), index)})
 			parts = append(parts, part{InlineData: &inlineData{MIMEType: item.MediaType, Data: base64.StdEncoding.EncodeToString(item.Data)}})
 		}

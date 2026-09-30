@@ -274,3 +274,29 @@ func TestInterpretCommandPassesTextAndAudioToProvider(t *testing.T) {
 		t.Fatalf("CLI interpretation = %#v, request = %#v", response, adapter.request)
 	}
 }
+
+func TestInterpretCommandPassesVideoToProvider(t *testing.T) {
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "blockade.yaml")
+	videoPath := filepath.Join(dir, "clip.mp4")
+	if err := os.WriteFile(configPath, []byte("apiVersion: blockade.config/v1alpha1\nproviders:\n  - id: content-fixture\n    provider: fixture\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(videoPath, []byte("video bytes"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	adapter := &cliContentAdapter{}
+	registry := blockade.NewProviderAdapterRegistry()
+	if err := registry.Register("fixture", func(context.Context, blockade.ProviderAdapterRuntime) (blockade.ProviderAdapter, error) {
+		return adapter, nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var output bytes.Buffer
+	if err := RunWithProviderAdapters([]string{"interpret", "--config", configPath, "--text", "Describe", "--video", videoPath, "--video-type", "video/mp4"}, &output, &bytes.Buffer{}, registry, nil); err != nil {
+		t.Fatal(err)
+	}
+	if len(adapter.request.Request.Parts) != 2 || adapter.request.Request.Parts[1].Kind != "video" || adapter.request.Request.Parts[1].MediaType != "video/mp4" || string(adapter.request.Request.Parts[1].Data) != "video bytes" {
+		t.Fatalf("CLI video request = %#v", adapter.request.Request)
+	}
+}

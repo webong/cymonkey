@@ -98,6 +98,8 @@ func ParseConfig(settings map[string]string, options ParseOptions) (Config, erro
 			capabilities = append(capabilities, blockade.CapabilityImageInterpret)
 		case "audio":
 			capabilities = append(capabilities, blockade.CapabilityAudioInterpret)
+		case "video":
+			capabilities = append(capabilities, blockade.CapabilityVideoInterpret)
 		}
 	}
 	if len(modalities) > 1 {

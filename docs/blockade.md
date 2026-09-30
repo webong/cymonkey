@@ -1,9 +1,9 @@
 # Blockade architecture
 
 Blockade is a standalone contract and lifecycle library for model backed
-observation and interpretation. It accepts text, images, and audio. A provider
-performs inference locally or through a cloud service and returns a normalized
-Blockade response.
+observation and interpretation. It accepts text, images, audio, and video. A
+provider performs inference locally or through a cloud service and returns a
+normalized Blockade response.
 
 ## System composition
 
@@ -153,7 +153,7 @@ which roles, formats, architectures, and capabilities it accepts.
 | [`providers/blockade-onnx`](../providers/blockade-onnx/) | Installed YOLO `.onnx` artifact | Image observation and object detection through ONNX Runtime. |
 | [`providers/blockade-ultralytics`](../providers/blockade-ultralytics/) | Installed YOLO and SAM `.pt` artifacts | Image observation, detection, and segmentation through a Python worker. |
 | [`providers/blockade-webllm`](../providers/blockade-webllm/) | Remote WebLLM model ID and local browser cache | Image observation and vision language output through WebGPU. |
-| [`providers/blockade-endpoints`](../providers/blockade-endpoints/) | OpenAI-, Anthropic-, or Google-compatible HTTP endpoint | Text, image, audio, and multimodal interpretation, constrained by the selected protocol and model. |
+| [`providers/blockade-endpoints`](../providers/blockade-endpoints/) | OpenAI-, Anthropic-, or Google-compatible HTTP endpoint | Text, image, audio, video, and multimodal interpretation, constrained by the selected protocol and model. |
 
 The providers are repository modules for development and distribution. The
 Cymonkey binary does not import them. ONNX and WebLLM build as executables.
@@ -170,7 +170,7 @@ llama.cpp, and LM Studio; custom compatible endpoints override `baseURL`.
 ## Public APIs
 
 Image observation uses `blockade.observation/v1alpha1`. Content interpretation
-uses `blockade.content/v1alpha1` with text, image, or audio parts and findings
+uses `blockade.content/v1alpha1` with text, image, audio, or video parts and findings
 that identify their source part indexes.
 
 The service exposes:

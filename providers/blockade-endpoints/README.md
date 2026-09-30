@@ -57,8 +57,8 @@ Install each package with `cymonkey plugins install --manifest plugin.json`.
 ## Configure
 
 All providers require `settings.model`. `modalities` is an explicit
-comma-separated allow-list. It defaults to `text`; advertise `image` or
-`audio` only when the selected endpoint and model actually support them.
+comma-separated allow-list. It defaults to `text`; advertise `image`, `audio`,
+or `video` only when the selected endpoint and model actually support them.
 `maxTokens` defaults to `1024`, and `temperature` is optional.
 
 ```yaml
@@ -84,22 +84,30 @@ providers:
     provider: google-compatible
     settings:
       model: gemini-2.5-flash
-      modalities: text,image,audio
+      modalities: text,image,audio,video
     secrets:
       apiKey:
         env: GEMINI_API_KEY
 ```
 
 OpenAI-compatible settings also accept `profile`, `baseURL`, and
-`responseFormat` (`none` or `json_object`). Anthropic-compatible settings
+`responseFormat` (`none` or `json_object`). Video uses a `video_url` content
+part by default; the `llama.cpp` profile uses `input_video`. Set
+`videoContentType` to `video_url` or `input_video` to override that choice for
+a compatible server. Anthropic-compatible settings
 accept `baseURL` and `anthropicVersion`. Google-compatible settings accept
 `baseURL`. An `apiKey` secret is optional for local servers and is sent in the
 native authorization header when configured.
 
 Gemini's OpenAI compatibility endpoint can alternatively use the
 `openai-compatible` provider with its OpenAI-compatible base URL. The native
-`google-compatible` provider is the broader mapping for Gemini inline image
-and audio parts.
+`google-compatible` provider is the broader mapping for Gemini inline image,
+audio, and video parts. Anthropic Messages has no native video content block,
+so the Anthropic-compatible adapter intentionally remains text-and-image only.
+
+The current Blockade content request limit is 10 MiB, so video is sent inline.
+Use short clips that fit that bound; hosted upload/file APIs are outside this
+adapter contract.
 
 Each provider asks the model for Blockade findings. A valid findings object is
 preserved; plain model text is normalized into one `response` finding. HTTP

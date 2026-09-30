@@ -14,8 +14,8 @@ import (
 	"cymonkey/src/internal/orchestrator"
 )
 
-func TestOperatorInterpretsTextAndAudioThroughBlockade(t *testing.T) {
-	requests := make(chan blockade.InterpretRequest, 2)
+func TestOperatorInterpretsTextAudioAndVideoThroughBlockade(t *testing.T) {
+	requests := make(chan blockade.InterpretRequest, 3)
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/interpret" {
 			t.Errorf("Blockade path = %q", r.URL.Path)
@@ -69,5 +69,17 @@ func TestOperatorInterpretsTextAndAudioThroughBlockade(t *testing.T) {
 	}
 	if request := <-requests; len(request.Parts) != 1 || request.Parts[0].Kind != "audio" || string(request.Parts[0].Data) != "recorded audio" {
 		t.Fatalf("forwarded audio = %#v", request)
+	}
+
+	videoPath := filepath.Join(t.TempDir(), "clip.mp4")
+	if err := os.WriteFile(videoPath, []byte("recorded video"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	output.Reset()
+	if err := operatorInterpretClient([]string{"--url", operatorHTTP.URL, "--video", videoPath, "--video-type", "video/mp4", "--prompt", "describe"}, &output); err != nil {
+		t.Fatal(err)
+	}
+	if request := <-requests; len(request.Parts) != 1 || request.Parts[0].Kind != "video" || request.Parts[0].MediaType != "video/mp4" || string(request.Parts[0].Data) != "recorded video" {
+		t.Fatalf("forwarded video = %#v", request)
 	}
 }

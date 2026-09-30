@@ -24,7 +24,7 @@ providers:
     timeout: 2m
     settings:
       model: gemini-2.5-flash
-      modalities: text,image,audio
+      modalities: text,image,audio,video
     secrets:
       apiKey:
         env: GEMINI_API_KEY
