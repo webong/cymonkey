@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,10 +14,26 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"blockade"
 	"providerplugin"
 )
+
+func TestNormalizeProcessErrorPreservesBlockadeFailureKind(t *testing.T) {
+	err := normalizeProcessError(&providerplugin.RemoteError{
+		Code:                   string(blockade.ProviderAdapterErrorRateLimit),
+		Message:                "capacity exhausted",
+		RetryAfterMilliseconds: 1500,
+	})
+	var adapterError *blockade.ProviderAdapterError
+	if !errors.As(err, &adapterError) {
+		t.Fatalf("error = %T %v", err, err)
+	}
+	if adapterError.Kind != blockade.ProviderAdapterErrorRateLimit || adapterError.RetryAfter != 1500*time.Millisecond {
+		t.Fatalf("adapter error = %#v", adapterError)
+	}
+}
 
 // A standalone Blockade application can register its own provider packages
 // without importing or running Cymonkey.

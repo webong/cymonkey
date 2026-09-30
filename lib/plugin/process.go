@@ -15,6 +15,7 @@ import (
 )
 
 const maxFrame = 24 << 20
+const maxRetryAfterMilliseconds = int64((365 * 24 * time.Hour) / time.Millisecond)
 
 type request struct {
 	ID     uint64 `json:"id"`
@@ -24,7 +25,23 @@ type request struct {
 type response struct {
 	ID     uint64          `json:"id"`
 	Result json.RawMessage `json:"result,omitempty"`
-	Error  string          `json:"error,omitempty"`
+	Error  json.RawMessage `json:"error,omitempty"`
+}
+
+// RemoteError is a machine-readable failure returned by a provider process.
+// Code is intentionally transport-agnostic; domain adapters decide which
+// codes they recognize. Older providers may continue returning string errors.
+type RemoteError struct {
+	Code                   string `json:"code,omitempty"`
+	Message                string `json:"message"`
+	RetryAfterMilliseconds int64  `json:"retryAfterMilliseconds,omitempty"`
+}
+
+func (e *RemoteError) Error() string {
+	if e == nil || e.Message == "" {
+		return "plugin returned an error"
+	}
+	return "plugin: " + e.Message
 }
 
 // Process is one plugin process with serialized, bounded JSON-line calls.
@@ -189,8 +206,8 @@ func (p *Process) Call(ctx context.Context, method string, params any, result an
 			completed <- errors.New("plugin response ID mismatch")
 			return
 		}
-		if r.Error != "" {
-			completed <- errors.New("plugin: " + r.Error)
+		if len(r.Error) != 0 && string(r.Error) != "null" {
+			completed <- decodeRemoteError(r.Error)
 			return
 		}
 		if result != nil {
@@ -215,6 +232,24 @@ func (p *Process) Call(ctx context.Context, method string, params any, result an
 		p.closed = true
 		return ctx.Err()
 	}
+}
+
+func decodeRemoteError(raw json.RawMessage) error {
+	var legacy string
+	if err := json.Unmarshal(raw, &legacy); err == nil {
+		if legacy == "" {
+			return errors.New("plugin returned an empty error")
+		}
+		return errors.New("plugin: " + legacy)
+	}
+	var remote RemoteError
+	if err := json.Unmarshal(raw, &remote); err != nil {
+		return errors.New("plugin returned a malformed error")
+	}
+	if remote.Message == "" || remote.RetryAfterMilliseconds < 0 || remote.RetryAfterMilliseconds > maxRetryAfterMilliseconds {
+		return errors.New("plugin returned an invalid error")
+	}
+	return &remote
 }
 
 func (p *Process) Close() error {

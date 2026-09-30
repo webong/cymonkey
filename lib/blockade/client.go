@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -17,6 +18,8 @@ type Client struct {
 	HTTPClient *http.Client
 	Engine     Engine
 }
+
+const maximumHTTPRetryAfter = 365 * 24 * time.Hour
 
 func (c Client) client() (*http.Client, error) {
 	if strings.TrimSpace(c.BaseURL) == "" {
@@ -62,7 +65,9 @@ func (c Client) Observe(ctx context.Context, request ObserveRequest) (ObserveRes
 			Kind  ProviderAdapterErrorKind `json:"kind"`
 		}
 		if json.Unmarshal(data, &failure) == nil && validProviderAdapterErrorKind(failure.Kind) {
-			return ObserveResponse{}, newProviderAdapterError("", failure.Kind, fmt.Errorf("Blockade returned HTTP %d: %s", resp.StatusCode, failure.Error))
+			adapterError := newProviderAdapterError("", failure.Kind, fmt.Errorf("Blockade returned HTTP %d: %s", resp.StatusCode, failure.Error))
+			adapterError.RetryAfter = parseHTTPRetryAfter(resp.Header.Get("Retry-After"))
+			return ObserveResponse{}, adapterError
 		}
 		return ObserveResponse{}, fmt.Errorf("Blockade returned HTTP %d", resp.StatusCode)
 	}
@@ -129,7 +134,9 @@ func (c Client) Interpret(ctx context.Context, request InterpretRequest) (Interp
 			Kind  ProviderAdapterErrorKind `json:"kind"`
 		}
 		if json.Unmarshal(responseData, &failure) == nil && validProviderAdapterErrorKind(failure.Kind) {
-			return InterpretResponse{}, newProviderAdapterError("", failure.Kind, fmt.Errorf("Blockade returned HTTP %d: %s", resp.StatusCode, failure.Error))
+			adapterError := newProviderAdapterError("", failure.Kind, fmt.Errorf("Blockade returned HTTP %d: %s", resp.StatusCode, failure.Error))
+			adapterError.RetryAfter = parseHTTPRetryAfter(resp.Header.Get("Retry-After"))
+			return InterpretResponse{}, adapterError
 		}
 		return InterpretResponse{}, fmt.Errorf("Blockade returned HTTP %d", resp.StatusCode)
 	}
@@ -141,4 +148,23 @@ func (c Client) Interpret(ctx context.Context, request InterpretRequest) (Interp
 		return InterpretResponse{}, err
 	}
 	return result, nil
+}
+
+func parseHTTPRetryAfter(value string) time.Duration {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return 0
+	}
+	if seconds, err := strconv.ParseInt(value, 10, 64); err == nil && seconds >= 0 && seconds <= int64(maximumHTTPRetryAfter/time.Second) {
+		return time.Duration(seconds) * time.Second
+	}
+	when, err := http.ParseTime(value)
+	if err != nil {
+		return 0
+	}
+	delay := time.Until(when)
+	if delay < 0 || delay > maximumHTTPRetryAfter {
+		return 0
+	}
+	return delay
 }

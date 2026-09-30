@@ -165,7 +165,32 @@ func (p *processPool) Call(ctx context.Context, method string, params, result an
 		return errors.New("Blockade provider process pool is empty")
 	}
 	index := int((p.next.Add(1) - 1) % uint64(len(p.processes)))
-	return p.processes[index].Call(ctx, method, params, result)
+	return normalizeProcessError(p.processes[index].Call(ctx, method, params, result))
+}
+
+func normalizeProcessError(err error) error {
+	if err == nil {
+		return nil
+	}
+	var remote *providerplugin.RemoteError
+	if !errors.As(err, &remote) {
+		return err
+	}
+	kind := blockade.ProviderAdapterErrorKind(remote.Code)
+	switch kind {
+	case blockade.ProviderAdapterErrorAuthentication,
+		blockade.ProviderAdapterErrorRateLimit,
+		blockade.ProviderAdapterErrorTimeout,
+		blockade.ProviderAdapterErrorCanceled,
+		blockade.ProviderAdapterErrorUnavailable,
+		blockade.ProviderAdapterErrorInvalidRequest,
+		blockade.ProviderAdapterErrorInvalidResponse:
+		mapped := blockade.NewProviderAdapterError(kind, errors.New(remote.Message))
+		mapped.RetryAfter = time.Duration(remote.RetryAfterMilliseconds) * time.Millisecond
+		return mapped
+	default:
+		return err
+	}
 }
 
 func (p *processPool) Close() error {

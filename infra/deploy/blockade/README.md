@@ -8,6 +8,9 @@ these files are used.
   Ultralytics provider and an installed YOLO/SAM model bundle.
 - [`blockade.webllm.example.yaml`](blockade.webllm.example.yaml) selects the
   standalone WebLLM provider and a remote WebLLM model ID.
+- [`blockade.endpoints.example.yaml`](blockade.endpoints.example.yaml) shows
+  OpenAI-, Anthropic-, and Google-compatible inference endpoints. The OpenAI
+  provider includes profiles for vLLM, SGLang, Ollama, llama.cpp, and LM Studio.
 
 The old direct Python HTTP service and local `engines` configuration were
 removed. Blockade now owns the installed Python runtime and worker pool. The

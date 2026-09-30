@@ -5,7 +5,9 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // HTTPServer exposes a configured Blockade inference backend as a small
@@ -172,6 +174,11 @@ func writeEngineError(w http.ResponseWriter, err error, fallbackStatus int) {
 	if !ok {
 		writeJSONError(w, fallbackStatus, err.Error())
 		return
+	}
+	var adapterError *ProviderAdapterError
+	if errors.As(err, &adapterError) && adapterError.RetryAfter > 0 {
+		seconds := (adapterError.RetryAfter + time.Second - 1) / time.Second
+		w.Header().Set("Retry-After", strconv.FormatInt(int64(seconds), 10))
 	}
 	status := fallbackStatus
 	switch kind {

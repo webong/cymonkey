@@ -1,0 +1,30 @@
+apiVersion: blockade.config/v1alpha1
+providers:
+  - id: local-ollama
+    provider: openai-compatible
+    timeout: 2m
+    maxPayloadBytes: 8388608
+    settings:
+      profile: ollama
+      model: qwen3-vl:8b
+      modalities: text,image
+
+  - id: anthropic-content
+    provider: anthropic-compatible
+    timeout: 2m
+    settings:
+      model: claude-sonnet-4-5
+      modalities: text,image
+    secrets:
+      apiKey:
+        env: ANTHROPIC_API_KEY
+
+  - id: gemini-content
+    provider: google-compatible
+    timeout: 2m
+    settings:
+      model: gemini-2.5-flash
+      modalities: text,image,audio
+    secrets:
+      apiKey:
+        env: GEMINI_API_KEY

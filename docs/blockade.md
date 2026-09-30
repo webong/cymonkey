@@ -153,6 +153,7 @@ which roles, formats, architectures, and capabilities it accepts.
 | [`providers/blockade-onnx`](../providers/blockade-onnx/) | Installed YOLO `.onnx` artifact | Image observation and object detection through ONNX Runtime. |
 | [`providers/blockade-ultralytics`](../providers/blockade-ultralytics/) | Installed YOLO and SAM `.pt` artifacts | Image observation, detection, and segmentation through a Python worker. |
 | [`providers/blockade-webllm`](../providers/blockade-webllm/) | Remote WebLLM model ID and local browser cache | Image observation and vision language output through WebGPU. |
+| [`providers/blockade-endpoints`](../providers/blockade-endpoints/) | OpenAI-, Anthropic-, or Google-compatible HTTP endpoint | Text, image, audio, and multimodal interpretation, constrained by the selected protocol and model. |
 
 The providers are repository modules for development and distribution. The
 Cymonkey binary does not import them. ONNX and WebLLM build as executables.
@@ -160,10 +161,11 @@ Ultralytics is packaged as source and runs with a Python distribution installed
 through `cymonkey blockade runtime install`. All use `cymonkey plugins install`
 for the provider package itself.
 
-Text and audio contracts are complete, but this repository does not yet ship a
-production text or sound provider. A separately supplied executable can
-advertise `text.interpret`, `audio.interpret`, `image.interpret`, or
-`multimodal.interpret` and implement `blockade.interpret`.
+The endpoint providers implement `blockade.interpret`. Their configured
+`modalities` setting is an explicit allow-list, so Blockade never assumes that
+an OpenAI-compatible server or a selected model supports every content type.
+The OpenAI-compatible package includes profiles for vLLM, SGLang, Ollama,
+llama.cpp, and LM Studio; custom compatible endpoints override `baseURL`.
 
 ## Public APIs
 

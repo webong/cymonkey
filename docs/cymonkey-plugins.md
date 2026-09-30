@@ -139,6 +139,31 @@ Frames are limited to 24 MiB. A canceled or timed out call terminates the
 process. The handshake limit is five seconds; ordinary calls default to 60
 seconds unless the caller supplies a shorter deadline.
 
+Providers may return the original string error form for compatibility:
+
+```json
+{"id":2,"error":"provider failed"}
+```
+
+New providers return a structured error when the owning domain has a stable
+machine-readable failure taxonomy:
+
+```json
+{
+  "id": 2,
+  "error": {
+    "code": "rate_limit",
+    "message": "provider capacity is exhausted",
+    "retryAfterMilliseconds": 2000
+  }
+}
+```
+
+The generic transport preserves the code without interpreting it. The domain
+adapter decides whether a code is valid and maps it to its public error type.
+Blockade recognizes authentication, rate-limit, timeout, cancellation,
+unavailable, invalid-request, and invalid-response failures.
+
 After the handshake, the selected library owns the methods:
 
 | Contract | Methods |

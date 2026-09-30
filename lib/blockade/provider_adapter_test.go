@@ -262,7 +262,9 @@ func TestProviderAdapterSecretDoesNotAppearInError(t *testing.T) {
 func TestProviderAdapterHTTPReportsCapabilitiesHealthAndTypedError(t *testing.T) {
 	adapter := readyFakeProvider()
 	adapter.observe = func(context.Context, ProviderAdapterObserveRequest) (ProviderAdapterObserveResponse, error) {
-		return ProviderAdapterObserveResponse{}, NewProviderAdapterError(ProviderAdapterErrorRateLimit, errors.New("quota"))
+		err := NewProviderAdapterError(ProviderAdapterErrorRateLimit, errors.New("quota"))
+		err.RetryAfter = 1500 * time.Millisecond
+		return ProviderAdapterObserveResponse{}, err
 	}
 	engine := startFakeProvider(t, ProviderAdapterConfig{ID: "fixture", Provider: "fixture"}, adapter, nil)
 	defer engine.Close()
@@ -285,6 +287,9 @@ func TestProviderAdapterHTTPReportsCapabilitiesHealthAndTypedError(t *testing.T)
 	server.Routes().ServeHTTP(recorder, request)
 	if recorder.Code != http.StatusTooManyRequests {
 		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	if recorder.Header().Get("Retry-After") != "2" {
+		t.Fatalf("Retry-After = %q", recorder.Header().Get("Retry-After"))
 	}
 	var body map[string]string
 	if err := json.Unmarshal(recorder.Body.Bytes(), &body); err != nil {

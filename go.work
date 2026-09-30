@@ -7,5 +7,6 @@ use (
 	./lib/jangolova
 	./lib/plugin
 	./providers/blockade-onnx
+	./providers/blockade-endpoints
 	./providers/blockade-webllm
 )

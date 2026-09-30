@@ -3,10 +3,12 @@ package blockade
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestClientObserve(t *testing.T) {
@@ -29,15 +31,21 @@ func TestClientObserve(t *testing.T) {
 
 func TestClientObservePreservesProviderAdapterErrorKind(t *testing.T) {
 	transport := roundTripFunc(func(*http.Request) (*http.Response, error) {
+		header := make(http.Header)
+		header.Set("Retry-After", "3")
 		return &http.Response{
 			StatusCode: http.StatusTooManyRequests,
 			Body:       io.NopCloser(strings.NewReader(`{"error":"Blockade provider adapter failed: rate_limit","kind":"rate_limit"}`)),
-			Header:     make(http.Header),
+			Header:     header,
 		}, nil
 	})
 	_, err := (Client{BaseURL: "http://blockade.test", HTTPClient: &http.Client{Transport: transport}}).Observe(context.Background(), ObserveRequest{Image: []byte("image")})
 	if kind, ok := ProviderAdapterErrorKindOf(err); !ok || kind != ProviderAdapterErrorRateLimit {
 		t.Fatalf("error = %v, kind = %q", err, kind)
+	}
+	var adapterError *ProviderAdapterError
+	if !errors.As(err, &adapterError) || adapterError.RetryAfter != 3*time.Second {
+		t.Fatalf("adapter error = %#v", adapterError)
 	}
 }
 
