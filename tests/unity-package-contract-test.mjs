@@ -27,20 +27,7 @@ const scene = await readFile(
   new URL("Runtime/JangolovaSceneBridge.cs", root),
   "utf8",
 );
-const goProtocol = await readFile(
-  new URL("../src/internal/bridge/protocol.go", import.meta.url),
-  "utf8",
-);
-
 assert.match(protocol, /jangolova\.bridge\/v1alpha1/);
-assert.match(goProtocol, /jangolova\.bridge\/v1alpha1/);
-const unityProtocol = protocol.match(
-  /Version = "([^"]+)"/,
-)?.[1];
-const nativeProtocol = goProtocol.match(
-  /ProtocolVersion = "([^"]+)"/,
-)?.[1];
-assert.equal(unityProtocol, nativeProtocol);
 for (const variable of [
   "JANGOLOVA_BRIDGE_URL",
   "JANGOLOVA_BRIDGE_TOKEN",

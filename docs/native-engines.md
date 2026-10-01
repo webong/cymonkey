@@ -17,7 +17,7 @@ contract.
 ## Legacy cooperative bridge
 
 The current native integration uses an authenticated loopback WebSocket and
-the `jangolova.bridge/v1alpha1` methods. Jangolova owns the bridge host,
+the `cymonkey.display-bridge/v1alpha1` methods. Jangolova owns the bridge host,
 protocol, conformance validation, and Unity package. The target owner injects
 the endpoint and short-lived token when it starts the application.
 

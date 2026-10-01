@@ -41,13 +41,13 @@ type fixture struct {
 }
 
 func Run() {
-	endpoint := os.Getenv("JANGOLOVA_BRIDGE_URL")
-	token := os.Getenv("JANGOLOVA_BRIDGE_TOKEN")
+	endpoint := os.Getenv("CYMONKEY_DISPLAY_BRIDGE_URL")
+	token := os.Getenv("CYMONKEY_DISPLAY_BRIDGE_TOKEN")
 	if endpoint == "" || token == "" {
 		fmt.Fprintln(os.Stderr, "native bridge URL and token are required")
 		os.Exit(1)
 	}
-	if got := os.Getenv("JANGOLOVA_BRIDGE_PROTOCOL"); got != bridge.ProtocolVersion {
+	if got := os.Getenv("CYMONKEY_DISPLAY_BRIDGE_PROTOCOL"); got != bridge.ProtocolVersion {
 		fmt.Fprintf(os.Stderr, "unexpected bridge protocol %q\n", got)
 		os.Exit(1)
 	}
@@ -101,7 +101,7 @@ func (f *fixture) call(
 		return encode(bridge.Hello{
 			ProtocolVersion: bridge.ProtocolVersion,
 			Implementation: bridge.Implementation{
-				Name:    "jangolova-native-bridge-fixture",
+				Name:    "cymonkey-native-bridge-fixture",
 				Version: "1",
 			},
 			Features: []string{"events.cursor"},

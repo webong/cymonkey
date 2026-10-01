@@ -5,7 +5,7 @@ import "testing"
 func TestProtocolIdentity(t *testing.T) {
 	t.Parallel()
 
-	if ProtocolVersion != "jangolova.bridge/v1alpha1" {
+	if ProtocolVersion != "cymonkey.display-bridge/v1alpha1" {
 		t.Fatalf("ProtocolVersion = %q", ProtocolVersion)
 	}
 	for name, method := range map[string]string{

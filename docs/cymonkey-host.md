@@ -1,46 +1,45 @@
 # Cymonkey host and operator
 
-Cymonkey is the composition layer around three standalone libraries:
+Cymonkey exposes three public domains:
 
 ```text
 Cymonkey host
-  ├─ blockade     image observation and provider-backed content interpretation
-  ├─ jangolova    display interaction, presentation, and direct MCP tools
-  └─ board        input and output device providers
+  ├─ display     interaction, presentation, and direct tools
+  ├─ content     observation and multimodal interpretation
+  └─ device      input and output devices under explicit grants
 ```
 
 The host owns process lifecycle, composition configuration, and operator-level
 coordination. It does not absorb any library's implementation or make the
 libraries depend on the host.
 
-## Standalone boundaries
+## Service boundaries
 
-Jangolova and Blockade can be built, deployed, upgraded, tested, and run
-independently:
+Display and content services can be deployed and upgraded independently:
 
 ```sh
-cymonkey provider serve-mcp --bind 127.0.0.1:7393
-cymonkey blockade serve --config infra/deploy/blockade/blockade.example.yaml \
+cymy display serve-tools --bind 127.0.0.1:7393
+cymy content serve --config infra/deploy/content/content.example.yaml \
   --bind 127.0.0.1:8091
 ```
 
-The Blockade example expects its separately packaged provider and referenced
+The content example expects its separately packaged plugin and referenced
 local model to be installed first. See
-[`infra/deploy/blockade`](../infra/deploy/blockade/README.md).
+[`infra/deploy/content`](../infra/deploy/content/README.md).
 
-For a coordinated observation, Cymonkey requests Jangolova's ordinary,
-policy-authorized `window.screenshot` interaction call, then supplies those
-pixels to Blockade. Jangolova does not import, configure, or call Blockade.
-Blockade does not know Cymonkey or Jangolova exists.
+For a coordinated observation, Cymonkey requests the ordinary,
+policy-authorized `window.screenshot` display action, then supplies those
+pixels to the content service. The two services communicate only through
+Cymonkey's public contracts.
 
 ## Host boundary
 
-The `cymonkey` executable reads `cymonkey.config/v1alpha1` and supervises the
+The `cymy` executable reads `cymonkey.config/v1alpha1` and supervises the
 commands listed in `components`:
 
 ```sh
-cymonkey validate --config infra/deploy/cymonkey/cymonkey.example.yaml
-cymonkey run --config infra/deploy/cymonkey/cymonkey.example.yaml
+cymy validate --config infra/deploy/cymonkey/cymonkey.example.yaml
+cymy run --config infra/deploy/cymonkey/cymonkey.example.yaml
 ```
 
 The host starts components in manifest order, forwards their standard output
@@ -49,6 +48,23 @@ the host receives SIGINT/SIGTERM. The manifest supplies executable commands,
 environment, and optional working directories; the host does not interpret
 model files, target protocols, or provider-specific settings.
 
+Callers bind public contracts through the generic `services` map. The host
+validates only the contract identifier, HTTP endpoint, and optional token
+environment variable:
+
+```yaml
+services:
+  display.interaction:
+    endpoint: http://127.0.0.1:7391
+    tokenEnvironment: CYMONKEY_DISPLAY_TOKEN
+  content.interpretation:
+    endpoint: http://127.0.0.1:8091
+    tokenEnvironment: CYMONKEY_CONTENT_TOKEN
+```
+
+Library names do not appear in the internal host schema. The observation
+composition layer selects the contracts it needs.
+
 This is intentionally a first host slice. Future operator APIs can add
 component health, discovery, restart policy, and coordinated routing without
 changing the standalone subsystem contracts.
@@ -56,14 +72,14 @@ changing the standalone subsystem contracts.
 The first coordinator surface is a CLI command:
 
 ```sh
-export CYMONKEY_JANGOLOVA_TOKEN="a-random-session-secret"
-cymonkey observe --config infra/deploy/cymonkey/cymonkey.example.yaml \
+export CYMONKEY_DISPLAY_TOKEN="a-random-session-secret"
+export CYMONKEY_CONTENT_TOKEN="another-random-session-secret"
+cymy observe --config infra/deploy/cymonkey/cymonkey.example.yaml \
   --instance browser-1 --prompt "find the primary action"
 ```
 
-The manifest passes `${CYMONKEY_JANGOLOVA_TOKEN}` to Jangolova and keeps the
-same secret out of the manifest. A future Cymonkey API can expose this exact
-workflow without changing either subsystem.
+The manifest passes credentials to the two Cymonkey services and keeps the
+secret values out of the manifest.
 
 See the runnable example in
 [`infra/deploy/cymonkey`](../infra/deploy/cymonkey/README.md).

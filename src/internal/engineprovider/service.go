@@ -89,10 +89,10 @@ func WithRecoveryHook(hook func(context.Context, string) error) ServiceOption {
 
 func NewService(registry *orchestrator.Registry, token string, options ...ServiceOption) (*Service, error) {
 	if registry == nil {
-		return nil, errors.New("engine provider registry is required")
+		return nil, errors.New("display adapter registry is required")
 	}
 	if strings.TrimSpace(token) == "" {
-		return nil, errors.New("engine provider token is required")
+		return nil, errors.New("display service token is required")
 	}
 	service := &Service{
 		registry:               registry,
@@ -114,10 +114,10 @@ func NewService(registry *orchestrator.Registry, token string, options ...Servic
 func (s *Service) Routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", s.handleHealth)
-	mux.HandleFunc("/v1/engines", s.handleEngines)
-	mux.HandleFunc("/v1/instances", s.handleInstances)
-	mux.HandleFunc("/v1/instances/", s.handleInstance)
-	mux.HandleFunc("/v1/reconcile", s.handleReconcile)
+	mux.HandleFunc("/v1/display-adapters", s.handleEngines)
+	mux.HandleFunc("/v1/display-instances", s.handleInstances)
+	mux.HandleFunc("/v1/display-instances/", s.handleInstance)
+	mux.HandleFunc("/v1/display-reconcile", s.handleReconcile)
 	return s.authorize(mux)
 }
 
@@ -147,13 +147,13 @@ func (s *Service) handleHealth(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"ok":         true,
-		"service":    "jangolova-interaction-provider",
+		"service":    "cymonkey-display",
 		"apiVersion": APIVersion,
 	})
 }
 
 func (s *Service) handleEngines(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/v1/engines" {
+	if r.URL.Path != "/v1/display-adapters" {
 		http.NotFound(w, r)
 		return
 	}
@@ -163,12 +163,12 @@ func (s *Service) handleEngines(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"apiVersion": APIVersion,
-		"engines":    DiscoverEngines(r.Context(), s.registry),
+		"adapters":   DiscoverEngines(r.Context(), s.registry),
 	})
 }
 
 func (s *Service) handleInstances(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/v1/instances" {
+	if r.URL.Path != "/v1/display-instances" {
 		http.NotFound(w, r)
 		return
 	}
@@ -196,14 +196,14 @@ func (s *Service) handleInstances(w http.ResponseWriter, r *http.Request) {
 	if adapterName == "auto" {
 		selected, selectErr := SelectAutomaticEngine(r.Context(), s.registry, request.Target, request.Engine.RequiredCapabilities)
 		if selectErr != nil {
-			writeError(w, http.StatusUnprocessableEntity, "engine_not_compatible", selectErr.Error())
+			writeError(w, http.StatusUnprocessableEntity, "adapter_not_compatible", selectErr.Error())
 			return
 		}
 		adapterName = selected
 	}
 	adapter, ok := s.registry.Engine(adapterName)
 	if !ok {
-		writeError(w, http.StatusNotFound, "engine_not_found", "interaction engine is not registered")
+		writeError(w, http.StatusNotFound, "adapter_not_found", "display adapter is not registered")
 		return
 	}
 
@@ -211,7 +211,7 @@ func (s *Service) handleInstances(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		var failure *connectFailure
 		if !errors.As(err, &failure) {
-			writeError(w, http.StatusBadGateway, "engine_connect_failed", err.Error())
+			writeError(w, http.StatusBadGateway, "adapter_connect_failed", err.Error())
 			return
 		}
 		switch failure.code {
@@ -220,7 +220,7 @@ func (s *Service) handleInstances(w http.ResponseWriter, r *http.Request) {
 		case "target_resolution_failed":
 			writeError(w, http.StatusBadGateway, "target_resolution_failed", failure.message)
 		default:
-			writeError(w, http.StatusBadGateway, "engine_connect_failed", failure.message)
+			writeError(w, http.StatusBadGateway, "adapter_connect_failed", failure.message)
 		}
 		return
 	}
@@ -235,7 +235,7 @@ func (s *Service) handleInstances(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) handleInstance(w http.ResponseWriter, r *http.Request) {
-	relative := strings.Trim(strings.TrimPrefix(r.URL.Path, "/v1/instances/"), "/")
+	relative := strings.Trim(strings.TrimPrefix(r.URL.Path, "/v1/display-instances/"), "/")
 	parts := strings.Split(relative, "/")
 	id := parts[0]
 	if !instanceIDPattern.MatchString(id) {
@@ -316,7 +316,7 @@ func (s *Service) handleInstance(w http.ResponseWriter, r *http.Request) {
 		recoveryDone := record.recoveryDone
 		record.health = Health{
 			Status:     orchestrator.EngineHealthStopping,
-			Message:    "interaction engine is disconnecting",
+			Message:    "display adapter is disconnecting",
 			ObservedAt: time.Now().UTC(),
 		}
 		appendInstanceEvent(record, orchestrator.EngineEvent{
@@ -349,7 +349,7 @@ func (s *Service) handleInstance(w http.ResponseWriter, r *http.Request) {
 		delete(s.instances, id)
 		s.mu.Unlock()
 		if err != nil {
-			writeError(w, http.StatusBadGateway, "engine_disconnect_failed", err.Error())
+			writeError(w, http.StatusBadGateway, "adapter_disconnect_failed", err.Error())
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
@@ -466,7 +466,7 @@ func (s *Service) handleInstanceCall(w http.ResponseWriter, r *http.Request, id 
 	}
 	s.mu.Unlock()
 	if !ok {
-		writeError(w, http.StatusNotImplemented, "calls_unsupported", "interaction engine does not accept bridge calls")
+		writeError(w, http.StatusNotImplemented, "calls_unsupported", "display adapter does not accept calls")
 		return
 	}
 
@@ -496,7 +496,7 @@ func (s *Service) handleInstanceCall(w http.ResponseWriter, r *http.Request, id 
 		if request.Method == "act" {
 			s.appendActionAudit(id, record, "failed", actionName, err.Error())
 		}
-		writeError(w, http.StatusBadGateway, "engine_call_failed", err.Error())
+		writeError(w, http.StatusBadGateway, "adapter_call_failed", err.Error())
 		return
 	}
 	if record.redactJSON != nil {
@@ -504,9 +504,9 @@ func (s *Service) handleInstanceCall(w http.ResponseWriter, r *http.Request, id 
 	}
 	if !json.Valid(result) {
 		if request.Method == "act" {
-			s.appendActionAudit(id, record, "failed", actionName, "interaction engine returned invalid JSON")
+			s.appendActionAudit(id, record, "failed", actionName, "display adapter returned invalid JSON")
 		}
-		writeError(w, http.StatusBadGateway, "invalid_engine_result", "interaction engine returned invalid JSON")
+		writeError(w, http.StatusBadGateway, "invalid_adapter_result", "display adapter returned invalid JSON")
 		return
 	}
 	if request.Method == "act" {
@@ -572,7 +572,7 @@ func (s *Service) watchInstanceEvents(
 	s.mu.Lock()
 	current, ok := s.instances[id]
 	if ok && current == record && record.instance == instance && record.status == "connected" {
-		s.beginRecoveryLocked(id, record, instance, "interaction engine event stream closed")
+		s.beginRecoveryLocked(id, record, instance, "display adapter event stream closed")
 	}
 	s.mu.Unlock()
 }
@@ -587,7 +587,7 @@ func isUnexpectedTerminalStatus(status string) bool {
 }
 
 // beginRecoveryLocked preserves the desired interaction attachment while
-// replacing only Jangolova's failed adapter instance. It never launches,
+// replacing only the failed display adapter instance. It never launches,
 // restarts, stops, or otherwise supervises the caller-owned target.
 func (s *Service) beginRecoveryLocked(
 	id string,
@@ -604,7 +604,7 @@ func (s *Service) beginRecoveryLocked(
 	record.status = "recovering"
 	record.health = Health{
 		Status:     orchestrator.EngineHealthStarting,
-		Message:    "reattaching interaction engine to caller-owned target",
+		Message:    "reattaching display adapter to caller-owned target",
 		ObservedAt: time.Now().UTC(),
 	}
 	record.healthFailures = 0
@@ -640,7 +640,7 @@ func (s *Service) recoverInstance(
 		candidate, err := record.engine.Connect(connectCtx, record.spec, record.target)
 		cancel()
 		if err == nil && candidate == nil {
-			err = errors.New("interaction engine returned no instance")
+			err = errors.New("display adapter returned no instance")
 		}
 		if err == nil {
 			s.mu.Lock()
@@ -877,7 +877,7 @@ func probeInstanceHealth(
 	if !ok {
 		return orchestrator.EngineHealth{
 			Status:     orchestrator.EngineHealthUnknown,
-			Message:    "interaction engine does not implement an active health probe",
+			Message:    "display adapter does not implement an active health probe",
 			ObservedAt: time.Now().UTC(),
 		}
 	}
@@ -1256,12 +1256,12 @@ func (s *Service) connectAndRecord(
 		err = targetconn.Redact(err, preparedTarget)
 		_ = release(context.Background())
 		s.removeInstance(id)
-		return nil, &connectFailure{code: "engine_connect_failed", message: err.Error()}
+		return nil, &connectFailure{code: "adapter_connect_failed", message: err.Error()}
 	}
 	if instance == nil {
 		_ = release(context.Background())
 		s.removeInstance(id)
-		return nil, &connectFailure{code: "engine_connect_failed", message: "interaction engine returned no instance"}
+		return nil, &connectFailure{code: "adapter_connect_failed", message: "display adapter returned no instance"}
 	}
 
 	s.mu.Lock()
@@ -1343,7 +1343,7 @@ func (s *Service) handleReconcile(w http.ResponseWriter, r *http.Request) {
 		}
 		adapter, ok := s.registry.Engine(adapterName)
 		if !ok {
-			failed[id] = "interaction engine is not registered"
+			failed[id] = "display adapter is not registered"
 			continue
 		}
 		if _, err := s.connectAndRecord(r.Context(), id, adapterName, cr, adapter); err != nil {

@@ -429,9 +429,9 @@ async function domObserve(input) {
   const page = await targetPage(input.target);
   await ensureEventBinding(page);
   await page.evaluate(({ id, selector }) => {
-    const root = globalThis.__jangolovaCymonkeyObservers ||= new Map();
+    const root = globalThis.__cymonkeyDisplayObservers ||= new Map();
     root.get(id)?.disconnect();
-    const observer = new MutationObserver((mutations) => globalThis.__jangolovaCymonkeyEmit({ type: "document.mutation", data: { id, count: mutations.length } }));
+    const observer = new MutationObserver((mutations) => globalThis.__cymonkeyDisplayEmit({ type: "document.mutation", data: { id, count: mutations.length } }));
     for (const node of document.querySelectorAll(selector)) observer.observe(node, { subtree: true, childList: true, attributes: true, characterData: true });
     root.set(id, observer);
   }, { id, selector });
@@ -455,12 +455,12 @@ async function overlayChange(input, operation) {
   const id = requireString(input.id, "id");
   const page = await targetPage(input.target);
   return page.evaluate(({ input, operation }) => {
-    const selector = `[data-jangolova-cymonkey-overlay="${CSS.escape(input.id)}"]`;
+    const selector = `[data-cymonkey-display-overlay="${CSS.escape(input.id)}"]`;
     let host = document.querySelector(selector);
     if (operation === "unmount") { if (!host) throw new Error("overlay does not exist"); host.remove(); return { ok: true }; }
     if (operation === "mount" && host) throw new Error("overlay already exists");
     if (operation === "patch" && !host) throw new Error("overlay does not exist");
-    if (!host) { host = document.createElement("div"); host.dataset.jangolovaCymonkeyOverlay = input.id; host.attachShadow({ mode: "open" }); document.documentElement.append(host); }
+    if (!host) { host = document.createElement("div"); host.dataset.displayCymonkeyOverlay = input.id; host.attachShadow({ mode: "open" }); document.documentElement.append(host); }
     host.shadowRoot.innerHTML = `<style>${input.css || ""}</style><div>${input.html || ""}</div>`;
     return { ok: true, id: input.id };
   }, { input: { ...input, id }, operation });
@@ -566,7 +566,7 @@ function modifyRequestHeaders(original, operations) {
 }
 
 async function ensureEventBinding(page) {
-  await page.exposeFunction("__jangolovaCymonkeyEmit", (event) => appendEvent(String(event?.type || "page.event"), event?.data || {})).catch((error) => {
+  await page.exposeFunction("__cymonkeyDisplayEmit", (event) => appendEvent(String(event?.type || "page.event"), event?.data || {})).catch((error) => {
     if (!String(error?.message).includes("already exists")) throw error;
   });
 }
@@ -697,7 +697,7 @@ function requireString(value, name) { if (typeof value !== "string" || !value) t
 function pageBridgeBootstrap(driver = "cdp") {
   if (globalThis.cymonkey !== undefined && (globalThis.cymonkey === null || !["object", "function"].includes(typeof globalThis.cymonkey))) return;
   const root = globalThis.cymonkey ||= {};
-  if (root.jangolova) return;
+  if (root.display) return;
   const overlays = new Map();
   let cursor = 0;
   const pageEvents = [];
@@ -705,11 +705,11 @@ function pageBridgeBootstrap(driver = "cdp") {
   const act = async (name, input = {}) => {
     if (name === "document.query") return { matches: [...document.querySelectorAll(String(input.selector || ""))].slice(0, 100).map((node) => ({ tag: node.tagName.toLowerCase(), id: node.id || null, text: (node.textContent || "").trim().slice(0, 500) })) };
     if (name === "document.patch") { const node = document.querySelector(String(input.selector || "")); if (!node) throw new Error("selector did not match"); if (typeof input.text === "string") node.textContent = input.text; return { ok: true }; }
-    if (["overlay.mount", "overlay.patch"].includes(name)) { let host = overlays.get(input.id); if (!host) { host = document.createElement("div"); host.dataset.jangolovaCymonkeyOverlay = input.id; host.attachShadow({ mode: "open" }); document.documentElement.append(host); overlays.set(input.id, host); } host.shadowRoot.innerHTML = `<style>${input.css || ""}</style><div>${input.html || ""}</div>`; emit(name === "overlay.mount" ? "overlay.mounted" : "overlay.patched", { id: input.id }); return { ok: true }; }
+    if (["overlay.mount", "overlay.patch"].includes(name)) { let host = overlays.get(input.id); if (!host) { host = document.createElement("div"); host.dataset.displayCymonkeyOverlay = input.id; host.attachShadow({ mode: "open" }); document.documentElement.append(host); overlays.set(input.id, host); } host.shadowRoot.innerHTML = `<style>${input.css || ""}</style><div>${input.html || ""}</div>`; emit(name === "overlay.mount" ? "overlay.mounted" : "overlay.patched", { id: input.id }); return { ok: true }; }
     if (name === "overlay.unmount") { const host = overlays.get(input.id); if (!host) throw new Error("overlay does not exist"); host.remove(); overlays.delete(input.id); emit("overlay.unmounted", { id: input.id }); return { ok: true }; }
     throw new Error(`page-safe Cymonkey does not expose ${JSON.stringify(name)}`);
   };
-  root.jangolova = Object.freeze({
+  root.display = Object.freeze({
     hello: async () => ({ protocolVersion, implementation: { name: "cymonkey-page" }, domains: ["render"], runtimes: ["browser-dom"], drivers: [driver] }),
     capabilities: async () => [
       cap("document.query", driver, "mapped", "call", "ephemeral", "read", ["selector"], "render"),

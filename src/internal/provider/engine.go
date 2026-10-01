@@ -22,14 +22,14 @@ import (
 )
 
 func enginesCommand(args []string, registryFactory RegistryFactory) error {
-	flags := flag.NewFlagSet("engines", flag.ContinueOnError)
+	flags := flag.NewFlagSet("display adapters", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	jsonOutput := flags.Bool("json", false, "write the interaction-engine inventory as JSON")
+	jsonOutput := flags.Bool("json", false, "write the display adapter inventory as JSON")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	if flags.NArg() != 0 {
-		return errors.New("engines accepts flags only")
+		return errors.New("display adapters accepts flags only")
 	}
 	registry, err := registryFrom(registryFactory)
 	if err != nil {
@@ -39,7 +39,7 @@ func enginesCommand(args []string, registryFactory RegistryFactory) error {
 	if *jsonOutput {
 		return json.NewEncoder(os.Stdout).Encode(map[string]any{
 			"apiVersion": engineprovider.APIVersion,
-			"engines":    engines,
+			"adapters":   engines,
 		})
 	}
 	for _, engine := range engines {
@@ -62,13 +62,13 @@ func connectEngineCommand(args []string, registryFactory RegistryFactory) error 
 }
 
 func connectEngine(args []string, stdout io.Writer, registryFactory RegistryFactory) error {
-	flags := flag.NewFlagSet("connect-engine", flag.ContinueOnError)
+	flags := flag.NewFlagSet("display connect", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	adapterName := flags.String("adapter", "auto", "interaction-engine adapter name or auto")
+	adapterName := flags.String("adapter", "auto", "display adapter name or auto")
 	targetKind := flags.String("target-kind", "", "caller-owned target kind")
 	source := flags.String("source", "", "optional resource to present after connecting")
 	driverName := flags.String("driver", "", "driver backend for cymonkey control plane (auto, playwright, puppeteer, cdp, bidi)")
-	optionsText := flags.String("options", "{}", "engine-specific options as a JSON object")
+	optionsText := flags.String("options", "{}", "adapter-specific options as a JSON object")
 	disconnectTimeout := flags.Duration("disconnect-timeout", 15*time.Second, "maximum disconnect duration")
 	userscriptTarget := flags.String("userscripts-target", "", "stable browser/profile ID whose approved userscripts should be replayed")
 	defaultUserscriptStore, err := userscripts.DefaultDirectory()
@@ -90,7 +90,7 @@ func connectEngine(args []string, stdout io.Writer, registryFactory RegistryFact
 		return err
 	}
 	if flags.NArg() != 0 {
-		return errors.New("connect-engine accepts flags only")
+		return errors.New("display connect accepts flags only")
 	}
 	if strings.TrimSpace(*targetKind) == "" {
 		return errors.New("--target-kind is required")
@@ -138,7 +138,7 @@ func connectEngine(args []string, stdout io.Writer, registryFactory RegistryFact
 	}
 	adapter, ok := registry.Engine(selectedAdapter)
 	if !ok {
-		return fmt.Errorf("interaction engine %q is not registered", selectedAdapter)
+		return fmt.Errorf("display adapter %q is not registered", selectedAdapter)
 	}
 	targetEndpoints := endpoints.clone()
 	if err := applyEndpointReferences(targetEndpoints, credentialRefs, tlsRefs); err != nil {
@@ -162,10 +162,10 @@ func connectEngine(args []string, stdout io.Writer, registryFactory RegistryFact
 		Options:              options,
 	}, target)
 	if err != nil {
-		return fmt.Errorf("connect interaction engine: %w", targetconn.Redact(err, target))
+		return fmt.Errorf("connect display adapter: %w", targetconn.Redact(err, target))
 	}
 	if instance == nil {
-		return errors.New("connect interaction engine: adapter returned no instance")
+		return errors.New("connect display adapter: adapter returned no instance")
 	}
 	var appliedUserscripts map[string]userscripts.Record
 	if *userscriptTarget != "" {
@@ -178,7 +178,7 @@ func connectEngine(args []string, stdout io.Writer, registryFactory RegistryFact
 
 	health := orchestrator.EngineHealth{
 		Status:     orchestrator.EngineHealthUnknown,
-		Message:    "interaction engine does not implement an active health probe",
+		Message:    "display adapter does not implement an active health probe",
 		ObservedAt: time.Now().UTC(),
 	}
 	if provider, ok := instance.(orchestrator.EngineHealthProvider); ok {
@@ -248,7 +248,7 @@ func connectEngine(args []string, stdout io.Writer, registryFactory RegistryFact
 		return errors.New("release target connection material")
 	}
 	if terminal != nil && terminal.Status == "failed" {
-		return fmt.Errorf("interaction engine failed: %s", terminal.Message)
+		return fmt.Errorf("display adapter failed: %s", terminal.Message)
 	}
 	return nil
 }

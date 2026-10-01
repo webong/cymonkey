@@ -62,6 +62,21 @@ func TestDiscoverRejectsNonLoopbackHTTP(t *testing.T) {
 	}
 }
 
+func TestDecodeAcceptsHostOwnedSchemaVersion(t *testing.T) {
+	const hostVersion = "example.display-modules/v1alpha1"
+	encoded := fmt.Sprintf(`{"schemaVersion":%q,"registryId":"host","modules":[{"id":"render/example","version":"1.0.0","runtime":"example","protocolVersion":"example/v1","status":"available"}]}`, hostVersion)
+	value, err := DecodeWithSchemaVersion(strings.NewReader(encoded), hostVersion)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if value.SchemaVersion != hostVersion || value.Modules[0].ID != "render/example" {
+		t.Fatalf("registry = %#v", value)
+	}
+	if _, err := Decode(strings.NewReader(encoded)); err == nil {
+		t.Fatal("native decoder accepted host-owned schema version")
+	}
+}
+
 func TestPullRejectsDigestMismatch(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		_, _ = writer.Write([]byte("tampered"))

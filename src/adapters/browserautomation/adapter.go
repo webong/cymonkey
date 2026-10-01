@@ -440,9 +440,9 @@ func validateEndpoint(value, protocol string) error {
 }
 
 func resolveWorker(configured string) (string, error) {
-	candidates := []string{strings.TrimSpace(configured), strings.TrimSpace(os.Getenv("JANGOLOVA_BROWSER_WORKER")), defaultWorkerPath, "/usr/local/lib/jangolova/browser-worker.mjs"}
+	candidates := []string{strings.TrimSpace(configured), strings.TrimSpace(os.Getenv("CYMONKEY_BROWSER_WORKER")), defaultWorkerPath, "/usr/local/lib/cymonkey/display/browser-worker.mjs"}
 	if executable, err := os.Executable(); err == nil {
-		candidates = append(candidates, filepath.Join(filepath.Dir(executable), "..", "lib", "jangolova", "browser-worker.mjs"))
+		candidates = append(candidates, filepath.Join(filepath.Dir(executable), "..", "lib", "cymonkey", "display", "browser-worker.mjs"))
 	}
 	for _, candidate := range candidates {
 		if candidate == "" {
@@ -456,7 +456,7 @@ func resolveWorker(configured string) (string, error) {
 			return candidate, nil
 		}
 	}
-	return "", errors.New("browser interaction worker not found; set JANGOLOVA_BROWSER_WORKER")
+	return "", errors.New("browser interaction worker not found; set CYMONKEY_BROWSER_WORKER")
 }
 
 func capabilityNames(implementation string) []string {

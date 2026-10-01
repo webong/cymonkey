@@ -9,7 +9,7 @@ import (
 	"io"
 	"strings"
 
-	jangolovaregistry "jangolova/registry"
+	"cymonkey/src/displaybridge"
 )
 
 func modulesCommand(args []string, stdout, stderr io.Writer) error {
@@ -30,16 +30,16 @@ func modulesCommand(args []string, stdout, stderr io.Writer) error {
 }
 
 func discoverModules(args []string, stdout io.Writer) error {
-	flags := flag.NewFlagSet("cymonkey modules discover", flag.ContinueOnError)
+	flags := flag.NewFlagSet("cymy modules discover", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	endpoint := flags.String("registry", "", "Jangolova registry HTTPS endpoint")
+	endpoint := flags.String("registry", "", "display module registry HTTPS endpoint")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	if flags.NArg() != 0 || strings.TrimSpace(*endpoint) == "" {
 		return errors.New("modules discover requires --registry and no positional arguments")
 	}
-	registry, err := jangolovaregistry.Discover(context.Background(), *endpoint, jangolovaregistry.DiscoveryOptions{})
+	registry, err := displaybridge.DiscoverModules(context.Background(), *endpoint)
 	if err != nil {
 		return err
 	}
@@ -47,10 +47,10 @@ func discoverModules(args []string, stdout io.Writer) error {
 }
 
 func pullModule(args []string, stdout io.Writer) error {
-	flags := flag.NewFlagSet("cymonkey modules pull", flag.ContinueOnError)
+	flags := flag.NewFlagSet("cymy modules pull", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	endpoint := flags.String("registry", "", "Jangolova registry HTTPS endpoint")
-	moduleID := flags.String("module", "", "canonical Jangolova module ID")
+	endpoint := flags.String("registry", "", "display module registry HTTPS endpoint")
+	moduleID := flags.String("module", "", "canonical display module ID")
 	platform := flags.String("platform", "", "target platform, for example linux-amd64")
 	cache := flags.String("cache", "", "explicit module cache directory")
 	if err := flags.Parse(args); err != nil {
@@ -59,17 +59,9 @@ func pullModule(args []string, stdout io.Writer) error {
 	if flags.NArg() != 0 || strings.TrimSpace(*endpoint) == "" || strings.TrimSpace(*moduleID) == "" || strings.TrimSpace(*platform) == "" || strings.TrimSpace(*cache) == "" {
 		return errors.New("modules pull requires --registry, --module, --platform, --cache and no positional arguments")
 	}
-	registry, err := jangolovaregistry.Discover(context.Background(), *endpoint, jangolovaregistry.DiscoveryOptions{})
+	result, err := displaybridge.PullModule(context.Background(), *endpoint, *moduleID, *platform, *cache)
 	if err != nil {
 		return err
 	}
-	module, err := registry.Select(*moduleID, *platform)
-	if err != nil {
-		return err
-	}
-	path, err := jangolovaregistry.Pull(context.Background(), module, *platform, *cache, jangolovaregistry.PullOptions{})
-	if err != nil {
-		return err
-	}
-	return json.NewEncoder(stdout).Encode(map[string]string{"module": module.ID, "version": module.Version, "path": path})
+	return json.NewEncoder(stdout).Encode(result)
 }

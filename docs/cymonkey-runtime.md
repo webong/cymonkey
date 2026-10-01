@@ -1,20 +1,19 @@
 # Cymonkey runtime entry and augmentation contract
 
-Cymonkey is Jangolova's runtime-entry and augmentation layer. It gains
-approved access to caller-owned targets, mounts reviewed runtime packages, and
-coordinates their use. Jangolova owns the runtime libraries that execute
-interaction and presentation semantics inside Three.js, Godot, Unity, Unreal, Blender,
-browser, and future runtimes. Direct browser automation tools (Playwright,
-Puppeteer, raw CDP, WebDriver BiDi) are entry drivers used by Cymonkey to reach
-Jangolova capabilities; they are not separate top-level products.
+Cymonkey is the runtime entry and augmentation layer. It gains approved access
+to caller-owned targets, mounts reviewed runtime packages, and coordinates
+their use. Runtime libraries execute interaction and presentation semantics
+inside Three.js, Godot, Unity, Unreal, Blender, browsers, and future runtimes.
+Playwright, Puppeteer, CDP, and WebDriver BiDi are display drivers used to reach
+those capabilities.
 
-The runtime-agnostic protocol is `jangolova.cymonkey/v1alpha2`. Its canonical
+The runtime-agnostic protocol is `cymonkey/v1alpha2`. Its canonical
 interaction domains are [`viewer`, `render`, and `player`](cymonkey-domains.md).
 `v1alpha2` is the sole Cymonkey wire contract, including the browser page
 bridge.
 
 The canonical schemas and portable conformance suite live with the standalone
-core in `src/protocol/cymonkey/` and `tests/cymonkey-core-conformance.mjs`. Jangolova
+core in `src/protocol/cymonkey/` and `tests/cymonkey-core-conformance.mjs`. Cymonkey
 integrations consume those assets; they do not define a separate protocol.
 
 ## Boundary and ownership
@@ -27,7 +26,7 @@ Cymonkey owns:
 - component hosting and cross-subsystem coordination;
 - entry-driver configuration and resource ownership for the access path.
 
-Jangolova owns:
+Runtime adapters handle:
 
 - runtime libraries and adapters for interaction and presentation;
 - semantic surface/resource registration and runtime-native action handling;
@@ -37,10 +36,10 @@ Jangolova owns:
 
 The target owner or provider owns the application/runtime process, profile,
 documents, windows, display, GPU, credentials, installation, and lifecycle.
-Disconnecting Cymonkey detaches Jangolova; it never quits the target, closes its
+Disconnecting Cymonkey detaches Cymonkey; it never quits the target, closes its
 documents, or revokes user-granted operating-system permissions.
 
-Jangolova runtime libraries expose explicit scene, camera, object, material,
+Cymonkey runtime libraries expose explicit scene, camera, object, material,
 animation, timeline, UI, and artifact resources through the shared semantic
 protocol (`hello`, `capabilities`, `describe`, `act`, `events`). Cymonkey only
 routes an approved request to the selected runtime library.
@@ -102,7 +101,7 @@ advertised with its input schema before `act` accepts it.
 
 ```json
 {
-  "apiVersion": "jangolova.cymonkey/v1alpha2",
+  "apiVersion": "cymonkey/v1alpha2",
   "kind": "Augmentation",
   "metadata": {
     "id": "music-companion",
@@ -130,8 +129,8 @@ browser-extension API calls.
 
 ## Browser runtime: viewer platform and render document
 
-The `browser-dom` runtime is consumed by the Jangolova Browser Extension and by
-Jangolova's CDP, WebDriver BiDi, and Safari MCP backends. It exposes
+The `browser-dom` runtime is consumed by the Cymonkey Browser Extension and by
+Cymonkey's CDP, WebDriver BiDi, and Safari MCP backends. It exposes
 `viewer` for browser/platform controls and `render` for the displayed
 document and the assets that augment it.
 
@@ -148,8 +147,8 @@ document, so it is always described as `render`, even when an extension or a
 browser automation driver performs the underlying call.
 
 Web targets match origins and document URLs. The public
-`window.jangolova.cymonkey` bridge remains a page-safe projection of the web
-domain. Privileged operations stay on Jangolova's authenticated control plane.
+`window.cymonkey.display` bridge remains a page-safe projection of the web
+domain. Privileged operations stay on Cymonkey's authenticated control plane.
 The browser extension consumes the Cymonkey contract; it is not the contract.
 
 ## Viewer domain: macOS runtime
@@ -180,7 +179,7 @@ and receive replies across process boundaries:
 ### Accessibility
 
 Applications without useful scripting terminology may expose an Accessibility
-hierarchy. Jangolova maps bounded `AXUIElement` operations to:
+hierarchy. Cymonkey maps bounded `AXUIElement` operations to:
 
 - `ui.query`
 - `ui.observe`
@@ -212,12 +211,12 @@ Apple documents target-specific scripting entitlements and sandbox limits at
 
 ## Driver negotiation
 
-Jangolova selects drivers compatible with the caller-owned target and merges
+Cymonkey selects drivers compatible with the caller-owned target and merges
 only compatible capabilities:
 
 | Domain and runtime | Drivers |
 | --- | --- |
-| `viewer` + `render` / `browser-dom` | CDP, WebDriver BiDi, Safari MCP, Jangolova Browser Extension |
+| `viewer` + `render` / `browser-dom` | CDP, WebDriver BiDi, Safari MCP, Cymonkey Browser Extension |
 | `viewer` / `macos-app` | Apple Events, Accessibility, caller-owned cooperative native helper |
 | `render` / `threejs`, `godot`, `unity`, `unreal` | in-page runtime or authenticated Cymonkey WebSocket |
 | `player` / runtime-specific | only a runtime that advertises typed player capabilities |
@@ -233,13 +232,13 @@ does not authorize an Accessibility mutation, and vice versa.
 Apple Event descriptors and the `AXUIElement` APIs, but remains a process owned
 by the native target provider:
 
-1. Jangolova creates an ephemeral loopback WebSocket control host and a random
+1. Cymonkey creates an ephemeral loopback WebSocket control host and a random
    bearer token for a `macos-application` interaction instance.
 2. The authenticated initial connection response returns one-time caller-launch
    environment containing the control URL, token, and exact Cymonkey protocol.
 3. The target owner adds its helper configuration path, then launches its own
-   signed helper. Jangolova never invokes the executable.
-4. The helper connects outward, and Jangolova validates its `v1alpha2`
+   signed helper. Cymonkey never invokes the executable.
+4. The helper connects outward, and Cymonkey validates its `v1alpha2`
    `viewer`/`macos-app` declaration plus every capability descriptor before
    accepting actions.
 5. Disconnect closes the control host. It does not quit an application, revoke
@@ -274,4 +273,4 @@ lifetimes are `call`, `surface`, `attachment`, or `installation`.
 4. Add a macOS capability mapper boundary for Apple Events and Accessibility.
 5. Add fake backends and shared conformance tests before binding native APIs.
 6. Implemented a caller-owned Swift macOS helper and authenticated reverse
-   attachment without adding target lifecycle ownership to Jangolova.
+   attachment without adding target lifecycle ownership to Cymonkey.

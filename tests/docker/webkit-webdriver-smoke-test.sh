@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # WebKitGTK, WebKitWebDriver, its browser session, and Xvfb are caller-owned
-# test targets. Jangolova receives only the existing session coordinates.
+# test targets. Cymonkey receives only the existing session coordinates.
 export DISPLAY=:97
 driver_log=/tmp/jangolova-webkit-driver.log
 provider_log=/tmp/jangolova-webkit-provider.log
@@ -12,7 +12,7 @@ Xvfb "${DISPLAY}" -screen 0 1280x720x24 -ac >/tmp/jangolova-webkit-xvfb.log 2>&1
 xvfb_pid=$!
 WebKitWebDriver --host=127.0.0.1 --port=4445 >"${driver_log}" 2>&1 &
 driver_pid=$!
-JANGOLOVA_PROVIDER_TOKEN="${token}" bin/cymonkey provider serve-engine-provider --bind 127.0.0.1:7391 >"${provider_log}" 2>&1 &
+CYMONKEY_DISPLAY_TOKEN="${token}" bin/cymy display serve --bind 127.0.0.1:7391 >"${provider_log}" 2>&1 &
 provider_pid=$!
 session_id=
 
@@ -46,7 +46,7 @@ process.stdout.write(value.value.sessionId);
 node - "${session_id}" <<'NODE' >/tmp/webkit-connect-request.json
 const sessionId = process.argv[2];
 process.stdout.write(JSON.stringify({
-  apiVersion: "interaction.engine/v1alpha1",
+  apiVersion: "cymonkey.display/v1alpha1",
   instanceId: "webkit-one",
   engine: {adapter: "webkit-webdriver", source: "file:///app/tests/fixture.html"},
   target: {
@@ -61,25 +61,25 @@ curl -fsS \
   -H "Authorization: Bearer ${token}" \
   -H "Content-Type: application/json" \
   --data-binary @/tmp/webkit-connect-request.json \
-  http://127.0.0.1:7391/v1/instances >/tmp/webkit-connect.json
+  http://127.0.0.1:7391/v1/display-instances >/tmp/webkit-connect.json
 
 curl -fsS \
   -H "Authorization: Bearer ${token}" \
   -H "Content-Type: application/json" \
   -d '{"method":"act","params":{"name":"window.evaluate","input":{"expression":"document.title"}}}' \
-  http://127.0.0.1:7391/v1/instances/webkit-one/call >/tmp/webkit-call.json
+  http://127.0.0.1:7391/v1/display-instances/webkit-one/call >/tmp/webkit-call.json
 
 node -e '
 const fs = require("fs");
 const connected = JSON.parse(fs.readFileSync("/tmp/webkit-connect.json", "utf8"));
 const called = JSON.parse(fs.readFileSync("/tmp/webkit-call.json", "utf8"));
-if (connected.status !== "connected" || called.result !== "Jangolova Fixture") {
+if (connected.status !== "connected" || called.result !== "Cymonkey Fixture") {
   throw new Error(`WebKit interaction failed: ${JSON.stringify({connected, called})}`);
 }
 '
 
 curl -fsS -X DELETE -H "Authorization: Bearer ${token}" \
-  http://127.0.0.1:7391/v1/instances/webkit-one
+  http://127.0.0.1:7391/v1/display-instances/webkit-one
 
 # Jangolova disconnect must leave both the caller-owned driver and session alive.
 kill -0 "${driver_pid}"

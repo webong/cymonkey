@@ -79,7 +79,7 @@ test('page bridge exposes only allowed page actions', async () => {
   await assert.rejects(client.api.act('storage.set', {values: {secret: true}}), /privileged action/);
   client.dispose();
   stop();
-  assert.equal(target.cymonkey.jangolova, undefined);
+  assert.equal(target.cymonkey.display, undefined);
 });
 
 test('DOM page runtime bounds queries and owns overlay lifecycle', () => {
@@ -161,7 +161,7 @@ test('sandbox channel binds guest source and nonce before transferring a port', 
     context: {augmentationId: 'overlay', configuration: {mode: 'preview'}},
     createChannel: () => new MessageChannel(),
   });
-  for (const listener of hostListeners) listener({source: {}, data: {channel: 'cymonkey.jangolova.sandbox.ready', id: 'camera', nonce: 'nonce123', status: 'ready'}});
+  for (const listener of hostListeners) listener({source: {}, data: {channel: 'cymonkey.display.sandbox.ready', id: 'camera', nonce: 'nonce123', status: 'ready'}});
   const port = await promise;
   assert.deepEqual(received.context, {augmentationId: 'overlay', configuration: {mode: 'preview'}});
   assert.equal(port.constructor.name, 'MessagePort');
@@ -185,9 +185,9 @@ test('engine router selects caller-owned runtime delivery', async () => {
   });
   assert.deepEqual(await router.call({request: {method: 'hello'}}), {tabId: 5, request: {method: 'hello'}});
   assert.equal(await router.call({request: {}, augmentationId: 'reader', delivery: 'augmentation-package'}), 'sent');
-  assert.equal(sent[0].channel, 'cymonkey.jangolova.augmentation-runtime');
+  assert.equal(sent[0].channel, 'cymonkey.display.augmentation-runtime');
   assert.equal(await router.call({request: {}, augmentationId: 'reader', sandboxId: 'view', delivery: 'sandbox'}), 'sent');
-  assert.equal(sent[1].channel, 'cymonkey.jangolova.sandbox');
+  assert.equal(sent[1].channel, 'cymonkey.display.sandbox');
   await assert.rejects(router.call({request: {}, delivery: 'sandbox'}), /requires valid/);
   assert.deepEqual(completed, ['page-runtime', 'augmentation-package', 'sandbox']);
 });

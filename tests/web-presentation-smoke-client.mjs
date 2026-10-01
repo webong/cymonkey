@@ -4,7 +4,7 @@ import { rename, writeFile } from "node:fs/promises";
 import process from "node:process";
 
 const providerURL = process.env.JANGOLOVA_PROVIDER_URL || "http://127.0.0.1:7392";
-const token = process.env.JANGOLOVA_PROVIDER_TOKEN;
+const token = process.env.CYMONKEY_DISPLAY_TOKEN;
 const cdpURL = process.env.PRESENTATION_CDP_URL || "http://127.0.0.1:9224";
 const sourceURL = process.env.PRESENTATION_SOURCE_URL || "http://127.0.0.1:8081/";
 const authenticatedCDPBase = process.env.PRESENTATION_AUTHENTICATED_CDP_BASE;
@@ -14,7 +14,7 @@ const relayAuthorizationPath = process.env.PRESENTATION_RELAY_AUTHORIZATION_PATH
 const rotatedAuthorization = process.env.PRESENTATION_ROTATED_AUTHORIZATION;
 const instanceID = "presentation-smoke";
 
-assert.ok(token, "JANGOLOVA_PROVIDER_TOKEN is required");
+assert.ok(token, "CYMONKEY_DISPLAY_TOKEN is required");
 
 let targetCDPURL = cdpURL;
 if (authenticatedCDPBase) {
@@ -44,17 +44,17 @@ async function request(path, { method = "GET", body } = {}) {
 }
 
 async function call(method, params) {
-  const { value } = await request(`/v1/instances/${instanceID}/call`, {
+  const { value } = await request(`/v1/display-instances/${instanceID}/call`, {
     method: "POST",
     body: { method, params },
   });
   return value.result;
 }
 
-const { value: connected } = await request("/v1/instances", {
+const { value: connected } = await request("/v1/display-instances", {
   method: "POST",
   body: {
-    apiVersion: "interaction.engine/v1alpha1",
+    apiVersion: "cymonkey.display/v1alpha1",
     instanceId: instanceID,
     engine: {
       adapter: "auto",
@@ -96,7 +96,7 @@ for (const capability of ["presentation.write", "presentation.mount", "artifact.
 
 if (credentialMaterialPath && relayAuthorizationPath && rotatedAuthorization) {
   const rotatedDocument = {
-    apiVersion: "interaction.connection/v1alpha1",
+    apiVersion: "cymonkey.connection-material/v1alpha1",
     kind: "credential",
     headers: { Authorization: rotatedAuthorization },
     expiresAt: new Date(Date.now() + 300000).toISOString(),
@@ -108,7 +108,7 @@ if (credentialMaterialPath && relayAuthorizationPath && rotatedAuthorization) {
   const deadline = Date.now() + 8000;
   let renewed = false;
   while (!renewed && Date.now() < deadline) {
-    const { value: batch } = await request(`/v1/instances/${instanceID}/events?after=0&limit=32`);
+    const { value: batch } = await request(`/v1/display-instances/${instanceID}/events?after=0&limit=32`);
     renewed = batch.events.some((event) => event.type === "interaction.connection.renewed");
     if (!renewed) await new Promise((resolve) => setTimeout(resolve, 100));
   }
@@ -201,7 +201,7 @@ const mountedWrite = await call("act", {
 });
 assert.equal(mountedWrite.stateRevision, "1");
 
-const disconnected = await request(`/v1/instances/${instanceID}`, { method: "DELETE" });
+const disconnected = await request(`/v1/display-instances/${instanceID}`, { method: "DELETE" });
 assert.equal(disconnected.status, 204);
 
 process.stdout.write("Direct-container artifact mount, policy, revision, DOM, capture, and disconnect checks passed\n");

@@ -17,7 +17,7 @@ are separate. Jangolova does not configure or call Blockade.
 | `src/internal/targetconn` | Caller-owned endpoint, credential, and TLS material handling. |
 | `lib/jangolova/registry` | Metadata discovery, verified retrieval, and explicit activation. |
 | `lib/jangolova/host` | Jangolova-owned host service boundary and dependency injection contract. |
-| `src/jangolova_*.go` | Executable-side composition of Cymonkey host services and public Jangolova adapters. |
+| `src/display_*.go` | Executable-side composition of Cymonkey host services and the display library adapters. |
 | `src/internal/core` | Cymonkey's private composition and coordination implementation. |
 | `pkg/` | Distributable runtime packages. |
 
@@ -76,5 +76,5 @@ runtime-specific mount callback. The SDK does not implement a universal binary
 plugin loader, install editor licenses, or own target process lifecycle.
 
 See [the public SDK guide](../lib/jangolova/sdk/README.md),
-[module discovery and activation](jangolova-module-registry.md), and
-[runtime validation record](jangolova-runtime-validation.md).
+[module discovery and activation](display-module-registry.md), and
+[runtime validation record](display-runtime-validation.md).

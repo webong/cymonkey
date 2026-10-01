@@ -76,7 +76,7 @@ function managedRuntimePrelude(id: string, world: ExecutionWorld) {
     },
   });
   const cymonkey = globalThis.cymonkey && typeof globalThis.cymonkey === 'object' ? globalThis.cymonkey : {};
-  Object.defineProperty(cymonkey, 'jangolova', {value: bridge, configurable: false, writable: false});
+  Object.defineProperty(cymonkey, 'display', {value: bridge, configurable: false, writable: false});
   Object.defineProperty(globalThis, 'cymonkey', {value: cymonkey, configurable: false, writable: false});
   port.onMessage.addListener(async (message) => {
     if (!message || message.channel !== 'cymonkey.userscript/v1alpha1' || message.type !== 'call' || typeof message.requestId !== 'string') return;

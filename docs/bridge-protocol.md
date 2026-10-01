@@ -5,14 +5,14 @@
 > domain, including explicit resource registration and a caller-owned WebSocket
 > endpoint.
 
-The Jangolova experience bridge lets a cooperative interactive runtime expose
+The Cymonkey experience bridge lets a cooperative interactive runtime expose
 semantic capabilities without coupling target lifecycle to Three.js,
 Unity, Unreal, or a particular caller transport.
 
 The current protocol identifier is:
 
 ```text
-jangolova.bridge/v1alpha1
+cymonkey.display-bridge/v1alpha1
 ```
 
 Its Go wire types and method constants live in `src/internal/bridge`. The protocol
@@ -30,9 +30,9 @@ has five operations:
 
 ```json
 {
-  "protocolVersion": "jangolova.bridge/v1alpha1",
+  "protocolVersion": "cymonkey.display-bridge/v1alpha1",
   "implementation": {
-    "name": "jangolova-threejs-scene",
+    "name": "cymonkey-threejs-scene",
     "version": "185"
   },
   "features": ["events.cursor"]
@@ -69,7 +69,7 @@ Event reads are non-destructive and cursor-addressed:
 ```
 
 Event IDs are ordered within one bridge instance. Cursors are opaque to
-Jangolova clients and are supplied unchanged on the next read. A bridge should
+Cymonkey clients and are supplied unchanged on the next read. A bridge should
 retain a bounded event history and document how it handles a cursor older than
 that history.
 
@@ -78,14 +78,14 @@ to their advertised features.
 
 ## Transport mappings
 
-The browser transport exposes the five operations on `window.cymonkey.jangolova`.
-Jangolova attaches Playwright or Puppeteer to a caller-owned CDP/BiDi endpoint,
+The browser transport exposes the five operations on `window.cymonkey.display`.
+Cymonkey attaches Playwright or Puppeteer to a caller-owned CDP/BiDi endpoint,
 or WebDriver Classic to a caller-owned existing driver session, and
 invokes the page bridge without owning the browser lifecycle.
 Safari MCP tools can also be transported through a caller-owned MCP relay and
 are discovered dynamically before being mapped to bridge capabilities.
 
-The native transport uses an authenticated loopback WebSocket. Jangolova sends:
+The native transport uses an authenticated loopback WebSocket. Cymonkey sends:
 
 ```json
 {"id":1,"method":"describe","params":{}}
@@ -104,21 +104,21 @@ or a structured error:
 ```
 
 The target owner starts the native process and injects the endpoint, bearer
-token, and protocol identifier supplied for the Jangolova interaction session.
-Transport framing and semantic calls belong to Jangolova; target process and
+token, and protocol identifier supplied for the Cymonkey interaction session.
+Transport framing and semantic calls belong to Cymonkey; target process and
 display ownership remain external.
 
 ## Unity
 
 The installable Unity package lives at
-`integrations/unity/com.jangolova.bridge`. It uses `ClientWebSocket` to connect
+`pkg/unity`. It uses `ClientWebSocket` to connect
 outward to the native bridge and dispatches protocol calls onto Unity's main
 thread before touching scene objects.
 
 Its built-in scene bridge exposes primitive object lifecycle, transform,
-camera, state-description, and cursor-event capabilities. Projects can replace
-the built-in scene handler with a domain-specific `IJangolovaBridgeHandler`;
-the transport contract does not require a universal scene graph.
+camera, state-description, and cursor-event capabilities. Projects can supply
+a domain-specific registered-resource handler; the transport contract does not
+require a universal scene graph.
 
 The protocol deliberately does not define a universal scene graph. A Unity
 project may expose GameObject and component actions while an Unreal project
@@ -127,7 +127,7 @@ where multiple engines prove they are useful.
 
 ## Conformance
 
-Jangolova's reusable conformance validator checks the handshake, implementation
+Cymonkey's reusable conformance validator checks the handshake, implementation
 identity, features, capabilities, description, cursor event behavior, and an
 optional explicitly selected read-only action probe. Browser and native
 integrations can run the same validator without importing display-session

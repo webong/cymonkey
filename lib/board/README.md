@@ -1,6 +1,7 @@
 # Board
 
-Board is a standalone input and output device library used by Cymonkey. It
+Board is a standalone device access and input/output library used by Cymonkey,
+covering physical and virtual devices in local and remote environments. It
 provides a small contract for discovering devices, opening a host-approved
 session, and invoking bounded capabilities. A Board provider binds that
 contract to a particular operating system, device class, or transport.
@@ -8,6 +9,38 @@ contract to a particular operating system, device class, or transport.
 Board ships a read-only mounted-drive provider and a macOS keyboard provider.
 The host registers each provider and authorizes each attachment. Board does not
 discover, mount, or manage physical devices. There is no hotplug event source.
+
+Board also owns the embeddable `vncgateway` HTTP handler. It authenticates a
+WebSocket connection and relays bytes between a
+viewer and one caller-configured private VNC, RDP, or SPICE endpoint. Board
+does not create or manage the display server or target lifecycle, and does not
+decode the display protocol. Cymonkey hosts the handler through
+`cymy device gateway serve`. The deploying host owns any container, network,
+and process configuration around that command.
+
+## Reusable device implementations
+
+Board owns the following SDK packages extracted from Xallet:
+
+- `displayaction`: native desktop capture, keyboard input, and FFmpeg recording.
+- `displayprobe`: desktop, X11/Wayland, and recording prerequisite observations.
+- `permissionprobe`: OS capture-permission settings navigation.
+- `filesystemprobe`: capacity and usage of a caller-selected volume.
+- `volumearchive`: directory archive export, restore, and digest calculation.
+- `networkprobe`: HTTP(S) and TCP endpoint health observations.
+- `audio`: virtual audio device observation from PulseAudio listings.
+
+The deploying host supplies any virtual X11, Wayland, or PulseAudio runtime,
+along with placement, authorization, private networking, and device/socket
+access.
+
+Use `board/devices` for grant-enforced desktop, audio, storage, and fixed TCP
+providers. `board/rtc` adds WebRTC signaling and media backed by those providers.
+`board/config` loads an explicit host inventory; Cymonkey accepts it through
+`CYMONKEY_DEVICE_CONFIG`. Connections support finite content, bounded duplex
+channels, and cursor-based lifecycle events. See [device sessions](../../docs/device-sessions.md)
+for configuration, capability grants, operator routes, and platform limits.
+The low-level SDKs remain available for hosts that enforce authorization themselves.
 
 ## First workflow: import photos from a USB drive
 
@@ -46,7 +79,8 @@ returns `ErrDriveUnavailable` and needs a new host approval.
 
 `MaxListEntries` bounds the result, `MaxScanEntries` bounds directory entries
 inspected, and `MaxReadBytes` bounds each content stream. A partial listing is
-marked `truncated`; `drive-read` in Board's CLI refuses partial files.
+marked `truncated`; a host command that promises a complete file must refuse a
+partial stream.
 `os.Root` confinement does not prevent traversal into a mount nested inside
 the approved directory. A host that needs a single-volume policy must approve
 a root without nested mounts or enforce that policy separately.
@@ -136,9 +170,9 @@ if err != nil { /* handle permission or unavailable target */ }
 registry, err := board.NewRegistry(keyboard)
 ```
 
-The Board CLI exposes `board keyboard-press --pid PID --key Command+O`
-and `board keyboard-type --pid PID` (text from stdin). `board/host` also
-accepts caller-owned providers with `host.NewRegistered`, and its
+Board does not ship a CLI. Cymonkey exposes these operations through
+`cymy device keyboard-press` and `cymy device keyboard-type`. `board/host`
+also accepts caller-owned providers with `host.NewRegistered`, and its
 `Attach` method requires an explicit `Authorizer` for every grant.
 
 ## Lifecycle and errors
@@ -148,8 +182,10 @@ the connection. Close a mounted-drive provider after its connections to
 release its pinned directory handle. On `ErrDriveUnavailable` or
 `macoskeyboard.ErrTarget`, the host should select and approve a current target
 before creating a new provider. `ErrNotGranted` and `ErrClosed` let callers
-distinguish grant and lifecycle failures. Board does not currently push device
-arrival or removal events; hosts can list again when needed.
+distinguish grant and lifecycle failures. `Connection.Events` reports bounded
+metadata events, and configured providers with a health grant report readiness
+changes. Device registration remains host-controlled; Board does not scan for
+unregistered devices.
 
 Board is its own Go module (`module board`) and imports neither
 Cymonkey nor Jangolova nor Blockade; a dependency-graph test enforces that. Run

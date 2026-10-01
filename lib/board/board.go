@@ -27,9 +27,10 @@ const (
 // CapabilityDescriptor gives a host the action schema it needs to advertise
 // a provider capability. The provider validates inputs against its schema.
 type CapabilityDescriptor struct {
-	Name         Capability      `json:"name"`
-	InputSchema  json.RawMessage `json:"inputSchema"`
-	OutputSchema json.RawMessage `json:"outputSchema,omitempty"`
+	Name             Capability      `json:"name"`
+	InputSchema      json.RawMessage `json:"inputSchema"`
+	OutputSchema     json.RawMessage `json:"outputSchema,omitempty"`
+	ResourceRequired bool            `json:"resourceRequired,omitempty"`
 }
 
 // Device is a provider-owned device available for an explicit host grant.
@@ -199,8 +200,16 @@ func (r *Registry) Open(ctx context.Context, request OpenRequest) (*Connection, 
 		}
 		allowed[capability] = struct{}{}
 	}
-	if hasDriveCapability(allowed) && len(request.Grant.ResourceIDs) == 0 {
-		return nil, errors.New("drive grant needs at least one resource ID")
+	required := make(map[Capability]bool)
+	for _, descriptor := range selected.Capabilities {
+		required[descriptor.Name] = descriptor.ResourceRequired || isDriveCapability(descriptor.Name)
+	}
+	needsResource := false
+	for capability := range allowed {
+		needsResource = needsResource || required[capability]
+	}
+	if needsResource && len(request.Grant.ResourceIDs) == 0 {
+		return nil, errors.New("resource capability grant needs at least one resource ID")
 	}
 	for _, resourceID := range request.Grant.ResourceIDs {
 		if strings.TrimSpace(resourceID) == "" {
@@ -219,25 +228,36 @@ func (r *Registry) Open(ctx context.Context, request OpenRequest) (*Connection, 
 	for _, resourceID := range grant.ResourceIDs {
 		resources[resourceID] = struct{}{}
 	}
-	return &Connection{session: session, allowed: allowed, resources: resources}, nil
+	return newConnection(session, allowed, resources, required), nil
 }
 
 // Connection applies the host's capability grant to each invocation.
 type Connection struct {
-	mu        sync.Mutex
-	session   Session
-	allowed   map[Capability]struct{}
-	resources map[string]struct{}
-	closed    bool
+	mu          sync.Mutex
+	session     Session
+	allowed     map[Capability]struct{}
+	resources   map[string]struct{}
+	closed      bool
+	required    map[Capability]bool
+	lifetime    context.Context
+	cancel      context.CancelFunc
+	attachments map[*attachment]struct{}
+	events      eventLog
 }
 
 func (c *Connection) Invoke(ctx context.Context, action Action) (Result, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if err := c.authorize(action); err != nil {
+	session, callCtx, done, err := c.begin(ctx, action)
+	if err != nil {
 		return Result{}, err
 	}
-	return c.session.Invoke(ctx, action)
+	defer done()
+	result, err := session.Invoke(callCtx, action)
+	event := "action.completed"
+	if err != nil {
+		event = "action.failed"
+	}
+	c.events.add(Event{Type: event, Capability: action.Capability})
+	return result, err
 }
 
 // authorize is the single gate every action passes through, whether it returns
@@ -250,10 +270,10 @@ func (c *Connection) authorize(action Action) error {
 	if _, allowed := c.allowed[action.Capability]; !allowed {
 		return fmt.Errorf("%w: capability %q", ErrNotGranted, action.Capability)
 	}
-	if isDriveCapability(action.Capability) && strings.TrimSpace(action.ResourceID) == "" {
-		return errors.New("drive action needs a resource ID")
+	if (c.required[action.Capability] || isDriveCapability(action.Capability)) && strings.TrimSpace(action.ResourceID) == "" {
+		return fmt.Errorf("%w: resource capability action needs a resource ID", ErrNotGranted)
 	}
-	if isDriveCapability(action.Capability) {
+	if action.ResourceID != "" {
 		if _, allowed := c.resources[action.ResourceID]; !allowed {
 			return fmt.Errorf("%w: resource %q", ErrNotGranted, action.ResourceID)
 		}
@@ -266,12 +286,24 @@ func (c *Connection) authorize(action Action) error {
 
 func (c *Connection) Close(ctx context.Context) error {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	if c.closed {
+		c.mu.Unlock()
 		return nil
 	}
 	c.closed = true
-	return c.session.Close(ctx)
+	c.cancel()
+	attachments := make([]*attachment, 0, len(c.attachments))
+	for a := range c.attachments {
+		attachments = append(attachments, a)
+	}
+	c.mu.Unlock()
+	var err error
+	for _, a := range attachments {
+		err = errors.Join(err, a.Close())
+	}
+	err = errors.Join(err, c.session.Close(ctx))
+	c.events.add(Event{Type: "session.closed"})
+	return err
 }
 
 func isDriveCapability(capability Capability) bool {

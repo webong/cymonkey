@@ -13,7 +13,7 @@ import {
 
 const source = `// ==UserScript==
 // @name Example Enhancer
-// @namespace https://jangolova.dev/examples
+// @namespace https://cymonkey.dev/examples
 // @version 1.0.0
 // @match https://example.com/*
 // @grant none
@@ -72,7 +72,7 @@ test('prepares a reviewable manifest from an agent-authored body', async () => {
   assert.match(value.source.code, /@name Agent Banner/);
   assert.match(value.source.code, /dataset\.agentBanner/);
   assert.match(value.source.code, /'cymonkey'/);
-  assert.match(value.source.code, /'jangolova'/);
+  assert.match(value.source.code, /'display'/);
   assert.match(value.source.code, /cymonkey\.userscript\/v1alpha1/);
   await assert.rejects(() => createManifest({
     id: 'bad-header', name: 'Bad Header', matches: ['https://example.com/*'], code: '// ==UserScript==',

@@ -16,7 +16,7 @@ RUN apt-get update \
         curl \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /usr/local/lib/jangolova
+WORKDIR /usr/local/lib/cymonkey/display
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts
 COPY scripts/browser-worker.mjs ./browser-worker.mjs
@@ -24,8 +24,8 @@ COPY scripts/cymonkey-worker.mjs ./cymonkey-worker.mjs
 COPY --from=builder /out/cymy /usr/local/bin/cymy
 COPY --from=builder /out/cymy /usr/local/bin/cymonkey
 
-ENV JANGOLOVA_BROWSER_WORKER=/usr/local/lib/jangolova/browser-worker.mjs
-ENV CYMONKEY_WORKER=/usr/local/lib/jangolova/cymonkey-worker.mjs
+ENV CYMONKEY_BROWSER_WORKER=/usr/local/lib/cymonkey/display/browser-worker.mjs
+ENV CYMONKEY_WORKER=/usr/local/lib/cymonkey/display/cymonkey-worker.mjs
 
 ENTRYPOINT ["cymy"]
-CMD ["provider", "serve-engine-provider"]
+CMD ["display", "serve"]

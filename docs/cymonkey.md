@@ -1,7 +1,7 @@
 # Cymonkey browser integration
 
 Cymonkey is the entry and extension layer for its display and inference
-modules. This document defines its browser integration through Jangolova: the
+modules. This document defines its browser integration: the
 `viewer` platform domain and `render`
 document domain over the `browser-dom` runtime,
 and CDP, BiDi, or Safari MCP driver. The portable `v1alpha2`
@@ -12,11 +12,11 @@ canonical target vocabulary.
 See [Cymonkey runtime and driver modules](cymonkey-modules.md) to contribute a
 new caller-approved runtime or driver implementation.
 
-The protocol version is `jangolova.cymonkey/v1alpha2`. Its five operations are
+The protocol version is `cymonkey/v1alpha2`. Its five operations are
 also exposed to cooperating page code as:
 
 ```js
-window.jangolova.cymonkey = {
+window.cymonkey.display = {
   hello,
   capabilities,
   describe,
@@ -34,11 +34,11 @@ extension storage, request interception, or another privileged passthrough.
 
 The target owner or provider owns the browser process, profile, credentials,
 extension installation, display, network placement, CDP/BiDi/MCP endpoints,
-and endpoint authentication. Jangolova only attaches to those supplied
+and endpoint authentication. Cymonkey only attaches to those supplied
 resources. Disconnecting Cymonkey must not close the browser, remove an
 extension, or destroy its profile.
 
-An integrating extension is optional. Jangolova attaches through the supplied
+An integrating extension is optional. Cymonkey attaches through the supplied
 CDP, BiDi, or Safari MCP endpoint. Cymonkey can separately inspect, prepare,
 and guide installation of caller-owned extensions with the
 `browserextension` host library.
@@ -48,7 +48,7 @@ and guide installation of caller-owned extensions with the
 ```text
 application or agent
         |
-        | jangolova.cymonkey/v1alpha2
+        | cymonkey/v1alpha2
         | hello / capabilities / describe / act / events
         v
 Cymonkey Control Plane Engine
@@ -142,7 +142,7 @@ semantics:
   `network.rules.install`, `network.rules.remove`, `storage.get`, `storage.set`
 
 Network rules, storage, shared events, and packaged script injection are
-implemented and authorized by Jangolova platform services. Script injection
+implemented and authorized by Cymonkey platform services. Script injection
 still advertises `render`: its effect is the displayed document. Their
 appearance in the Cymonkey vocabulary does not assign ownership to Cymonkey.
 
@@ -161,7 +161,7 @@ tools does not thereby advertise augmentation support.
 | styles | CSS/Runtime domains | script mapping when supported | mapped style/evaluate tool | `scripting.insertCSS/removeCSS` |
 | network observe | Network events | network events | discovered network observation tool | browser events when permitted |
 | network rules | Fetch interception, session lifetime | `network.addIntercept/removeIntercept` and actions | only explicit intercept tools | declarativeNetRequest, persistent |
-| storage | Jangolova mapping to page/origin storage | Jangolova mapping when script is supported | only explicit discovered tools | Jangolova scoped extension storage |
+| storage | Cymonkey mapping to page/origin storage | Cymonkey mapping when script is supported | only explicit discovered tools | Cymonkey scoped extension storage |
 
 CDP and BiDi implementations must probe actual browser support. A protocol
 method appearing in a specification is not sufficient reason to advertise it.
@@ -173,7 +173,7 @@ An augmentation is a versioned semantic declaration. The schema is
 
 ```json
 {
-  "apiVersion": "jangolova.cymonkey/v1alpha2",
+  "apiVersion": "cymonkey/v1alpha2",
   "kind": "Augmentation",
   "metadata": {
     "id": "wikipedia-reading-tools",
@@ -213,7 +213,7 @@ capability constraint and verify the returned capability descriptor.
 Website content is hostile. Page messages, DOM state, URLs, and page-provided
 objects are untrusted. The page global is never an authentication mechanism.
 
-Jangolova's CDP/BiDi worker attaches to a caller-owned browser endpoint and
+Cymonkey's CDP/BiDi worker attaches to a caller-owned browser endpoint and
 applies Cymonkey policy before dispatch. A consuming extension may instead
 use the [browser helper library](../pkg/browser-helper/README.md) with its
 own browser APIs, UI, and authenticated control channel. The optional
@@ -242,7 +242,7 @@ as a library contract.
 `pkg/browser-helper` contains composable browser APIs, extension management,
 and userscript validation and registration helpers.
 An integrating extension chooses its own framework, manifest, package assets,
-permissions, and installation flow. Jangolova's host-side
+permissions, and installation flow. Cymonkey's host-side
 `browserextension` package can inspect, prepare, and guide installation of
 caller-owned extensions.
 
@@ -251,7 +251,7 @@ caller-owned extensions.
 No-install CDP baseline:
 
 ```sh
-cymonkey provider connect-engine \
+cymonkey display connect \
   --adapter cymonkey \
   --target-kind browser \
   --endpoint cdp=http://127.0.0.1:9222 \
@@ -261,7 +261,7 @@ cymonkey provider connect-engine \
 First-class BiDi baseline:
 
 ```sh
-cymonkey provider connect-engine \
+cymonkey display connect \
   --adapter cymonkey \
   --target-kind browser \
   --endpoint webdriver-bidi=ws://127.0.0.1:9222/session \

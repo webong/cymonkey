@@ -1,12 +1,12 @@
 # Provider response mapping
 
 Prefer provider-enforced JSON schema or tool output over parsing prose. Keep
-the raw provider shape in the provider package and expose only Blockade types
+the raw provider shape in the plugin package and expose only Cymonkey types
 outside its mapper.
 
 ## Mapping table
 
-| Provider value | Blockade value | Rule |
+| Provider value | Cymonkey value | Rule |
 | --- | --- | --- |
 | detection/object category | `kind: object`, `label` | Preserve the provider label; apply a configured label map only when the integration documents it. |
 | OCR span | `kind: text`, `label` | Put recognized text in `label`; use its bounding region. |
@@ -45,7 +45,7 @@ Preserve a numeric provider score and convert percentages to `[0,1]`. Do not
 silently assign `1.0` when the provider supplies no score. Prefer a structured
 provider request that asks for the required score. If the product deliberately
 supports scoreless VLM output, require an explicit, documented confidence
-policy in Blockade adapter configuration and identify that policy in evidence; never
+policy in Cymonkey adapter configuration and identify that policy in evidence; never
 present a configured default as provider confidence.
 
 Provider-reported VLM confidence may be uncalibrated. Document that limitation
@@ -65,5 +65,5 @@ explicit threshold policy.
 
 For each provider response family, test at least one real-shaped redacted
 fixture and the corresponding failure modes. Assert semantic output values and
-run Blockade response validation; tests that only compare JSON text are not
+run Cymonkey response validation; tests that only compare JSON text are not
 sufficient.

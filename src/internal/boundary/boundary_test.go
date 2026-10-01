@@ -9,7 +9,7 @@ import (
 )
 
 // TestRepositoryOwnsInteractionCodeOnly prevents target-runtime provisioning
-// and combined-session responsibilities from returning to Jangolova.
+// and combined-session responsibilities from entering the coordinator.
 func TestRepositoryOwnsEngineCodeOnly(t *testing.T) {
 	t.Parallel()
 

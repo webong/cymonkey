@@ -18,12 +18,12 @@ presenting a new dynamic one.
   presentation, and runtime-specific scene controls.
 - Operate explicit Three.js, Godot, Unity, Unreal, and Blender resources through their
   runtime libraries.
-- Request image observations or text, image, and audio interpretations through
-  Blockade. The configured model backend determines which tasks it supports;
-  Blockade returns results through its stable contracts.
-- Prepare typed, host-approved input and output device bindings through Board.
-- Install optional provider packages for Jangolova, Blockade, and Board
-  without rebuilding Cymonkey.
+- Request image observations or interpret text, image, audio, and video through
+  the public content contract. The selected plugin determines its supported tasks.
+- Prepare typed, host-approved input and output bindings through the public device contract.
+- Reuse native capture/input/recording, device readiness, storage transfer, and
+  endpoint health SDKs.
+- Install optional display, content, and device plugins without rebuilding Cymonkey.
 - Preserve target ownership: a connection may detach, but it never quits a
   browser, terminates an application, or destroys a scene.
 
@@ -32,56 +32,41 @@ presenting a new dynamic one.
 ```text
 agent or application
   → Cymonkey
-    → Jangolova display interfaces
+    → display contract
       → browser, desktop surface, Three.js, Godot, Unity, Unreal, or Blender
-    → Blockade content interpretation interfaces
+    → content contract
       → local or cloud models for text, image, and sound
-    → Board input and output device interfaces
-      → registered keyboard, drive, and future device providers
+    → device contract
+      → registered keyboard, drive, capture, audio, and future device plugins
 ```
 
-Jangolova provides interfaces for operating and presenting on displays.
-Blockade owns model-backed observation and interpretation of text, image, and
-sound through local and cloud backends. Board defines the provider and grant
-contract for device I/O and ships a read-only mounted-drive provider and a
-macOS keyboard provider. Hotplug events are still to be implemented. Board's
-host API requires an explicit
-authorization decision; Cymonkey routes its `board` command to Board's CLI.
-Blockade has separate image observation and provider-backed content contracts.
-Its current provider modules include YOLO/SAM through Ultralytics, YOLO through
-ONNX Runtime, and browser-local WebLLM. They are separately installed packages
-and are not imported by the Cymonkey binary. Blockade runs the Ultralytics
-source package through its own managed Python runtime. Text and sound need a
-capable model provider; none is bundled yet. Cymonkey provides the boundary
-through which callers extend and coordinate these libraries.
+Cymy and the operator API expose only Cymonkey contracts: `display`, `content`,
+and `device`. Plugin manifests declare `cymonkey.display`, `cymonkey.content`,
+or `cymonkey.device`. Configuration, HTTP payloads, process methods, and command
+output use the same public vocabulary.
 
-All three libraries are independently usable. Cymonkey can compose their public
-Go modules and supply the host services that its workflows need; none
-imports Cymonkey or requires the Cymonkey executable.
-
-Library adapters connect at Cymonkey's package edge. Runtime providers use
-the [provider package protocol](docs/cymonkey-plugins.md), with one generic
-installer and separate library-owned protocol adapters.
+See the [Cymonkey plugin contract](docs/cymonkey-plugins.md) for the extension
+boundary.
 
 ## Quick start
 
 Build the executables and start Cymonkey:
 
-The example Blockade component expects the `local-ultralytics` provider and a
+The example content component expects the `local-ultralytics` plugin and a
 `yolo-sam@1.0.0` model to be installed first. Follow the
-[Blockade configuration guide](infra/deploy/blockade/README.md) once per host.
+[content configuration guide](infra/deploy/content/README.md) once per host.
 
 ```bash
 mkdir -p .cache/bin
-go build -o .cache/bin/cymonkey ./src
 go build -o .cache/bin/cymy ./src
 
-export CYMONKEY_JANGOLOVA_TOKEN="replace-with-a-random-secret"
+export CYMONKEY_DISPLAY_TOKEN="replace-with-a-random-secret"
+export CYMONKEY_CONTENT_TOKEN="replace-with-another-random-secret"
 PATH="$PWD/.cache/bin:$PATH" cymy run \
   --config infra/deploy/cymonkey/cymonkey.example.yaml
 ```
 
-The host manifest starts the display-interface provider and inference service.
+The host manifest starts the display and content services.
 After a target has been connected, request a visual observation with:
 
 ```bash
@@ -100,9 +85,9 @@ audit events, reviewed packages, and caller-supplied target connections.
 
 ## Documentation
 
-- [Jangolova](lib/jangolova/README.md)
-- [Blockade](lib/blockade/README.md)
-- [Board](lib/board/README.md)
+- [Display interaction](docs/engine-provider.md)
+- [Content observation and interpretation](docs/content.md)
+- [Device input and output](docs/device-sessions.md)
 - [Architecture](docs/architecture.md)
 - [Browser packages](docs/browser-augmentation-packages.md)
 - [Browser extension manager](docs/browser-extension-installation.md)
@@ -113,7 +98,7 @@ audit events, reviewed packages, and caller-supplied target connections.
 - [Manage userscripts without an extension](docs/userscripts.md#extension-free-local-manager)
 - [Target connection security](docs/target-connection-security.md)
 - [Roadmap](docs/roadmap.md)
-- [Jangolova render modules](docs/jangolova-render-modules.md)
+- [Display render modules](docs/display-render-modules.md)
 
 ## Development
 

@@ -14,9 +14,15 @@ import (
 )
 
 type Client struct {
-	BaseURL    string
-	HTTPClient *http.Client
-	Engine     Engine
+	BaseURL     string
+	HTTPClient  *http.Client
+	Engine      Engine
+	BearerToken string
+}
+
+type ServiceHealth struct {
+	Status   string `json:"status"`
+	Provider string `json:"provider"`
 }
 
 const maximumHTTPRetryAfter = 365 * 24 * time.Hour
@@ -50,6 +56,7 @@ func (c Client) Observe(ctx context.Context, request ObserveRequest) (ObserveRes
 		return ObserveResponse{}, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	c.authorize(req)
 	resp, err := hc.Do(req)
 	if err != nil {
 		return ObserveResponse{}, fmt.Errorf("call Blockade: %w", err)
@@ -116,6 +123,7 @@ func (c Client) Interpret(ctx context.Context, request InterpretRequest) (Interp
 		return InterpretResponse{}, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	c.authorize(req)
 	resp, err := hc.Do(req)
 	if err != nil {
 		return InterpretResponse{}, fmt.Errorf("call Blockade: %w", err)
@@ -148,6 +156,94 @@ func (c Client) Interpret(ctx context.Context, request InterpretRequest) (Interp
 		return InterpretResponse{}, err
 	}
 	return result, nil
+}
+
+func (c Client) Health(ctx context.Context) (ServiceHealth, error) {
+	if c.Engine != nil {
+		result := ServiceHealth{Status: "ok", Provider: "embedded"}
+		if reporter, ok := c.Engine.(EngineHealthReporter); ok {
+			health, err := reporter.Health(ctx)
+			if err != nil {
+				return ServiceHealth{}, err
+			}
+			if !health.Ready {
+				result.Status = "not_ready"
+			}
+		}
+		return result, nil
+	}
+	var result ServiceHealth
+	status, err := c.getJSON(ctx, "/healthz", &result)
+	if err != nil {
+		return ServiceHealth{}, err
+	}
+	if status != http.StatusOK {
+		return result, fmt.Errorf("Blockade health returned HTTP %d", status)
+	}
+	if result.Status != "ok" {
+		return result, fmt.Errorf("Blockade service is %s", result.Status)
+	}
+	return result, nil
+}
+
+func (c Client) Capabilities(ctx context.Context) (CapabilitiesResponse, error) {
+	if c.Engine != nil {
+		capabilities := []string{CapabilityImageObserve}
+		if reporter, ok := c.Engine.(EngineCapabilities); ok {
+			var err error
+			capabilities, err = reporter.Capabilities(ctx)
+			if err != nil {
+				return CapabilitiesResponse{}, err
+			}
+		}
+		return CapabilitiesResponse{APIVersion: APIVersion, Provider: "embedded", Capabilities: capabilities}, nil
+	}
+	var result CapabilitiesResponse
+	status, err := c.getJSON(ctx, "/capabilities", &result)
+	if err != nil {
+		return CapabilitiesResponse{}, err
+	}
+	if status/100 != 2 {
+		return CapabilitiesResponse{}, fmt.Errorf("Blockade capabilities returned HTTP %d", status)
+	}
+	if result.APIVersion != APIVersion {
+		return CapabilitiesResponse{}, fmt.Errorf("unsupported Blockade apiVersion %q", result.APIVersion)
+	}
+	return result, nil
+}
+
+func (c Client) getJSON(ctx context.Context, path string, target any) (int, error) {
+	httpClient, err := c.client()
+	if err != nil {
+		return 0, err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(c.BaseURL, "/")+path, nil)
+	if err != nil {
+		return 0, err
+	}
+	c.authorize(request)
+	response, err := httpClient.Do(request)
+	if err != nil {
+		return 0, fmt.Errorf("call Blockade: %w", err)
+	}
+	defer response.Body.Close()
+	data, err := io.ReadAll(io.LimitReader(response.Body, (1<<20)+1))
+	if err != nil {
+		return response.StatusCode, err
+	}
+	if len(data) > 1<<20 {
+		return response.StatusCode, errors.New("Blockade response exceeds 1 MiB")
+	}
+	if err := json.Unmarshal(data, target); err != nil {
+		return response.StatusCode, fmt.Errorf("decode Blockade response: %w", err)
+	}
+	return response.StatusCode, nil
+}
+
+func (c Client) authorize(request *http.Request) {
+	if token := strings.TrimSpace(c.BearerToken); token != "" {
+		request.Header.Set("Authorization", "Bearer "+token)
+	}
 }
 
 func parseHTTPRetryAfter(value string) time.Duration {

@@ -1,4 +1,4 @@
 interface:
-  display_name: "Jangolova Agent Tools"
-  short_description: "Attach and operate Jangolova targets"
-  default_prompt: "Use $tools to attach Jangolova to a caller-owned target and operate its advertised capabilities."
+  display_name: "Cymonkey Display Tools"
+  short_description: "Attach and operate Cymonkey display targets"
+  default_prompt: "Use $tools to attach Cymonkey to a caller-owned display target and operate its advertised capabilities."

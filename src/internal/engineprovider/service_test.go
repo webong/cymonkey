@@ -216,10 +216,10 @@ func TestServiceReattachesFailedEngineWithoutSupervisingTarget(t *testing.T) {
 	service.recoveryInitialBackoff = time.Millisecond
 	service.recoveryMaximumBackoff = 2 * time.Millisecond
 
-	response := performRequest(service.Routes(), http.MethodPost, "/v1/instances", `{
-		"apiVersion":"interaction.engine/v1alpha1","instanceId":"recover-one",
+	response := performRequest(service.Routes(), http.MethodPost, "/v1/display-instances", `{
+		"apiVersion":"cymonkey.display/v1alpha1","instanceId":"recover-one",
 		"engine":{"adapter":"recovering"},
-		"target":{"apiVersion":"interaction.target/v1alpha1","targetId":"caller-target-42","kind":"unity"}
+		"target":{"apiVersion":"cymonkey.display-target/v1alpha1","targetId":"caller-target-42","kind":"unity"}
 	}`)
 	if response.Code != http.StatusCreated {
 		t.Fatalf("connect status = %d: %s", response.Code, response.Body.String())
@@ -231,7 +231,7 @@ func TestServiceReattachesFailedEngineWithoutSupervisingTarget(t *testing.T) {
 
 	deadline := time.Now().Add(time.Second)
 	for {
-		response = performRequest(service.Routes(), http.MethodGet, "/v1/instances/recover-one/events", "")
+		response = performRequest(service.Routes(), http.MethodGet, "/v1/display-instances/recover-one/events", "")
 		var batch InstanceEventBatch
 		if err := json.NewDecoder(response.Body).Decode(&batch); err != nil {
 			t.Fatal(err)
@@ -257,7 +257,7 @@ func TestServiceReattachesFailedEngineWithoutSupervisingTarget(t *testing.T) {
 	if !instances[0].isDisconnected() {
 		t.Fatal("failed attachment was not released")
 	}
-	response = performRequest(service.Routes(), http.MethodDelete, "/v1/instances/recover-one", "")
+	response = performRequest(service.Routes(), http.MethodDelete, "/v1/display-instances/recover-one", "")
 	if response.Code != http.StatusNoContent || !instances[1].isDisconnected() {
 		t.Fatalf("disconnect status = %d, recovered attachment still active", response.Code)
 	}
@@ -280,8 +280,8 @@ func TestServiceRedactsResolvedCredentialFromAdapterFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	response := performRequest(service.Routes(), http.MethodPost, "/v1/instances", `{
-		"apiVersion":"interaction.engine/v1alpha1","instanceId":"redaction-one",
+	response := performRequest(service.Routes(), http.MethodPost, "/v1/display-instances", `{
+		"apiVersion":"cymonkey.display/v1alpha1","instanceId":"redaction-one",
 		"engine":{"adapter":"leaking"},
 		"target":{"kind":"browser","endpoints":[{"name":"control","protocol":"cdp","url":"wss://browser.example/control","credentialRef":"session"}]}
 	}`)
@@ -312,15 +312,15 @@ func TestServiceRedactsResolvedCredentialFromSuccessfulResult(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	connected := performRequest(service.Routes(), http.MethodPost, "/v1/instances", `{
-		"apiVersion":"interaction.engine/v1alpha1","instanceId":"redaction-result",
+	connected := performRequest(service.Routes(), http.MethodPost, "/v1/display-instances", `{
+		"apiVersion":"cymonkey.display/v1alpha1","instanceId":"redaction-result",
 		"engine":{"adapter":"echo"},
 		"target":{"kind":"browser","endpoints":[{"name":"control","protocol":"cdp","url":"wss://browser.example/control","credentialRef":"session"}]}
 	}`)
 	if connected.Code != http.StatusCreated {
 		t.Fatalf("connect status = %d: %s", connected.Code, connected.Body.String())
 	}
-	response := performRequest(service.Routes(), http.MethodPost, "/v1/instances/redaction-result/call", `{"method":"describe","params":{}}`)
+	response := performRequest(service.Routes(), http.MethodPost, "/v1/display-instances/redaction-result/call", `{"method":"describe","params":{}}`)
 	if response.Code != http.StatusOK || strings.Contains(response.Body.String(), "resolved-secret") || !strings.Contains(response.Body.String(), "[REDACTED]") {
 		t.Fatalf("response was not redacted: %d %s", response.Code, response.Body.String())
 	}
@@ -340,12 +340,12 @@ func TestServiceConnectsCallsAndDisconnectsEngine(t *testing.T) {
 	handler := service.Routes()
 
 	body := `{
-		"apiVersion":"interaction.engine/v1alpha1",
+		"apiVersion":"cymonkey.display/v1alpha1",
 		"instanceId":"browser-one",
 		"engine":{"adapter":"playwright"},
 		"target":{"kind":"browser","endpoints":[{"name":"cdp","protocol":"cdp","url":"http://127.0.0.1:9222"}],"handles":{"native.window":"window-1234"}}
 	}`
-	response := performRequest(handler, http.MethodPost, "/v1/instances", body)
+	response := performRequest(handler, http.MethodPost, "/v1/display-instances", body)
 	if response.Code != http.StatusCreated {
 		t.Fatalf("connect status = %d: %s", response.Code, response.Body.String())
 	}
@@ -364,7 +364,7 @@ func TestServiceConnectsCallsAndDisconnectsEngine(t *testing.T) {
 		t.Fatalf("handles = %#v", target.Handles)
 	}
 
-	response = performRequest(handler, http.MethodPost, "/v1/instances/browser-one/call", `{"method":"describe","params":{}}`)
+	response = performRequest(handler, http.MethodPost, "/v1/display-instances/browser-one/call", `{"method":"describe","params":{}}`)
 	if response.Code != http.StatusOK {
 		t.Fatalf("call status = %d: %s", response.Code, response.Body.String())
 	}
@@ -379,7 +379,7 @@ func TestServiceConnectsCallsAndDisconnectsEngine(t *testing.T) {
 	initialInstance.events <- orchestrator.EngineEvent{Type: "interaction.failed", Status: "failed", Message: "fixture exited", OccurredAt: time.Now().UTC()}
 	deadline := time.Now().Add(time.Second)
 	for {
-		response = performRequest(handler, http.MethodGet, "/v1/instances/browser-one/events?after=2", "")
+		response = performRequest(handler, http.MethodGet, "/v1/display-instances/browser-one/events?after=2", "")
 		var batch InstanceEventBatch
 		if err := json.NewDecoder(response.Body).Decode(&batch); err != nil {
 			t.Fatal(err)
@@ -393,7 +393,7 @@ func TestServiceConnectsCallsAndDisconnectsEngine(t *testing.T) {
 		time.Sleep(time.Millisecond)
 	}
 
-	response = performRequest(handler, http.MethodDelete, "/v1/instances/browser-one", "")
+	response = performRequest(handler, http.MethodDelete, "/v1/display-instances/browser-one", "")
 	if response.Code != http.StatusNoContent {
 		t.Fatalf("disconnect status = %d", response.Code)
 	}
@@ -412,7 +412,7 @@ func TestServiceRequiresAuthorization(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	request := httptest.NewRequest(http.MethodGet, "/v1/engines", nil)
+	request := httptest.NewRequest(http.MethodGet, "/v1/display-adapters", nil)
 	response := httptest.NewRecorder()
 	service.Routes().ServeHTTP(response, request)
 	if response.Code != http.StatusUnauthorized {
@@ -429,8 +429,8 @@ func TestServiceReturnsCallerLaunchOnlyOnInitialConnection(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	response := performRequest(service.Routes(), http.MethodPost, "/v1/instances", `{
-		"apiVersion":"interaction.engine/v1alpha1","instanceId":"launch-one",
+	response := performRequest(service.Routes(), http.MethodPost, "/v1/display-instances", `{
+		"apiVersion":"cymonkey.display/v1alpha1","instanceId":"launch-one",
 		"engine":{"adapter":"launch-fixture"},"target":{"kind":"macos-application"}
 	}`)
 	if response.Code != http.StatusCreated {
@@ -444,7 +444,7 @@ func TestServiceReturnsCallerLaunchOnlyOnInitialConnection(t *testing.T) {
 		t.Fatalf("caller launch = %#v", connected.CallerLaunch)
 	}
 
-	response = performRequest(service.Routes(), http.MethodGet, "/v1/instances/launch-one", "")
+	response = performRequest(service.Routes(), http.MethodGet, "/v1/display-instances/launch-one", "")
 	describedBody := response.Body.Bytes()
 	var described Instance
 	if err := json.Unmarshal(describedBody, &described); err != nil {
@@ -484,12 +484,12 @@ func TestServiceAutomaticallySelectsEngineFromCallerSuppliedTarget(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	response := performRequest(service.Routes(), http.MethodPost, "/v1/instances", `{
-		"apiVersion":"interaction.engine/v1alpha1",
+	response := performRequest(service.Routes(), http.MethodPost, "/v1/display-instances", `{
+		"apiVersion":"cymonkey.display/v1alpha1",
 		"instanceId":"remote-presentation",
 		"engine":{"adapter":"auto","requiredCapabilities":["presentation.mount"]},
 		"target":{
-			"apiVersion":"interaction.target/v1alpha1",
+			"apiVersion":"cymonkey.display-target/v1alpha1",
 			"targetId":"remote-browser-42",
 			"kind":"browser",
 			"endpoints":[{
@@ -532,7 +532,7 @@ func TestServiceAutomaticallySelectsEngineFromCallerSuppliedTarget(t *testing.T)
 	if endpoint.Connection == nil || endpoint.Connection.Headers["Authorization"] != "Bearer resolved-secret" || endpoint.Connection.TLS.CAFile != "/caller/ca.pem" {
 		t.Fatalf("resolved connection = %#v", endpoint.Connection)
 	}
-	response = performRequest(service.Routes(), http.MethodDelete, "/v1/instances/remote-presentation", "")
+	response = performRequest(service.Routes(), http.MethodDelete, "/v1/display-instances/remote-presentation", "")
 	if response.Code != http.StatusNoContent || releaseCount != 1 {
 		t.Fatalf("disconnect status = %d, releases = %d", response.Code, releaseCount)
 	}
@@ -573,8 +573,8 @@ func TestServiceRejectsEmptyEngineInstance(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	response := performRequest(service.Routes(), http.MethodPost, "/v1/instances", `{
-		"apiVersion":"interaction.engine/v1alpha1","instanceId":"empty-one",
+	response := performRequest(service.Routes(), http.MethodPost, "/v1/display-instances", `{
+		"apiVersion":"cymonkey.display/v1alpha1","instanceId":"empty-one",
 		"engine":{"adapter":"empty"},"target":{"kind":"browser"}
 	}`)
 	if response.Code != http.StatusBadGateway {
@@ -592,14 +592,14 @@ func TestServiceActivelyProbesInstanceHealth(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	response := performRequest(service.Routes(), http.MethodPost, "/v1/instances", `{
-		"apiVersion":"interaction.engine/v1alpha1","instanceId":"health-one",
+	response := performRequest(service.Routes(), http.MethodPost, "/v1/display-instances", `{
+		"apiVersion":"cymonkey.display/v1alpha1","instanceId":"health-one",
 		"engine":{"adapter":"health-fixture"},"target":{"kind":"fixture"}
 	}`)
 	if response.Code != http.StatusCreated {
 		t.Fatalf("connect status = %d: %s", response.Code, response.Body.String())
 	}
-	response = performRequest(service.Routes(), http.MethodGet, "/v1/instances/health-one", "")
+	response = performRequest(service.Routes(), http.MethodGet, "/v1/display-instances/health-one", "")
 	var instance Instance
 	if err := json.NewDecoder(response.Body).Decode(&instance); err != nil {
 		t.Fatal(err)
@@ -620,15 +620,15 @@ func TestServiceRecoversAfterRepeatedUnhealthyProbes(t *testing.T) {
 		t.Fatal(err)
 	}
 	service.recoveryInitialBackoff = time.Millisecond
-	response := performRequest(service.Routes(), http.MethodPost, "/v1/instances", `{
-		"apiVersion":"interaction.engine/v1alpha1","instanceId":"health-recovery-one",
+	response := performRequest(service.Routes(), http.MethodPost, "/v1/display-instances", `{
+		"apiVersion":"cymonkey.display/v1alpha1","instanceId":"health-recovery-one",
 		"engine":{"adapter":"health-recovery"},"target":{"kind":"browser"}
 	}`)
 	if response.Code != http.StatusCreated {
 		t.Fatalf("connect status = %d: %s", response.Code, response.Body.String())
 	}
 	for probe := 0; probe < 2; probe++ {
-		response = performRequest(service.Routes(), http.MethodGet, "/v1/instances/health-recovery-one", "")
+		response = performRequest(service.Routes(), http.MethodGet, "/v1/display-instances/health-recovery-one", "")
 		if response.Code != http.StatusOK {
 			t.Fatalf("health status = %d: %s", response.Code, response.Body.String())
 		}
@@ -636,7 +636,7 @@ func TestServiceRecoversAfterRepeatedUnhealthyProbes(t *testing.T) {
 
 	deadline := time.Now().Add(time.Second)
 	for {
-		response = performRequest(service.Routes(), http.MethodGet, "/v1/instances/health-recovery-one/events", "")
+		response = performRequest(service.Routes(), http.MethodGet, "/v1/display-instances/health-recovery-one/events", "")
 		var batch InstanceEventBatch
 		if err := json.NewDecoder(response.Body).Decode(&batch); err != nil {
 			t.Fatal(err)
@@ -652,7 +652,7 @@ func TestServiceRecoversAfterRepeatedUnhealthyProbes(t *testing.T) {
 	if adapter.attemptCount() != 2 {
 		t.Fatalf("connect attempts = %d", adapter.attemptCount())
 	}
-	response = performRequest(service.Routes(), http.MethodDelete, "/v1/instances/health-recovery-one", "")
+	response = performRequest(service.Routes(), http.MethodDelete, "/v1/display-instances/health-recovery-one", "")
 	if response.Code != http.StatusNoContent {
 		t.Fatalf("disconnect status = %d", response.Code)
 	}
@@ -709,8 +709,8 @@ func TestServiceRequiresOneTimeCoreApprovalForConfiguredAction(t *testing.T) {
 		t.Fatal(err)
 	}
 	handler := service.Routes()
-	response := performRequest(handler, http.MethodPost, "/v1/instances", `{
-  "apiVersion":"interaction.engine/v1alpha1","instanceId":"approval-one",
+	response := performRequest(handler, http.MethodPost, "/v1/display-instances", `{
+  "apiVersion":"cymonkey.display/v1alpha1","instanceId":"approval-one",
   "engine":{"adapter":"fake","approval":{"requiredActions":["object.visible.set"]}},
   "target":{"kind":"godot"}
 }`)
@@ -718,11 +718,11 @@ func TestServiceRequiresOneTimeCoreApprovalForConfiguredAction(t *testing.T) {
 		t.Fatalf("connect status = %d: %s", response.Code, response.Body.String())
 	}
 	params := `{"name":"object.visible.set","input":{"id":"object:door","visible":false}}`
-	response = performRequest(handler, http.MethodPost, "/v1/instances/approval-one/call", `{"method":"act","params":`+params+`}`)
+	response = performRequest(handler, http.MethodPost, "/v1/display-instances/approval-one/call", `{"method":"act","params":`+params+`}`)
 	if response.Code != http.StatusForbidden {
 		t.Fatalf("unapproved action status = %d: %s", response.Code, response.Body.String())
 	}
-	response = performRequest(handler, http.MethodPost, "/v1/instances/approval-one/approvals", `{"params":`+params+`}`)
+	response = performRequest(handler, http.MethodPost, "/v1/display-instances/approval-one/approvals", `{"params":`+params+`}`)
 	if response.Code != http.StatusCreated {
 		t.Fatalf("request approval status = %d: %s", response.Code, response.Body.String())
 	}
@@ -730,19 +730,19 @@ func TestServiceRequiresOneTimeCoreApprovalForConfiguredAction(t *testing.T) {
 	if err := json.NewDecoder(response.Body).Decode(&approval); err != nil {
 		t.Fatal(err)
 	}
-	response = performRequest(handler, http.MethodPost, "/v1/instances/approval-one/approvals/"+approval.ApprovalID, `{"approved":true}`)
+	response = performRequest(handler, http.MethodPost, "/v1/display-instances/approval-one/approvals/"+approval.ApprovalID, `{"approved":true}`)
 	if response.Code != http.StatusOK {
 		t.Fatalf("approve status = %d: %s", response.Code, response.Body.String())
 	}
-	response = performRequest(handler, http.MethodPost, "/v1/instances/approval-one/call", `{"method":"act","approvalId":"`+approval.ApprovalID+`","params":`+params+`}`)
+	response = performRequest(handler, http.MethodPost, "/v1/display-instances/approval-one/call", `{"method":"act","approvalId":"`+approval.ApprovalID+`","params":`+params+`}`)
 	if response.Code != http.StatusOK {
 		t.Fatalf("approved action status = %d: %s", response.Code, response.Body.String())
 	}
-	response = performRequest(handler, http.MethodPost, "/v1/instances/approval-one/call", `{"method":"act","approvalId":"`+approval.ApprovalID+`","params":`+params+`}`)
+	response = performRequest(handler, http.MethodPost, "/v1/display-instances/approval-one/call", `{"method":"act","approvalId":"`+approval.ApprovalID+`","params":`+params+`}`)
 	if response.Code != http.StatusForbidden {
 		t.Fatalf("reused approval status = %d: %s", response.Code, response.Body.String())
 	}
-	response = performRequest(handler, http.MethodGet, "/v1/instances/approval-one/events", "")
+	response = performRequest(handler, http.MethodGet, "/v1/display-instances/approval-one/events", "")
 	var events InstanceEventBatch
 	if err := json.NewDecoder(response.Body).Decode(&events); err != nil {
 		t.Fatal(err)
@@ -775,8 +775,8 @@ func TestServiceReconcileCreatesMissingAndRetainsExisting(t *testing.T) {
 	}
 	handler := service.Routes()
 
-	response := performRequest(handler, http.MethodPost, "/v1/instances", `{
-		"apiVersion":"interaction.engine/v1alpha1","instanceId":"browser-one",
+	response := performRequest(handler, http.MethodPost, "/v1/display-instances", `{
+		"apiVersion":"cymonkey.display/v1alpha1","instanceId":"browser-one",
 		"engine":{"adapter":"playwright"},"target":{"kind":"browser"}
 	}`)
 	if response.Code != http.StatusCreated {
@@ -784,12 +784,12 @@ func TestServiceReconcileCreatesMissingAndRetainsExisting(t *testing.T) {
 	}
 
 	body := `{
-		"apiVersion":"interaction.engine/v1alpha1","prune":false,"desired":[
-			{"apiVersion":"interaction.engine/v1alpha1","instanceId":"browser-one","engine":{"adapter":"playwright"},"target":{"kind":"browser"}},
-			{"apiVersion":"interaction.engine/v1alpha1","instanceId":"browser-two","engine":{"adapter":"playwright"},"target":{"kind":"browser"}}
+		"apiVersion":"cymonkey.display/v1alpha1","prune":false,"desired":[
+			{"apiVersion":"cymonkey.display/v1alpha1","instanceId":"browser-one","engine":{"adapter":"playwright"},"target":{"kind":"browser"}},
+			{"apiVersion":"cymonkey.display/v1alpha1","instanceId":"browser-two","engine":{"adapter":"playwright"},"target":{"kind":"browser"}}
 		]
 	}`
-	response = performRequest(handler, http.MethodPost, "/v1/reconcile", body)
+	response = performRequest(handler, http.MethodPost, "/v1/display-reconcile", body)
 	if response.Code != http.StatusOK {
 		t.Fatalf("reconcile status = %d: %s", response.Code, response.Body.String())
 	}
@@ -810,7 +810,7 @@ func TestServiceReconcileCreatesMissingAndRetainsExisting(t *testing.T) {
 		t.Fatalf("failed = %#v, want none", result.Failed)
 	}
 
-	response = performRequest(handler, http.MethodGet, "/v1/instances/browser-two", "")
+	response = performRequest(handler, http.MethodGet, "/v1/display-instances/browser-two", "")
 	var instance Instance
 	if err := json.NewDecoder(response.Body).Decode(&instance); err != nil {
 		t.Fatal(err)
@@ -833,8 +833,8 @@ func TestServiceReconcilePrunesStaleInstances(t *testing.T) {
 	handler := service.Routes()
 
 	for _, id := range []string{"keep-one", "drop-one"} {
-		response := performRequest(handler, http.MethodPost, "/v1/instances", `{
-			"apiVersion":"interaction.engine/v1alpha1","instanceId":"`+id+`",
+		response := performRequest(handler, http.MethodPost, "/v1/display-instances", `{
+			"apiVersion":"cymonkey.display/v1alpha1","instanceId":"`+id+`",
 			"engine":{"adapter":"playwright"},"target":{"kind":"browser"}
 		}`)
 		if response.Code != http.StatusCreated {
@@ -843,11 +843,11 @@ func TestServiceReconcilePrunesStaleInstances(t *testing.T) {
 	}
 
 	body := `{
-		"apiVersion":"interaction.engine/v1alpha1","prune":true,"desired":[
-			{"apiVersion":"interaction.engine/v1alpha1","instanceId":"keep-one","engine":{"adapter":"playwright"},"target":{"kind":"browser"}}
+		"apiVersion":"cymonkey.display/v1alpha1","prune":true,"desired":[
+			{"apiVersion":"cymonkey.display/v1alpha1","instanceId":"keep-one","engine":{"adapter":"playwright"},"target":{"kind":"browser"}}
 		]
 	}`
-	response := performRequest(handler, http.MethodPost, "/v1/reconcile", body)
+	response := performRequest(handler, http.MethodPost, "/v1/display-reconcile", body)
 	if response.Code != http.StatusOK {
 		t.Fatalf("reconcile status = %d: %s", response.Code, response.Body.String())
 	}
@@ -865,11 +865,11 @@ func TestServiceReconcilePrunesStaleInstances(t *testing.T) {
 		t.Fatalf("pruned = %#v, want drop-one", result.Pruned)
 	}
 
-	response = performRequest(handler, http.MethodGet, "/v1/instances/drop-one", "")
+	response = performRequest(handler, http.MethodGet, "/v1/display-instances/drop-one", "")
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("pruned instance status = %d, want 404", response.Code)
 	}
-	response = performRequest(handler, http.MethodGet, "/v1/instances/keep-one", "")
+	response = performRequest(handler, http.MethodGet, "/v1/display-instances/keep-one", "")
 	if response.Code != http.StatusOK {
 		t.Fatalf("kept instance status = %d, want 200", response.Code)
 	}
@@ -887,14 +887,14 @@ func TestServiceReconcileCollectsPerInstanceFailures(t *testing.T) {
 	}
 
 	body := `{
-		"apiVersion":"interaction.engine/v1alpha1","prune":false,"desired":[
-			{"apiVersion":"interaction.engine/v1alpha1","instanceId":"valid-one","engine":{"adapter":"playwright"},"target":{"kind":"browser"}},
-			{"apiVersion":"interaction.engine/v1alpha1","instanceId":"missing-kind","engine":{"adapter":"playwright"}},
-			{"apiVersion":"interaction.engine/v1alpha1","instanceId":"unknown-adapter","engine":{"adapter":"nope"},"target":{"kind":"browser"}},
-			{"apiVersion":"interaction.engine/v1alpha1","instanceId":"unknown-adapter","engine":{"adapter":"nope"},"target":{"kind":"browser"}}
+		"apiVersion":"cymonkey.display/v1alpha1","prune":false,"desired":[
+			{"apiVersion":"cymonkey.display/v1alpha1","instanceId":"valid-one","engine":{"adapter":"playwright"},"target":{"kind":"browser"}},
+			{"apiVersion":"cymonkey.display/v1alpha1","instanceId":"missing-kind","engine":{"adapter":"playwright"}},
+			{"apiVersion":"cymonkey.display/v1alpha1","instanceId":"unknown-adapter","engine":{"adapter":"nope"},"target":{"kind":"browser"}},
+			{"apiVersion":"cymonkey.display/v1alpha1","instanceId":"unknown-adapter","engine":{"adapter":"nope"},"target":{"kind":"browser"}}
 		]
 	}`
-	response := performRequest(service.Routes(), http.MethodPost, "/v1/reconcile", body)
+	response := performRequest(service.Routes(), http.MethodPost, "/v1/display-reconcile", body)
 	if response.Code != http.StatusOK {
 		t.Fatalf("reconcile status = %d: %s", response.Code, response.Body.String())
 	}
@@ -922,7 +922,7 @@ func TestServiceReconcileRejectsMalformedRequest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	response := performRequest(service.Routes(), http.MethodPost, "/v1/reconcile", `{"apiVersion":`)
+	response := performRequest(service.Routes(), http.MethodPost, "/v1/display-reconcile", `{"apiVersion":`)
 	if response.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400: %s", response.Code, response.Body.String())
 	}
@@ -944,11 +944,11 @@ func TestServiceReconcileRebuildsAfterRestart(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, body := range []string{
-		`{"apiVersion":"interaction.engine/v1alpha1","instanceId":"browser-one","engine":{"adapter":"playwright"},"target":{"kind":"browser"}}`,
-		`{"apiVersion":"interaction.engine/v1alpha1","instanceId":"browser-two","engine":{"adapter":"playwright"},"target":{"kind":"browser"}}`,
-		`{"apiVersion":"interaction.engine/v1alpha1","instanceId":"firefox-one","engine":{"adapter":"puppeteer"},"target":{"kind":"browser"}}`,
+		`{"apiVersion":"cymonkey.display/v1alpha1","instanceId":"browser-one","engine":{"adapter":"playwright"},"target":{"kind":"browser"}}`,
+		`{"apiVersion":"cymonkey.display/v1alpha1","instanceId":"browser-two","engine":{"adapter":"playwright"},"target":{"kind":"browser"}}`,
+		`{"apiVersion":"cymonkey.display/v1alpha1","instanceId":"firefox-one","engine":{"adapter":"puppeteer"},"target":{"kind":"browser"}}`,
 	} {
-		response := performRequest(first.Routes(), http.MethodPost, "/v1/instances", body)
+		response := performRequest(first.Routes(), http.MethodPost, "/v1/display-instances", body)
 		if response.Code != http.StatusCreated {
 			t.Fatalf("initial connect status = %d: %s", response.Code, response.Body.String())
 		}
@@ -965,12 +965,12 @@ func TestServiceReconcileRebuildsAfterRestart(t *testing.T) {
 	// the two desired instances from its clean state (the old instances from
 	// first were lost on restart, which is why reconcile is needed).
 	body := `{
-		"apiVersion":"interaction.engine/v1alpha1","prune":true,"desired":[
-			{"apiVersion":"interaction.engine/v1alpha1","instanceId":"browser-one","engine":{"adapter":"playwright"},"target":{"kind":"browser"}},
-			{"apiVersion":"interaction.engine/v1alpha1","instanceId":"firefox-one","engine":{"adapter":"puppeteer"},"target":{"kind":"browser"}}
+		"apiVersion":"cymonkey.display/v1alpha1","prune":true,"desired":[
+			{"apiVersion":"cymonkey.display/v1alpha1","instanceId":"browser-one","engine":{"adapter":"playwright"},"target":{"kind":"browser"}},
+			{"apiVersion":"cymonkey.display/v1alpha1","instanceId":"firefox-one","engine":{"adapter":"puppeteer"},"target":{"kind":"browser"}}
 		]
 	}`
-	response := performRequest(second.Routes(), http.MethodPost, "/v1/reconcile", body)
+	response := performRequest(second.Routes(), http.MethodPost, "/v1/display-reconcile", body)
 	if response.Code != http.StatusOK {
 		t.Fatalf("reconcile status = %d: %s", response.Code, response.Body.String())
 	}
@@ -996,7 +996,7 @@ func TestServiceReconcileRebuildsAfterRestart(t *testing.T) {
 
 	// Verify the rebuilt instances are functional.
 	for _, id := range []string{"browser-one", "firefox-one"} {
-		response := performRequest(second.Routes(), http.MethodGet, "/v1/instances/"+id, "")
+		response := performRequest(second.Routes(), http.MethodGet, "/v1/display-instances/"+id, "")
 		if response.Code != http.StatusOK {
 			t.Fatalf("rebuilt %s status = %d: %s", id, response.Code, response.Body.String())
 		}
@@ -1008,7 +1008,7 @@ func TestServiceReconcileRebuildsAfterRestart(t *testing.T) {
 			t.Fatalf("rebuilt %s status = %q", id, instance.Status)
 		}
 	}
-	response = performRequest(second.Routes(), http.MethodGet, "/v1/instances/browser-two", "")
+	response = performRequest(second.Routes(), http.MethodGet, "/v1/display-instances/browser-two", "")
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("browser-two not recreated status = %d, want 404", response.Code)
 	}
@@ -1027,8 +1027,8 @@ func TestServiceEnforcesPolicyGateOnActCalls(t *testing.T) {
 	handler := service.Routes()
 
 	// Connect an instance.
-	response := performRequest(handler, http.MethodPost, "/v1/instances", `{
-		"apiVersion":"interaction.engine/v1alpha1",
+	response := performRequest(handler, http.MethodPost, "/v1/display-instances", `{
+		"apiVersion":"cymonkey.display/v1alpha1",
 		"instanceId":"browser-one",
 		"engine":{"adapter":"playwright"},
 		"target":{"kind":"browser","endpoints":[{"name":"cdp","protocol":"cdp","url":"http://127.0.0.1:9222"}]}
@@ -1038,19 +1038,19 @@ func TestServiceEnforcesPolicyGateOnActCalls(t *testing.T) {
 	}
 
 	// Act call with empty action name should be rejected by the policy gate.
-	response = performRequest(handler, http.MethodPost, "/v1/instances/browser-one/call", `{"method":"act","params":{"name":""}}`)
+	response = performRequest(handler, http.MethodPost, "/v1/display-instances/browser-one/call", `{"method":"act","params":{"name":""}}`)
 	if response.Code != http.StatusForbidden {
 		t.Fatalf("empty action status = %d, want 403: %s", response.Code, response.Body.String())
 	}
 
 	// Act call with a valid action name should pass through to Call.
-	response = performRequest(handler, http.MethodPost, "/v1/instances/browser-one/call", `{"method":"act","params":{"name":"describe"}}`)
+	response = performRequest(handler, http.MethodPost, "/v1/display-instances/browser-one/call", `{"method":"act","params":{"name":"describe"}}`)
 	if response.Code != http.StatusOK {
 		t.Fatalf("valid action status = %d, want 200: %s", response.Code, response.Body.String())
 	}
 
 	// Non-act methods (e.g. "hello") should pass through without authorization.
-	response = performRequest(handler, http.MethodPost, "/v1/instances/browser-one/call", `{"method":"hello","params":{}}`)
+	response = performRequest(handler, http.MethodPost, "/v1/display-instances/browser-one/call", `{"method":"hello","params":{}}`)
 	if response.Code != http.StatusOK {
 		t.Fatalf("non-act method status = %d, want 200: %s", response.Code, response.Body.String())
 	}

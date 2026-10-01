@@ -44,7 +44,7 @@ func TestDisplayInteractionConnectAndActions(t *testing.T) {
 	adapter := displayinteraction.Adapter{}
 
 	target := orchestrator.EngineTarget{
-		APIVersion: "interaction.target/v1alpha1",
+		APIVersion: "cymonkey.display-target/v1alpha1",
 		TargetID:   "test-linux-display",
 		Kind:       "display",
 		Endpoints: []orchestrator.TargetEndpoint{
@@ -74,8 +74,8 @@ func TestDisplayInteractionConnectAndActions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("hello call failed: %v", err)
 	}
-	if !strings.Contains(string(helloRes), "jangolova.display/v1alpha1") {
-		t.Errorf("expected hello protocol jangolova.display/v1alpha1, got %s", helloRes)
+	if !strings.Contains(string(helloRes), "cymonkey.display-bridge/v1alpha1") {
+		t.Errorf("expected hello protocol cymonkey.display-bridge/v1alpha1, got %s", helloRes)
 	}
 
 	// Test display.describe action
@@ -136,7 +136,7 @@ func TestDisplayInteractionPolicyHooks(t *testing.T) {
 	}
 
 	target := orchestrator.EngineTarget{
-		APIVersion: "interaction.target/v1alpha1",
+		APIVersion: "cymonkey.display-target/v1alpha1",
 		TargetID:   "test-policy-display",
 		Kind:       "display",
 		Endpoints: []orchestrator.TargetEndpoint{

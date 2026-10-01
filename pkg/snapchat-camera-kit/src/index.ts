@@ -3,7 +3,7 @@ import { bootstrapCameraKit, createMediaStreamSource } from '@snap/camera-kit';
 export const CYMONKEY_PROTOCOL_VERSION = 'cymonkey/v1alpha1';
 export const CAMERA_KIT_RUNTIME = 'snapchat-camera-kit';
 export const CAMERA_KIT_DRIVER = 'sandbox';
-export const CYMONKEY_RUNTIME_SYMBOL = Symbol.for('cymonkey.jangolova.runtime');
+export const CYMONKEY_RUNTIME_SYMBOL = Symbol.for('cymonkey.display.runtime');
 
 export type CymonkeyRequest = { id?: unknown; method: string; params?: Record<string, unknown> };
 

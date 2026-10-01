@@ -25,7 +25,7 @@ type PackageRuntime = {
 };
 
 const packageId = 'threejs';
-const factoriesSymbol = Symbol.for('cymonkey.jangolova.browser-package.factories');
+const factoriesSymbol = Symbol.for('cymonkey.display.browser-package.factories');
 const globalRecord = globalThis as Record<PropertyKey, unknown>;
 let factories = globalRecord[factoriesSymbol];
 if (!(factories instanceof Map)) {

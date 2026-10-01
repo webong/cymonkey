@@ -3,27 +3,45 @@ package main
 import (
 	"errors"
 	"flag"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
-	"blockade"
+	"cymonkey/src/contentbridge"
+	"cymonkey/src/contracts"
 	cymonkeyhost "cymonkey/src/internal/host"
+	"cymonkey/src/observation"
 )
 
-func (server *operatorServer) blockadeEndpoint() (string, error) {
-	if server.blockadeURL != "" {
-		return server.blockadeURL, nil
+func (server *operatorServer) interpretationConnection() (string, string, error) {
+	if server.interpretationURL != "" {
+		return server.interpretationURL, server.interpretationToken, nil
 	}
 	if server.config == "" {
-		return "", errors.New("start the operator with --blockade-url or --config")
+		return "", "", errors.New("start the operator with --content-url or --config")
 	}
 	config, err := cymonkeyhost.LoadConfig(server.config)
-	if err != nil || config.Observation == nil || config.Observation.Blockade.Endpoint == "" {
-		return "", errors.New("Blockade endpoint is unavailable in the operator configuration")
+	if err != nil {
+		return "", "", errors.New("interpretation service is unavailable in the operator configuration")
 	}
-	return config.Observation.Blockade.Endpoint, nil
+	service, ok := config.Service(observation.InterpretationServiceContract)
+	if !ok {
+		return "", "", errors.New("interpretation service is unavailable in the operator configuration")
+	}
+	token := server.interpretationToken
+	if token == "" {
+		name := service.TokenEnvironment
+		if name != "" {
+			token = os.Getenv(name)
+			if strings.TrimSpace(token) == "" {
+				return "", "", fmt.Errorf("content token environment variable %q is not set", name)
+			}
+		}
+	}
+	return service.Endpoint, token, nil
 }
 
 func (server *operatorServer) handleInterpretation(w http.ResponseWriter, r *http.Request) {
@@ -31,28 +49,33 @@ func (server *operatorServer) handleInterpretation(w http.ResponseWriter, r *htt
 		operatorError(w, http.StatusMethodNotAllowed, "method_not_allowed", "POST is required")
 		return
 	}
-	endpoint, err := server.blockadeEndpoint()
+	endpoint, token, err := server.interpretationConnection()
 	if err != nil {
 		operatorError(w, http.StatusServiceUnavailable, "interpretation_unconfigured", err.Error())
 		return
 	}
-	var request blockade.InterpretRequest
+	var request contracts.ContentRequest
 	if err := decodeOperatorJSONLimit(w, r, &request, 16<<20); err != nil {
 		operatorError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
 	if request.APIVersion == "" {
-		request.APIVersion = blockade.ContentAPIVersion
+		request.APIVersion = contracts.ContentAPIVersion
 	}
-	if err := blockade.ValidateInterpretRequest(request); err != nil {
+	if request.APIVersion != contracts.ContentAPIVersion {
+		operatorError(w, http.StatusUnprocessableEntity, "invalid_content", "unsupported content apiVersion")
+		return
+	}
+	if err := contentbridge.ValidateRequest(request); err != nil {
 		operatorError(w, http.StatusUnprocessableEntity, "invalid_content", err.Error())
 		return
 	}
-	result, err := (blockade.Client{BaseURL: endpoint}).Interpret(r.Context(), request)
+	result, err := (contentbridge.ServiceClient{BaseURL: endpoint, BearerToken: token}).Interpret(r.Context(), request)
 	if err != nil {
 		status := http.StatusBadGateway
-		if errors.Is(err, blockade.ErrModalityUnsupported) {
+		if errors.Is(err, contentbridge.ErrModalityUnsupported) {
 			status = http.StatusNotImplemented
+			err = errors.New("requested content modality is unsupported")
 		}
 		operatorError(w, status, "interpretation_failed", err.Error())
 		return
@@ -78,23 +101,23 @@ func operatorInterpretClient(args []string, output io.Writer) error {
 	if flags.NArg() != 0 {
 		return errors.New("operator interpret accepts flags only")
 	}
-	parts := make([]blockade.ContentPart, 0, 4)
+	parts := make([]contracts.ContentPart, 0, 4)
 	if *text != "" {
-		parts = append(parts, blockade.ContentPart{Kind: "text", Text: *text})
+		parts = append(parts, contracts.ContentPart{Kind: "text", Text: *text})
 	}
 	if *textFile != "" {
 		data, err := readOperatorContentFile(*textFile)
 		if err != nil {
 			return err
 		}
-		parts = append(parts, blockade.ContentPart{Kind: "text", Text: string(data)})
+		parts = append(parts, contracts.ContentPart{Kind: "text", Text: string(data)})
 	}
 	if *imagePath != "" {
 		data, err := readOperatorContentFile(*imagePath)
 		if err != nil {
 			return err
 		}
-		parts = append(parts, blockade.ContentPart{Kind: "image", MediaType: http.DetectContentType(data), Data: data})
+		parts = append(parts, contracts.ContentPart{Kind: "image", MediaType: http.DetectContentType(data), Data: data})
 	}
 	if *audioPath != "" {
 		if *audioType == "" {
@@ -104,7 +127,7 @@ func operatorInterpretClient(args []string, output io.Writer) error {
 		if err != nil {
 			return err
 		}
-		parts = append(parts, blockade.ContentPart{Kind: "audio", MediaType: *audioType, Data: data})
+		parts = append(parts, contracts.ContentPart{Kind: "audio", MediaType: *audioType, Data: data})
 	}
 	if *videoPath != "" {
 		if *videoType == "" {
@@ -114,10 +137,10 @@ func operatorInterpretClient(args []string, output io.Writer) error {
 		if err != nil {
 			return err
 		}
-		parts = append(parts, blockade.ContentPart{Kind: "video", MediaType: *videoType, Data: data})
+		parts = append(parts, contracts.ContentPart{Kind: "video", MediaType: *videoType, Data: data})
 	}
-	request := blockade.InterpretRequest{APIVersion: blockade.ContentAPIVersion, Parts: parts, Prompt: *prompt}
-	if err := blockade.ValidateInterpretRequest(request); err != nil {
+	request := contracts.ContentRequest{APIVersion: contracts.ContentAPIVersion, Parts: parts, Prompt: *prompt}
+	if err := contentbridge.ValidateRequest(request); err != nil {
 		return err
 	}
 	return sendOperatorRequest(*base, http.MethodPost, "/v1/interpretations", request, output, 3*time.Minute)

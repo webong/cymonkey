@@ -79,5 +79,5 @@ test('augmentation mount uses reviewed package, exact approval scope, and caller
   await assert.rejects(manager.mount({...input, augmentationId: 'reader-two', approvalId: pending.approval.id}), /does not match/);
   assert.deepEqual(await manager.mount({...input, approvalId: pending.approval.id}), {mounted: true});
   assert.deepEqual(injections, [['reader', 4, ['augmentations/reader/content.js']]]);
-  assert.equal(messages[0].channel, 'cymonkey.jangolova.augmentation-runtime');
+  assert.equal(messages[0].channel, 'cymonkey.display.augmentation-runtime');
 });

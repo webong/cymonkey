@@ -9,8 +9,8 @@ import (
 	"cymonkey/src/internal/manifest"
 )
 
-// EngineInstance is a Jangolova-owned interaction session attached to a
-// caller-owned target. Disconnect must release only Jangolova resources; it
+// EngineInstance is a display session attached to a caller-owned target.
+// Disconnect must release only adapter resources; it
 // must never terminate the target runtime.
 type EngineInstance interface {
 	Disconnect(context.Context) error
@@ -323,7 +323,7 @@ type EngineInspector interface {
 	InspectEngine(context.Context) EngineInspection
 }
 
-// EngineAdapter connects a Jangolova interaction engine to a caller-owned
+// EngineAdapter connects a display adapter to a caller-owned
 // target. It does not launch, stop, or otherwise provision that target.
 type EngineAdapter interface {
 	Connect(context.Context, manifest.EngineSpec, EngineTarget) (EngineInstance, error)

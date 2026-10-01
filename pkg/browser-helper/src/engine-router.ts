@@ -22,12 +22,12 @@ export function createEngineRouter(dependencies: EngineRouterDependencies) {
       let result: unknown;
       if (delivery === 'sandbox') {
         if (!valid(input.augmentationId) || !valid(input.sandboxId)) throw new Error('sandbox delivery requires valid augmentation and sandbox IDs');
-        result = await dependencies.tabs.send({tabId: tab.id}, 'cymonkey.jangolova.sandbox', 'call', {
+        result = await dependencies.tabs.send({tabId: tab.id}, 'cymonkey.display.sandbox', 'call', {
           augmentationId: input.augmentationId, id: input.sandboxId, request: input.request,
         });
       } else if (delivery === 'augmentation-package') {
         if (!valid(input.augmentationId)) throw new Error('package delivery requires a valid augmentation ID');
-        result = await dependencies.tabs.send({tabId: tab.id}, 'cymonkey.jangolova.augmentation-runtime', 'dispatch', {
+        result = await dependencies.tabs.send({tabId: tab.id}, 'cymonkey.display.augmentation-runtime', 'dispatch', {
           augmentationId: input.augmentationId, request: input.request,
         });
       } else {

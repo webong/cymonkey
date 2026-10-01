@@ -1,10 +1,6 @@
-# Cymonkey runtime entry and Jangolova library modules
+# Cymonkey runtime and driver modules
 
-Cymonkey is the open runtime-entry and augmentation contract. Jangolova owns
-the runtime-library and driver modules that execute semantic work after
-Cymonkey has entered an approved target. Cymonkey supplies mounting and routing;
-Jangolova supplies the integration code, authentication, target lifecycle, and
-credentials for a particular runtime or automation driver.
+Cymonkey exposes one runtime entry and augmentation contract. Runtime and driver modules execute semantic work after Cymonkey enters an approved target. The target owner supplies target lifecycle and credentials; Cymonkey supplies reviewed integration code, mounting, authentication, and routing.
 
 This is deliberately not a raw-plugin escape hatch. A module may expose only
 typed Cymonkey capabilities through `hello`, `capabilities`, `describe`,
@@ -19,7 +15,7 @@ arbitrarily inspect caller-owned targets.
 | `runtime` | The concrete augmentable implementation. | `browser-dom`, `macos-app`, `godot` |
 | `driver` | The implementation that translates Cymonkey operations for a target. | `playwright`, `puppeteer`, `macos-cooperative`, `websocket` |
 | `transport` | The wire mechanism used by a driver. | `cdp`, `webdriver-bidi`, `websocket`, Apple Events |
-| `module` | A versioned Jangolova contribution mounted or reached through Cymonkey. | `browser.playwright`, `render.godot` |
+| `module` | A versioned Cymonkey contribution mounted or reached through Cymonkey. | `browser.playwright`, `render.godot` |
 
 Playwright and Puppeteer are drivers. CDP and WebDriver BiDi are transports
 they use. A browser tab is the caller-owned target; `browser-dom` is the
@@ -38,7 +34,7 @@ caller-owned browser tab
 In-repository Go modules import the private core at
 `cymonkey/src/internal/core`; there is intentionally no public
 re-export package. External runtime distributions integrate through the
-Jangolova module/registry boundary instead of depending on the host's private
+Cymonkey module/registry boundary instead of depending on the host's private
 Go implementation.
 
 A Go contributor implements and registers a module with a stable module ID,
@@ -127,5 +123,5 @@ routing, event cursors, and caller-owned lifecycle. Module authors should ship
 their package with a conformance fixture and an example target descriptor.
 
 The Godot and macOS packages are the initial reference modules. Their
-conformance fixtures are part of the Jangolova test suite and serve as the
+conformance fixtures are part of the Cymonkey test suite and serve as the
 templates for additional runtime and driver contributors.

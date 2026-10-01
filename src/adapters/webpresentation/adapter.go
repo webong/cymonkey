@@ -448,7 +448,7 @@ func validateEndpoint(value string) error {
 	return nil
 }
 func resolveWorker(configured string) (string, error) {
-	candidates := []string{strings.TrimSpace(configured), strings.TrimSpace(os.Getenv("JANGOLOVA_PRESENTATION_WORKER")), defaultWorkerPath, "/usr/local/lib/jangolova/presentation-worker.mjs"}
+	candidates := []string{strings.TrimSpace(configured), strings.TrimSpace(os.Getenv("CYMONKEY_PRESENTATION_WORKER")), defaultWorkerPath, "/usr/local/lib/cymonkey/display/presentation-worker.mjs"}
 	if executable, err := os.Executable(); err == nil {
 		candidates = append(candidates, filepath.Join(filepath.Dir(executable), "..", "lib", "jangolova", "presentation-worker.mjs"))
 	}
@@ -464,7 +464,7 @@ func resolveWorker(configured string) (string, error) {
 			return candidate, nil
 		}
 	}
-	return "", errors.New("web presentation worker not found; set JANGOLOVA_PRESENTATION_WORKER")
+	return "", errors.New("web presentation worker not found; set CYMONKEY_PRESENTATION_WORKER")
 }
 func capabilityNames() []string {
 	return []string{"act", "artifact.kind.web.entrypoint", "artifact.transport.http", "artifact.transport.https", "artifact.transport.target-file", "capabilities", "describe", "events", "presentation.activate", "presentation.capture", "presentation.create", "presentation.describe", "presentation.execute", "presentation.mount", "presentation.patch", "presentation.replace", "presentation.write", "target.cdp"}

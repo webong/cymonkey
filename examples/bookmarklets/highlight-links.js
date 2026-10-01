@@ -1,5 +1,5 @@
 // Click again to remove this bookmarklet's style. No permanent page changes.
-const id = 'jangolova-bookmarklet-highlight-links';
+const id = 'cymonkey-bookmarklet-highlight-links';
 const previous = document.getElementById(id);
 if (previous) {
   previous.remove();

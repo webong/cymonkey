@@ -52,7 +52,7 @@ async function dispatch(method, params) {
   requireConnection();
   if (method === "hello") {
     return {
-      protocolVersion: "jangolova.bridge/v1alpha1",
+      protocolVersion: "cymonkey.display-bridge/v1alpha1",
       implementation: { name: adapter },
       features: ["browser", "caller-owned-target"],
     };

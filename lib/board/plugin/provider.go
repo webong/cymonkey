@@ -13,10 +13,21 @@ import (
 	"providerplugin"
 )
 
-type Provider struct{ Installed providerplugin.Installed }
+type Provider struct {
+	Installed    providerplugin.Installed
+	MethodPrefix string
+}
 
 const ContractName = "board.provider"
 const ContractVersion = "v1alpha1"
+
+func (p Provider) method(name string) string {
+	prefix := p.MethodPrefix
+	if prefix == "" {
+		prefix = "board"
+	}
+	return prefix + "." + name
+}
 
 // Kind is retained for source compatibility with the original manifest field.
 // Deprecated: use ContractName.
@@ -42,7 +53,7 @@ func (p Provider) List(ctx context.Context) ([]board.Device, error) {
 	}
 	defer proc.Close()
 	var devices []board.Device
-	if err := proc.Call(ctx, "board.list", nil, &devices); err != nil {
+	if err := proc.Call(ctx, p.method("list"), nil, &devices); err != nil {
 		return nil, err
 	}
 	return devices, nil
@@ -53,18 +64,27 @@ func (p Provider) Open(ctx context.Context, deviceID string, grant board.Grant) 
 	if err != nil {
 		return nil, err
 	}
-	if err := proc.Call(ctx, "board.open", map[string]any{"deviceId": deviceID, "grant": grant}, nil); err != nil {
+	if err := proc.Call(ctx, p.method("open"), map[string]any{"deviceId": deviceID, "grant": grant}, nil); err != nil {
 		_ = proc.Close()
 		return nil, err
 	}
-	return &session{proc: proc}, nil
+	return &session{proc: proc, methodPrefix: p.MethodPrefix}, nil
 }
 
 type session struct {
-	proc    *providerplugin.Process
-	mu      sync.Mutex
-	closed  bool
-	streams map[*content]struct{}
+	proc         *providerplugin.Process
+	methodPrefix string
+	mu           sync.Mutex
+	closed       bool
+	streams      map[*content]struct{}
+}
+
+func (s *session) method(name string) string {
+	prefix := s.methodPrefix
+	if prefix == "" {
+		prefix = "board"
+	}
+	return prefix + "." + name
 }
 
 func (s *session) Invoke(ctx context.Context, action board.Action) (board.Result, error) {
@@ -78,7 +98,7 @@ func (s *session) Invoke(ctx context.Context, action board.Action) (board.Result
 		return board.Result{}, board.ErrClosed
 	}
 	var result board.Result
-	if err := s.proc.Call(ctx, "board.invoke", action, &result); err != nil {
+	if err := s.proc.Call(ctx, s.method("invoke"), action, &result); err != nil {
 		return board.Result{}, err
 	}
 	return result, nil
@@ -96,7 +116,7 @@ func (s *session) Stream(ctx context.Context, action board.Action) (board.Conten
 		Size      int64  `json:"size"`
 		Truncated bool   `json:"truncated"`
 	}
-	if err := s.proc.Call(ctx, "board.stream.open", action, &result); err != nil {
+	if err := s.proc.Call(ctx, s.method("stream.open"), action, &result); err != nil {
 		return nil, err
 	}
 	if result.ID == "" || result.Size < 0 || result.Size > 128<<20 {
@@ -134,7 +154,7 @@ func (s *session) Close(ctx context.Context) error {
 	}
 	callCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	_ = s.proc.Call(callCtx, "board.close", nil, nil)
+	_ = s.proc.Call(callCtx, s.method("close"), nil, nil)
 	return s.proc.Close()
 }
 
@@ -170,7 +190,7 @@ func (c *content) Read(dst []byte) (int, error) {
 			Data []byte `json:"data"`
 			EOF  bool   `json:"eof"`
 		}
-		if err := c.session.proc.Call(c.ctx, "board.stream.read", map[string]any{"id": c.id, "maxBytes": 32768}, &result); err != nil {
+		if err := c.session.proc.Call(c.ctx, c.session.method("stream.read"), map[string]any{"id": c.id, "maxBytes": 32768}, &result); err != nil {
 			return 0, err
 		}
 		if len(result.Data) > 32768 || c.read+int64(len(result.Data)) > c.size {
@@ -203,5 +223,5 @@ func (c *content) Close() error {
 	c.session.mu.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	return c.session.proc.Call(ctx, "board.stream.close", map[string]string{"id": c.id}, nil)
+	return c.session.proc.Call(ctx, c.session.method("stream.close"), map[string]string{"id": c.id}, nil)
 }

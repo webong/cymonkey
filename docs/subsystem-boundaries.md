@@ -80,7 +80,6 @@ reports event submission, not confirmation that an application used the input.
 
 `board/host` registers host-approved roots or caller-owned providers, then
 turns a request into a grant. The caller must supply an `Authorizer`; a
-decision may narrow a request and never widen it. `board/cli` exposes drive
-discovery, listing, reading, and macOS keyboard actions. Cymonkey routes its
-top-level `board` command to that library CLI. Hotplug events and a persistent
-device protocol remain to be implemented.
+decision may narrow a request and never widen it. Cymonkey's `src/devicecli`
+package exposes drive discovery, listing, reading, and macOS keyboard actions
+through `cymy device`; Board itself has no command package.

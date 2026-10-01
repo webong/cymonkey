@@ -7,13 +7,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"blockade"
-	cymonkeyhost "cymonkey/src/internal/host"
+	"cymonkey/src/contracts"
 )
 
-func TestObservationCoordinatorCoordinatesJangolovaAndBlockade(t *testing.T) {
+func TestObservationCoordinatorCoordinatesDisplayAndContent(t *testing.T) {
 	jangolova := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v1/instances/browser-1/call" || r.Header.Get("Authorization") != "Bearer test-token" {
+		if r.URL.Path != "/v1/display-instances/browser-1/call" || r.Header.Get("Authorization") != "Bearer test-token" {
 			t.Fatalf("Jangolova request = %s %s %q", r.Method, r.URL.Path, r.Header.Get("Authorization"))
 		}
 		var request struct {
@@ -36,7 +35,10 @@ func TestObservationCoordinatorCoordinatesJangolovaAndBlockade(t *testing.T) {
 	defer jangolova.Close()
 	blockadeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/observe" {
-			t.Fatalf("Blockade path = %q", r.URL.Path)
+			t.Fatalf("content path = %q", r.URL.Path)
+		}
+		if r.Header.Get("Authorization") != "Bearer blockade-token" {
+			t.Fatalf("content authorization = %q", r.Header.Get("Authorization"))
 		}
 		var request struct {
 			Image  string `json:"image"`
@@ -46,16 +48,17 @@ func TestObservationCoordinatorCoordinatesJangolovaAndBlockade(t *testing.T) {
 			t.Fatal(err)
 		}
 		if request.Image != "cG5n" || request.Prompt != "find button" {
-			t.Fatalf("Blockade request = %#v", request)
+			t.Fatalf("content request = %#v", request)
 		}
-		_ = json.NewEncoder(w).Encode(blockade.ObserveResponse{APIVersion: blockade.APIVersion, RequestID: "observation-1"})
+		_ = json.NewEncoder(w).Encode(contracts.ObservationResult{APIVersion: contracts.ObservationAPIVersion, RequestID: "observation-1", Observations: []contracts.Observation{}})
 	}))
 	defer blockadeServer.Close()
 
 	t.Setenv("CYMONKEY_TEST_TOKEN", "test-token")
-	coordinator, err := NewObservationCoordinator(cymonkeyhost.ObservationConfig{
-		Jangolova: cymonkeyhost.ObservationJangolovaConfig{Endpoint: jangolova.URL, TokenEnvironment: "CYMONKEY_TEST_TOKEN"},
-		Blockade:  cymonkeyhost.ObservationBlockadeConfig{Endpoint: blockadeServer.URL},
+	t.Setenv("BLOCKADE_TEST_TOKEN", "blockade-token")
+	coordinator, err := NewObservationCoordinator(Config{
+		Capture:        ServiceConfig{Endpoint: jangolova.URL, TokenEnvironment: "CYMONKEY_TEST_TOKEN"},
+		Interpretation: ServiceConfig{Endpoint: blockadeServer.URL, TokenEnvironment: "BLOCKADE_TEST_TOKEN"},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -75,14 +78,13 @@ func TestObservationCoordinatorAcceptsHostCapture(t *testing.T) {
 			Image string `json:"image"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil || request.Image != "cG5n" {
-			t.Fatalf("Blockade request = %#v, %v", request, err)
+			t.Fatalf("content request = %#v, %v", request, err)
 		}
-		_ = json.NewEncoder(w).Encode(blockade.ObserveResponse{APIVersion: blockade.APIVersion, RequestID: "host-capture"})
+		_ = json.NewEncoder(w).Encode(contracts.ObservationResult{APIVersion: contracts.ObservationAPIVersion, RequestID: "host-capture", Observations: []contracts.Observation{}})
 	}))
 	defer blockadeServer.Close()
-	coordinator, err := NewObservationCoordinatorWithCapture(cymonkeyhost.ObservationConfig{
-		Jangolova: cymonkeyhost.ObservationJangolovaConfig{Endpoint: "http://127.0.0.1:7395", TokenEnvironment: "UNUSED_TOKEN"},
-		Blockade:  cymonkeyhost.ObservationBlockadeConfig{Endpoint: blockadeServer.URL},
+	coordinator, err := NewObservationCoordinatorWithCapture(Config{
+		Interpretation: ServiceConfig{Endpoint: blockadeServer.URL},
 	}, func(_ context.Context, request ObservationRequest) ([]byte, error) {
 		if request.InstanceID != "browser-one" {
 			t.Fatalf("capture request = %#v", request)

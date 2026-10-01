@@ -64,7 +64,7 @@
   and mobile browsers; link fixtures do not certify browser-toolbar behavior.
 
 - [x] Define the Cymonkey page-safe and privileged-extension trust boundary.
-- [x] Add the nested `window.cymonkey.jangolova` page bridge.
+- [x] Add the nested `window.cymonkey.display` page bridge.
 - [x] Define `cymonkey/v1alpha1`, the augmentation schema, backend
   interface, auto-selection policy, and capability persistence metadata.
 - [x] Add no-install CDP and first-class WebDriver BiDi mappings for the same
@@ -161,7 +161,7 @@
 - [x] Make Blockade own managed Python installation, worker-pool lifecycle,
   framed stdin/stdout IPC, and shutdown.
 - [x] Add provider-only YAML configuration and installed-model validation.
-- [x] Add `cymonkey blockade validate` and `cymonkey blockade observe` CLI flows.
+- [x] Add `cymy content validate` and `cymy content observe` CLI flows.
 - [x] Keep Blockade as a read-only observation capability for external agents
   and applications.
 - [x] Consolidate engine render control into Cymonkey's `render` domain
@@ -174,7 +174,7 @@
 - [x] Make the ONNX smoke fixture execution-provider-selectable and validate a
   real Core ML session on Apple Silicon.
 - [x] Move screenshot-to-observation coordination to Cymonkey: it calls
-  Jangolova's normal screenshot action and then calls standalone Blockade.
+  Jangolova's normal screenshot action and then calls the Blockade service.
 - [x] Add the Blockade-owned provider-adapter registry and versioned observe,
   capabilities, and readiness contract with typed provider failures.
 - [x] Add named provider-adapter YAML, bounded timeout/payload enforcement,
@@ -190,7 +190,7 @@
   adapter registry and map its native response to the observation contract.
 - [x] Define Blockade's separate text, image, and audio content request,
   interpretation response, capability, and multimodal composition contract.
-- [x] Route the content contract through Blockade's HTTP, CLI, and executable
+- [x] Route the content contract through Blockade's HTTP and executable
   provider adapter path while retaining the image observation API.
 - [ ] Add a production text model provider package and validate its native
   response mapping against the content contract.

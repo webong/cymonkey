@@ -1,8 +1,8 @@
 # Interaction attachment recovery
 
-Jangolova preserves an interaction instance when its adapter worker, relay
+Cymonkey preserves an interaction instance when its adapter worker, relay
 connection, or target endpoint becomes unavailable. Recovery replaces only the
-Jangolova-owned attachment. It never starts, stops, or restarts a browser,
+Cymonkey-owned attachment. It never starts, stops, or restarts a browser,
 Unity or Unreal application, container, VM, display, relay, or Xallet session.
 
 ## Recovery triggers
@@ -25,7 +25,7 @@ terminal event:
 
 | Event | Meaning |
 | --- | --- |
-| `instance.recovering` | Jangolova started replacing its attachment. |
+| `instance.recovering` | Cymonkey started replacing its attachment. |
 | `instance.recovery.retrying` | An attachment attempt failed and will be retried. |
 | `instance.recovered` | A replacement attachment passed the adapter handshake. |
 
@@ -35,7 +35,7 @@ recovery before releasing that connection material.
 
 ## Action safety
 
-Jangolova does not automatically replay a failed semantic call. In particular,
+Cymonkey does not automatically replay a failed semantic call. In particular,
 an `act` request may have reached the target before its response connection
 failed, so replay could perform a write twice. The caller observes the error,
 waits for `instance.recovered`, describes the current target state, and decides
@@ -43,10 +43,10 @@ whether the action is safe to issue again.
 
 ## Process restart boundary
 
-Attachment recovery is intentionally in-process. If the Jangolova provider
+Attachment recovery is intentionally in-process. If the Cymonkey provider
 itself restarts, the caller that owns desired state reconnects its instances by
 submitting their target descriptors again. Persisting or discovering target
-placement inside Jangolova would make it a target supervisor and violate the
+placement inside Cymonkey would make it a target supervisor and violate the
 architecture boundary. Xallet may perform this reconciliation, but the same
 rule applies to a native launcher or any other caller.
 

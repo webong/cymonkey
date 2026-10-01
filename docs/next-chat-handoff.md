@@ -10,7 +10,7 @@ endpoint. The adapter launches only a short-lived Node/Puppeteer interaction
 worker; it does not launch, stop, provision, or display a browser.
 
 The reference page is [examples/web-presentation](../examples/web-presentation).
-It exposes `window.cymonkey.jangolova` and can render either structured documents or
+It exposes `window.cymonkey.display` and can render either structured documents or
 authored HTML/CSS/JavaScript.
 
 Implemented operations:
@@ -25,11 +25,11 @@ Implemented operations:
 - cursor-based `events` for presentation actions and resize events.
 
 The adapter is registered as `web-presentation` and is discoverable through
-`cymonkey provider engines --json`. The provider handoff is documented in
+`cymonkey display engines --json`. The provider handoff is documented in
 [presentation-provider.md](presentation-provider.md).
 
 The engine provider also accepts the formal
-`interaction.target/v1alpha1` descriptor and `engine.adapter: "auto"`.
+`cymonkey.display-target/v1alpha1` descriptor and `engine.adapter: "auto"`.
 Automatic selection uses endpoint protocols and required capabilities only;
 native, container, VM, remote, and Xallet-owned targets share the same path.
 See [target-descriptor.md](target-descriptor.md).

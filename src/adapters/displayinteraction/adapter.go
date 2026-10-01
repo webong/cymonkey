@@ -1,4 +1,4 @@
-// Package displayinteraction implements Jangolova's provider-neutral
+// Package displayinteraction implements Cymonkey's provider-neutral
 // display-level interaction engine for targets without semantic APIs.
 package displayinteraction
 
@@ -294,7 +294,7 @@ func (i *instance) Call(ctx context.Context, method string, params json.RawMessa
 	switch method {
 	case "hello":
 		return json.Marshal(map[string]any{
-			"protocol":     "jangolova.display/v1alpha1",
+			"protocol":     "cymonkey.display-bridge/v1alpha1",
 			"adapter":      "display-interaction",
 			"capabilities": i.EngineCapabilities(),
 		})

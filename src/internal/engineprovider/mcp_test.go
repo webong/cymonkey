@@ -45,7 +45,7 @@ func TestMCPServerExposesDirectEngineTools(t *testing.T) {
 	}
 	foundCall := false
 	for _, tool := range response.Result.Tools {
-		if tool.Name == "jangolova_instance_call" {
+		if tool.Name == "cymonkey_display_call" {
 			foundCall = true
 		}
 	}

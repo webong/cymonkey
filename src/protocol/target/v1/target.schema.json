@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:interaction-target:descriptor:v1alpha1",
+  "$id": "urn:cymonkey:display-target:v1alpha1",
   "title": "Interaction target descriptor",
   "type": "object",
   "additionalProperties": false,
   "required": ["apiVersion", "targetId", "kind"],
   "properties": {
     "apiVersion": {
-      "const": "interaction.target/v1alpha1"
+      "const": "cymonkey.display-target/v1alpha1"
     },
     "targetId": {
       "type": "string",

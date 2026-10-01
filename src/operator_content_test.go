@@ -10,28 +10,28 @@ import (
 	"path/filepath"
 	"testing"
 
-	"blockade"
+	"cymonkey/src/contracts"
 	"cymonkey/src/internal/orchestrator"
 )
 
-func TestOperatorInterpretsTextAudioAndVideoThroughBlockade(t *testing.T) {
-	requests := make(chan blockade.InterpretRequest, 3)
+func TestOperatorInterpretsTextAudioAndVideoThroughContentService(t *testing.T) {
+	requests := make(chan contracts.ContentRequest, 3)
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/interpret" {
-			t.Errorf("Blockade path = %q", r.URL.Path)
+			t.Errorf("content path = %q", r.URL.Path)
 			http.NotFound(w, r)
 			return
 		}
-		var request blockade.InterpretRequest
+		var request contracts.ContentRequest
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-			t.Errorf("decode Blockade request: %v", err)
+			t.Errorf("decode content request: %v", err)
 			http.Error(w, "invalid request", http.StatusBadRequest)
 			return
 		}
 		requests <- request
-		_ = json.NewEncoder(w).Encode(blockade.InterpretResponse{
-			APIVersion: blockade.ContentAPIVersion, RequestID: request.RequestID,
-			Findings: []blockade.ContentFinding{{Kind: "summary", Text: "fixture result", SourceParts: []int{0}}},
+		_ = json.NewEncoder(w).Encode(contracts.ContentResponse{
+			APIVersion: contracts.ContentAPIVersion, RequestID: request.RequestID,
+			Findings: []contracts.ContentFinding{{Kind: "summary", Text: "fixture result", SourceParts: []int{0}}},
 		})
 	}))
 	defer backend.Close()
@@ -40,7 +40,7 @@ func TestOperatorInterpretsTextAudioAndVideoThroughBlockade(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer server.Close(context.Background())
-	server.blockadeURL = backend.URL
+	server.interpretationURL = backend.URL
 	unauthorized := operatorTestRequest(server, "", http.MethodPost, "/v1/interpretations", `{"parts":[{"kind":"text","text":"hello"}]}`)
 	if unauthorized.Code != http.StatusUnauthorized {
 		t.Fatalf("unauthorized interpretation = %d", unauthorized.Code)
@@ -49,7 +49,7 @@ func TestOperatorInterpretsTextAudioAndVideoThroughBlockade(t *testing.T) {
 	if interpreted.Code != http.StatusOK || !bytes.Contains(interpreted.Body.Bytes(), []byte("fixture result")) {
 		t.Fatalf("text interpretation = %d %s", interpreted.Code, interpreted.Body.String())
 	}
-	if request := <-requests; request.APIVersion != blockade.ContentAPIVersion || request.Parts[0].Text != "meeting notes" {
+	if request := <-requests; request.APIVersion != contracts.ContentAPIVersion || request.Parts[0].Text != "meeting notes" {
 		t.Fatalf("forwarded text = %#v", request)
 	}
 

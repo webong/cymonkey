@@ -1,0 +1,12 @@
+apiVersion: cymonkey.content-config/v1alpha1
+adapters:
+  - id: local-yolo-sam
+    plugin: local-ultralytics
+    model: yolo-sam@1.0.0
+    workers: 1
+    timeout: 2m
+    maxPayloadBytes: 8388608
+
+# Cymonkey's content adapter launches this source plugin with its installed
+# python@3.12.8 runtime. The bundle includes its source and vendored packages.
+# The model bundle must contain one `yolo` .pt artifact and one `sam` .pt artifact.

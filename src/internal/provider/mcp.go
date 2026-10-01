@@ -17,18 +17,19 @@ import (
 )
 
 func serveMCPCommand(args []string, registryFactory RegistryFactory) error {
-	flags := flag.NewFlagSet("serve-mcp", flag.ContinueOnError)
+	flags := flag.NewFlagSet("display serve-tools", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	bind := flags.String("bind", "", "optional MCP Streamable HTTP bind address; empty uses stdio")
+	tokenEnvironment := flags.String("token-env", "CYMONKEY_DISPLAY_TOKEN", "environment variable containing the display service token")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	if flags.NArg() != 0 {
-		return errors.New("serve-mcp accepts flags only")
+		return errors.New("display serve-tools accepts flags only")
 	}
-	token := strings.TrimSpace(os.Getenv("JANGOLOVA_PROVIDER_TOKEN"))
+	token := strings.TrimSpace(os.Getenv(strings.TrimSpace(*tokenEnvironment)))
 	if token == "" {
-		return errors.New("JANGOLOVA_PROVIDER_TOKEN is required")
+		return fmt.Errorf("display token environment variable %q is required", *tokenEnvironment)
 	}
 	registry, err := registryFrom(registryFactory)
 	if err != nil {
@@ -55,9 +56,9 @@ func serveMCPCommand(args []string, registryFactory RegistryFactory) error {
 		defer cancel()
 		_ = server.Shutdown(shutdownCtx)
 	}()
-	fmt.Fprintf(os.Stderr, "jangolova MCP tool server listening on %s\\n", *bind)
+	fmt.Fprintf(os.Stderr, "display tool server listening on %s\\n", *bind)
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return fmt.Errorf("serve Jangolova MCP: %w", err)
+		return fmt.Errorf("serve display tools: %w", err)
 	}
 	return nil
 }

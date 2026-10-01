@@ -1,47 +1,28 @@
-# Cymonkey naming migration
+# Cymonkey public naming
 
-Cymonkey is now the operator and host for this repository's independently
-executable subsystems. It contains two primary product areas:
+Cymonkey is the product, host, operator API, and command line identity. Its
+public domains are:
 
 ```text
 Cymonkey
-├── host/operator — entry, extension, policy, composition, and coordination
-├── Jangolova    — standalone display interfaces and MCP tool server
-└── Blockade     — standalone local and cloud inference interfaces
+├── display  — interaction and presentation
+├── content  — observation and multimodal interpretation
+└── device   — input and output under explicit grants
 ```
 
-## Names in the current release
+## Stable public names
 
-Cymonkey is the repository and module identity. The subsystem and public-wire
-names below remain stable where they describe Jangolova or a compatibility
-surface:
+| Surface | Name |
+| --- | --- |
+| CLI | `cymy` |
+| Plugin manifest | `cymonkey.plugin/v1alpha1` |
+| Plugin contracts | `cymonkey.display`, `cymonkey.content`, `cymonkey.device` |
+| MCP tools | `cymonkey_display_*` |
+| Content configuration | `cymonkey.content-config/v1alpha1` |
+| Device wire contract | `cymonkey.device/v1alpha1` |
+| Service environment | `CYMONKEY_DISPLAY_*`, `CYMONKEY_CONTENT_*`, `CYMONKEY_DEVICE_*` |
 
-| Surface | Current name | Migration policy |
-| --- | --- | --- |
-| Operator/host | Cymonkey | Use `cymy` as the public CLI; retain `cymonkey` as a compatible executable for existing host deployments. |
-| Interaction/tool server | Jangolova | Keep as a standalone runtime and executable. |
-| Inference subsystem | Blockade | Keep as a standalone runtime and executable. |
-| Cymonkey protocol | `cymonkey/v1alpha1` | Versioned Cymonkey contract; do not rename in place. |
-| Environment variables | `JANGOLOVA_*` | Keep for compatibility; add `CYMONKEY_*` aliases before deprecating them. |
-| Go/module and package paths | `cymonkey/...` | Repository-owned Go imports use the Cymonkey module path. |
-| MCP tool names | `jangolova_*` | Keep stable so existing agents do not lose access to tools. |
-
-## Migration order
-
-1. Establish Cymonkey as the repository, module, and host/operator identity.
-2. Retain standalone Jangolova and Blockade commands and their runtime-library
-   identities.
-3. Add host-level operator APIs and health/discovery without moving subsystem
-   ownership into the host.
-4. Update visible distribution branding, with compatibility tests for existing
-   manifests and integrations.
-5. Keep existing Jangolova public-wire names valid until an explicit versioned
-   replacement is published.
-
-The central rule is that host composition must not silently change ownership:
-Jangolova executes approved display interaction and presentation calls, while
-Blockade interprets text, image, and sound content through local or cloud
-models. Its image observation contract remains stable; the separate content
-contract accepts text, image, and audio through capable providers. Cymonkey
-coordinates and extends these modules; external agents
-still own planning and decisions.
+Internal library names and native contracts stay available to developers who
+embed those libraries directly. They are not aliases in Cymonkey's public
+protocol and do not appear in new Cymy commands, plugin packages, service
+payloads, or operator routes.

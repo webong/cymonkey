@@ -5,7 +5,7 @@ export function registrationID(id: string) {
 }
 
 export function registrationWorldID(id: string) {
-  return `jangolova-${id}`;
+  return `cymonkey-${id}`;
 }
 
 export function registrationPlan(value: UserScriptManifest): BrowserRegistration {

@@ -1,5 +1,5 @@
 // Package manifest contains interaction-engine configuration shared by
-// Jangolova adapters and provider transports. Target runtime coordinates are
+// Display adapters and transports consume these values. Target coordinates are
 // intentionally carried separately by the caller-owned target contract.
 package manifest
 

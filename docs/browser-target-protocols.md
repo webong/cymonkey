@@ -50,7 +50,7 @@ advertises WebKit-specific discovery metadata.
 
 ```json
 {
-  "apiVersion": "interaction.engine/v1alpha1",
+  "apiVersion": "cymonkey.display/v1alpha1",
   "instanceId": "chromium-one",
   "engine": {"adapter": "playwright"},
   "target": {
@@ -71,7 +71,7 @@ Chromium with a private debugging endpoint and controls when Chromium stops.
 
 ```json
 {
-  "apiVersion": "interaction.engine/v1alpha1",
+  "apiVersion": "cymonkey.display/v1alpha1",
   "instanceId": "firefox-one",
   "engine": {"adapter": "puppeteer"},
   "target": {
@@ -94,7 +94,7 @@ browser survives Jangolova disconnect.
 
 ```json
 {
-  "apiVersion": "interaction.engine/v1alpha1",
+  "apiVersion": "cymonkey.display/v1alpha1",
   "instanceId": "safari-one",
   "engine": {"adapter": "webdriver-classic"},
   "target": {
@@ -123,7 +123,7 @@ Use the same endpoint and handle shape as Safari, but select
 
 ```json
 {
-  "apiVersion": "interaction.engine/v1alpha1",
+  "apiVersion": "cymonkey.display/v1alpha1",
   "instanceId": "webkit-one",
   "engine": {"adapter": "webkit-webdriver"},
   "target": {
@@ -155,7 +155,7 @@ converts the stdio transport to Streamable HTTP.
 
 ```json
 {
-  "apiVersion": "interaction.engine/v1alpha1",
+  "apiVersion": "cymonkey.display/v1alpha1",
   "instanceId": "safari-mcp-one",
   "engine": {
     "adapter": "safari-mcp",
@@ -209,7 +209,7 @@ Xallet should implement a browser target provider that:
    the same network namespace.
 7. Protects the endpoint through private networking, authorization gateways,
    and policy. Credentials must not be embedded in endpoint URLs.
-8. Sends the target contract to `POST /v1/instances` and records the returned
+8. Sends the target contract to `POST /v1/display-instances` and records the returned
    Jangolova interaction instance ID separately from its own target/session ID.
 9. On shutdown, deletes or disconnects the Jangolova interaction instance
    first, then closes the driver session, browser, display, and workload.
@@ -248,7 +248,7 @@ Xallet/native              Jangolova                    Browser/driver
      | create target/session  |                              |
      |------------------------------------------------------->|
      |                         |                              |
-     | POST /v1/instances     |                              |
+     | POST /v1/display-instances     |                              |
      | endpoint + handle      |                              |
      |------------------------>| attach only                  |
      |                         |----------------------------->|

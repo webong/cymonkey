@@ -1,6 +1,7 @@
 package blockade
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"io"
@@ -9,6 +10,22 @@ import (
 	"strings"
 	"time"
 )
+
+// RequireBearerToken protects a Blockade HTTP service with one caller-owned
+// token. Deployment systems can rotate the token by restarting the service;
+// the value is never included in responses or logs.
+func RequireBearerToken(next http.Handler, token string) http.Handler {
+	expected := []byte("Bearer " + token)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		provided := []byte(r.Header.Get("Authorization"))
+		if len(provided) != len(expected) || subtle.ConstantTimeCompare(provided, expected) != 1 {
+			w.Header().Set("WWW-Authenticate", `Bearer realm="content"`)
+			writeJSONError(w, http.StatusUnauthorized, "authorization is required")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
 
 // HTTPServer exposes a configured Blockade inference backend as a small
 // standalone HTTP service. Provider-specific details stay behind Engine.

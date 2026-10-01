@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const ProtocolVersion = "jangolova.bridge/v1alpha1"
+const ProtocolVersion = "cymonkey.display-bridge/v1alpha1"
 
 const (
 	MethodHello        = "hello"

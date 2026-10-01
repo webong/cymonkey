@@ -18,6 +18,65 @@ import (
 const ContractName = "blockade.provider"
 const ContractVersion = "v1alpha1"
 
+// Protocol lets a host expose its own plugin wire contract while this package
+// continues to implement Blockade's Go interfaces internally.
+type Protocol struct {
+	MethodPrefix          string
+	AdapterAPIVersion     string
+	ObservationRequestAPI string
+	ObservationAPIVersion string
+	ContentAPIVersion     string
+	ModelAPIVersion       string
+	ManifestEnvironment   string
+	RuntimeRoot           string
+	DescriptorFile        string
+	DescriptorAPIVersion  string
+}
+
+func nativeProtocol() Protocol {
+	return Protocol{
+		MethodPrefix: "blockade", AdapterAPIVersion: blockade.ProviderAdapterAPIVersion,
+		ObservationRequestAPI: blockade.APIVersion, ObservationAPIVersion: blockade.APIVersion,
+		ContentAPIVersion: blockade.ContentAPIVersion,
+		ModelAPIVersion:   blockade.ModelManifestAPIVersion, ManifestEnvironment: "BLOCKADE_PLUGIN_MANIFEST",
+		DescriptorFile: "blockade.json", DescriptorAPIVersion: blockade.ProviderPackageAPIVersion,
+	}
+}
+
+func (p Protocol) normalized() Protocol {
+	native := nativeProtocol()
+	if p.MethodPrefix == "" {
+		p.MethodPrefix = native.MethodPrefix
+	}
+	if p.AdapterAPIVersion == "" {
+		p.AdapterAPIVersion = native.AdapterAPIVersion
+	}
+	if p.ObservationAPIVersion == "" {
+		p.ObservationAPIVersion = native.ObservationAPIVersion
+	}
+	if p.ObservationRequestAPI == "" {
+		p.ObservationRequestAPI = native.ObservationRequestAPI
+	}
+	if p.ContentAPIVersion == "" {
+		p.ContentAPIVersion = native.ContentAPIVersion
+	}
+	if p.ModelAPIVersion == "" {
+		p.ModelAPIVersion = native.ModelAPIVersion
+	}
+	if p.ManifestEnvironment == "" {
+		p.ManifestEnvironment = native.ManifestEnvironment
+	}
+	if p.DescriptorFile == "" {
+		p.DescriptorFile = native.DescriptorFile
+	}
+	if p.DescriptorAPIVersion == "" {
+		p.DescriptorAPIVersion = native.DescriptorAPIVersion
+	}
+	return p
+}
+
+func (p Protocol) method(name string) string { return p.MethodPrefix + "." + name }
+
 // Kind is retained for source compatibility with the original manifest field.
 // Deprecated: use ContractName.
 const Kind = ContractName
@@ -35,7 +94,12 @@ func RegisterInstalled(registry *blockade.ProviderAdapterRegistry, installed []p
 }
 
 func Register(registry *blockade.ProviderAdapterRegistry, installed providerplugin.Installed) error {
-	launch, err := newLaunchPlan(installed)
+	return RegisterWithProtocol(registry, installed, nativeProtocol())
+}
+
+func RegisterWithProtocol(registry *blockade.ProviderAdapterRegistry, installed providerplugin.Installed, protocol Protocol) error {
+	protocol = protocol.normalized()
+	launch, err := newLaunchPlan(installed, protocol)
 	if err != nil {
 		return err
 	}
@@ -46,23 +110,23 @@ func Register(registry *blockade.ProviderAdapterRegistry, installed providerplug
 			workers = 1
 		}
 		for range workers {
-			proc, err := launch.open(ctx)
+			proc, err := launch.open(ctx, protocol)
 			if err != nil {
 				_ = pool.Close()
 				return nil, err
 			}
 			start := map[string]any{"id": runtime.ID, "settings": runtime.Settings}
 			if runtime.Model != nil {
-				start["model"] = runtime.Model
+				start["model"] = wireModel(*runtime.Model, protocol)
 			}
-			if err := proc.Call(ctx, "blockade.start", start, nil); err != nil {
+			if err := proc.Call(ctx, protocol.method("start"), start, nil); err != nil {
 				_ = proc.Close()
 				_ = pool.Close()
 				return nil, err
 			}
 			pool.processes = append(pool.processes, proc)
 		}
-		base := &adapter{pool: pool, runtime: runtime}
+		base := &adapter{pool: pool, runtime: runtime, protocol: protocol}
 		reported, err := base.Capabilities(ctx)
 		if err != nil {
 			_ = pool.Close()
@@ -91,12 +155,12 @@ func Register(registry *blockade.ProviderAdapterRegistry, installed providerplug
 		}
 	}
 	inspect := func(ctx context.Context, runtime blockade.ProviderAdapterRuntime, model blockade.InstalledModel) error {
-		proc, err := launch.open(ctx)
+		proc, err := launch.open(ctx, protocol)
 		if err != nil {
 			return err
 		}
 		defer proc.Close()
-		return inspectModel(ctx, proc, runtime.Settings, model)
+		return inspectModel(ctx, proc, runtime.Settings, model, protocol)
 	}
 	return registry.RegisterWithModelInspector(installed.Manifest.Name, factory, inspect)
 }
@@ -106,7 +170,7 @@ type launchPlan struct {
 	descriptor *blockade.ProviderPackage
 }
 
-func newLaunchPlan(installed providerplugin.Installed) (launchPlan, error) {
+func newLaunchPlan(installed providerplugin.Installed, protocol Protocol) (launchPlan, error) {
 	plan := launchPlan{installed: installed}
 	if installed.Manifest.Command != "" {
 		return plan, nil
@@ -114,28 +178,32 @@ func newLaunchPlan(installed providerplugin.Installed) (launchPlan, error) {
 	if err := installed.Verify(); err != nil {
 		return launchPlan{}, err
 	}
-	descriptorPath, err := installed.Resource("blockade.json")
+	descriptorPath, err := installed.Resource(protocol.DescriptorFile)
 	if err != nil {
-		return launchPlan{}, fmt.Errorf("Blockade source provider descriptor: %w", err)
+		return launchPlan{}, fmt.Errorf("source plugin descriptor: %w", err)
 	}
-	descriptor, err := blockade.LoadProviderPackage(descriptorPath)
+	descriptor, err := blockade.LoadProviderPackageWithAPIVersion(descriptorPath, protocol.DescriptorAPIVersion)
 	if err != nil {
 		return launchPlan{}, err
 	}
 	if _, err := installed.Resource(descriptor.Entrypoint); err != nil {
-		return launchPlan{}, fmt.Errorf("Blockade source provider entrypoint: %w", err)
+		return launchPlan{}, fmt.Errorf("source plugin entrypoint: %w", err)
 	}
 	plan.descriptor = &descriptor
 	return plan, nil
 }
 
-func (p launchPlan) open(ctx context.Context) (*providerplugin.Process, error) {
+func (p launchPlan) open(ctx context.Context, protocol Protocol) (*providerplugin.Process, error) {
 	if p.descriptor == nil {
 		return providerplugin.Open(ctx, p.installed)
 	}
-	root, err := blockade.DefaultRuntimeRoot()
-	if err != nil {
-		return nil, err
+	root := protocol.RuntimeRoot
+	if root == "" {
+		var err error
+		root, err = blockade.DefaultRuntimeRoot()
+		if err != nil {
+			return nil, err
+		}
 	}
 	runtime, err := blockade.ResolveInstalledRuntime(root, p.descriptor.Runtime.Name, p.descriptor.Runtime.Version)
 	if err != nil {
@@ -151,7 +219,7 @@ func (p launchPlan) open(ctx context.Context) (*providerplugin.Process, error) {
 		Environment: []string{
 			"PYTHONNOUSERSITE=1",
 			"PYTHONDONTWRITEBYTECODE=1",
-			"BLOCKADE_PLUGIN_MANIFEST=" + filepath.Join(p.installed.Directory, "plugin.json"),
+			protocol.ManifestEnvironment + "=" + filepath.Join(p.installed.Directory, "plugin.json"),
 		},
 	})
 }
@@ -207,8 +275,9 @@ func (p *processPool) Close() error {
 }
 
 type adapter struct {
-	pool    *processPool
-	runtime blockade.ProviderAdapterRuntime
+	pool     *processPool
+	runtime  blockade.ProviderAdapterRuntime
+	protocol Protocol
 }
 
 func (a *adapter) observe(ctx context.Context, request blockade.ProviderAdapterObserveRequest) (blockade.ProviderAdapterObserveResponse, error) {
@@ -220,8 +289,13 @@ func (a *adapter) observe(ctx context.Context, request blockade.ProviderAdapterO
 		}
 		secrets[name] = value
 	}
+	request.APIVersion = a.protocol.AdapterAPIVersion
+	request.Request.APIVersion = a.protocol.ObservationRequestAPI
 	var result blockade.ProviderAdapterObserveResponse
-	err := a.pool.Call(ctx, "blockade.observe", map[string]any{"request": request, "secrets": secrets}, &result)
+	err := a.pool.Call(ctx, a.protocol.method("observe"), map[string]any{"request": request, "secrets": secrets}, &result)
+	if err == nil {
+		err = normalizeObserveResponse(&result, a.protocol)
+	}
 	return result, err
 }
 func (a *adapter) interpret(ctx context.Context, request blockade.ProviderAdapterInterpretRequest) (blockade.ProviderAdapterInterpretResponse, error) {
@@ -233,21 +307,26 @@ func (a *adapter) interpret(ctx context.Context, request blockade.ProviderAdapte
 		}
 		secrets[name] = value
 	}
+	request.APIVersion = a.protocol.AdapterAPIVersion
+	request.Request.APIVersion = a.protocol.ContentAPIVersion
 	var result blockade.ProviderAdapterInterpretResponse
-	err := a.pool.Call(ctx, "blockade.interpret", map[string]any{"request": request, "secrets": secrets}, &result)
+	err := a.pool.Call(ctx, a.protocol.method("interpret"), map[string]any{"request": request, "secrets": secrets}, &result)
+	if err == nil {
+		err = normalizeInterpretResponse(&result, a.protocol)
+	}
 	return result, err
 }
 
-func inspectModel(ctx context.Context, proc *providerplugin.Process, settings map[string]string, model blockade.InstalledModel) error {
+func inspectModel(ctx context.Context, proc *providerplugin.Process, settings map[string]string, model blockade.InstalledModel, protocol Protocol) error {
 	var result struct {
 		APIVersion string `json:"apiVersion"`
 		Compatible bool   `json:"compatible"`
 		Detail     string `json:"detail,omitempty"`
 	}
-	if err := proc.Call(ctx, "blockade.model.inspect", map[string]any{"settings": settings, "model": model}, &result); err != nil {
+	if err := proc.Call(ctx, protocol.method("model.inspect"), map[string]any{"settings": settings, "model": wireModel(model, protocol)}, &result); err != nil {
 		return err
 	}
-	if result.APIVersion != blockade.ProviderAdapterAPIVersion {
+	if result.APIVersion != protocol.AdapterAPIVersion {
 		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidResponse, fmt.Errorf("model inspection returned unsupported apiVersion %q", result.APIVersion))
 	}
 	if !result.Compatible {
@@ -285,19 +364,67 @@ func (a *multiAdapter) Interpret(ctx context.Context, request blockade.ProviderA
 }
 func (a *adapter) Capabilities(ctx context.Context) (blockade.ProviderAdapterCapabilities, error) {
 	var value blockade.ProviderAdapterCapabilities
-	err := a.pool.Call(ctx, "blockade.capabilities", nil, &value)
+	err := a.pool.Call(ctx, a.protocol.method("capabilities"), nil, &value)
+	if err == nil {
+		err = normalizeAdapterVersion(&value.APIVersion, a.protocol)
+	}
 	return value, err
 }
 func (a *adapter) Health(ctx context.Context) (blockade.ProviderAdapterHealth, error) {
 	var value blockade.ProviderAdapterHealth
-	err := a.pool.Call(ctx, "blockade.health", nil, &value)
+	err := a.pool.Call(ctx, a.protocol.method("health"), nil, &value)
+	if err == nil {
+		err = normalizeAdapterVersion(&value.APIVersion, a.protocol)
+	}
 	return value, err
 }
 func (a *adapter) Close() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	for _, proc := range a.pool.processes {
-		_ = proc.Call(ctx, "blockade.close", nil, nil)
+		_ = proc.Call(ctx, a.protocol.method("close"), nil, nil)
 	}
 	return a.pool.Close()
+}
+
+func normalizeAdapterVersion(value *string, protocol Protocol) error {
+	if *value != protocol.AdapterAPIVersion {
+		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidResponse, fmt.Errorf("adapter returned unsupported apiVersion %q", *value))
+	}
+	*value = blockade.ProviderAdapterAPIVersion
+	return nil
+}
+
+func normalizeObserveResponse(result *blockade.ProviderAdapterObserveResponse, protocol Protocol) error {
+	if err := normalizeAdapterVersion(&result.APIVersion, protocol); err != nil {
+		return err
+	}
+	if result.Response.APIVersion != protocol.ObservationAPIVersion {
+		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidResponse, fmt.Errorf("observation returned unsupported apiVersion %q", result.Response.APIVersion))
+	}
+	result.Response.APIVersion = blockade.APIVersion
+	return nil
+}
+
+func normalizeInterpretResponse(result *blockade.ProviderAdapterInterpretResponse, protocol Protocol) error {
+	if err := normalizeAdapterVersion(&result.APIVersion, protocol); err != nil {
+		return err
+	}
+	if result.Response.APIVersion != protocol.ContentAPIVersion {
+		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidResponse, fmt.Errorf("content result returned unsupported apiVersion %q", result.Response.APIVersion))
+	}
+	result.Response.APIVersion = blockade.ContentAPIVersion
+	return nil
+}
+
+func wireModel(model blockade.InstalledModel, protocol Protocol) map[string]any {
+	return map[string]any{
+		"manifest": map[string]any{
+			"apiVersion": protocol.ModelAPIVersion,
+			"name":       model.Manifest.Name, "version": model.Manifest.Version,
+			"plugin": model.Manifest.Provider, "capabilities": model.Manifest.Capabilities,
+			"artifacts": model.Manifest.Artifacts,
+		},
+		"directory": model.Directory,
+	}
 }

@@ -1,16 +1,20 @@
 ---
 name: display-engine-setup
-description: Provision and verify Jangolova Cymonkey render integrations and headless container environments for Godot, Unity, and Unreal. Use when setting up a Cymonkey runtime, building or pulling an engine image, configuring a server, or preparing a RunPod or CPU test host.
+description: Provision and verify Cymonkey render integrations and headless container environments for Godot, Unity, and Unreal. Use when setting up a Cymonkey runtime, building or pulling an engine image, configuring a server, or preparing a RunPod or CPU test host.
 ---
 
-# Jangolova Engine Setup
+# Cymonkey render setup
 
-Use this skill when an agent must make an engine controllable by Jangolova. Keep engine binaries, licenses, registry credentials, and Cymonkey bearer tokens outside source control.
+Use this skill when an agent must make an engine controllable through
+Cymonkey. Keep engine binaries, licenses, registry credentials, and Cymonkey
+bearer tokens outside source control.
 
 ## Choose the runtime
 
 - Godot: build `infra/deploy/godot-cymonkey-gpu/Containerfile`; it is the license-free reference runtime.
-- Unreal: pull `ghcr.io/webong/jangolova/unreal-cymonkey-gpu:5.8` for the packaged fixture, or install `pkg/unreal` from the GitHub Release for a custom project.
+- Unreal: build `infra/deploy/unreal-cymonkey-gpu/Containerfile` with the
+  operator's approved engine inputs, or install `pkg/unreal` in a custom
+  project.
 - Unity: supply a licensed private Unity Linux Editor base; never invent or embed Unity credentials.
 
 Read [references/runtime-matrix.md](references/runtime-matrix.md) for engine-specific requirements.
@@ -26,11 +30,11 @@ Read [references/runtime-matrix.md](references/runtime-matrix.md) for engine-spe
 ```sh
 export CYMONKEY_TOKEN="$(openssl rand -hex 32)"
 mkdir -p artifacts
-docker run --rm --name jangolova-engine \
+docker run --rm --name cymonkey-render \
   -p 8090:8090 \
   -e CYMONKEY_TOKEN \
   -v "$PWD/artifacts:/workspace/artifacts" \
-  ghcr.io/webong/jangolova/unreal-cymonkey-gpu:5.8
+  cymonkey/unreal-render:5.8
 ```
 
 For real GPU rendering add `--gpus all` and configure the engine display path. Xvfb is useful for off-screen smoke tests but does not prove hardware acceleration.

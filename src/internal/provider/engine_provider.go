@@ -18,22 +18,23 @@ import (
 )
 
 func serveEngineProviderCommand(args []string, registryFactory RegistryFactory) error {
-	flags := flag.NewFlagSet("serve-engine-provider", flag.ContinueOnError)
+	flags := flag.NewFlagSet("display serve", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	bind := flags.String(
 		"bind",
-		envOrDefault("JANGOLOVA_PROVIDER_BIND", "127.0.0.1:7391"),
-		"interaction-provider HTTP bind address",
+		envOrDefault("CYMONKEY_DISPLAY_BIND", "127.0.0.1:7391"),
+		"display service HTTP bind address",
 	)
+	tokenEnvironment := flags.String("token-env", "CYMONKEY_DISPLAY_TOKEN", "environment variable containing the display service token")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	if flags.NArg() != 0 {
-		return errors.New("serve-engine-provider accepts flags only")
+		return errors.New("display serve accepts flags only")
 	}
-	token := strings.TrimSpace(os.Getenv("JANGOLOVA_PROVIDER_TOKEN"))
+	token := strings.TrimSpace(os.Getenv(strings.TrimSpace(*tokenEnvironment)))
 	if token == "" {
-		return errors.New("JANGOLOVA_PROVIDER_TOKEN is required")
+		return fmt.Errorf("display token environment variable %q is required", *tokenEnvironment)
 	}
 	registry, err := registryFrom(registryFactory)
 	if err != nil {
@@ -65,10 +66,10 @@ func serveEngineProviderCommand(args []string, registryFactory RegistryFactory) 
 		_ = provider.Close(shutdownCtx)
 		_ = server.Shutdown(shutdownCtx)
 	}()
-	fmt.Fprintf(os.Stderr, "jangolova interaction provider listening on %s\n", *bind)
+	fmt.Fprintf(os.Stderr, "display interaction service listening on %s\n", *bind)
 	err = server.ListenAndServe()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return fmt.Errorf("serve interaction provider: %w", err)
+		return fmt.Errorf("serve display service: %w", err)
 	}
 	return nil
 }

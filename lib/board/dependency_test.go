@@ -15,8 +15,10 @@ func TestBoardDoesNotDependOnCymonkey(t *testing.T) {
 		t.Fatalf("dependency graph: %v: %s", err, out)
 	}
 	for _, dependency := range strings.Fields(string(out)) {
-		if strings.HasPrefix(dependency, "cymonkey/") {
-			t.Errorf("Board depends on the Cymonkey host: %s", dependency)
+		for _, prefix := range []string{"cymonkey", "jangolova", "blockade", "github.com/xallet/xallet"} {
+			if dependency == prefix || strings.HasPrefix(dependency, prefix+"/") {
+				t.Errorf("Board depends on a host or sibling library: %s", dependency)
+			}
 		}
 	}
 }

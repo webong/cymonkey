@@ -28,8 +28,15 @@ type ProviderPackageRuntime struct {
 }
 
 func (p ProviderPackage) Validate() error {
-	if p.APIVersion != ProviderPackageAPIVersion {
-		return fmt.Errorf("provider package apiVersion must be %q", ProviderPackageAPIVersion)
+	return p.ValidateAPIVersion(ProviderPackageAPIVersion)
+}
+
+// ValidateAPIVersion lets an embedding application give the source-package
+// descriptor its own public schema name while retaining Blockade's runtime
+// safety checks.
+func (p ProviderPackage) ValidateAPIVersion(expected string) error {
+	if p.APIVersion != expected {
+		return fmt.Errorf("provider package apiVersion must be %q", expected)
 	}
 	if p.Runtime.Name != "python" || !modelVersionPattern.MatchString(p.Runtime.Version) {
 		return errors.New("provider package requires an exact managed Python runtime version")
@@ -47,6 +54,12 @@ func validProviderPackagePath(value string) bool {
 }
 
 func LoadProviderPackage(path string) (ProviderPackage, error) {
+	return LoadProviderPackageWithAPIVersion(path, ProviderPackageAPIVersion)
+}
+
+// LoadProviderPackageWithAPIVersion reads a source-package descriptor owned by
+// an embedding application and validates its runtime and entrypoint fields.
+func LoadProviderPackageWithAPIVersion(path, expected string) (ProviderPackage, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return ProviderPackage{}, err
@@ -69,5 +82,5 @@ func LoadProviderPackage(path string) (ProviderPackage, error) {
 	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
 		return ProviderPackage{}, errors.New("provider package descriptor must contain one JSON object")
 	}
-	return descriptor, descriptor.Validate()
+	return descriptor, descriptor.ValidateAPIVersion(expected)
 }

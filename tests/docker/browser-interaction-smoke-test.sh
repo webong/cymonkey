@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Chromium and Xvfb are target fixtures owned by this test, not by Jangolova.
+# Chromium and Xvfb are target fixtures owned by this test, not by Cymonkey.
 display_number="${DISPLAY_NUM:-99}"
 export DISPLAY=":${display_number}"
 profile_path="/tmp/jangolova-target-profile"
@@ -20,7 +20,7 @@ chromium \
   --user-data-dir="${profile_path}" \
   about:blank >/tmp/jangolova-target.log 2>&1 &
 target_pid=$!
-JANGOLOVA_PROVIDER_TOKEN="${token}" bin/cymonkey provider serve-engine-provider --bind 127.0.0.1:7391 >"${provider_log}" 2>&1 &
+CYMONKEY_DISPLAY_TOKEN="${token}" bin/cymy display serve --bind 127.0.0.1:7391 >"${provider_log}" 2>&1 &
 provider_pid=$!
 
 cleanup() {
@@ -43,14 +43,14 @@ for adapter in playwright puppeteer; do
   curl --fail-with-body -sS \
     -H "Authorization: Bearer ${token}" \
     -H "Content-Type: application/json" \
-    -d "{\"apiVersion\":\"interaction.engine/v1alpha1\",\"instanceId\":\"${adapter}-one\",\"engine\":{\"adapter\":\"${adapter}\",\"source\":\"file:///app/tests/fixture.html\"},\"target\":{\"kind\":\"browser\",\"endpoints\":[{\"name\":\"cdp\",\"protocol\":\"cdp\",\"url\":\"http://127.0.0.1:9222\"}]}}" \
-    http://127.0.0.1:7391/v1/instances >/tmp/"${adapter}"-connect.json
+    -d "{\"apiVersion\":\"cymonkey.display/v1alpha1\",\"instanceId\":\"${adapter}-one\",\"engine\":{\"adapter\":\"${adapter}\",\"source\":\"file:///app/tests/fixture.html\"},\"target\":{\"kind\":\"browser\",\"endpoints\":[{\"name\":\"cdp\",\"protocol\":\"cdp\",\"url\":\"http://127.0.0.1:9222\"}]}}" \
+    http://127.0.0.1:7391/v1/display-instances >/tmp/"${adapter}"-connect.json
 
   curl -fsS \
     -H "Authorization: Bearer ${token}" \
     -H "Content-Type: application/json" \
     -d '{"method":"act","params":{"name":"window.evaluate","input":{"expression":"document.title"}}}' \
-    http://127.0.0.1:7391/v1/instances/"${adapter}"-one/call >/tmp/"${adapter}"-call.json
+    http://127.0.0.1:7391/v1/display-instances/"${adapter}"-one/call >/tmp/"${adapter}"-call.json
 
   node -e '
     const fs = require("fs");
@@ -59,31 +59,31 @@ for adapter in playwright puppeteer; do
     if (connected.status !== "connected" || !connected.capabilities.includes("window.evaluate")) {
       throw new Error(`bad connection: ${JSON.stringify(connected)}`);
     }
-    if (called.result?.value !== "Jangolova Fixture") {
+    if (called.result?.value !== "Cymonkey Fixture") {
       throw new Error(`bad interaction result: ${JSON.stringify(called)}`);
     }
   ' /tmp/"${adapter}"-connect.json /tmp/"${adapter}"-call.json
 
   curl -fsS -X DELETE -H "Authorization: Bearer ${token}" \
-    http://127.0.0.1:7391/v1/instances/"${adapter}"-one
+    http://127.0.0.1:7391/v1/display-instances/"${adapter}"-one
 
-  # Disconnecting Jangolova must not terminate the caller-owned Chromium.
+  # Disconnecting Cymonkey must not terminate the caller-owned Chromium.
   curl -fsS http://127.0.0.1:9222/json/version >/dev/null
 done
 
 curl -fsS \
   -H "Authorization: Bearer ${token}" \
   -H "Content-Type: application/json" \
-  -d '{"apiVersion":"interaction.engine/v1alpha1","instanceId":"cymonkey-cdp","engine":{"adapter":"cymonkey","requiredCapabilities":["augmentation.install","document.query","storage.set"],"options":{"driver":"cdp"}},"target":{"kind":"browser","endpoints":[{"name":"cdp","protocol":"cdp","url":"http://127.0.0.1:9222"}]}}' \
-  http://127.0.0.1:7391/v1/instances >/tmp/cymonkey-cdp-connect.json
+  -d '{"apiVersion":"cymonkey.display/v1alpha1","instanceId":"cymonkey-cdp","engine":{"adapter":"cymonkey","requiredCapabilities":["augmentation.install","document.query","storage.set"],"options":{"driver":"cdp"}},"target":{"kind":"browser","endpoints":[{"name":"cdp","protocol":"cdp","url":"http://127.0.0.1:9222"}]}}' \
+  http://127.0.0.1:7391/v1/display-instances >/tmp/cymonkey-cdp-connect.json
 
-JANGOLOVA_PROVIDER_TOKEN="${token}" node tests/cymonkey-live-client.mjs \
+CYMONKEY_DISPLAY_TOKEN="${token}" node tests/cymonkey-live-client.mjs \
   --provider http://127.0.0.1:7391 \
   --instance cymonkey-cdp \
   --expect-backend cdp
 
 curl -fsS -X DELETE -H "Authorization: Bearer ${token}" \
-  http://127.0.0.1:7391/v1/instances/cymonkey-cdp
+  http://127.0.0.1:7391/v1/display-instances/cymonkey-cdp
 curl -fsS http://127.0.0.1:9222/json/version >/dev/null
 
 echo "Playwright, Puppeteer, and Cymonkey CDP smoke tests passed against a caller-owned browser"

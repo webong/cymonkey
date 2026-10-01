@@ -1,8 +1,13 @@
-# Display-Level Interaction Engine
+# Display interaction
 
-Jangolova provides a provider-neutral **display-level interaction contract** for targets that do not expose a richer semantic API (such as Linux GUI applications in containers/VMs, headless desktop environments, or legacy software).
+Cymonkey provides a provider-neutral display contract for targets that do not
+expose a richer semantic API, including Linux GUI applications in containers
+or VMs, headless desktops, and legacy software.
 
-The interaction engine adapter is `display-interaction`. It connects to caller-owned display endpoints (such as VNC/RFB, WebRTC video/data channels, or Wayland input/capture relays) and translates high-level agent intent into frame captures and coordinate-based pointer or keyboard events.
+The `display-interaction` adapter connects to caller-owned display endpoints
+such as VNC/RFB, WebRTC video/data channels, or Wayland input/capture relays.
+It translates high-level requests into frame captures and coordinate-based
+pointer or keyboard events.
 
 ---
 
@@ -12,7 +17,7 @@ The interaction engine adapter is `display-interaction`. It connects to caller-o
 External agent / application
        │
        ▼  (Semantic methods: display.capture, pointer.click, keyboard.type)
-Jangolova `display-interaction` Adapter (Owned by Jangolova)
+Cymonkey `display-interaction` adapter
        │
        ├── RFB / VNC Client Protocol
        ├── WebRTC Video/Data Channel Client Protocol
@@ -26,20 +31,20 @@ Caller-Owned Display Target (Owned by Operator / Xallet / Custom Source)
        └── Container GUI workload
 ```
 
-* **Target Provider (Caller / Xallet / Operator) owns:** The display server process (`x11vnc`, `wayvnc`, QEMU VNC, WebRTC server), frame buffers, window manager, operating system permissions, and network endpoints.
-* **Jangolova owns:** The `display-interaction` adapter, protocol parsing, coordinate translation, input action dispatch, and semantic capabilities (`display.capture`, `pointer.click`, `keyboard.type`).
+* **Target owner (caller / Xallet / operator) owns:** The display server process (`x11vnc`, `wayvnc`, QEMU VNC, WebRTC server), frame buffers, window manager, operating system permissions, and network endpoints. `cymy device gateway serve` can expose one private VNC/RDP/SPICE TCP stream over authenticated WebSocket; it does not create or manage that endpoint.
+* **Cymonkey owns:** The `display-interaction` adapter, protocol parsing, coordinate translation, input action dispatch, and semantic capabilities (`display.capture`, `pointer.click`, `keyboard.type`).
 
-Disconnecting Jangolova releases its VNC/WebRTC client connection without stopping the underlying display server or terminating application windows.
+Disconnecting Cymonkey releases its VNC/WebRTC client connection without stopping the underlying display server or terminating application windows.
 
 ---
 
 ## Supported Endpoints & Protocols
 
-A caller supplies a standard `interaction.target/v1alpha1` descriptor with target kind `display`, `linux-application`, `native`, `vm`, or `container`:
+A caller supplies a standard `cymonkey.display-target/v1alpha1` descriptor with target kind `display`, `linux-application`, `native`, `vm`, or `container`:
 
 ```json
 {
-  "apiVersion": "interaction.target/v1alpha1",
+  "apiVersion": "cymonkey.display-target/v1alpha1",
   "targetId": "linux-gui-container-1",
   "kind": "display",
   "endpoints": [
@@ -94,16 +99,16 @@ The `display-interaction` engine supports policy restrictions to protect sensiti
 Connect to a caller-owned VNC server:
 
 ```bash
-cymonkey provider connect-engine \
+cymy display connect \
   --adapter display-interaction \
   --target-kind display \
   --endpoint vnc=vnc://127.0.0.1:5900
 ```
 
-Or invoke via Engine Provider API:
+Or invoke through the display HTTP API:
 
 ```http
-POST /v1/instances/display-one/call
+POST /v1/display-instances/display-one/call
 Authorization: Bearer ...
 Content-Type: application/json
 

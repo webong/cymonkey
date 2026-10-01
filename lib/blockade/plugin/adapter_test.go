@@ -57,6 +57,40 @@ func TestRegisterInstalledSelectsOnlyBlockadeProviders(t *testing.T) {
 	}
 }
 
+func TestSourceLaunchPlanAcceptsHostOwnedDescriptor(t *testing.T) {
+	source := t.TempDir()
+	descriptor := []byte(`{"apiVersion":"host.content-source/v1alpha1","runtime":{"name":"python","version":"3.12.8"},"entrypoint":"provider.py"}`)
+	worker := []byte("print('worker')\n")
+	if err := os.WriteFile(filepath.Join(source, "content.json"), descriptor, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(source, "provider.py"), worker, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	descriptorDigest := sha256.Sum256(descriptor)
+	workerDigest := sha256.Sum256(worker)
+	manifest := providerplugin.Manifest{
+		APIVersion: "cymonkey.plugin/v1alpha1", Name: "source-fixture", Version: "1.0.0",
+		Contracts: []providerplugin.Contract{{Name: "host.content", Version: "v1alpha1"}},
+		Files: []providerplugin.PackageFile{
+			{Path: "content.json", SHA256: hex.EncodeToString(descriptorDigest[:])},
+			{Path: "provider.py", SHA256: hex.EncodeToString(workerDigest[:])},
+		},
+	}
+	writeJSON(t, filepath.Join(source, "plugin.json"), manifest)
+	installed, err := providerplugin.Install(t.TempDir(), filepath.Join(source, "plugin.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := newLaunchPlan(installed, Protocol{DescriptorFile: "content.json", DescriptorAPIVersion: "host.content-source/v1alpha1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.descriptor == nil || plan.descriptor.Entrypoint != "provider.py" {
+		t.Fatalf("launch plan = %#v", plan)
+	}
+}
+
 func TestSourceProviderUsesBlockadeManagedRuntimeAndWorkerPool(t *testing.T) {
 	python, err := exec.LookPath("python3")
 	if err != nil {

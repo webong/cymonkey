@@ -11,7 +11,7 @@ For example:
 cymy userscript install --source ./my-script.user.js --endpoint cdp=http://127.0.0.1:9222
 ```
 
-For an existing record, `cymy provider connect-engine --userscripts-target ID`
+For an existing record, `cymy display connect --userscripts-target ID`
 attaches to the supplied browser endpoint. Jangolova registers each enabled
 script through CDP or WebDriver BiDi and reapplies it after navigation.
 Cymonkey watches the store during that connection and reconciles installs,

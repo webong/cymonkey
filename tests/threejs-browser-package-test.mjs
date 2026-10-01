@@ -17,7 +17,7 @@ test('Three.js is a reusable augmentation package', async () => {
   }]);
   assert.deepEqual(manifest.spec.permissions, []);
   assert.equal(manifest.spec.launch.name, 'threejs.overlay.mount');
-  assert.match(packageSource, /cymonkey\.jangolova\.browser-package\.factories/);
+  assert.match(packageSource, /cymonkey\.display\.browser-package\.factories/);
   assert.match(packageSource, /new WebGLRenderer/);
   assert.match(packageSource, /new ThreeJSCymonkey/);
 });
@@ -26,7 +26,7 @@ test('the bundled content entrypoint registers a usable private factory', async 
   const bundle = await source('pkg/threejs/dist/content.js');
   const context = vm.createContext({});
   vm.runInContext(bundle, context);
-  const factory = vm.runInContext("globalThis[Symbol.for('cymonkey.jangolova.browser-package.factories')].get('threejs')", context);
+  const factory = vm.runInContext("globalThis[Symbol.for('cymonkey.display.browser-package.factories')].get('threejs')", context);
   assert.equal(typeof factory, 'function');
   const runtime = factory({packageId: 'threejs', augmentationId: 'test.threejs', configuration: {}});
   const hello = await runtime.dispatch({id: 'hello-1', method: 'hello'});

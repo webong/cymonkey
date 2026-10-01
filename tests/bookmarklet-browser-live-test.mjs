@@ -40,23 +40,23 @@ test('bookmarklet CLI exports executable, reversible links in a real browser', {
     const page = await browser.newPage();
     await page.goto(address);
     assert.equal(await page.$('script'), null, 'HTML labels/source must never execute on load');
-    assert.equal(await page.$('#jangolova-bookmarklet-highlight-links'), null);
+    assert.equal(await page.$('#cymonkey-bookmarklet-highlight-links'), null);
     assert.equal(await page.$eval('#bookmarklet', (a) => a.getAttribute('href')), exported);
     const title = await page.title();
     await page.click('#bookmarklet');
-    await page.waitForSelector('#jangolova-bookmarklet-highlight-links');
+    await page.waitForSelector('#cymonkey-bookmarklet-highlight-links');
     assert.equal(await page.evaluate(() => window.bookmarkletText), '你好 + café %20 # &');
     assert.equal(await page.title(), title);
     assert.equal(page.url(), address + '/');
     await page.click('#bookmarklet');
-    await page.waitForSelector('#jangolova-bookmarklet-highlight-links', {hidden: true});
+    await page.waitForSelector('#cymonkey-bookmarklet-highlight-links', {hidden: true});
     // A normal javascript: link respects CSP. This does not pretend to test
     // privileged bookmark-bar behavior, which differs between browsers.
     csp = true;
     await page.reload();
     await page.click('#bookmarklet');
     await new Promise((resolve) => setTimeout(resolve, 150));
-    assert.equal(await page.$('#jangolova-bookmarklet-highlight-links'), null);
+    assert.equal(await page.$('#cymonkey-bookmarklet-highlight-links'), null);
     assert.equal(await page.evaluate(() => window.bookmarkletText), undefined);
   } finally {
     await browser?.close();

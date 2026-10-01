@@ -49,17 +49,40 @@ type StreamingSession interface {
 // first: an ungranted capability or resource fails here exactly as it would for
 // Invoke, and no provider code runs.
 func (c *Connection) Stream(ctx context.Context, action Action) (Content, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if err := c.authorize(action); err != nil {
+	session, streamCtx, done, err := c.begin(ctx, action)
+	if err != nil {
 		return nil, err
 	}
-	streamer, ok := c.session.(StreamingSession)
+	streamer, ok := session.(StreamingSession)
 	if !ok {
+		done()
 		return nil, fmt.Errorf("%w: %q", ErrNotStreamable, action.Capability)
 	}
-	return streamer.Stream(ctx, action)
+	content, err := streamer.Stream(streamCtx, action)
+	if err != nil {
+		done()
+		return nil, err
+	}
+	if content == nil || content.Size() < 0 {
+		done()
+		if content != nil {
+			_ = content.Close()
+		}
+		return nil, errors.New("invalid board content")
+	}
+	a, err := c.attach(streamCtx, content, done, action.Capability)
+	if err != nil {
+		return nil, err
+	}
+	return &managedContent{Content: content, attachment: a}, nil
 }
+
+type managedContent struct {
+	Content
+	attachment *attachment
+}
+
+func (c *managedContent) Close() error { return c.attachment.Close() }
 
 // ReadAll drains a content stream into memory under an explicit ceiling. It
 // exists so a host that genuinely needs bytes can say how many it will hold;

@@ -17,7 +17,6 @@ import (
 
 	"board"
 	"cymonkey/src/internal/engineprovider"
-	"cymonkey/src/internal/host"
 	"cymonkey/src/internal/orchestrator"
 	"cymonkey/src/internal/userscripts"
 	"cymonkey/src/observation"
@@ -25,14 +24,17 @@ import (
 )
 
 type operatorServer struct {
-	engine         *engineprovider.Service
-	token          string
-	store          string
-	config         string
-	blockadeURL    string
-	mu             sync.Mutex
-	active         map[string]*operatorBrowserSession
-	boardProviders func() ([]board.Provider, error)
+	engine              *engineprovider.Service
+	token               string
+	store               string
+	config              string
+	interpretationURL   string
+	interpretationToken string
+	mu                  sync.Mutex
+	active              map[string]*operatorBrowserSession
+	deviceProviders     func() ([]board.Provider, error)
+	deviceSessions      map[string]*managedDeviceSession
+	deviceClosed        bool
 }
 
 type operatorBrowserSession struct {
@@ -45,7 +47,7 @@ func newOperatorServer(registry *orchestrator.Registry, token, store, config str
 	if strings.TrimSpace(token) == "" {
 		return nil, errors.New("CYMONKEY_OPERATOR_TOKEN is required")
 	}
-	server := &operatorServer{token: token, store: store, config: config, active: make(map[string]*operatorBrowserSession), boardProviders: boardPluginProviders}
+	server := &operatorServer{token: token, store: store, config: config, active: make(map[string]*operatorBrowserSession), deviceProviders: devicePluginAdapters}
 	engine, err := engineprovider.NewService(registry, token, engineprovider.WithRecoveryHook(server.replayRecoveredUserscripts))
 	if err != nil {
 		return nil, err
@@ -54,7 +56,10 @@ func newOperatorServer(registry *orchestrator.Registry, token, store, config str
 	return server, nil
 }
 
-func (server *operatorServer) Close(ctx context.Context) error { return server.engine.Close(ctx) }
+func (server *operatorServer) Close(ctx context.Context) error {
+	server.closeDeviceSessions()
+	return server.engine.Close(ctx)
+}
 
 func (server *operatorServer) Routes() http.Handler {
 	engineRoutes := server.engine.Routes()
@@ -65,6 +70,10 @@ func (server *operatorServer) Routes() http.Handler {
 		}
 		if !server.authorized(r) {
 			operatorError(w, http.StatusUnauthorized, "unauthorized", "authorization is required")
+			return
+		}
+		if r.URL.Path == "/v1/device-sessions" || strings.HasPrefix(r.URL.Path, "/v1/device-sessions/") {
+			server.handleDeviceSessions(w, r)
 			return
 		}
 		switch r.URL.Path {
@@ -78,20 +87,20 @@ func (server *operatorServer) Routes() http.Handler {
 			server.handleObservation(w, r)
 		case "/v1/interpretations":
 			server.handleInterpretation(w, r)
-		case "/v1/board/devices":
-			server.handleBoardDevices(w, r)
-		case "/v1/board/actions":
-			server.handleBoardAction(w, r, false)
-		case "/v1/board/streams":
-			server.handleBoardAction(w, r, true)
+		case "/v1/devices":
+			server.handleDeviceInventory(w, r)
+		case "/v1/device-actions":
+			server.handleDeviceAction(w, r, false)
+		case "/v1/device-streams":
+			server.handleDeviceAction(w, r, true)
 		default:
 			if strings.HasPrefix(r.URL.Path, "/v1/userscripts/") {
 				server.handleUserscript(w, r)
 				return
 			}
-			if r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/v1/instances/") {
+			if r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/v1/display-instances/") {
 				server.mu.Lock()
-				delete(server.active, strings.TrimPrefix(r.URL.Path, "/v1/instances/"))
+				delete(server.active, strings.TrimPrefix(r.URL.Path, "/v1/display-instances/"))
 				server.mu.Unlock()
 			}
 			engineRoutes.ServeHTTP(w, r)
@@ -134,7 +143,7 @@ func (server *operatorServer) handleBrowserSession(w http.ResponseWriter, r *htt
 		operatorError(w, http.StatusUnprocessableEntity, "browser_connection_unavailable", err.Error())
 		return
 	}
-	result := server.engineRequest(r.Context(), http.MethodPost, "/v1/instances", connection)
+	result := server.engineRequest(r.Context(), http.MethodPost, "/v1/display-instances", connection)
 	if result.Code != http.StatusCreated {
 		copyRecordedResponse(w, result)
 		return
@@ -142,7 +151,7 @@ func (server *operatorServer) handleBrowserSession(w http.ResponseWriter, r *htt
 	if userscriptsTarget != "" {
 		session := &operatorBrowserSession{target: userscriptsTarget}
 		if err := server.syncUserscripts(r.Context(), connection.InstanceID, session); err != nil {
-			server.engineRequest(r.Context(), http.MethodDelete, "/v1/instances/"+connection.InstanceID, nil)
+			server.engineRequest(r.Context(), http.MethodDelete, "/v1/display-instances/"+connection.InstanceID, nil)
 			operatorError(w, http.StatusBadGateway, "userscript_replay_failed", err.Error())
 			return
 		}
@@ -235,12 +244,14 @@ func (server *operatorServer) handleObservation(w http.ResponseWriter, r *http.R
 		operatorError(w, http.StatusUnprocessableEntity, "invalid_request", "instanceId is required")
 		return
 	}
-	blockadeURL, err := server.blockadeEndpoint()
+	interpretationURL, interpretationToken, err := server.interpretationConnection()
 	if err != nil {
 		operatorError(w, http.StatusServiceUnavailable, "observation_unconfigured", err.Error())
 		return
 	}
-	coordinator, err := observation.NewObservationCoordinatorWithCapture(cymonkeyhost.ObservationConfig{Blockade: cymonkeyhost.ObservationBlockadeConfig{Endpoint: blockadeURL}}, server.captureLocal)
+	coordinator, err := observation.NewObservationCoordinatorWithCapture(observation.Config{
+		Interpretation: observation.ServiceConfig{Endpoint: interpretationURL, Token: interpretationToken},
+	}, server.captureLocal)
 	if err != nil {
 		operatorError(w, http.StatusServiceUnavailable, "observation_unconfigured", err.Error())
 		return
@@ -254,7 +265,7 @@ func (server *operatorServer) handleObservation(w http.ResponseWriter, r *http.R
 }
 
 func (server *operatorServer) captureLocal(ctx context.Context, request observation.ObservationRequest) ([]byte, error) {
-	result := server.engineRequest(ctx, http.MethodPost, "/v1/instances/"+url.PathEscape(request.InstanceID)+"/call", map[string]any{
+	result := server.engineRequest(ctx, http.MethodPost, "/v1/display-instances/"+url.PathEscape(request.InstanceID)+"/call", map[string]any{
 		"method":     "act",
 		"params":     map[string]any{"name": "window.screenshot", "input": map[string]any{"fullPage": request.FullPage}},
 		"approvalId": request.ApprovalID,

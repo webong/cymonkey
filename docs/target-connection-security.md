@@ -1,12 +1,12 @@
 # Target connection security
 
-Jangolova resolves opaque target references immediately before an engine
-connects. Resolved material exists only in the provider process and the
+Cymonkey resolves opaque target references immediately before an engine
+connects. Resolved material exists only in the display service process and the
 selected adapter or worker. It is not added to the target descriptor,
-manifest, provider response, events, health output, logs, or process command
+manifest, display service response, events, health output, logs, or process command
 arguments.
 
-This does not make Jangolova a secret store or network orchestrator. The
+This does not make Cymonkey a secret store or network orchestrator. The
 caller still owns secret storage, endpoint reachability, relays, tunnels,
 placement, and target lifecycle.
 
@@ -15,17 +15,17 @@ placement, and target lifecycle.
 1. The caller supplies `credentialRef` and/or `tlsRef` on an endpoint.
 2. The provider selects an engine using protocols and capabilities.
 3. A configured resolver obtains connection material for each reference.
-4. Jangolova validates its shape and expiry, then gives an in-memory copy to
+4. Cymonkey validates its shape and expiry, then gives an in-memory copy to
    the adapter.
 5. Expiring credential and TLS leases are re-resolved before expiry.
-6. The adapter acknowledges a generation only after it is active; Jangolova
+6. The adapter acknowledges a generation only after it is active; Cymonkey
    then releases the superseded resolver lease.
 7. Disconnect releases remaining resolver leases and removes in-memory
    connection material.
 
 Resolver failures contain only the reference name and a safe failure class.
 Resolved header values are redacted from connection errors, calls, health
-messages, lifecycle events, and provider shutdown errors.
+messages, lifecycle events, and display service shutdown errors.
 
 ## Material documents
 
@@ -35,7 +35,7 @@ A credential is a set of connection headers with a mandatory expiry:
 
 ```json
 {
-  "apiVersion": "interaction.connection/v1alpha1",
+  "apiVersion": "cymonkey.connection-material/v1alpha1",
   "kind": "credential",
   "headers": {
     "Authorization": "Bearer short-lived-session-token"
@@ -45,7 +45,7 @@ A credential is a set of connection headers with a mandatory expiry:
 ```
 
 Credentials already expired or expiring within five seconds are rejected.
-Jangolova re-resolves expiring credential and TLS material before expiry and
+Cymonkey re-resolves expiring credential and TLS material before expiry and
 accepts a replacement only when its expiry is later than the active
 generation. Failed refreshes retry without replacing still-valid material.
 
@@ -60,7 +60,7 @@ generation unacknowledged.
 CDP and BiDi adapters reconnect in place for header-only changes. A CA change
 instead starts a new Node worker because Node reads `NODE_EXTRA_CA_CERTS` at
 process startup. The adapter connects that candidate, atomically replaces the
-worker behind the existing Jangolova interaction instance, and then stops the
+worker behind the existing Cymonkey interaction instance, and then stops the
 old worker. The caller-owned browser is never replaced. Successful rotation
 emits `interaction.connection.renewed`; a failed candidate emits
 `interaction.connection.renewal_failed` and is retried. If no replacement
@@ -71,12 +71,12 @@ TLS material contains caller-managed absolute file paths:
 
 ```json
 {
-  "apiVersion": "interaction.connection/v1alpha1",
+  "apiVersion": "cymonkey.connection-material/v1alpha1",
   "kind": "tls",
   "tls": {
     "caFile": "/run/secrets/browser-cluster-ca.pem",
-    "clientCertificateFile": "/run/secrets/jangolova-client.pem",
-    "clientKeyFile": "/run/secrets/jangolova-client-key.pem",
+    "clientCertificateFile": "/run/secrets/cymonkey-client.pem",
+    "clientKeyFile": "/run/secrets/cymonkey-client-key.pem",
     "serverName": "browser.internal.example"
   },
   "expiresAt": "2026-08-02T00:00:00Z"
@@ -89,25 +89,25 @@ insecure-TLS option.
 ## Built-in resolvers
 
 The environment resolver uses
-`JANGOLOVA_<KIND>_<ENCODED_REFERENCE>`. ASCII letters and digits are uppercased;
+`CYMONKEY_<KIND>_<ENCODED_REFERENCE>`. ASCII letters and digits are uppercased;
 other bytes are encoded as `_HH`, avoiding collisions. For example,
 `browser-session` becomes:
 
 ```text
-JANGOLOVA_CREDENTIAL_BROWSER_2DSESSION
+CYMONKEY_CREDENTIAL_BROWSER_2DSESSION
 ```
 
 Environment material is useful for development and tightly controlled process
 supervisors. Production supervisors should normally mount files and set:
 
 ```text
-JANGOLOVA_CONNECTION_MATERIAL_DIR=/run/jangolova-material
+CYMONKEY_CONNECTION_MATERIAL_DIR=/run/cymonkey-material
 ```
 
 The directory layout is:
 
 ```text
-/run/jangolova-material/
+/run/cymonkey-material/
   credential/browser-session.json
   tls/browser-cluster-ca.json
 ```
@@ -116,7 +116,7 @@ The reference is validated as an identifier and never interpreted as a path.
 Material files should be written to a temporary sibling and atomically renamed
 over the active document so a resolver never observes a partial generation.
 The environment resolver is attempted first, followed by the directory
-resolver. Embedders inside the Jangolova distribution can inject a callback
+resolver. Embedders inside the Cymonkey distribution can inject a callback
 resolver with `engineprovider.WithTargetResolver`, allowing a dedicated secret
 manager without changing target or adapter contracts.
 
@@ -146,7 +146,7 @@ its candidate handshake before the previous transport is released.
 The standalone command accepts matching endpoint reference flags:
 
 ```bash
-cymonkey provider connect-engine \
+cymonkey display connect \
   --target-kind browser \
   --endpoint cdp=wss://browser.example/devtools/browser/42 \
   --credential-ref cdp=browser-session \

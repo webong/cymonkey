@@ -1,6 +1,4 @@
-// Package engineprovider implements the provider-neutral interaction-engine
-// contract. Jangolova is one implementation and Xallet is one supported
-// target provider.
+// Package engineprovider implements Cymonkey's public display service.
 package engineprovider
 
 import (
@@ -8,8 +6,8 @@ import (
 	"time"
 )
 
-const APIVersion = "interaction.engine/v1alpha1"
-const TargetAPIVersion = "interaction.target/v1alpha1"
+const APIVersion = "cymonkey.display/v1alpha1"
+const TargetAPIVersion = "cymonkey.display-target/v1alpha1"
 
 type EngineDescriptor struct {
 	Adapter      string   `json:"adapter"`

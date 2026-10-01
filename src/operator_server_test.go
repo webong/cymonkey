@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"blockade"
+	"cymonkey/src/contracts"
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
 	"cymonkey/src/internal/userscripts"
@@ -24,6 +24,25 @@ type operatorTestAdapter struct{}
 
 func (operatorTestAdapter) Connect(context.Context, manifest.EngineSpec, orchestrator.EngineTarget) (orchestrator.EngineInstance, error) {
 	return operatorTestInstance{}, nil
+}
+
+func TestInterpretationServiceURL(t *testing.T) {
+	endpoint, err := interpretationServiceURL([]string{
+		"content.interpretation=https://content.example",
+		"image.observation=https://content.example",
+	})
+	if err != nil || endpoint != "https://content.example" {
+		t.Fatalf("service endpoint = %q, %v", endpoint, err)
+	}
+	if _, err := interpretationServiceURL([]string{"unknown=https://example.com"}); err == nil {
+		t.Fatal("accepted an unknown service contract")
+	}
+	if _, err := interpretationServiceURL([]string{
+		"content.interpretation=https://one.example",
+		"image.observation=https://two.example",
+	}); err == nil {
+		t.Fatal("accepted conflicting Blockade service endpoints")
+	}
 }
 
 type operatorTestInstance struct{}
@@ -58,7 +77,7 @@ func TestOperatorKeepsBrowserSessionCallableBehindAuthentication(t *testing.T) {
 	if connected.Code != http.StatusCreated || !strings.Contains(connected.Body.String(), `"instanceId":"browser-one"`) {
 		t.Fatalf("connect = %d %s", connected.Code, connected.Body.String())
 	}
-	called := operatorTestRequest(server, "secret", http.MethodPost, "/v1/instances/browser-one/call", `{"method":"act","params":{"name":"window.click","input":{"selector":"#go"}}}`)
+	called := operatorTestRequest(server, "secret", http.MethodPost, "/v1/display-instances/browser-one/call", `{"method":"act","params":{"name":"window.click","input":{"selector":"#go"}}}`)
 	if called.Code != http.StatusOK || !strings.Contains(called.Body.String(), `"ok":true`) {
 		t.Fatalf("call = %d %s", called.Code, called.Body.String())
 	}
@@ -66,7 +85,7 @@ func TestOperatorKeepsBrowserSessionCallableBehindAuthentication(t *testing.T) {
 	if err != nil || string(image) != "png" {
 		t.Fatalf("local capture = %q, %v", image, err)
 	}
-	if operatorTestRequest(server, "secret", http.MethodDelete, "/v1/instances/browser-one", "").Code != http.StatusNoContent {
+	if operatorTestRequest(server, "secret", http.MethodDelete, "/v1/display-instances/browser-one", "").Code != http.StatusNoContent {
 		t.Fatal("session did not disconnect")
 	}
 }
@@ -100,13 +119,13 @@ func TestOperatorExposesUserscriptAndExtensionActions(t *testing.T) {
 }
 
 func TestOperatorObservesItsOwnBrowserSession(t *testing.T) {
-	blockadeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	contentServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/observe" {
-			t.Fatalf("Blockade path = %q", r.URL.Path)
+			t.Fatalf("content path = %q", r.URL.Path)
 		}
-		_ = json.NewEncoder(w).Encode(blockade.ObserveResponse{APIVersion: blockade.APIVersion, RequestID: "observed"})
+		_ = json.NewEncoder(w).Encode(contracts.ObservationResult{APIVersion: contracts.ObservationAPIVersion, RequestID: "observed", Observations: []contracts.Observation{}})
 	}))
-	defer blockadeServer.Close()
+	defer contentServer.Close()
 	registry := orchestrator.NewRegistry()
 	if err := registry.RegisterEngine("fixture", operatorTestAdapter{}); err != nil {
 		t.Fatal(err)
@@ -116,7 +135,7 @@ func TestOperatorObservesItsOwnBrowserSession(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer server.Close(context.Background())
-	server.blockadeURL = blockadeServer.URL
+	server.interpretationURL = contentServer.URL
 	connected := operatorTestRequest(server, "secret", http.MethodPost, "/v1/browser-sessions", `{"instanceId":"browser-one","adapter":"fixture","endpoint":"cdp=http://127.0.0.1:9222"}`)
 	if connected.Code != http.StatusCreated {
 		t.Fatalf("connect = %d %s", connected.Code, connected.Body.String())
@@ -270,7 +289,7 @@ func TestOperatorReplaysUserscriptsAfterEngineRecovery(t *testing.T) {
 	}
 	deadline := time.Now().Add(time.Second)
 	for {
-		result := operatorTestRequest(server, "secret", http.MethodGet, "/v1/instances/recover-one", "")
+		result := operatorTestRequest(server, "secret", http.MethodGet, "/v1/display-instances/recover-one", "")
 		var state struct {
 			Status string `json:"status"`
 		}

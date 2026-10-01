@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Jangolova Three.js Experience</title>
+    <title>Cymonkey Three.js Experience</title>
     <style>
       html,
       body {
@@ -48,18 +48,18 @@
     </style>
   </head>
   <body>
-    <canvas id="experience" aria-label="Jangolova Three.js experience"></canvas>
+    <canvas id="experience" aria-label="Cymonkey Three.js experience"></canvas>
     <div id="status">
-      <strong>Jangolova Scene Bridge</strong>
+      <strong>Cymonkey Display Bridge</strong>
       <span id="summary">Waiting for presentation commands</span>
     </div>
     <script>
-      window.__jangolovaErrors = [];
+      window.__cymonkeyErrors = [];
       addEventListener("error", (event) => {
-        window.__jangolovaErrors.push(event.error?.stack || event.message);
+        window.__cymonkeyErrors.push(event.error?.stack || event.message);
       });
       addEventListener("unhandledrejection", (event) => {
-        window.__jangolovaErrors.push(event.reason?.stack || String(event.reason));
+        window.__cymonkeyErrors.push(event.reason?.stack || String(event.reason));
       });
     </script>
     <script type="module" src="./main.js"></script>

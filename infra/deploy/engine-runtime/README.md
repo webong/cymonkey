@@ -1,6 +1,6 @@
-# Jangolova Interaction Runtime Image
+# Cymonkey Display Runtime Image
 
-This optional image packages the Jangolova provider, Node.js, Playwright Core,
+This optional image packages Cymonkey's display service, Node.js, Playwright Core,
 Puppeteer Core, and the browser interaction worker. It does not contain
 Chromium, a display server, or container/session topology.
 
@@ -8,11 +8,11 @@ Build it locally:
 
 ```sh
 docker build -f infra/deploy/engine-runtime/Containerfile \
-  -t jangolova/engine-runtime:latest .
+  -t cymonkey/display-runtime:latest .
 ```
 
 This is a local image name; no registry publication is implied.
 
-The operator supplies `JANGOLOVA_PROVIDER_TOKEN` and places the image where it
+The operator supplies `CYMONKEY_DISPLAY_TOKEN` and places the image where it
 can reach caller-owned target endpoints. When Xallet is the operator, Xallet
 owns the targets, private application network, secrets, and workload lifecycle.

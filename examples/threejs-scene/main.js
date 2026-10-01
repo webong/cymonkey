@@ -196,7 +196,7 @@ function act(name, input = {}) {
         metalness: 0.18,
       });
       const object = new THREE.Mesh(geometry(input.type), material);
-      object.userData.jangolovaID = input.id;
+      object.userData.cymonkeyID = input.id;
       applyTransform(object, input);
       scene.add(object);
       const record = {
@@ -285,11 +285,11 @@ function readEvents({ after = "0", types = [], limit = 100 } = {}) {
   };
 }
 
-(window.cymonkey ??= {}).jangolova = {
+(window.cymonkey ??= {}).display = {
   hello: () => ({
-    protocolVersion: "jangolova.bridge/v1alpha1",
+    protocolVersion: "cymonkey.display-bridge/v1alpha1",
     implementation: {
-      name: "jangolova-threejs-scene",
+      name: "cymonkey-threejs-scene",
       version: THREE.REVISION,
     },
     features: ["events.cursor"],
@@ -310,7 +310,7 @@ canvas.addEventListener("pointerdown", (event) => {
     false,
   )[0];
   publishEvent("pointer.select", {
-    objectId: selected?.object.userData.jangolovaID || null,
+    objectId: selected?.object.userData.cymonkeyID || null,
     x: event.clientX - rect.left,
     y: event.clientY - rect.top,
   });

@@ -17,18 +17,18 @@ window.cymonkeySandboxPackage = {
         });
         port.onmessage = async (event) => {
             const value = event.data;
-            if (record(value) && value.channel === 'cymonkey.jangolova.media.response') {
+            if (record(value) && value.channel === 'cymonkey.display.media.response') {
                 media.receive(value);
                 return;
             }
-            if (!record(value) || value.channel !== 'cymonkey.jangolova.sandbox.request' || typeof value.id !== 'string')
+            if (!record(value) || value.channel !== 'cymonkey.display.sandbox.request' || typeof value.id !== 'string')
                 return;
             const request = record(value.request) ? value.request : { method: '' };
             try {
-                port.postMessage({ channel: 'cymonkey.jangolova.sandbox.response', id: value.id, result: await runtime.dispatch(request) });
+                port.postMessage({ channel: 'cymonkey.display.sandbox.response', id: value.id, result: await runtime.dispatch(request) });
             }
             catch (error) {
-                port.postMessage({ channel: 'cymonkey.jangolova.sandbox.response', id: value.id, error: errorMessage(error) });
+                port.postMessage({ channel: 'cymonkey.display.sandbox.response', id: value.id, error: errorMessage(error) });
             }
         };
         port.start();
@@ -56,7 +56,7 @@ function createCameraMediaProvider(port) {
                 reject(new Error('Cymonkey media broker timed out'));
             }, 15_000);
             pending.set(id, { resolve, reject, timer });
-            port.postMessage({ channel: 'cymonkey.jangolova.media.request', id, method, params });
+            port.postMessage({ channel: 'cymonkey.display.media.request', id, method, params });
         });
     };
     return {

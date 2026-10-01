@@ -33,7 +33,7 @@ func TestClientConnectsAndCallsEngine(t *testing.T) {
 	}
 
 	// List engines.
-	engines, err := client.Engines(ctx)
+	engines, err := client.Adapters(ctx)
 	if err != nil {
 		t.Fatalf("engines: %v", err)
 	}

@@ -21,7 +21,7 @@
 <script>
   const status = document.getElementById('status');
   function update() {
-    const active = !!document.getElementById('jangolova-bookmarklet-highlight-links');
+    const active = !!document.getElementById('cymonkey-bookmarklet-highlight-links');
     status.textContent = active ? 'Highlighter active' : 'Highlighter absent';
   }
   new MutationObserver(update).observe(document.head, { childList: true });

@@ -39,16 +39,16 @@ export function createAugmentationManager(dependencies: AugmentationDependencies
       if (!approval.approved) return {status: 'approval-required' as const, approval: approval.approval};
       const payload = {...input, package: item.description.id, augmentationId: input.augmentationId, target: {tabId: tab.id}};
       if (item.delivery.kind === 'sandbox') {
-        return dependencies.tabs.send({tabId: tab.id}, 'cymonkey.jangolova.sandbox', 'mount', payload);
+        return dependencies.tabs.send({tabId: tab.id}, 'cymonkey.display.sandbox', 'mount', payload);
       }
       await dependencies.browser.scripts.execute(item.description.id, tab.id, [path(item.description.id, item.delivery.entrypoint)]);
-      return dependencies.tabs.send({tabId: tab.id}, 'cymonkey.jangolova.augmentation-runtime', 'mount', payload);
+      return dependencies.tabs.send({tabId: tab.id}, 'cymonkey.display.augmentation-runtime', 'mount', payload);
     },
     async unmount(input: Pick<AugmentationMount, 'augmentationId' | 'package' | 'target'>) {
       if (!input || typeof input.augmentationId !== 'string' || !identifier.test(input.augmentationId)) throw new Error('augmentation id is invalid');
       const item = await dependencies.catalog.require(input.package, []);
       const tab = await dependencies.tabs.resolve(input.target);
-      const channel = item.delivery.kind === 'sandbox' ? 'cymonkey.jangolova.sandbox' : 'cymonkey.jangolova.augmentation-runtime';
+      const channel = item.delivery.kind === 'sandbox' ? 'cymonkey.display.sandbox' : 'cymonkey.display.augmentation-runtime';
       return dependencies.tabs.send({tabId: tab.id}, channel, 'unmount', {...input, target: {tabId: tab.id}});
     },
   };

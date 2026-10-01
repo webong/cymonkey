@@ -12,7 +12,7 @@ supervisor, a VM manager, Xallet, or another orchestration system.
 
 ```json
 {
-  "apiVersion": "interaction.target/v1alpha1",
+  "apiVersion": "cymonkey.display-target/v1alpha1",
   "targetId": "desktop-browser-42",
   "kind": "browser",
   "endpoints": [{
@@ -48,14 +48,14 @@ Set `engine.adapter` to `auto` and optionally require capabilities:
 
 ```json
 {
-  "apiVersion": "interaction.engine/v1alpha1",
+  "apiVersion": "cymonkey.display/v1alpha1",
   "instanceId": "interaction-42",
   "engine": {
     "adapter": "auto",
     "requiredCapabilities": ["presentation.mount"]
   },
   "target": {
-    "apiVersion": "interaction.target/v1alpha1",
+    "apiVersion": "cymonkey.display-target/v1alpha1",
     "targetId": "desktop-browser-42",
     "kind": "browser",
     "endpoints": [{
@@ -79,7 +79,7 @@ hostname or deployment owner. Current protocol mappings are:
 - Cymonkey WebSocket → Cymonkey render for Unity, Unreal, or another conforming fixture.
 
 An explicit adapter name remains supported when the caller needs a specific
-implementation. The standalone `connect-engine` command defaults to `auto` and
+implementation. The standalone `connect` command defaults to `auto` and
 accepts repeated `--require-capability` flags.
 
 ## Ownership invariant

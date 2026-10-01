@@ -15,7 +15,7 @@ import (
 	"sync"
 )
 
-// MCPProtocolVersion is the direct Jangolova tool-server protocol revision.
+// MCPProtocolVersion is the direct display tool-server protocol revision.
 const MCPProtocolVersion = "2025-11-25"
 
 // MCPServer exposes the authenticated Engine Provider as agent-callable tools.
@@ -28,7 +28,7 @@ type MCPServer struct {
 
 func NewMCPServer(service *Service) (*MCPServer, error) {
 	if service == nil {
-		return nil, errors.New("Jangolova engine provider is required")
+		return nil, errors.New("display service is required")
 	}
 	return &MCPServer{service: service, sessions: map[string]struct{}{}}, nil
 }
@@ -162,14 +162,14 @@ func (server *MCPServer) dispatch(ctx context.Context, request mcpRequest) *mcpR
 		return mcpResult(request.ID, map[string]any{
 			"protocolVersion": MCPProtocolVersion,
 			"capabilities":    map[string]any{"tools": map[string]any{}},
-			"serverInfo":      map[string]any{"name": "jangolova", "version": "0.2.0"},
+			"serverInfo":      map[string]any{"name": "cymonkey-display", "version": "0.2.0"},
 		})
 	case "notifications/initialized":
 		return nil
 	case "ping":
 		return mcpResult(request.ID, map[string]any{})
 	case "tools/list":
-		return mcpResult(request.ID, map[string]any{"tools": jangolovaMCPTools()})
+		return mcpResult(request.ID, map[string]any{"tools": displayMCPTools()})
 	case "tools/call":
 		return server.dispatchToolCall(ctx, request)
 	default:
@@ -182,7 +182,7 @@ func mcpResult(id json.RawMessage, value any) *mcpResponse {
 	return &mcpResponse{JSONRPC: "2.0", ID: id, Result: value}
 }
 
-func jangolovaMCPTools() []map[string]any {
+func displayMCPTools() []map[string]any {
 	object := func(properties map[string]any, required ...string) map[string]any {
 		value := map[string]any{"type": "object", "properties": properties, "additionalProperties": false}
 		if len(required) != 0 {
@@ -191,14 +191,14 @@ func jangolovaMCPTools() []map[string]any {
 		return value
 	}
 	return []map[string]any{
-		{"name": "jangolova_engines", "description": "List available Jangolova target adapters and capabilities.", "inputSchema": object(nil)},
-		{"name": "jangolova_instance_connect", "description": "Attach Jangolova to a caller-owned target.", "inputSchema": object(map[string]any{"request": map[string]any{"type": "object"}}, "request")},
-		{"name": "jangolova_instance_describe", "description": "Inspect one attached interaction instance.", "inputSchema": object(map[string]any{"instanceId": map[string]any{"type": "string"}}, "instanceId")},
-		{"name": "jangolova_instance_call", "description": "Call a negotiated semantic method on an attached instance.", "inputSchema": object(map[string]any{"instanceId": map[string]any{"type": "string"}, "method": map[string]any{"type": "string"}, "params": map[string]any{"type": "object"}, "approvalId": map[string]any{"type": "string"}}, "instanceId", "method")},
-		{"name": "jangolova_instance_events", "description": "Read target and action audit events after an optional cursor.", "inputSchema": object(map[string]any{"instanceId": map[string]any{"type": "string"}, "after": map[string]any{"type": "string"}, "limit": map[string]any{"type": "integer"}}, "instanceId")},
-		{"name": "jangolova_action_approval_request", "description": "Create a pending owner approval for an action configured to require it.", "inputSchema": object(map[string]any{"instanceId": map[string]any{"type": "string"}, "params": map[string]any{"type": "object"}, "expiresInSeconds": map[string]any{"type": "integer"}}, "instanceId", "params")},
-		{"name": "jangolova_action_approval_resolve", "description": "Approve or reject a pending action approval.", "inputSchema": object(map[string]any{"instanceId": map[string]any{"type": "string"}, "approvalId": map[string]any{"type": "string"}, "approved": map[string]any{"type": "boolean"}}, "instanceId", "approvalId", "approved")},
-		{"name": "jangolova_instance_disconnect", "description": "Detach an interaction instance without stopping the caller-owned target.", "inputSchema": object(map[string]any{"instanceId": map[string]any{"type": "string"}}, "instanceId")},
+		{"name": "cymonkey_display_adapters", "description": "List available display adapters and capabilities.", "inputSchema": object(nil)},
+		{"name": "cymonkey_display_connect", "description": "Attach to a caller-owned display target.", "inputSchema": object(map[string]any{"request": map[string]any{"type": "object"}}, "request")},
+		{"name": "cymonkey_display_describe", "description": "Inspect one attached display instance.", "inputSchema": object(map[string]any{"instanceId": map[string]any{"type": "string"}}, "instanceId")},
+		{"name": "cymonkey_display_call", "description": "Call a negotiated semantic method on an attached display instance.", "inputSchema": object(map[string]any{"instanceId": map[string]any{"type": "string"}, "method": map[string]any{"type": "string"}, "params": map[string]any{"type": "object"}, "approvalId": map[string]any{"type": "string"}}, "instanceId", "method")},
+		{"name": "cymonkey_display_events", "description": "Read display and action audit events after an optional cursor.", "inputSchema": object(map[string]any{"instanceId": map[string]any{"type": "string"}, "after": map[string]any{"type": "string"}, "limit": map[string]any{"type": "integer"}}, "instanceId")},
+		{"name": "cymonkey_display_approval_request", "description": "Create a pending owner approval for an action configured to require it.", "inputSchema": object(map[string]any{"instanceId": map[string]any{"type": "string"}, "params": map[string]any{"type": "object"}, "expiresInSeconds": map[string]any{"type": "integer"}}, "instanceId", "params")},
+		{"name": "cymonkey_display_approval_resolve", "description": "Approve or reject a pending action approval.", "inputSchema": object(map[string]any{"instanceId": map[string]any{"type": "string"}, "approvalId": map[string]any{"type": "string"}, "approved": map[string]any{"type": "boolean"}}, "instanceId", "approvalId", "approved")},
+		{"name": "cymonkey_display_disconnect", "description": "Detach a display instance without stopping the caller-owned target.", "inputSchema": object(map[string]any{"instanceId": map[string]any{"type": "string"}}, "instanceId")},
 	}
 }
 
@@ -229,30 +229,30 @@ func (server *MCPServer) callTool(ctx context.Context, name string, raw json.Raw
 	method, path := http.MethodGet, ""
 	var body json.RawMessage
 	switch name {
-	case "jangolova_engines":
-		path = "/v1/engines"
-	case "jangolova_instance_connect":
-		method, path, body = http.MethodPost, "/v1/instances", args["request"]
-	case "jangolova_instance_describe":
-		path = "/v1/instances/" + stringValue(args["instanceId"])
-	case "jangolova_instance_call":
-		method, path = http.MethodPost, "/v1/instances/"+stringValue(args["instanceId"])+"/call"
+	case "cymonkey_display_adapters":
+		path = "/v1/display-adapters"
+	case "cymonkey_display_connect":
+		method, path, body = http.MethodPost, "/v1/display-instances", args["request"]
+	case "cymonkey_display_describe":
+		path = "/v1/display-instances/" + stringValue(args["instanceId"])
+	case "cymonkey_display_call":
+		method, path = http.MethodPost, "/v1/display-instances/"+stringValue(args["instanceId"])+"/call"
 		body, _ = json.Marshal(map[string]json.RawMessage{"method": args["method"], "params": defaultJSON(args["params"], json.RawMessage(`{}`)), "approvalId": args["approvalId"]})
-	case "jangolova_instance_events":
-		path = "/v1/instances/" + stringValue(args["instanceId"]) + "/events"
+	case "cymonkey_display_events":
+		path = "/v1/display-instances/" + stringValue(args["instanceId"]) + "/events"
 		if after := stringValue(args["after"]); after != "" {
 			path += "?after=" + after
 		}
-	case "jangolova_action_approval_request":
-		method, path = http.MethodPost, "/v1/instances/"+stringValue(args["instanceId"])+"/approvals"
+	case "cymonkey_display_approval_request":
+		method, path = http.MethodPost, "/v1/display-instances/"+stringValue(args["instanceId"])+"/approvals"
 		body, _ = json.Marshal(map[string]json.RawMessage{"params": args["params"], "expiresInSeconds": args["expiresInSeconds"]})
-	case "jangolova_action_approval_resolve":
-		method, path = http.MethodPost, "/v1/instances/"+stringValue(args["instanceId"])+"/approvals/"+stringValue(args["approvalId"])
+	case "cymonkey_display_approval_resolve":
+		method, path = http.MethodPost, "/v1/display-instances/"+stringValue(args["instanceId"])+"/approvals/"+stringValue(args["approvalId"])
 		body, _ = json.Marshal(map[string]json.RawMessage{"approved": args["approved"]})
-	case "jangolova_instance_disconnect":
-		method, path = http.MethodDelete, "/v1/instances/"+stringValue(args["instanceId"])
+	case "cymonkey_display_disconnect":
+		method, path = http.MethodDelete, "/v1/display-instances/"+stringValue(args["instanceId"])
 	default:
-		return nil, fmt.Errorf("unknown Jangolova tool %q", name)
+		return nil, fmt.Errorf("unknown display tool %q", name)
 	}
 	if strings.Contains(path, "//") || strings.HasSuffix(path, "/") {
 		return nil, errors.New("instanceId is required")
@@ -270,14 +270,14 @@ func (server *MCPServer) callTool(ctx context.Context, name string, raw json.Raw
 		if failure.Message != "" {
 			return nil, errors.New(failure.Message)
 		}
-		return nil, fmt.Errorf("Jangolova returned HTTP %d", recorder.Code)
+		return nil, fmt.Errorf("display service returned HTTP %d", recorder.Code)
 	}
 	if recorder.Code == http.StatusNoContent || recorder.Body.Len() == 0 {
 		return map[string]any{"ok": true}, nil
 	}
 	var result any
 	if err := json.Unmarshal(recorder.Body.Bytes(), &result); err != nil {
-		return nil, errors.New("Jangolova returned invalid JSON")
+		return nil, errors.New("display service returned invalid JSON")
 	}
 	return result, nil
 }

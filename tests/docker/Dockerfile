@@ -8,7 +8,7 @@ COPY src ./src
 COPY lib ./lib
 COPY cmd ./cmd
 RUN mkdir -p /out \
-  && go build -o /out/cymonkey ./src
+  && go build -o /out/cymy ./src
 
 FROM node:22-bookworm
 
@@ -31,7 +31,7 @@ COPY tests ./tests
 COPY examples ./examples
 COPY src/internal/bridge ./src/internal/bridge
 COPY scripts ./scripts
-COPY --from=builder /out/cymonkey /app/bin/cymonkey
+COPY --from=builder /out/cymy /app/bin/cymy
 RUN chmod +x tests/docker/*.sh scripts/browser-worker.mjs
 
 ENTRYPOINT ["tests/docker/entrypoint.sh"]

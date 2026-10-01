@@ -161,7 +161,7 @@ func (server *operatorServer) callUserscriptAction(ctx context.Context, instance
 	if err != nil {
 		return err
 	}
-	result := server.engineRequest(ctx, http.MethodPost, "/v1/instances/"+instanceID+"/call", map[string]any{"method": "act", "params": json.RawMessage(params)})
+	result := server.engineRequest(ctx, http.MethodPost, "/v1/display-instances/"+instanceID+"/call", map[string]any{"method": "act", "params": json.RawMessage(params)})
 	if result.Code >= 200 && result.Code < 300 {
 		return nil
 	}

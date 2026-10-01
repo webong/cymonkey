@@ -1,26 +1,24 @@
 # Cymonkey architecture
 
-Cymonkey is the operator, host, and extension boundary. Jangolova owns display
-interfaces for interaction and presentation; Blockade owns model-backed
-observation and interpretation of text, images, and sound; Board owns the input
-and output device contract. Cymonkey links their public Go libraries into its
-command binary and can supervise separate provider processes for long-running
-workflows. Optional installed executables register as providers through the
-same library interfaces. See
-[provider packages](cymonkey-plugins.md). Blockade exposes the
-existing image observation contract and a separate provider-backed content
-contract for text, images, and audio. See
-[Cymonkey naming migration](naming-migration.md).
+Cymonkey is the public operator, host, and extension boundary. Users work with
+three domains: `display`, `content`, and `device`. Cymy, the operator API,
+configuration files, plugin manifests, and process protocols use only these
+Cymonkey contracts.
 
-The dependency direction is one way: Cymonkey imports the public Jangolova,
-Blockade, and Board modules. Each library can run or be embedded with another
-host, and none imports Cymonkey. Cymonkey-specific worker discovery, approval,
-and event compatibility live at the Cymonkey host boundary.
+The executable composes reusable Go libraries behind domain adapters. Those
+adapters convert Cymonkey requests and responses to each library's native
+types. The libraries do not import Cymonkey and remain usable by other hosts.
+Library names and native schemas are implementation details, except in the
+developer documentation for people embedding a library directly.
+
+Optional executables implement the public `cymonkey.display@v1alpha1`,
+`cymonkey.content@v1alpha1`, or `cymonkey.device@v1alpha1` plugin contract. See
+[Cymonkey plugins](cymonkey-plugins.md).
 
 The host boundary has two modes today: direct library calls from the Cymonkey
-executable and supervised provider processes from a `cymonkey.config/v1alpha1`
+executable and supervised service processes from a `cymonkey.config/v1alpha1`
 manifest. The `observe` command uses provider HTTP endpoints so it can reach a
-long-running Jangolova session and a Blockade inference backend. Neither mode
+long-running display session and a content backend. Neither mode
 transfers target ownership to a library. See
 [Cymonkey host and operator](cymonkey-host.md).
 
@@ -42,9 +40,9 @@ requesting display-level pointer/keyboard actions. Presentation includes
 creating and updating dynamic 2D/3D interfaces. Both use the common semantic
 protocol while target runtime and display ownership remain external.
 
-## Jangolova Browser Extension System
+## Browser extension system
 
-Jangolova is the browser extension system. It owns backend
+The internal display library implements the browser extension system. It owns backend
 discovery across CDP, WebDriver BiDi, Safari MCP, and WebExtension, plus the
 authenticated control plane, browser policy, packaged injection, scoped
 storage, network rules, and shared event service.
@@ -70,8 +68,7 @@ The render domain remains explicit-registration only. In browsers,
 objects, cameras, materials, and animation actions. It never scans arbitrary
 page or scene objects.
 
-Userscripts are a privileged Cymonkey augmentation form with the shared
-`jangolova.cymonkey.userscript/v1alpha1` manifest. Cymonkey owns their semantic
+Userscripts are a privileged Cymonkey augmentation form. Cymonkey owns their semantic
 lifecycle through `capabilities`, `describe`, `act`, and `events`. Cymonkey's
 local store and Jangolova's CDP/BiDi attachment provide extension-free
 registration. Integrators can use the browser helper's userscript APIs in their
@@ -91,15 +88,21 @@ extension control plane or a caller-owned CDP/BiDi/MCP connection.
 ```text
 External agent, IDE, or application
   → Cymonkey entry, policy, approval, and module composition
-    ├─ Jangolova display interfaces
+    ├─ display contract
     │   ├─ browser and desktop interaction
     │   └─ dynamic web and render presentation
     │       → caller-owned targets
-    └─ Blockade content interpretation interfaces
+    ├─ device contract
+    │   ├─ native device SDKs and registered providers
+    │   └─ virtual display/audio runtimes and display byte gateway
+    └─ content contract
         ├─ local model backends
         └─ registered cloud/provider adapters
             → normalized evidence and interpretations
 ```
+
+The composition edge maps these public contracts to the selected reusable
+libraries. Nothing above that edge depends on a library's native protocol.
 
 Jangolova supports Playwright, Puppeteer, CDP, WebDriver BiDi, Safari MCP,
 caller-owned WebExtensions, desktop helpers, and render libraries. Blockade
@@ -125,13 +128,29 @@ Jangolova owns:
 - provider-neutral adapters that translate display observations and
   pointer/keyboard intent into a caller-supplied surface/input contract.
 
+Board owns:
+
+- provider registration, device attachment, and capability/resource grants;
+- mounted-drive and macOS keyboard providers;
+- native display capture/input/recording, display readiness, permission
+  onboarding, volume inspection/archive transfer, and endpoint health SDKs;
+- virtual X11, Wayland, and PulseAudio runtime implementations;
+- the authenticated VNC/RDP/SPICE WebSocket byte gateway.
+
+The SDKs are connected through desktop, audio, storage, endpoint, and WebRTC
+providers. Board sessions enforce grants, bound streams, and report lifecycle
+events. Cymonkey loads a host-owned inventory and exposes persistent operator
+sessions. See [Board device sessions](device-sessions.md) and the
+[extraction inventory](device-sdk-extraction.md).
+
 The target provider owns:
 
 - Chromium, WebKit, Gecko, SpiderMonkey, Unity, Unreal, and other executable
   runtime processes;
 - physical machines, VMs, OCI workloads, and their lifecycle;
 - displays, windows, surfaces, profiles, devices, networks, ports, and secrets;
-- VNC, WebRTC, CDP exposure, capture, access policy, and session state.
+- deployment of display/audio runtimes, endpoint exposure, access policy, and
+  session state, using Board's reusable implementations where selected.
 - browser-driver processes and any stdio/network relay required to expose a
   caller-owned Safari MCP server.
 
@@ -161,7 +180,7 @@ Every callable interaction engine uses the common bridge methods:
 - `act`
 - `events`
 
-The authenticated, provider-neutral `interaction.engine/v1alpha1` HTTP API transports those
+The authenticated, provider-neutral `cymonkey.display/v1alpha1` HTTP API transports those
 calls. The cooperative Unity bridge implements the same vocabulary.
 
 The repository uses `src/` for Cymonkey provider code, generic contracts,
@@ -172,15 +191,22 @@ products, while `tests/` remains the conformance and fixture surface. The
 Jangolova, Blockade, and Board libraries are separate Go modules (`jangolova`,
 `blockade`, and `board`). They share the neutral `providerplugin` transport
 module and join the Cymonkey module through `go.work` and local replacements.
-Each library's plugin adapter selects the executable kinds it understands;
+Each library's plugin adapter selects the native executable contracts it understands;
 `providerplugin` checks package structure and integrity without enumerating
-libraries. Cymonkey supplies the plugin directory and registers the public
-library adapters at its executable boundary.
+libraries. Cymonkey owns the command handlers, shared plugin directory, and
+public `cymonkey.*` wire contracts. Its composition adapters translate to the
+native library contracts at the executable boundary.
+
+The host manifest also uses a generic `services` map keyed by public contract
+names such as `display.interaction` and `content.interpretation`. The internal
+host validates and supervises these endpoints without library-specific fields.
 
 ## Package direction
 
 ```text
 src/main.go/                   single Cymonkey operator/interface binary
+src/contentcli/                Cymonkey content command handlers
+src/devicecli/                 Cymonkey device command handlers
 src/internal/provider/         provider and MCP implementation
 src/fixtures/native-bridge/    native bridge fixture implementation
 lib/blockade/                  standalone Blockade inference library
@@ -192,13 +218,12 @@ src/adapters/webpresentation/   declarative web presentation adapter
 src/internal/engineprovider/    target-in / semantic-call protocol
 src/internal/orchestrator/      interaction lifecycle and target contracts
 src/internal/bridge/            engine-neutral semantic methods
-src/jangolova_*.go              Executable-side Jangolova host services and engine registration
+src/display_*.go                Executable-side display library services and adapter registration
 src/observation/                Jangolova capture and Blockade inference workflow
 lib/board/                      standalone Board device library
 lib/board/drive.go              read-only mounted-drive provider
 lib/board/macoskeyboard/         explicit-PID macOS keyboard provider
 lib/board/host/                 provider registration and grant selection
-lib/board/cli/                  standalone Board command surface
 src/internal/core/              core registry/composition/conformance code
 src/internal/host/              Cymonkey host configuration and process supervisor
 lib/jangolova/                  standalone Jangolova library and host boundary

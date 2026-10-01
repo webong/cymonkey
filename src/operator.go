@@ -27,7 +27,7 @@ const defaultOperatorURL = "http://127.0.0.1:7395"
 
 func operatorCommand(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("operator requires serve, targets, connect, call, disconnect, observe, interpret, userscript, extension, or board")
+		return errors.New("operator requires serve, targets, connect, call, disconnect, observe, interpret, userscript, extension, or device")
 	}
 	switch args[0] {
 	case "serve":
@@ -40,8 +40,8 @@ func operatorCommand(args []string, stdout, stderr io.Writer) error {
 		return operatorInterpretClient(args[1:], stdout)
 	case "extension":
 		return operatorExtensionClient(args[1:], stdout)
-	case "board":
-		return operatorBoardClient(args[1:], stdout)
+	case "device":
+		return operatorDeviceClient(args[1:], stdout)
 	default:
 		return fmt.Errorf("unknown operator command %q", args[0])
 	}
@@ -52,7 +52,10 @@ func serveOperator(args []string, stdout, stderr io.Writer) error {
 	flags.SetOutput(io.Discard)
 	bind := flags.String("bind", "127.0.0.1:7395", "operator HTTP bind address")
 	config := flags.String("config", "", "optional Cymonkey observation manifest")
-	blockadeURL := flags.String("blockade-url", "", "Blockade HTTP endpoint for image observations")
+	contentURL := flags.String("content-url", "", "content interpretation service URL")
+	contentTokenEnvironment := flags.String("content-token-env", "", "environment variable containing the content service bearer token")
+	var services repeatFlag
+	flags.Var(&services, "service", "service binding as CONTRACT=URL")
 	store, err := userscripts.DefaultDirectory()
 	if err != nil {
 		return err
@@ -76,10 +79,20 @@ func serveOperator(args []string, stdout, stderr io.Writer) error {
 	if err != nil || !loopbackHost(bindHost) {
 		return errors.New("operator serve must bind to loopback; use an authenticated HTTPS proxy for remote access")
 	}
-	if *blockadeURL != "" {
-		parsed, err := url.Parse(*blockadeURL)
-		if err != nil || parsed.Host == "" || parsed.Scheme != "http" && parsed.Scheme != "https" {
-			return errors.New("--blockade-url must be an HTTP URL")
+	serviceURL, err := interpretationServiceURL(services)
+	if err != nil {
+		return err
+	}
+	if *contentURL != "" && serviceURL != "" {
+		return errors.New("use either --content-url or --service, not both")
+	}
+	if serviceURL != "" {
+		*contentURL = serviceURL
+	}
+	if *contentURL != "" {
+		parsed, err := url.Parse(*contentURL)
+		if err != nil || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || parsed.Scheme != "http" && parsed.Scheme != "https" {
+			return errors.New("--content-url must be an HTTP URL")
 		}
 	}
 	token := strings.TrimSpace(os.Getenv("CYMONKEY_OPERATOR_TOKEN"))
@@ -91,7 +104,14 @@ func serveOperator(args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
-	operator.blockadeURL = *blockadeURL
+	operator.interpretationURL = *contentURL
+	if name := strings.TrimSpace(*contentTokenEnvironment); name != "" {
+		token := strings.TrimSpace(os.Getenv(name))
+		if token == "" {
+			return fmt.Errorf("content token environment variable %q is not set", name)
+		}
+		operator.interpretationToken = token
+	}
 	defer operator.Close(context.Background())
 	if *target != "" || *endpoint != "" || *browser != "" || *userscriptsTarget != "" {
 		payload, err := json.Marshal(browserSessionRequest{InstanceID: *instance, TargetID: *target, Browser: *browser, BrowserBin: *browserBin, Profile: *profile, ProfileDirectory: *profileDirectory, Endpoint: *endpoint, UserscriptsTarget: *userscriptsTarget})
@@ -123,6 +143,26 @@ func serveOperator(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 	return nil
+}
+
+func interpretationServiceURL(values []string) (string, error) {
+	var endpoint string
+	for _, value := range values {
+		contract, rawURL, ok := strings.Cut(value, "=")
+		if !ok || strings.TrimSpace(rawURL) == "" {
+			return "", fmt.Errorf("service binding %q must be CONTRACT=URL", value)
+		}
+		switch strings.TrimSpace(contract) {
+		case "content.interpretation", "image.observation":
+			if endpoint != "" && endpoint != rawURL {
+				return "", errors.New("content.interpretation and image.observation must use the same service")
+			}
+			endpoint = rawURL
+		default:
+			return "", fmt.Errorf("unsupported operator service contract %q", strings.TrimSpace(contract))
+		}
+	}
+	return endpoint, nil
 }
 
 func operatorClient(command string, args []string, output io.Writer) error {
@@ -164,14 +204,14 @@ func operatorClient(command string, args []string, output io.Writer) error {
 		if !json.Valid([]byte(*input)) {
 			return errors.New("--input must be valid JSON")
 		}
-		path = "/v1/instances/" + url.PathEscape(*instance) + "/call"
+		path = "/v1/display-instances/" + url.PathEscape(*instance) + "/call"
 		params, _ := json.Marshal(map[string]any{"name": *name, "input": json.RawMessage(*input)})
 		payload = map[string]any{"method": "act", "params": json.RawMessage(params), "approvalId": *approvalID}
 	case "disconnect":
 		if *instance == "" {
 			return errors.New("disconnect requires --instance")
 		}
-		method, path = http.MethodDelete, "/v1/instances/"+url.PathEscape(*instance)
+		method, path = http.MethodDelete, "/v1/display-instances/"+url.PathEscape(*instance)
 	case "observe":
 		if *instance == "" {
 			return errors.New("observe requires --instance")

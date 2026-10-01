@@ -152,3 +152,27 @@ func TestProviderConfigRejectsPlaintextSecretField(t *testing.T) {
 		t.Fatal("expected plaintext secret field to be rejected")
 	}
 }
+
+func TestSaveConfigRoundTrips(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "nested", "blockade.yaml")
+	config := Config{APIVersion: ConfigAPIVersion, Providers: []ProviderAdapterConfig{{
+		ID: "hosted", Provider: "openai-compatible", Settings: map[string]string{"model": "fixture"},
+	}}}
+	if err := SaveConfig(path, config); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := LoadConfig(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.Providers[0].Settings["model"] != "fixture" {
+		t.Fatalf("saved config = %#v", loaded)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode().Perm() != 0o600 {
+		t.Fatalf("config mode = %o", info.Mode().Perm())
+	}
+}

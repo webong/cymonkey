@@ -77,10 +77,10 @@ func TestRedactJSONHandlesEscapedAndAuthorizationValues(t *testing.T) {
 
 func TestEnvironmentResolverRequiresExpiringCredential(t *testing.T) {
 	resolver := EnvironmentResolver{Lookup: func(name string) (string, bool) {
-		if name != "JANGOLOVA_CREDENTIAL_BROWSER_2DSESSION" {
+		if name != "CYMONKEY_CREDENTIAL_BROWSER_2DSESSION" {
 			t.Fatalf("environment name = %q", name)
 		}
-		return `{"apiVersion":"interaction.connection/v1alpha1","kind":"credential","headers":{"Authorization":"Bearer token"}}`, true
+		return `{"apiVersion":"cymonkey.connection-material/v1alpha1","kind":"credential","headers":{"Authorization":"Bearer token"}}`, true
 	}}
 	_, err := resolver.Resolve(context.Background(), Request{Kind: CredentialReference, Reference: "browser-session"})
 	if err == nil || !strings.Contains(err.Error(), "expiresAt") {
@@ -94,7 +94,7 @@ func TestDirectoryResolverUsesReferenceAsIdentifier(t *testing.T) {
 	if err := os.Mkdir(directory, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	document := fmt.Sprintf(`{"apiVersion":"interaction.connection/v1alpha1","kind":"credential","headers":{"Authorization":"Bearer directory-token"},"expiresAt":%q}`, time.Now().Add(time.Minute).Format(time.RFC3339Nano))
+	document := fmt.Sprintf(`{"apiVersion":"cymonkey.connection-material/v1alpha1","kind":"credential","headers":{"Authorization":"Bearer directory-token"},"expiresAt":%q}`, time.Now().Add(time.Minute).Format(time.RFC3339Nano))
 	if err := os.WriteFile(filepath.Join(directory, "browser-session.json"), []byte(document), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -495,7 +495,7 @@ func testCertificateAuthority(t *testing.T) (*x509.Certificate, *rsa.PrivateKey,
 	}
 	now := time.Now()
 	template := &x509.Certificate{
-		SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "Jangolova test CA"},
+		SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "Cymonkey test CA"},
 		NotBefore: now.Add(-time.Hour), NotAfter: now.Add(time.Hour), IsCA: true,
 		BasicConstraintsValid: true, KeyUsage: x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature,
 	}
@@ -518,7 +518,7 @@ func testLeafCertificate(t *testing.T, ca *x509.Certificate, caKey *rsa.PrivateK
 	}
 	now := time.Now()
 	template := &x509.Certificate{
-		SerialNumber: big.NewInt(serial), Subject: pkix.Name{CommonName: "Jangolova test peer"},
+		SerialNumber: big.NewInt(serial), Subject: pkix.Name{CommonName: "Cymonkey test peer"},
 		NotBefore: now.Add(-time.Hour), NotAfter: now.Add(time.Hour),
 		KeyUsage: x509.KeyUsageDigitalSignature, ExtKeyUsage: usages, IPAddresses: addresses,
 	}

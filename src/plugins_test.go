@@ -17,12 +17,10 @@ import (
 	"testing"
 
 	"blockade"
-	blockadeplugin "blockade/plugin"
 	"board"
-	boardplugin "board/plugin"
+	"cymonkey/src/contracts"
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
-	jangolovaplugin "jangolova/plugin"
 	"jangolova/sdk"
 	"providerplugin"
 )
@@ -45,11 +43,11 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 		name, contract string
 		legacy         bool
 	}{
-		{"display-fixture", jangolovaplugin.ContractName, false},
-		{"vision-fixture", blockadeplugin.ContractName, false},
-		{"content-fixture", blockadeplugin.ContractName, false},
-		{"legacy-vision-fixture", blockadeplugin.ContractName, true},
-		{"device-fixture", boardplugin.ContractName, false},
+		{"display-fixture", displayPluginContract, false},
+		{"vision-fixture", contentPluginContract, false},
+		{"content-fixture", contentPluginContract, false},
+		{"legacy-vision-fixture", contentPluginContract, true},
+		{"device-fixture", devicePluginContract, false},
 		{"future-fixture", "future.provider", false},
 	} {
 		source := filepath.Join(root, item.name)
@@ -59,7 +57,7 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(source, "provider"), data, 0700); err != nil {
 			t.Fatal(err)
 		}
-		m := providerplugin.Manifest{APIVersion: providerplugin.APIVersion, Name: item.name, Version: "1.0.0", Command: "provider", SHA256: hex.EncodeToString(digest[:])}
+		m := providerplugin.Manifest{APIVersion: contracts.PluginManifestVersion, Name: item.name, Version: "1.0.0", Command: "provider", SHA256: hex.EncodeToString(digest[:])}
 		if item.legacy {
 			m.Kind = item.contract
 		} else {
@@ -87,11 +85,11 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, ok := engines.Engine("future-fixture"); ok {
-		t.Fatal("unhandled package contract registered as a Jangolova engine")
+		t.Fatal("unhandled package contract registered as a display adapter")
 	}
 	engine, ok := engines.Engine("display-fixture")
 	if !ok {
-		t.Fatal("Jangolova plugin not registered")
+		t.Fatal("display plugin not registered")
 	}
 	instance, err := engine.Connect(context.Background(), manifest.EngineSpec{Adapter: "display-fixture"}, orchestrator.EngineTarget{Kind: "browser"})
 	if err != nil {
@@ -99,14 +97,14 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 	}
 	raw, err := instance.(sdk.Caller).Call(context.Background(), "describe", json.RawMessage(`{}`))
 	if err != nil || !bytes.Contains(raw, []byte(`"ok":true`)) {
-		t.Fatalf("Jangolova plugin call: %s %v", raw, err)
+		t.Fatalf("display plugin call: %s %v", raw, err)
 	}
 	if err := instance.Disconnect(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 
-	vision := blockade.NewProviderAdapterRegistry()
-	if err := registerBlockadePlugins(vision); err != nil {
+	vision, err := contentPluginRegistry()
+	if err != nil {
 		t.Fatal(err)
 	}
 	if err := blockade.InspectConfiguredProviderModel(context.Background(), blockade.ProviderAdapterConfig{ID: "vision", Provider: "vision-fixture"}, blockade.InstalledModel{
@@ -178,7 +176,7 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	providers, err := boardPluginProviders()
+	providers, err := devicePluginAdapters()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -213,7 +211,7 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 		t.Fatal(err)
 	}
 	var boardOutput bytes.Buffer
-	if err := runBoard([]string{"provider-stream", "--provider", "device-fixture", "--device", "device", "--capability", "drive.read", "--resource", "root"}, &boardOutput, io.Discard); err != nil {
+	if err := runDevice([]string{"adapter-stream", "--adapter", "device-fixture", "--device", "device", "--capability", "drive.read", "--resource", "root"}, &boardOutput, io.Discard); err != nil {
 		t.Fatal(err)
 	}
 	if boardOutput.String() != "content" {
@@ -224,11 +222,11 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer operator.Close(context.Background())
-	operatorDevices := operatorTestRequest(operator, "secret", http.MethodGet, "/v1/board/devices", "")
-	if operatorDevices.Code != http.StatusOK || !bytes.Contains(operatorDevices.Body.Bytes(), []byte(`"providerId":"device-fixture"`)) {
+	operatorDevices := operatorTestRequest(operator, "secret", http.MethodGet, "/v1/devices", "")
+	if operatorDevices.Code != http.StatusOK || !bytes.Contains(operatorDevices.Body.Bytes(), []byte(`"adapterId":"device-fixture"`)) {
 		t.Fatalf("Board operator devices = %d %s", operatorDevices.Code, operatorDevices.Body.String())
 	}
-	operatorStream := operatorTestRequest(operator, "secret", http.MethodPost, "/v1/board/streams", `{"open":{"providerId":"device-fixture","deviceId":"device","grant":{"capabilities":["drive.read"],"resourceIds":["root"]}},"action":{"capability":"drive.read","resourceId":"root","input":{}}}`)
+	operatorStream := operatorTestRequest(operator, "secret", http.MethodPost, "/v1/device-streams", `{"open":{"adapterId":"device-fixture","deviceId":"device","grant":{"capabilities":["drive.read"],"resourceIds":["root"]}},"action":{"capability":"drive.read","resourceId":"root","input":{}}}`)
 	if operatorStream.Code != http.StatusOK || operatorStream.Body.String() != "content" {
 		t.Fatalf("Board operator stream = %d %q", operatorStream.Code, operatorStream.Body.String())
 	}
@@ -245,7 +243,7 @@ func TestStandaloneOnnxProviderUsesExecutableBoundary(t *testing.T) {
 		t.Fatal(err)
 	}
 	executable := filepath.Join(source, "provider")
-	build := exec.Command("go", "build", "-o", executable, "./providers/blockade-onnx")
+	build := exec.Command("go", "build", "-o", executable, "./providers/content-onnx")
 	build.Dir = filepath.Dir(filepath.Dir(fixtureSourcePath(t)))
 	if output, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build ONNX provider: %v\n%s", err, output)
@@ -256,8 +254,8 @@ func TestStandaloneOnnxProviderUsesExecutableBoundary(t *testing.T) {
 	}
 	digest := sha256.Sum256(data)
 	pluginManifest := providerplugin.Manifest{
-		APIVersion: providerplugin.APIVersion, Name: "onnx", Version: "1.0.0",
-		Contracts: []providerplugin.Contract{{Name: blockadeplugin.ContractName, Version: blockadeplugin.ContractVersion}},
+		APIVersion: contracts.PluginManifestVersion, Name: "onnx", Version: "1.0.0",
+		Contracts: []providerplugin.Contract{{Name: contentPluginContract, Version: pluginContractVersion}},
 		Command:   "provider", SHA256: hex.EncodeToString(digest[:]),
 	}
 	encoded, _ := json.Marshal(pluginManifest)
@@ -268,8 +266,8 @@ func TestStandaloneOnnxProviderUsesExecutableBoundary(t *testing.T) {
 	if err := pluginsCommand([]string{"install", "--manifest", manifestPath}, io.Discard, io.Discard); err != nil {
 		t.Fatal(err)
 	}
-	registry := blockade.NewProviderAdapterRegistry()
-	if err := registerBlockadePlugins(registry); err != nil {
+	registry, err := contentPluginRegistry()
+	if err != nil {
 		t.Fatal(err)
 	}
 	model := blockade.InstalledModel{Manifest: blockade.ModelManifest{

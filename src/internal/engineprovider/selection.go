@@ -19,7 +19,7 @@ func SelectAutomaticEngine(
 ) (string, error) {
 	targetCapabilities := targetProtocolCapabilities(target.Endpoints)
 	if len(targetCapabilities) == 0 {
-		return "", fmt.Errorf("automatic engine selection requires at least one recognized target protocol")
+		return "", fmt.Errorf("automatic adapter selection requires at least one recognized target protocol")
 	}
 	for _, engine := range DiscoverEngines(ctx, registry) {
 		if !engine.Available || !containsAny(engine.Capabilities, targetCapabilities) || !containsAll(engine.Capabilities, required) {
@@ -28,7 +28,7 @@ func SelectAutomaticEngine(
 		return engine.Adapter, nil
 	}
 	return "", fmt.Errorf(
-		"no available engine matches target protocols [%s] and required capabilities [%s]",
+		"no available display adapter matches target protocols [%s] and required capabilities [%s]",
 		strings.Join(targetCapabilities, ", "),
 		strings.Join(stableCapabilities(required), ", "),
 	)

@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:interaction-target:connection-material:v1alpha1",
-  "title": "Interaction Target Connection Material",
+  "$id": "urn:cymonkey:connection-material:v1alpha1",
+  "title": "Cymonkey Connection Material",
   "type": "object",
   "additionalProperties": false,
   "required": ["apiVersion", "kind"],
   "properties": {
-    "apiVersion": { "const": "interaction.connection/v1alpha1" },
+    "apiVersion": { "const": "cymonkey.connection-material/v1alpha1" },
     "kind": { "enum": ["credential", "tls"] },
     "headers": {
       "type": "object",

@@ -169,7 +169,7 @@ func TestInspectionFindsRepositoryWorker(t *testing.T) {
 		t.Fatal("resolve test path")
 	}
 	worker := filepath.Join(filepath.Dir(file), "..", "..", "..", "scripts", "browser-worker.mjs")
-	t.Setenv("JANGOLOVA_BROWSER_WORKER", worker)
+	t.Setenv("CYMONKEY_BROWSER_WORKER", worker)
 	inspection := Puppeteer().InspectEngine(context.Background())
 	if !inspection.Available {
 		t.Fatalf("InspectEngine() = %#v", inspection)

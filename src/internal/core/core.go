@@ -1,7 +1,7 @@
 // Package cymonkey defines the portable, host-independent Cymonkey contract.
 //
 // It intentionally depends only on the Go standard library. A host such as
-// Jangolova supplies lifecycle, credentials, and concrete browser or runtime
+// The composition edge supplies lifecycle, credentials, and concrete browser or runtime
 // integrations around these contracts.
 package cymonkey
 

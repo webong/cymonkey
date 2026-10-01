@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Chromium, Xvfb, and the presentation HTTP server are fixtures owned by this
-# test. Jangolova receives only their source URL and CDP endpoint.
+# test. Cymonkey receives only their source URL and CDP endpoint.
 display_number="${DISPLAY_NUM:-100}"
 export DISPLAY=":${display_number}"
 profile_path="/tmp/jangolova-presentation-target-profile"
@@ -40,10 +40,10 @@ printf '%s\n' "${cdp_authorization}" > "${relay_authorization_path}"
 CDP_AUTHORIZATION_FILE="${relay_authorization_path}" node tests/authenticated-cdp-relay.mjs > "${relay_log}" 2>&1 &
 relay_pid=$!
 credential_expires_at="$(node -e 'process.stdout.write(new Date(Date.now() + 10000).toISOString())')"
-credential_document="{\"apiVersion\":\"interaction.connection/v1alpha1\",\"kind\":\"credential\",\"headers\":{\"Authorization\":\"${cdp_authorization}\"},\"expiresAt\":\"${credential_expires_at}\"}"
+credential_document="{\"apiVersion\":\"cymonkey.connection-material/v1alpha1\",\"kind\":\"credential\",\"headers\":{\"Authorization\":\"${cdp_authorization}\"},\"expiresAt\":\"${credential_expires_at}\"}"
 printf '%s\n' "${credential_document}" > "${credential_path}"
-JANGOLOVA_CONNECTION_MATERIAL_DIR="${material_root}" JANGOLOVA_PROVIDER_TOKEN="${token}" \
-  bin/cymonkey provider serve-engine-provider --bind 127.0.0.1:7392 > "${provider_log}" 2>&1 &
+CYMONKEY_CONNECTION_MATERIAL_DIR="${material_root}" CYMONKEY_DISPLAY_TOKEN="${token}" \
+  bin/cymy display serve --bind 127.0.0.1:7392 > "${provider_log}" 2>&1 &
 provider_pid=$!
 
 cleanup() {
@@ -72,7 +72,7 @@ curl -fsS -H "Authorization: ${cdp_authorization}" http://127.0.0.1:9333/json/ve
 curl -fsS http://127.0.0.1:8081/ >/dev/null
 curl -fsS http://127.0.0.1:8082/ >/dev/null
 
-JANGOLOVA_PROVIDER_TOKEN="${token}" \
+CYMONKEY_DISPLAY_TOKEN="${token}" \
   PRESENTATION_AUTHENTICATED_CDP_BASE="ws://127.0.0.1:9333" \
   PRESENTATION_CREDENTIAL_REF="${credential_ref}" \
   PRESENTATION_CREDENTIAL_MATERIAL_PATH="${credential_path}" \
@@ -89,7 +89,7 @@ if grep -F "${rotated_cdp_authorization}" "${provider_log}" >/dev/null 2>&1; the
 fi
 echo "Renewable credential-reference CDP attachment passed"
 
-# Disconnecting Jangolova must not terminate the caller-owned Chromium or its
+# Disconnecting Cymonkey must not terminate the caller-owned Chromium or its
 # independently served presentation target.
 curl -fsS http://127.0.0.1:9224/json/version >/dev/null
 curl -fsS -H "Authorization: ${rotated_cdp_authorization}" http://127.0.0.1:9333/json/version >/dev/null

@@ -1,10 +1,9 @@
 # Cymonkey operator API
 
 `cymy operator serve` keeps browser interaction sessions alive and exposes one
-authenticated HTTP surface for callers. The operator uses Jangolova for display
-actions, Blockade for image observations and content interpretation, and installed Board
-providers for device operations. Browser extensions and userscripts remain
-caller supplied.
+authenticated HTTP surface for callers. It composes Cymonkey's display,
+content, and device contracts. Browser extensions and userscripts remain caller
+supplied.
 
 ## Start and connect
 
@@ -34,9 +33,19 @@ The server prints a JSON interaction instance and stays running on
   --name window.screenshot --input '{}'
 ```
 
-To enable image observations and content interpretation, start Blockade separately and add
-`--blockade-url http://127.0.0.1:8091` to `operator serve`. A Cymonkey host
-manifest with an observation component can also be supplied through `--config`.
+To enable image observations and content interpretation, start the content
+service and bind it to the operator:
+
+```sh
+.cache/bin/cymy operator serve \
+  --service content.interpretation=http://127.0.0.1:8091
+```
+
+Use `--content-url URL` for the same direct binding. An authenticated remote
+content service also uses `--content-token-env NAME`; the operator reads the
+token from that environment variable and forwards it as a bearer credential.
+A Cymonkey host manifest with a `content.interpretation` service can instead be
+supplied through `--config`.
 
 For an already running operator, use `cymy operator targets` and
 `cymy operator connect --target ID [--endpoint PROTOCOL=URL]` instead. To point
@@ -52,14 +61,14 @@ The same CLI reaches the operator's managers:
   --source /absolute/path/to/script.user.js
 .cache/bin/cymy operator extension --name extension.prepare \
   --input '{"source":"/absolute/path/to/extension.zip"}'
-.cache/bin/cymy operator board devices
+.cache/bin/cymy operator device devices
 .cache/bin/cymy operator interpret --text-file /absolute/path/to/note.txt \
   --prompt 'Summarize this'
 .cache/bin/cymy operator interpret --audio /absolute/path/to/recording.wav \
   --audio-type audio/wav --prompt 'Transcribe speech'
-.cache/bin/cymy operator board invoke --provider DEVICE_PROVIDER --device DEVICE_ID \
+.cache/bin/cymy operator device invoke --adapter DEVICE_ADAPTER --device DEVICE_ID \
   --capability drive.list --resource APPROVED_ROOT --input '{}'
-.cache/bin/cymy operator board stream --provider DEVICE_PROVIDER --device DEVICE_ID \
+.cache/bin/cymy operator device stream --adapter DEVICE_ADAPTER --device DEVICE_ID \
   --capability drive.read --resource APPROVED_ROOT --input '{"path":"photo.jpg"}' > photo.jpg
 ```
 
@@ -80,14 +89,14 @@ extension and userscript requests refer to files on the operator's machine.
 | --- | --- |
 | `GET /v1/browser-targets` | Discover local browser installations and profiles. |
 | `POST /v1/browser-sessions` | Select a browser/profile, resolve an existing endpoint, and create a callable session. |
-| `GET /v1/engines`, `POST /v1/instances`, `GET/DELETE /v1/instances/{id}`, `POST /v1/instances/{id}/call` | Existing Jangolova discovery, connection, action, and disconnect operations. Approval, event, and reconcile routes remain available. |
+| `GET /v1/display-adapters`, `POST /v1/display-instances`, `GET/DELETE /v1/display-instances/{id}`, `POST /v1/display-instances/{id}/call` | Display adapter discovery, connection, action, and disconnect operations. Approval, event, and reconcile routes remain available. |
 | `POST /v1/userscripts/{prepare,install,update,list,describe,enable,disable,uninstall}` | Store and manage approved local userscripts; apply changes to matching operator browser sessions. |
 | `POST /v1/extensions/actions` | Run structured extension manager actions, including `extension.sign`, `extension.build-safari`, `extension.install-store`, `extension.remove-store`, and `extension.policy`. Store requests use the operator machine's PowerShell registry (Windows) or documented external preferences directory (macOS/Linux). Administrator policies use Windows PowerShell or managed Chrome JSON on Linux. Signing uses the operator machine's browser/Xcode tools or Mozilla credentials. `extension.install` and `extension.run` require a prepared revision and stream newline-delimited JSON until the browser flow ends. |
-| `POST /v1/observations` | Capture from an operator session and send the image to Blockade. Start with `--blockade-url` or `--config` and a running Blockade service. |
-| `POST /v1/interpretations` | Forward caller-supplied text, image, or audio content to a capable Blockade provider; returns source-linked findings. |
-| `GET /v1/board/devices` | List devices from installed Board provider executables. |
-| `POST /v1/board/actions` | Invoke a Board action with an explicit device and capability grant; returns JSON. |
-| `POST /v1/board/streams` | Read bounded Board content with an explicit grant; returns bytes, up to 16 MiB. |
+| `POST /v1/observations` | Capture from an operator session and send the image to the configured content service. |
+| `POST /v1/interpretations` | Forward caller-supplied text, image, audio, or video to a capable content adapter; returns source-linked findings. |
+| `GET /v1/devices` | List devices from installed device plugins. |
+| `POST /v1/device-actions` | Invoke an action with an explicit device and capability grant; returns JSON. |
+| `POST /v1/device-streams` | Read bounded device content with an explicit grant; returns bytes, up to 16 MiB. |
 
 Connect with a discovered target ID or an explicit endpoint:
 
@@ -121,35 +130,35 @@ For a managed image observation:
 {"instanceId":"browser-one","prompt":"find the primary action"}
 ```
 
-For content interpretation, send the `blockade.content/v1alpha1` request body
+For content interpretation, send the `cymonkey.content/v1alpha1` request body
 to `POST /v1/interpretations`:
 
 ```json
-{"apiVersion":"blockade.content/v1alpha1","parts":[{"kind":"text","text":"Meeting starts at 9."}],"prompt":"Summarize"}
+{"apiVersion":"cymonkey.content/v1alpha1","parts":[{"kind":"text","text":"Meeting starts at 9."}],"prompt":"Summarize"}
 ```
 
 `cymy operator interpret` reads files on the caller's machine and sends their
-bytes to the operator. The Blockade service must have a provider that
-advertises the requested modality; the base library does not bundle text or
-audio models. Mixed content requires `multimodal.interpret`.
+bytes to the operator. The content service must have a plugin that advertises
+the requested modality. Mixed content requires `multimodal.interpret`.
 
-Interaction calls reuse the provider's capability policy, action approvals,
+Interaction calls reuse the display adapter's capability policy, action approvals,
 and audit events. Extension and userscript management requires the operator
 token and a local source path; extension installation also requires the exact
 prepared revision. These manager actions do not yet have separate approval
 receipts. Browser installation still follows each browser's native signature
 and consent rules.
 
-Board requests use the public Board contract. For example, the body of
-`POST /v1/board/streams` can be:
+Device requests use the Cymonkey device contract. For example, the body of
+`POST /v1/device-streams` can be:
 
 ```json
-{"open":{"providerId":"camera-drive","deviceId":"camera-1","grant":{"capabilities":["drive.read"],"resourceIds":["photos"]}},"action":{"capability":"drive.read","resourceId":"photos","input":{"path":"DCIM/photo.jpg"}}}
+{"open":{"adapterId":"camera-drive","deviceId":"camera-1","grant":{"capabilities":["drive.read"],"resourceIds":["photos"]}},"action":{"capability":"drive.read","resourceId":"photos","input":{"path":"DCIM/photo.jpg"}}}
 ```
 
-The operator requires one requested capability per grant. Board checks the
-grant before opening and streaming. The provider must also enforce the
-resource boundary it receives. These routes currently load installed Board
-provider executables; Board's built-in mounted-drive and macOS keyboard
-commands remain available through `cymy board`. The caller holding the operator
-token can request Board grants, so share that token only with authorized callers.
+The single-operation routes require one requested capability per grant and close
+the session after the response. Persistent `/v1/device-sessions` routes support
+multiple explicit capabilities, WebRTC signaling, recordings, transfers, duplex
+channels, expiry, and events. Both surfaces load installed device plugins and
+`CYMONKEY_DEVICE_CONFIG`. See [device sessions](device-sessions.md) for the
+complete API and configuration. The operator token authorizes grants against
+this inventory; a multi-user host must add its own principal policy.

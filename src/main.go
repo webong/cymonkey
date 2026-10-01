@@ -12,9 +12,6 @@ import (
 	"strings"
 	"syscall"
 
-	"blockade"
-	blockadecli "blockade/cli"
-	boardcli "board/cli"
 	nativebridge "cymonkey/src/fixtures/native-bridge"
 	"cymonkey/src/internal/host"
 	"cymonkey/src/internal/provider"
@@ -30,7 +27,7 @@ func main() {
 
 func run(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("cymy requires a command: validate, run, observe, modules, browser, extension, userscript, bookmarklet, provider, operator, board, blockade, plugins, or native-bridge-fixture")
+		return errors.New("cymy requires a command: validate, run, observe, modules, browser, extension, userscript, bookmarklet, display, content, device, operator, or plugins")
 	}
 	switch args[0] {
 	case "validate":
@@ -49,14 +46,14 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return bookmarkletCommand(args[1:], stdout)
 	case "browser":
 		return browserCommand(args[1:], stdout)
-	case "provider":
-		return provider.Run(args[1:], stderr, engineRegistry)
+	case "display":
+		return provider.Run("cymy display", args[1:], stderr, engineRegistry)
 	case "operator":
 		return operatorCommand(args[1:], stdout, stderr)
-	case "board":
-		return runBoard(args[1:], stdout, stderr)
-	case "blockade":
-		return runBlockade(args[1:], stdout, stderr)
+	case "device":
+		return runDevice(args[1:], stdout, stderr)
+	case "content":
+		return runContent(args[1:], stdout, stderr)
 	case "plugins":
 		return pluginsCommand(args[1:], stdout, stderr)
 	case "native-bridge-fixture":
@@ -71,18 +68,18 @@ func run(args []string, stdout, stderr io.Writer) error {
 }
 
 func observe(args []string, stdout io.Writer) error {
-	flags := flag.NewFlagSet("cymonkey observe", flag.ContinueOnError)
+	flags := flag.NewFlagSet("cymy observe", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	configPath := flags.String("config", envOrDefault("CYMONKEY_CONFIG", ""), "Cymonkey host YAML config")
-	instanceID := flags.String("instance", "", "Jangolova interaction instance ID")
+	instanceID := flags.String("instance", "", "display interaction instance ID")
 	prompt := flags.String("prompt", "", "optional observation prompt")
 	fullPage := flags.Bool("full-page", false, "capture the full browser page")
-	approvalID := flags.String("approval-id", "", "optional Jangolova screenshot approval")
+	approvalID := flags.String("approval-id", "", "optional display screenshot approval")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	if flags.NArg() != 0 {
-		return errors.New("cymonkey observe accepts flags only")
+		return errors.New("cymy observe accepts flags only")
 	}
 	if strings.TrimSpace(*configPath) == "" {
 		return errors.New("--config is required")
@@ -94,10 +91,18 @@ func observe(args []string, stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
-	if config.Observation == nil {
-		return errors.New("Cymonkey host config has no observation coordinator")
+	capture, ok := config.Service(observation.CaptureServiceContract)
+	if !ok {
+		return fmt.Errorf("Cymonkey host config has no %s service", observation.CaptureServiceContract)
 	}
-	coordinator, err := observation.NewObservationCoordinator(*config.Observation)
+	interpretation, ok := config.Service(observation.InterpretationServiceContract)
+	if !ok {
+		return fmt.Errorf("Cymonkey host config has no %s service", observation.InterpretationServiceContract)
+	}
+	coordinator, err := observation.NewObservationCoordinator(observation.Config{
+		Capture:        observation.ServiceConfig{Endpoint: capture.Endpoint, TokenEnvironment: capture.TokenEnvironment},
+		Interpretation: observation.ServiceConfig{Endpoint: interpretation.Endpoint, TokenEnvironment: interpretation.TokenEnvironment},
+	})
 	if err != nil {
 		return err
 	}
@@ -111,14 +116,14 @@ func observe(args []string, stdout io.Writer) error {
 }
 
 func validate(args []string, stdout io.Writer) error {
-	flags := flag.NewFlagSet("cymonkey validate", flag.ContinueOnError)
+	flags := flag.NewFlagSet("cymy validate", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	configPath := flags.String("config", envOrDefault("CYMONKEY_CONFIG", ""), "Cymonkey host YAML config")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	if flags.NArg() != 0 {
-		return errors.New("cymonkey validate accepts flags only")
+		return errors.New("cymy validate accepts flags only")
 	}
 	if strings.TrimSpace(*configPath) == "" {
 		return errors.New("--config is required")
@@ -132,14 +137,14 @@ func validate(args []string, stdout io.Writer) error {
 }
 
 func runHost(args []string, stdout, stderr io.Writer) error {
-	flags := flag.NewFlagSet("cymonkey run", flag.ContinueOnError)
+	flags := flag.NewFlagSet("cymy run", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	configPath := flags.String("config", envOrDefault("CYMONKEY_CONFIG", ""), "Cymonkey host YAML config")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	if flags.NArg() != 0 {
-		return errors.New("cymonkey run accepts flags only")
+		return errors.New("cymy run accepts flags only")
 	}
 	if strings.TrimSpace(*configPath) == "" {
 		return errors.New("--config is required")
@@ -154,27 +159,8 @@ func runHost(args []string, stdout, stderr io.Writer) error {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	_, _ = fmt.Fprintf(stderr, "cymonkey host running %d component(s)\n", len(config.Components))
+	_, _ = fmt.Fprintf(stderr, "Cymonkey host running %d component(s)\n", len(config.Components))
 	return supervisor.Run(ctx)
-}
-
-func runBlockade(args []string, stdout, stderr io.Writer) error {
-	registry := blockade.NewProviderAdapterRegistry()
-	if err := registerBlockadePlugins(registry); err != nil {
-		return err
-	}
-	return blockadecli.RunWithProviderAdapters(args, stdout, stderr, registry, blockade.EnvironmentSecretResolver{})
-}
-
-func runBoard(args []string, stdout, stderr io.Writer) error {
-	if len(args) > 0 && strings.HasPrefix(args[0], "provider-") {
-		providers, err := boardPluginProviders()
-		if err != nil {
-			return err
-		}
-		return boardcli.RunWithProviders(args, os.Stdin, stdout, stderr, providers)
-	}
-	return boardcli.RunWithInput(args, os.Stdin, stdout, stderr)
 }
 
 func envOrDefault(name, fallback string) string {
@@ -190,16 +176,15 @@ func printUsage(w io.Writer) {
 Commands:
   validate                Validate a Cymonkey host manifest
   run                     Start and supervise standalone components
-  observe                 Coordinate a Jangolova screenshot with Blockade
-  modules                 Discover or retrieve reviewed Jangolova modules
+  observe                 Capture a display and interpret its content
+  modules                 Discover or retrieve reviewed display modules
   browser                 Discover local browser targets
   extension               Manage caller-supplied browser extension packages
   userscript              Store and replay approved extension-free userscripts
   bookmarklet             Import or export user-activated browser bookmarklets
-  provider                Run the Jangolova provider/MCP interface
+  display                 Connect and serve display interaction engines
+  content                 Configure and run content interpretation
+  device                  Use approved input and output devices
   operator                Serve or call the unified Cymonkey operator API
-  board                   Run the Board device interface
-  blockade                Run the Blockade inference interface
-  plugins                 Install and inspect provider packages
-  native-bridge-fixture   Run the native bridge fixture`)
+  plugins                 Build, install, and inspect Cymonkey plugins`)
 }

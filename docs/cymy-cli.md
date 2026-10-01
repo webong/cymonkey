@@ -1,10 +1,10 @@
 # The `cymy` CLI
 
 `cymy` is the public Cymonkey CLI. The existing `cymonkey` executable has the
-same commands for deployment compatibility. The CLI can run a Cymonkey host, coordinate visual
-observations, discover and retrieve Jangolova modules, select browser targets,
-manage caller-supplied extensions and userscripts, connect interaction engines, and run the
-Jangolova and Blockade services.
+same commands for deployment compatibility. The CLI can run a Cymonkey host,
+coordinate observations, retrieve display modules, select browser targets,
+manage caller-supplied extensions and userscripts, connect display adapters,
+interpret content, and use approved devices.
 
 ## Build and use it
 
@@ -27,7 +27,7 @@ go build -o .cache/bin/cymonkey ./src
 Run commands from the repository root when using its relative example paths.
 Most one-shot commands write JSON to standard output. Servers keep running
 until interrupted. An error writes to standard error and exits nonzero.
-`cymy help`, `cymy modules help`, `cymy provider help`, and `cymy board help` show
+`cymy help`, `cymy modules help`, `cymy display help`, and `cymy device help` show
 the built-in summaries; `cymy userscript help` lists its lifecycle commands.
 Other command groups are documented below; they do not all expose a
 subcommand-specific help page.
@@ -38,31 +38,30 @@ subcommand-specific help page.
 | --- | --- |
 | `cymy validate` | Check a Cymonkey host YAML manifest. |
 | `cymy run` | Start and supervise the manifest's components. |
-| `cymy observe` | Capture an authorized Jangolova screenshot and send it to Blockade for observation. |
+| `cymy observe` | Capture an authorized display screenshot and send it to the configured content service. |
 | `cymy modules discover`, `pull` | Read a reviewed module registry and retrieve a selected artifact. |
 | `cymy browser targets` | Find local browsers and profiles on the machine running the command. |
-| `cymy operator serve`, `targets`, `connect`, `call`, `disconnect`, `observe`, `interpret`, `userscript`, `extension`, `board` | Keep browser sessions and library providers callable through one authenticated local operator API. |
+| `cymy operator serve`, `targets`, `connect`, `call`, `disconnect`, `observe`, `interpret`, `userscript`, `extension`, `device` | Keep browser sessions, content, and devices callable through one authenticated local API. |
 | `cymy extension ...` | Inspect, package, stage, activate, or install a caller-supplied browser extension. |
 | `cymy userscript ...` | Store, list, update, enable, disable, or remove extension-free userscripts for a selected browser target. |
-| `cymy provider engines`, `connect-engine`, `serve-engine-provider`, `serve-mcp` | Discover or connect interaction engines, or run Jangolova interfaces. |
-| `cymy board devices`, `drive-list`, `drive-read` | List host-approved mounted drives, list entries, or stream one selected file. |
-| `cymy board keyboard-press`, `keyboard-type` | Send a key or bounded text to an explicitly selected macOS process. |
-| `cymy board provider-devices`, `provider-invoke`, `provider-stream` | Use installed Board providers under an explicit device grant. |
-| `cymy blockade validate`, `runtime manifest/install/list/remove`, `model install/list/remove`, `observe`, `interpret`, `serve` | Validate configuration, manage Blockade runtimes and provider-owned local models, request inference, or run Blockade. |
-| `cymy plugins install`, `upgrade`, `list`, `remove` | Manage local provider packages for Jangolova, Blockade, and Board. |
-| `cymy native-bridge-fixture` | Run the native bridge test fixture; this is for development. |
+| `cymy display adapters`, `connect`, `serve`, `serve-tools` | Discover or connect display adapters and serve display interaction APIs. |
+| `cymy device devices`, `drive-list`, `drive-read` | List host-approved mounted drives, list entries, or stream one selected file. |
+| `cymy device keyboard-press`, `keyboard-type` | Send a key or bounded text to an explicitly selected macOS process. |
+| `cymy device adapter-devices`, `adapter-invoke`, `adapter-stream` | Use installed device plugins under an explicit grant. |
+| `cymy content validate`, `runtime manifest/install/list/remove`, `model install/list/remove`, `observe`, `interpret`, `serve` | Validate content configuration, manage runtimes and models, request inference, or serve the content API. |
+| `cymy plugins manifest`, `install`, `upgrade`, `list`, `remove` | Build and manage display, content, and device plugin packages. |
 
-## Board device providers
+## Device adapters
 
-A host names an already mounted directory with `--root NAME=PATH`. Board
+A host names an already mounted directory with `--root NAME=PATH`. Cymonkey
 publishes `NAME` as an opaque resource handle; action results never expose the
 host path. The list is bounded, and the read command refuses files larger than
 its stream limit before writing anything to stdout.
 
 ```sh
-cymy board devices --root photos=/Volumes/CAMERA
-cymy board drive-list --root photos=/Volumes/CAMERA --path DCIM --recursive
-cymy board drive-read --root photos=/Volumes/CAMERA \
+cymy device devices --root photos=/Volumes/CAMERA
+cymy device drive-list --root photos=/Volumes/CAMERA --path DCIM --recursive
+cymy device drive-read --root photos=/Volumes/CAMERA \
   --path DCIM/100CANON/IMG_0001.JPG > photo.jpg
 ```
 
@@ -78,16 +77,15 @@ most 1,024 Unicode code points and no control characters; use
 `keyboard-press` for Enter, Tab, and shortcuts.
 
 ```sh
-cymy board keyboard-press --pid 12345 --key Command+O
-printf 'photo caption' | cymy board keyboard-type --pid 12345
-cymy board keyboard-press --pid 12345 --key Enter
+cymy device keyboard-press --pid 12345 --key Command+O
+printf 'photo caption' | cymy device keyboard-type --pid 12345
+cymy device keyboard-press --pid 12345 --key Enter
 ```
 
 Both keyboard commands return `{"submitted":true}` when macOS accepted the
-events for posting. The target application may ignore them. The provider
-refuses a process that has exited or changed identity. These commands require
-macOS with cgo; other builds report that the provider is unavailable. See
-[Board](../lib/board/README.md) for provider registration and lifecycle.
+events for posting. The target application may ignore them. The adapter refuses
+a process that has exited or changed identity. These commands require macOS
+with cgo; other builds report that the adapter is unavailable.
 
 ## Host and coordinated observation
 
@@ -97,37 +95,37 @@ All three host commands accept `--config PATH`. You can set
 ```sh
 cymy validate --config infra/deploy/cymonkey/cymonkey.example.yaml
 
-export CYMONKEY_JANGOLOVA_TOKEN='a-random-session-secret'
+export CYMONKEY_DISPLAY_TOKEN='a-random-session-secret'
 cymy run --config infra/deploy/cymonkey/cymonkey.example.yaml
 ```
 
 `validate` reports the number of configured components. `run` starts the
 manifest's component commands in order and supervises them until interrupted
-or a component exits. The example manifest requires the `cymonkey` executable
+or a component exits. The example manifest requires the `cymy` executable
 on `PATH` for those child commands, as shown in the build section.
 
-With that host running and a Jangolova interaction instance already connected,
+With that host running and a display interaction instance already connected,
 run this from another terminal:
 
 ```sh
-export CYMONKEY_JANGOLOVA_TOKEN='a-random-session-secret'
+export CYMONKEY_DISPLAY_TOKEN='a-random-session-secret'
 cymy observe --config infra/deploy/cymonkey/cymonkey.example.yaml \
   --instance browser-1 --prompt 'find the primary action'
 ```
 
 `--instance` is required. `--prompt TEXT` is optional. `--full-page` asks for a
-full browser-page capture, and `--approval-id ID` supplies a Jangolova
+full browser-page capture, and `--approval-id ID` supplies a display
 screenshot approval when the instance's policy requires one. The response is
-a JSON observation envelope. The token must match the running provider's
+a JSON observation envelope. The token must match the running display service's
 token. See the [host guide](cymonkey-host.md) for the composition boundary.
 
 ## Reviewed modules
 
 ```sh
-cymy modules discover --registry https://registry.example/jangolova.json
+cymy modules discover --registry https://registry.example/display-modules.json
 
 cymy modules pull \
-  --registry https://registry.example/jangolova.json \
+  --registry https://registry.example/display-modules.json \
   --module render/blender --platform linux-amd64 \
   --cache /absolute/path/to/module-cache
 ```
@@ -136,7 +134,7 @@ cymy modules pull \
 and platform, retrieves its artifact, verifies it, and returns its cached
 path as JSON. The registry must use HTTPS except for loopback development
 endpoints. `pull` does not activate a module. See the
-[registry guide](jangolova-module-registry.md).
+[registry guide](display-module-registry.md).
 
 ## Browsers and extensions
 
@@ -207,7 +205,7 @@ platform limits.
 ## Extension-free userscripts
 
 For a userscript with `@name` and `@match` metadata, one command stores it and
-attaches Jangolova to a browser endpoint:
+attaches a display adapter to a browser endpoint:
 
 ```sh
 cymy userscript install --source /absolute/path/to/reading-tools.user.js \
@@ -261,18 +259,18 @@ to select another directory. A script is stored for one target ID; it is
 registered in the browser when Cymonkey attaches to that target:
 
 ```sh
-cymy provider connect-engine --target-kind browser \
+cymy display connect --target-kind browser \
   --endpoint cdp=http://127.0.0.1:9222 \
   --userscripts-target 'chrome:ID_FROM_TARGETS'
 ```
 
-Pass `--userscripts-store` to `connect-engine` if you used a custom store.
-Jangolova registers each enabled script for matching future documents. While
+Pass `--userscripts-store` to `connect` if you used a custom store.
+The display adapter registers each enabled script for matching future documents. While
 the connection runs, Cymonkey checks the store every two seconds and applies
 changes. After the browser closes or Cymonkey disconnects, start
-`connect-engine` again to reapply the stored scripts. The script registration
+`connect` again to reapply the stored scripts. The script registration
 itself lasts only for the connected session. A newly opened tab can load before
-Jangolova attaches; in that case it applies the script to the current document
+the display adapter attaches; in that case it applies the script to the current document
 when attachment completes. Later navigations use document-start injection.
 
 | Command | Flags and effect |
@@ -282,7 +280,7 @@ when attachment completes. Later navigations use document-start injection.
 | `userscript update` | Same as `install`; replace an installed script while preserving its enabled state. |
 | `userscript list` | `--target`; return source-free records. |
 | `userscript describe` | `--target --id`; return one source-free record. |
-| `userscript enable`, `disable` | `--target --id`; change what Jangolova registers. |
+| `userscript enable`, `disable` | `--target --id`; change what the display adapter registers. |
 | `userscript uninstall` | `--target --id`; remove the stored source and stop future registration. |
 
 Commands accept `--target` and `--store`; install, update, and prepare also
@@ -307,22 +305,22 @@ for review. Both commands write to stdout and neither executes source nor edits
 browser bookmarks. See [bookmarklets](bookmarklets.md) for installation, the
 reversible highlighter example, compatibility limits and live tests.
 
-## Jangolova interaction provider
+## Display interaction
 
-List the registered interaction engines, their availability, and their
+List the registered display adapters, their availability, and their
 capabilities:
 
 ```sh
-cymy provider engines
-cymy provider engines --json
+cymy display adapters
+cymy display adapters --json
 ```
 
-Attach to an existing caller-owned target with `connect-engine`. The command
+Attach to an existing caller-owned target with `connect`. The command
 reports a connected instance as JSON, then remains attached until the
 connection ends or you interrupt it. For a browser exposing CDP:
 
 ```sh
-cymy provider connect-engine --target-kind browser \
+cymy display connect --target-kind browser \
   --endpoint cdp=http://127.0.0.1:9222
 ```
 
@@ -337,115 +335,108 @@ present after connecting. `--driver NAME` selects a control-plane driver;
 `--userscripts-target ID` replays and watches that target's stored scripts;
 `--userscripts-store DIRECTORY` selects a non-default store.
 
-Run Jangolova as a service for other tools:
+Run the display service for other tools:
 
 ```sh
-export JANGOLOVA_PROVIDER_TOKEN='a-random-session-secret'
-cymy provider serve-engine-provider --bind 127.0.0.1:7391
+export CYMONKEY_DISPLAY_TOKEN='a-random-session-secret'
+cymy display serve --bind 127.0.0.1:7391
 ```
 
-The HTTP provider defaults to `127.0.0.1:7391`; `JANGOLOVA_PROVIDER_BIND` can
-set its default bind address. `JANGOLOVA_PROVIDER_TOKEN` is required.
-`serve-mcp` exposes the provider tools over stdio by default, or Streamable
+The HTTP service defaults to `127.0.0.1:7391`; `CYMONKEY_DISPLAY_BIND` can
+set its default bind address. `CYMONKEY_DISPLAY_TOKEN` is required.
+`serve-tools` exposes display tools over stdio by default, or Streamable
 HTTP with `--bind ADDRESS`:
 
 ```sh
-cymy provider serve-mcp
-cymy provider serve-mcp --bind 127.0.0.1:7393
+cymy display serve-tools
+cymy display serve-tools --bind 127.0.0.1:7393
 ```
 
-Both MCP forms also require `JANGOLOVA_PROVIDER_TOKEN`. See the
-[interaction provider guide](engine-provider.md) for its operations and
+Both MCP forms also require `CYMONKEY_DISPLAY_TOKEN`. See the
+[display service guide](engine-provider.md) for its operations and
 [target connection security](target-connection-security.md) for reference
-handling. A connected Jangolova provider can expose `script.execute` and
+handling. A connected display adapter can expose `script.execute` and
 `script.register` through CDP or WebDriver BiDi without installing an
 extension; those registrations are tied to the browser connection. Cymonkey
 provides libraries for another extension to implement a browser-native
 userscript manager. See [userscripts](userscripts.md) and
 [browser augmentation packages](browser-augmentation-packages.md).
 
-## Blockade inference
+## Content interpretation
 
 ```sh
-cymy blockade validate --config infra/deploy/blockade/blockade.example.yaml
-cymy blockade validate --config infra/deploy/blockade/blockade.example.yaml --check-files
+cymy content validate --config infra/deploy/content/content.example.yaml
+cymy content validate --config infra/deploy/content/content.example.yaml --check-files
 ```
 
-`validate` checks the Blockade YAML. `--check-files` additionally verifies the
-digests of installed provider models. A referenced local model must be
+`validate` checks the Cymonkey content YAML. `--check-files` additionally verifies the
+digests of installed plugin models. A referenced local model must be
 installed before that check or inference can succeed.
 
 Observe a PNG or JPEG file with a configured inference backend:
 
 ```sh
-cymy blockade observe --config /absolute/path/to/blockade.yaml \
+cymy content observe --config /absolute/path/to/content.yaml \
   --image /absolute/path/to/screenshot.png \
   --inference local-yolo-sam --prompt 'find visible controls'
 ```
 
 `--config` and `--image` are required; `--prompt` is optional. Omit
-`--inference` to use the config's first provider. The result is JSON.
+`--inference` to use the config's first adapter. The result is JSON.
 
-Interpret text or audio with a configured executable model provider:
+Interpret text or audio with a configured model adapter:
 
 ```sh
-cymy blockade interpret --config /absolute/path/to/blockade.yaml \
+cymy content interpret --config /absolute/path/to/content.yaml \
   --inference content-model --text-file note.txt --prompt 'Summarize'
-cymy blockade interpret --config /absolute/path/to/blockade.yaml \
+cymy content interpret --config /absolute/path/to/content.yaml \
   --inference content-model --audio recording.wav --audio-type audio/wav \
   --prompt 'Transcribe speech'
 ```
 
-Install, list, and remove a provider-owned local model:
+Install, list, and remove a plugin-owned local model:
 
 ```sh
-cymy blockade model install --manifest /absolute/path/to/model.json \
-  --config /absolute/path/to/blockade.yaml
-cymy blockade model list
-cymy blockade model remove --provider onnx --model yolo11n@1.0.0
+cymy content model install --manifest /absolute/path/to/model.json \
+  --config /absolute/path/to/content.yaml
+cymy content model list
+cymy content model remove --plugin onnx --model yolo11n@1.0.0
 ```
 
-The manifest names the installed provider package and includes every
-artifact's role and SHA-256 digest. Blockade copies and verifies the files,
-asks that provider to inspect compatibility, then registers the installed
-version. Use `--root` on model commands or `BLOCKADE_MODEL_DIR` to choose a
+The public manifest uses `cymonkey.model/v1alpha1`, names the installed plugin,
+and includes every artifact's role and SHA-256 digest. The content adapter
+copies and verifies the files, asks that plugin to inspect compatibility, then registers the installed
+version. Use `--root` on model commands or `CYMONKEY_MODEL_DIR` to choose a
 different model registry.
 
-Install, list, and remove a Blockade-owned runtime for source providers:
+Install, list, and remove a managed runtime for source plugins:
 
 ```sh
-cymy blockade runtime manifest --source /absolute/path/to/python-tree \
+cymy content runtime manifest --source /absolute/path/to/python-tree \
   --name python --version 3.12.8 --executable bin/python3 \
   --output /absolute/path/to/python-tree/runtime.json
-cymy blockade runtime install --manifest /absolute/path/to/runtime.json
-cymy blockade runtime list
-cymy blockade runtime remove --name python --version 3.12.8
+cymy content runtime install --manifest /absolute/path/to/runtime.json
+cymy content runtime list
+cymy content runtime remove --name python --version 3.12.8
 ```
 
 `manifest` inventories a self-contained runtime tree and records all digests.
-Use `--root` or `BLOCKADE_RUNTIME_DIR` to choose the runtime registry. Runtime
-files and the selected executable are digest checked; Blockade does not use an
+Use `--root` or `CYMONKEY_RUNTIME_DIR` to choose the runtime registry. Runtime
+files and the selected executable are digest checked; Cymonkey does not use an
 ambient executable from `PATH`.
 
 `interpret` also accepts `--text` and `--image`; combine content flags only
-when the provider advertises `multimodal.interpret`. The selected provider must
-advertise the requested modality. The base Blockade build does not bundle a
+when the plugin advertises `multimodal.interpret`. The selected plugin must
+advertise the requested modality. Cymonkey does not bundle a
 text or audio model.
 
-Start the HTTP inference service with the same config and backend selection:
+Start the HTTP content service with the same config and adapter selection:
 
 ```sh
-cymy blockade serve --config /absolute/path/to/blockade.yaml \
+cymy content serve --config /absolute/path/to/content.yaml \
   --inference local-yolo-sam --bind 127.0.0.1:8091
 ```
 
-`serve` defaults to `127.0.0.1:8091`, or the value of `BLOCKADE_BIND`.
-See the [Blockade guide](blockade.md) for backend configuration and the
+`serve` defaults to `127.0.0.1:8091`, or the value of `CYMONKEY_CONTENT_BIND`.
+See the [content guide](content.md) for adapter configuration and the
 difference between direct image observation and `cymy observe`.
-
-## Developer fixture
-
-`cymy native-bridge-fixture` runs a cooperative native engine used by bridge
-integration tests. It expects `JANGOLOVA_BRIDGE_URL`,
-`JANGOLOVA_BRIDGE_TOKEN`, and `JANGOLOVA_BRIDGE_PROTOCOL` from the test
-harness. It is not a general-purpose browser or extension command.

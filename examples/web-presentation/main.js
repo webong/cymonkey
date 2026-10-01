@@ -46,8 +46,8 @@ function mountSource(value) {
   if (value.css !== undefined && typeof value.css !== "string") throw new Error("source document.css must be a string");
   if (value.js !== undefined && typeof value.js !== "string") throw new Error("source document.js must be a string");
   root.innerHTML = value.html;
-  let style = document.querySelector("style[data-jangolova-presentation]");
-  if (!style) { style = document.createElement("style"); style.dataset.jangolovaPresentation = "true"; document.head.append(style); }
+  let style = document.querySelector("style[data-cymonkey-presentation]");
+  if (!style) { style = document.createElement("style"); style.dataset.cymonkeyPresentation = "true"; document.head.append(style); }
   style.textContent = value.css || "";
   if (value.js) runCode(value.js);
 }
@@ -107,7 +107,7 @@ function renderNode(node) {
     const element = document.createElement("button");
     element.className = "presentation-button";
     element.type = "button";
-    element.dataset.jangolovaId = node.id || "";
+    element.dataset.cymonkeyId = node.id || "";
     element.textContent = node.label || node.text || "Activate";
     element.addEventListener("click", () => publishEvent("presentation.activate", { id: node.id || null }));
     return element;
@@ -125,7 +125,7 @@ function render(value = documentState) {
 
 function describe() {
   return {
-    engine: "jangolova-web-presentation",
+    engine: "cymonkey-web-presentation",
     stateRevision: currentStateRevision(),
     document: clone(documentState),
     viewport: { width: innerWidth, height: innerHeight, devicePixelRatio },
@@ -201,8 +201,8 @@ function readEvents({ after = "0", types = [], limit = 100 } = {}) {
   return { events: selected, cursor: String(sequence) };
 }
 
-(window.cymonkey ??= {}).jangolova = {
-  hello: () => ({ protocolVersion: "jangolova.bridge/v1alpha1", implementation: { name: "jangolova-web-presentation" }, features: ["presentation.document", "presentation.artifact.mount", "events.cursor"] }),
+(window.cymonkey ??= {}).display = {
+  hello: () => ({ protocolVersion: "cymonkey.display-bridge/v1alpha1", implementation: { name: "cymonkey-web-presentation" }, features: ["presentation.document", "presentation.artifact.mount", "events.cursor"] }),
   capabilities: () => capabilities,
   describe,
   act,

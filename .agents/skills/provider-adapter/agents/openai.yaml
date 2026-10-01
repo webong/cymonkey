@@ -1,4 +1,4 @@
 interface:
-  display_name: "Inference Provider Adapter"
-  short_description: "Map custom vision providers into Blockade"
-  default_prompt: "Use $provider-adapter to add and verify a Blockade-owned custom VLM adapter that maps into Blockade observations."
+  display_name: "Cymonkey Content Plugin"
+  short_description: "Map local or hosted models into Cymonkey content"
+  default_prompt: "Use $provider-adapter to add and verify a Cymonkey content plugin using only the public plugin contract."

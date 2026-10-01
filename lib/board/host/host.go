@@ -282,7 +282,26 @@ func (d *Devices) authorizedGrant(device board.Device, request Request, decision
 	if err != nil {
 		return board.Grant{}, err
 	}
-	if board.IsDriveCapability(granted...) && len(resources) == 0 {
+	requiresResource := board.IsDriveCapability(granted...)
+	for _, descriptor := range device.Capabilities {
+		for _, cap := range granted {
+			if descriptor.Name == cap && descriptor.ResourceRequired {
+				requiresResource = true
+			}
+		}
+	}
+	if len(request.ResourceIDs) > 0 {
+		for _, id := range resources {
+			found := false
+			for _, wanted := range request.ResourceIDs {
+				found = found || wanted == id
+			}
+			if !found {
+				return board.Grant{}, errors.New("host granted an unrequested resource")
+			}
+		}
+	}
+	if requiresResource && len(resources) == 0 {
 		return board.Grant{}, errors.New("the host granted a drive capability without naming a resource root")
 	}
 	return board.Grant{Capabilities: granted, ResourceIDs: resources}, nil

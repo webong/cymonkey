@@ -1,16 +1,16 @@
 # Web presentation provider handoff
 
 `web-presentation` is the first provider-visible presentation adapter in
-Jangolova. It lets an agent create and update an interface without making
-Jangolova responsible for the browser or display process.
+Cymonkey. It lets an agent create and update an interface without making
+Cymonkey responsible for the browser or display process.
 
 ## Ownership
 
-Jangolova owns the declarative document model, semantic actions, presentation
+Cymonkey owns the declarative document model, semantic actions, presentation
 events, artifact contract, and the adapter worker. The caller's target
 provider—Xallet, a native host, or a direct-container supervisor—owns the
 static asset server, Chromium process, CDP endpoint, display/window placement,
-GPU, and cleanup. Disconnecting the Jangolova instance must leave that target
+GPU, and cleanup. Disconnecting the Cymonkey instance must leave that target
 running.
 
 ## Target contract
@@ -18,7 +18,7 @@ running.
 The target provider starts a Chromium-compatible browser and supplies a CDP
 endpoint. The provider may host the reference page in
 `examples/web-presentation` or provide another page implementing the same
-`window.cymonkey.jangolova` bridge:
+`window.cymonkey.display` bridge:
 
 ```json
 {
@@ -53,7 +53,7 @@ endpoint. The provider may host the reference page in
 ```
 
 `source` is optional when the target provider has already opened a compatible
-page. Jangolova attaches with Puppeteer Core and never calls a browser launch
+page. Cymonkey attaches with Puppeteer Core and never calls a browser launch
 or shutdown API.
 
 ## Artifact policy
@@ -61,7 +61,7 @@ or shutdown API.
 The artifact model supports inline `{html, css, js}`, structured presentation
 documents, and versioned artifact references defined by the
 [provider-neutral schema](../src/protocol/presentation/v1/artifact.schema.json).
-Artifact bytes do not pass through Jangolova. The attached engine loads one of
+Artifact bytes do not pass through Cymonkey. The attached engine loads one of
 the caller-supplied locations directly.
 
 Every `web-presentation` connection has an enforced policy. Defaults are:
@@ -180,7 +180,7 @@ page's `stateRevision`, and the selected transport—but not artifact contents.
 The JavaScript runs inside the caller-owned browser page and is therefore an
 explicit externally-effectful capability. The calling agent system remains
 responsible for deciding which sessions receive `presentation.execute`
-authorization. Jangolova enforces the provider-supplied authorization policy,
+authorization. Cymonkey enforces the provider-supplied authorization policy,
 records audit events, and bounds execution time.
 
 ## Target-provider implementation notes
@@ -188,6 +188,6 @@ records audit events, and bounds execution time.
 Xallet can model the CDP endpoint and artifact locations as target resources,
 translate container addresses, and keep them private to the session network.
 A native host or direct-container supervisor can instead supply localhost URLs
-or target-visible file locations. None of these choices changes the Jangolova
+or target-visible file locations. None of these choices changes the Cymonkey
 provider contract. The same artifact descriptor can later be interpreted by a
 Three.js, Unity, or Unreal presentation engine.

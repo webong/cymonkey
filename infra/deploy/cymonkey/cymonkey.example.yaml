@@ -1,36 +1,40 @@
 apiVersion: cymonkey.config/v1alpha1
 kind: CymonkeyHost
 
-# Export CYMONKEY_JANGOLOVA_TOKEN before running the host. Cymonkey uses the
-# same token to ask Jangolova for an authorized screenshot; only Cymonkey then
-# submits the resulting pixels to Blockade.
-observation:
-  jangolova:
+# Export CYMONKEY_DISPLAY_TOKEN and CYMONKEY_CONTENT_TOKEN before running the
+# host. Cymonkey keeps both service credentials outside this manifest.
+services:
+  display.interaction:
     endpoint: http://127.0.0.1:7391
-    tokenEnvironment: CYMONKEY_JANGOLOVA_TOKEN
-  blockade:
+    tokenEnvironment: CYMONKEY_DISPLAY_TOKEN
+  content.interpretation:
     endpoint: http://127.0.0.1:8091
+    tokenEnvironment: CYMONKEY_CONTENT_TOKEN
 
-# Cymonkey composes its standalone library interfaces through the single
-# `cymonkey` executable. Build and place `cymonkey` on PATH, or replace these
-# commands with an absolute path from the deployment image.
+# Cymonkey supervises library services through its `cymy` command.
 components:
-  - id: blockade
+  - id: content-service
     command:
-      - cymonkey
-      - blockade
+      - cymy
+      - content
       - serve
       - --config
-      - infra/deploy/blockade/blockade.example.yaml
+      - infra/deploy/content/content.example.yaml
       - --bind
       - 127.0.0.1:8091
+      - --token-env
+      - CYMONKEY_CONTENT_TOKEN
+    environment:
+      CYMONKEY_CONTENT_TOKEN: ${CYMONKEY_CONTENT_TOKEN}
 
-  - id: jangolova
+  - id: display-service
     command:
-      - cymonkey
-      - provider
-      - serve-engine-provider
+      - cymy
+      - display
+      - serve
       - --bind
       - 127.0.0.1:7391
+      - --token-env
+      - CYMONKEY_DISPLAY_TOKEN
     environment:
-      JANGOLOVA_PROVIDER_TOKEN: ${CYMONKEY_JANGOLOVA_TOKEN}
+      CYMONKEY_DISPLAY_TOKEN: ${CYMONKEY_DISPLAY_TOKEN}

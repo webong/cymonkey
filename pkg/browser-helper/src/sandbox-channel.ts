@@ -36,17 +36,17 @@ export function connectSandboxHost(dependencies: {
     const receive = (event: SandboxMessageEvent) => {
       if (event.source !== dependencies.guest || !record(event.data)
         || event.data.id !== dependencies.id || event.data.nonce !== dependencies.nonce) return;
-      if (event.data.channel === 'cymonkey.jangolova.sandbox.ready' && !port) {
+      if (event.data.channel === 'cymonkey.display.sandbox.ready' && !port) {
         if (event.data.status !== 'ready') return fail(typeof event.data.error === 'string' ? event.data.error : 'sandbox package failed to load');
         try {
           const channel = dependencies.createChannel();
           port = channel.port1;
           dependencies.guest.postMessage({
-            channel: 'cymonkey.jangolova.sandbox.connect', nonce: dependencies.nonce,
+            channel: 'cymonkey.display.sandbox.connect', nonce: dependencies.nonce,
             context: dependencies.context,
           }, '*', [channel.port2]);
         } catch (error) { fail(errorMessage(error)); }
-      } else if (event.data.channel === 'cymonkey.jangolova.sandbox.connected' && port && !connected) {
+      } else if (event.data.channel === 'cymonkey.display.sandbox.connected' && port && !connected) {
         connected = true;
         if (event.data.status !== 'connected') return fail(typeof event.data.error === 'string' ? event.data.error : 'sandbox package failed to connect');
         cleanup();
@@ -80,21 +80,21 @@ export function startSandboxGuest(dependencies: {
   };
   const receive = (event: SandboxMessageEvent) => {
     if (disposed || accepted || event.source !== dependencies.parent || !record(event.data)
-      || event.data.channel !== 'cymonkey.jangolova.sandbox.connect' || event.data.nonce !== dependencies.nonce
+      || event.data.channel !== 'cymonkey.display.sandbox.connect' || event.data.nonce !== dependencies.nonce
       || event.ports?.length !== 1 || !record(event.data.context)
       || !valid(event.data.context.augmentationId) || !record(event.data.context.configuration)) return;
     accepted = true;
     const [port] = event.ports;
     const context = {augmentationId: event.data.context.augmentationId as string, configuration: event.data.context.configuration};
     void Promise.resolve().then(() => dependencies.connect(context, port)).then(
-      () => report('cymonkey.jangolova.sandbox.connected', 'connected'),
-      (error) => report('cymonkey.jangolova.sandbox.connected', 'failed', errorMessage(error)),
+      () => report('cymonkey.display.sandbox.connected', 'connected'),
+      (error) => report('cymonkey.display.sandbox.connected', 'failed', errorMessage(error)),
     );
   };
   dependencies.guest.addEventListener('message', receive);
   void Promise.resolve().then(dependencies.load).then(
-    () => report('cymonkey.jangolova.sandbox.ready', 'ready'),
-    (error) => report('cymonkey.jangolova.sandbox.ready', 'failed', errorMessage(error)),
+    () => report('cymonkey.display.sandbox.ready', 'ready'),
+    (error) => report('cymonkey.display.sandbox.ready', 'failed', errorMessage(error)),
   );
   return () => { disposed = true; dependencies.guest.removeEventListener('message', receive); };
 }

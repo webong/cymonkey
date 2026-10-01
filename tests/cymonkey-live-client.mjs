@@ -5,7 +5,7 @@ import process from "node:process";
 const provider = requiredArgument("--provider").replace(/\/$/, "");
 const instance = requiredArgument("--instance");
 const expectedBackend = requiredArgument("--expect-backend");
-const token = requiredEnvironment("JANGOLOVA_PROVIDER_TOKEN");
+const token = requiredEnvironment("CYMONKEY_DISPLAY_TOKEN");
 const augmentationId = `live-${expectedBackend}-${process.pid}`;
 const overlayId = `${augmentationId}-overlay`;
 const ruleId = 700000 + (process.pid % 100000);
@@ -56,11 +56,11 @@ try {
   assert.ok(listed.augmentations.some((value) => value.id === augmentationId));
 
   const queried = await act("document.query", { selector: "title", limit: 1 });
-  assert.equal(queried.matches[0]?.text, "Jangolova Fixture");
+  assert.equal(queried.matches[0]?.text, "Cymonkey Fixture");
 
   await act("overlay.mount", { id: overlayId, html: "<strong>Cymonkey live</strong>" });
   overlayMounted = true;
-  const overlay = await act("document.query", { selector: `[data-jangolova-cymonkey-overlay="${overlayId}"]`, limit: 1 });
+  const overlay = await act("document.query", { selector: `[data-cymonkey-display-overlay="${overlayId}"]`, limit: 1 });
   assert.equal(overlay.matches.length, 1);
   await act("overlay.unmount", { id: overlayId });
   overlayMounted = false;
@@ -96,7 +96,7 @@ async function act(name, input) {
 }
 
 async function call(method, params) {
-  const response = await fetch(`${provider}/v1/instances/${encodeURIComponent(instance)}/call`, {
+  const response = await fetch(`${provider}/v1/display-instances/${encodeURIComponent(instance)}/call`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ method, params }),

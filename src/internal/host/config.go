@@ -1,6 +1,7 @@
 package cymonkeyhost
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"net/url"
@@ -14,15 +15,16 @@ import (
 const ConfigAPIVersion = "cymonkey.config/v1alpha1"
 
 var componentIDPattern = regexp.MustCompile(`^[a-z][a-z0-9-]{0,62}$`)
+var environmentNamePattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
 // Config describes a Cymonkey host and the standalone subsystem processes it
 // should run together. The host does not embed either subsystem; it only
 // composes and supervises their executable boundaries.
 type Config struct {
-	APIVersion  string             `yaml:"apiVersion"`
-	Kind        string             `yaml:"kind"`
-	Components  []ComponentConfig  `yaml:"components"`
-	Observation *ObservationConfig `yaml:"observation,omitempty"`
+	APIVersion string                   `yaml:"apiVersion"`
+	Kind       string                   `yaml:"kind"`
+	Components []ComponentConfig        `yaml:"components"`
+	Services   map[string]ServiceConfig `yaml:"services,omitempty"`
 }
 
 type ComponentConfig struct {
@@ -32,22 +34,12 @@ type ComponentConfig struct {
 	WorkingDirectory string            `yaml:"workingDirectory,omitempty"`
 }
 
-// ObservationConfig declares the two standalone services that Cymonkey
-// coordinates for an observation. Jangolova supplies an authorized screenshot;
-// Blockade receives pixels and returns its normalized result. Neither service
-// needs configuration knowledge of the other.
-type ObservationConfig struct {
-	Jangolova ObservationJangolovaConfig `yaml:"jangolova"`
-	Blockade  ObservationBlockadeConfig  `yaml:"blockade"`
-}
-
-type ObservationJangolovaConfig struct {
+// ServiceConfig connects a public service contract to a separately managed
+// process. The host validates and supervises the connection without knowing
+// which library implements the contract.
+type ServiceConfig struct {
 	Endpoint         string `yaml:"endpoint"`
-	TokenEnvironment string `yaml:"tokenEnvironment"`
-}
-
-type ObservationBlockadeConfig struct {
-	Endpoint string `yaml:"endpoint"`
+	TokenEnvironment string `yaml:"tokenEnvironment,omitempty"`
 }
 
 func LoadConfig(path string) (Config, error) {
@@ -56,7 +48,9 @@ func LoadConfig(path string) (Config, error) {
 		return Config{}, err
 	}
 	var config Config
-	if err := yaml.Unmarshal(data, &config); err != nil {
+	decoder := yaml.NewDecoder(bytes.NewReader(data))
+	decoder.KnownFields(true)
+	if err := decoder.Decode(&config); err != nil {
 		return Config{}, fmt.Errorf("decode Cymonkey host config: %w", err)
 	}
 	if err := config.Validate(); err != nil {
@@ -93,27 +87,37 @@ func (c Config) Validate() error {
 			}
 		}
 	}
-	if c.Observation != nil {
-		if err := c.Observation.Validate(); err != nil {
+	for contract, service := range c.Services {
+		if !serviceContractPattern.MatchString(contract) {
+			return fmt.Errorf("Cymonkey service contract %q is invalid", contract)
+		}
+		if err := service.Validate(contract); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c ObservationConfig) Validate() error {
-	if err := validateHTTPURL("Cymonkey observation Jangolova endpoint", c.Jangolova.Endpoint); err != nil {
+var serviceContractPattern = regexp.MustCompile(`^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$`)
+
+func (c Config) Service(contract string) (ServiceConfig, bool) {
+	service, ok := c.Services[strings.TrimSpace(contract)]
+	return service, ok
+}
+
+func (c ServiceConfig) Validate(contract string) error {
+	if err := validateHTTPURL(fmt.Sprintf("Cymonkey service %s endpoint", contract), c.Endpoint); err != nil {
 		return err
 	}
-	if strings.TrimSpace(c.Jangolova.TokenEnvironment) == "" {
-		return errors.New("Cymonkey observation Jangolova tokenEnvironment is required")
+	if value := strings.TrimSpace(c.TokenEnvironment); value != "" && !environmentNamePattern.MatchString(value) {
+		return fmt.Errorf("Cymonkey service %s tokenEnvironment is invalid", contract)
 	}
-	return validateHTTPURL("Cymonkey observation Blockade endpoint", c.Blockade.Endpoint)
+	return nil
 }
 
 func validateHTTPURL(name, value string) error {
 	parsed, err := url.Parse(strings.TrimSpace(value))
-	if err != nil || parsed.Scheme == "" || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
 		return fmt.Errorf("%s must be an HTTP URL", name)
 	}
 	return nil

@@ -13,10 +13,21 @@ import (
 	"providerplugin"
 )
 
-type Adapter struct{ Installed providerplugin.Installed }
+type Adapter struct {
+	Installed    providerplugin.Installed
+	MethodPrefix string
+}
 
 const ContractName = "jangolova.engine"
 const ContractVersion = "v1alpha1"
+
+func (a Adapter) method(name string) string {
+	prefix := a.MethodPrefix
+	if prefix == "" {
+		prefix = "jangolova"
+	}
+	return prefix + "." + name
+}
 
 // Kind is retained for source compatibility with the original manifest field.
 // Deprecated: use ContractName.
@@ -45,7 +56,7 @@ func (a Adapter) InspectEngine(ctx context.Context) sdk.EngineInspection {
 	}
 	defer proc.Close()
 	var inspection sdk.EngineInspection
-	if err := proc.Call(ctx, "jangolova.inspect", nil, &inspection); err != nil {
+	if err := proc.Call(ctx, a.method("inspect"), nil, &inspection); err != nil {
 		return sdk.EngineInspection{Available: false, Message: err.Error()}
 	}
 	return inspection
@@ -83,11 +94,11 @@ func (a Adapter) Connect(ctx context.Context, spec sdk.EngineSpec, target sdk.En
 		Capabilities []string         `json:"capabilities"`
 		CallerLaunch sdk.CallerLaunch `json:"callerLaunch"`
 	}
-	if err := proc.Call(ctx, "jangolova.connect", map[string]any{"spec": spec, "target": wire}, &connected); err != nil {
+	if err := proc.Call(ctx, a.method("connect"), map[string]any{"spec": spec, "target": wire}, &connected); err != nil {
 		_ = proc.Close()
 		return nil, err
 	}
-	s := &session{proc: proc, target: target, capabilities: connected.Capabilities, launch: connected.CallerLaunch, events: make(chan sdk.EngineEvent, 8), done: make(chan struct{})}
+	s := &session{proc: proc, methodPrefix: a.MethodPrefix, target: target, capabilities: connected.Capabilities, launch: connected.CallerLaunch, events: make(chan sdk.EngineEvent, 8), done: make(chan struct{})}
 	for index, endpoint := range target.Endpoints {
 		if endpoint.Connection != nil {
 			s.wg.Add(1)
@@ -101,6 +112,7 @@ func (a Adapter) Connect(ctx context.Context, spec sdk.EngineSpec, target sdk.En
 
 type session struct {
 	proc         *providerplugin.Process
+	methodPrefix string
 	target       sdk.EngineTarget
 	capabilities []string
 	launch       sdk.CallerLaunch
@@ -110,14 +122,22 @@ type session struct {
 	wg           sync.WaitGroup
 }
 
+func (s *session) method(name string) string {
+	prefix := s.methodPrefix
+	if prefix == "" {
+		prefix = "jangolova"
+	}
+	return prefix + "." + name
+}
+
 func (s *session) Call(ctx context.Context, method string, params json.RawMessage) (json.RawMessage, error) {
 	var result json.RawMessage
-	err := s.proc.Call(ctx, "jangolova.call", map[string]any{"method": method, "params": params}, &result)
+	err := s.proc.Call(ctx, s.method("call"), map[string]any{"method": method, "params": params}, &result)
 	return result, err
 }
 func (s *session) Authorize(ctx context.Context, request sdk.AuthorizeRequest) (sdk.AuthorizeDecision, error) {
 	var decision sdk.AuthorizeDecision
-	err := s.proc.Call(ctx, "jangolova.authorize", request, &decision)
+	err := s.proc.Call(ctx, s.method("authorize"), request, &decision)
 	return decision, err
 }
 func (s *session) EngineCapabilities() []string         { return append([]string(nil), s.capabilities...) }
@@ -125,7 +145,7 @@ func (s *session) EngineCallerLaunch() sdk.CallerLaunch { return s.launch }
 func (s *session) EngineEvents() <-chan sdk.EngineEvent { return s.events }
 func (s *session) EngineHealth(ctx context.Context) sdk.EngineHealth {
 	var health sdk.EngineHealth
-	if err := s.proc.Call(ctx, "jangolova.health", nil, &health); err != nil {
+	if err := s.proc.Call(ctx, s.method("health"), nil, &health); err != nil {
 		return sdk.EngineHealth{Status: sdk.EngineHealthUnhealthy, Message: err.Error(), ObservedAt: time.Now().UTC()}
 	}
 	return health
@@ -133,7 +153,7 @@ func (s *session) EngineHealth(ctx context.Context) sdk.EngineHealth {
 func (s *session) Disconnect(ctx context.Context) error {
 	s.once.Do(func() { close(s.done) })
 	s.wg.Wait()
-	err := s.proc.Call(ctx, "jangolova.disconnect", nil, nil)
+	err := s.proc.Call(ctx, s.method("disconnect"), nil, nil)
 	closeErr := s.proc.Close()
 	return errors.Join(err, closeErr)
 }
@@ -154,7 +174,7 @@ func (s *session) pollEvents() {
 			Cursor string            `json:"cursor"`
 			Events []sdk.EngineEvent `json:"events"`
 		}
-		err := s.proc.Call(ctx, "jangolova.events", map[string]string{"cursor": cursor}, &result)
+		err := s.proc.Call(ctx, s.method("events"), map[string]string{"cursor": cursor}, &result)
 		cancel()
 		if err != nil {
 			select {
@@ -185,7 +205,7 @@ func (s *session) watchMaterial(index int, material sdk.ConnectionMaterial) {
 			}
 			snapshot := material.Snapshot()
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			err := s.proc.Call(ctx, "jangolova.material", map[string]any{"endpoint": index, "connection": snapshot}, nil)
+			err := s.proc.Call(ctx, s.method("material"), map[string]any{"endpoint": index, "connection": snapshot}, nil)
 			cancel()
 			if err != nil {
 				return

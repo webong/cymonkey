@@ -20,7 +20,7 @@ import (
 	"cymonkey/src/internal/orchestrator"
 )
 
-const MaterialAPIVersion = "interaction.connection/v1alpha1"
+const MaterialAPIVersion = "cymonkey.connection-material/v1alpha1"
 
 type ReferenceKind string
 
@@ -90,7 +90,7 @@ type EnvironmentResolver struct {
 func (r EnvironmentResolver) Resolve(_ context.Context, request Request) (Material, error) {
 	prefix := strings.TrimSpace(r.Prefix)
 	if prefix == "" {
-		prefix = "JANGOLOVA"
+		prefix = "CYMONKEY"
 	}
 	lookup := r.Lookup
 	if lookup == nil {
@@ -129,11 +129,11 @@ func (r DirectoryResolver) Resolve(_ context.Context, request Request) (Material
 }
 
 // DefaultResolver combines environment documents with an optional material
-// directory configured through JANGOLOVA_CONNECTION_MATERIAL_DIR.
+// directory configured through CYMONKEY_CONNECTION_MATERIAL_DIR.
 func DefaultResolver() Resolver {
 	return Chain{
 		EnvironmentResolver{},
-		DirectoryResolver{Root: os.Getenv("JANGOLOVA_CONNECTION_MATERIAL_DIR")},
+		DirectoryResolver{Root: os.Getenv("CYMONKEY_CONNECTION_MATERIAL_DIR")},
 	}
 }
 

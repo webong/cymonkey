@@ -158,7 +158,7 @@ func TestInspectionFindsRepositoryWorker(t *testing.T) {
 		t.Fatal("resolve test path")
 	}
 	worker := filepath.Join(filepath.Dir(file), "..", "..", "..", "scripts", "presentation-worker.mjs")
-	t.Setenv("JANGOLOVA_PRESENTATION_WORKER", worker)
+	t.Setenv("CYMONKEY_PRESENTATION_WORKER", worker)
 	inspection := (Adapter{}).InspectEngine(context.Background())
 	if !inspection.Available {
 		t.Fatalf("InspectEngine() = %#v", inspection)

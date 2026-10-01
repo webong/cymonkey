@@ -61,6 +61,12 @@ type PullOptions struct {
 }
 
 func Decode(r io.Reader) (Registry, error) {
+	return DecodeWithSchemaVersion(r, SchemaVersion)
+}
+
+// DecodeWithSchemaVersion lets an embedding application publish the registry
+// through its own versioned contract while retaining Jangolova's validation.
+func DecodeWithSchemaVersion(r io.Reader, expected string) (Registry, error) {
 	var registry Registry
 	decoder := json.NewDecoder(r)
 	decoder.DisallowUnknownFields()
@@ -71,7 +77,7 @@ func Decode(r io.Reader) (Registry, error) {
 	if err := decoder.Decode(&extra); err != io.EOF {
 		return Registry{}, errors.New("Jangolova registry must contain exactly one JSON document")
 	}
-	if err := registry.Validate(); err != nil {
+	if err := registry.ValidateSchemaVersion(expected); err != nil {
 		return Registry{}, err
 	}
 	return registry, nil
@@ -90,6 +96,12 @@ func LoadFile(path string) (Registry, error) {
 // loopback endpoint, making local fixtures convenient without weakening
 // production transport requirements.
 func Discover(ctx context.Context, endpoint string, options DiscoveryOptions) (Registry, error) {
+	return DiscoverWithSchemaVersion(ctx, endpoint, SchemaVersion, options)
+}
+
+// DiscoverWithSchemaVersion fetches a registry owned by an embedding
+// application and validates it against the application's schema version.
+func DiscoverWithSchemaVersion(ctx context.Context, endpoint, expected string, options DiscoveryOptions) (Registry, error) {
 	parsed, err := url.Parse(strings.TrimSpace(endpoint))
 	if err != nil || parsed.Host == "" || (parsed.Scheme != "https" && parsed.Scheme != "http") {
 		return Registry{}, errors.New("Jangolova registry endpoint must be an HTTP(S) URL")
@@ -114,12 +126,18 @@ func Discover(ctx context.Context, endpoint string, options DiscoveryOptions) (R
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		return Registry{}, fmt.Errorf("discover Jangolova registry: HTTP %s", response.Status)
 	}
-	return Decode(io.LimitReader(response.Body, 8<<20))
+	return DecodeWithSchemaVersion(io.LimitReader(response.Body, 8<<20), expected)
 }
 
 func (r Registry) Validate() error {
-	if r.SchemaVersion != SchemaVersion {
-		return fmt.Errorf("Jangolova registry schemaVersion must be %q", SchemaVersion)
+	return r.ValidateSchemaVersion(SchemaVersion)
+}
+
+// ValidateSchemaVersion validates a registry owned by an embedding
+// application without requiring Jangolova's native schema identifier.
+func (r Registry) ValidateSchemaVersion(expected string) error {
+	if r.SchemaVersion != expected {
+		return fmt.Errorf("Jangolova registry schemaVersion must be %q", expected)
 	}
 	if strings.TrimSpace(r.RegistryID) == "" {
 		return errors.New("Jangolova registry registryId is required")

@@ -1,5 +1,5 @@
 export const CYMONKEY_PROTOCOL_VERSION = 'cymonkey/v1alpha1';
-export const CYMONKEY_RUNTIME_SYMBOL = Symbol.for('cymonkey.jangolova.runtime');
+export const CYMONKEY_RUNTIME_SYMBOL = Symbol.for('cymonkey.display.runtime');
 export const CYMONKEY_DOMAIN = 'render';
 export const CYMONKEY_RUNTIME = 'threejs';
 export const CYMONKEY_DRIVER = 'in-page-runtime';

@@ -34,7 +34,7 @@ func syncUserscripts(ctx context.Context, instance orchestrator.EngineInstance, 
 	})
 	if !ok {
 		if len(desired) != 0 {
-			return nil, errors.New("selected engine cannot register userscripts")
+			return nil, errors.New("selected display adapter cannot register userscripts")
 		}
 		return desired, nil
 	}

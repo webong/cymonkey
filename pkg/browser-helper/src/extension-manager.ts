@@ -38,7 +38,7 @@ export type InstallRequest = {
   target?: Record<string, unknown>;
 };
 
-// Implement this in a trusted host using Cymonkey/Jangolova's packaging and
+// Implement this in a trusted host using Cymonkey's packaging and
 // browser-specific install actions. It is never a raw browser API proxy.
 export type InstallBackend<Result = unknown> = {
   prepare(source: string): Promise<{revision: string; [key: string]: unknown}>;

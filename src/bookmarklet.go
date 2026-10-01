@@ -27,7 +27,7 @@ func bookmarkletCommand(args []string, stdout io.Writer) error {
 	var format, name string
 	if args[0] == "export" {
 		flags.StringVar(&format, "format", "url", "url or html")
-		flags.StringVar(&name, "name", "Jangolova bookmarklet", "installation link name")
+		flags.StringVar(&name, "name", "Cymonkey bookmarklet", "installation link name")
 	}
 	if err := flags.Parse(args[1:]); err != nil {
 		return err

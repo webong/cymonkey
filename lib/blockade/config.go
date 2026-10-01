@@ -16,27 +16,27 @@ import (
 const ConfigAPIVersion = "blockade.config/v1alpha1"
 
 type Config struct {
-	APIVersion string                  `yaml:"apiVersion"`
-	Providers  []ProviderAdapterConfig `yaml:"providers"`
+	APIVersion string                  `yaml:"apiVersion" json:"apiVersion"`
+	Providers  []ProviderAdapterConfig `yaml:"providers" json:"providers"`
 }
 
 // ProviderAdapterConfig configures one instance of an installed provider.
 // Settings are non-secret provider configuration. Secrets can only name
 // environment variables and are resolved lazily at runtime.
 type ProviderAdapterConfig struct {
-	ID              string                     `yaml:"id"`
-	Provider        string                     `yaml:"provider"`
-	Model           string                     `yaml:"model,omitempty"`
-	ModelRoot       string                     `yaml:"modelRoot,omitempty"`
-	Workers         int                        `yaml:"workers,omitempty"`
-	Timeout         string                     `yaml:"timeout,omitempty"`
-	MaxPayloadBytes int64                      `yaml:"maxPayloadBytes,omitempty"`
-	Settings        map[string]string          `yaml:"settings,omitempty"`
-	Secrets         map[string]SecretReference `yaml:"secrets,omitempty"`
+	ID              string                     `yaml:"id" json:"id"`
+	Provider        string                     `yaml:"provider" json:"provider"`
+	Model           string                     `yaml:"model,omitempty" json:"model,omitempty"`
+	ModelRoot       string                     `yaml:"modelRoot,omitempty" json:"modelRoot,omitempty"`
+	Workers         int                        `yaml:"workers,omitempty" json:"workers,omitempty"`
+	Timeout         string                     `yaml:"timeout,omitempty" json:"timeout,omitempty"`
+	MaxPayloadBytes int64                      `yaml:"maxPayloadBytes,omitempty" json:"maxPayloadBytes,omitempty"`
+	Settings        map[string]string          `yaml:"settings,omitempty" json:"settings,omitempty"`
+	Secrets         map[string]SecretReference `yaml:"secrets,omitempty" json:"secrets,omitempty"`
 }
 
 type SecretReference struct {
-	Env string `yaml:"env"`
+	Env string `yaml:"env" json:"env"`
 }
 
 func LoadConfig(path string) (Config, error) {
@@ -54,6 +54,56 @@ func LoadConfig(path string) (Config, error) {
 		return Config{}, err
 	}
 	return config, nil
+}
+
+// SaveConfig validates and atomically writes a Blockade configuration. Files
+// are private because they may reveal endpoint topology and secret variable
+// names even though secret values are never stored in the configuration.
+func SaveConfig(path string, config Config) error {
+	if err := config.Validate(); err != nil {
+		return err
+	}
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return errors.New("Blockade config path is required")
+	}
+	absolute, err := filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+	directory := filepath.Dir(absolute)
+	if err := os.MkdirAll(directory, 0o700); err != nil {
+		return err
+	}
+	data, err := yaml.Marshal(config)
+	if err != nil {
+		return fmt.Errorf("encode Blockade config: %w", err)
+	}
+	temporary, err := os.CreateTemp(directory, ".blockade-config-*")
+	if err != nil {
+		return err
+	}
+	temporaryPath := temporary.Name()
+	defer os.Remove(temporaryPath)
+	if err := temporary.Chmod(0o600); err != nil {
+		_ = temporary.Close()
+		return err
+	}
+	if _, err := temporary.Write(data); err != nil {
+		_ = temporary.Close()
+		return err
+	}
+	if err := temporary.Sync(); err != nil {
+		_ = temporary.Close()
+		return err
+	}
+	if err := temporary.Close(); err != nil {
+		return err
+	}
+	if err := os.Rename(temporaryPath, absolute); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c Config) Validate() error {
