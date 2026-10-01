@@ -23,6 +23,8 @@ presenting a new dynamic one.
 - Prepare typed, host-approved input and output bindings through the public device contract.
 - Reuse native capture/input/recording, device readiness, storage transfer, and
   endpoint health SDKs.
+- Compose callable tools, one explicit model turn, and caller-selected MCP
+  attachments through the Console SDK. See [model and tool composition](docs/sdk-model-tools.md).
 - Install optional display, content, and device plugins without rebuilding Cymonkey.
 - Preserve target ownership: a connection may detach, but it never quits a
   browser, terminates an application, or destroys a scene.
@@ -85,6 +87,7 @@ audit events, reviewed packages, and caller-supplied target connections.
 
 ## Documentation
 
+- [Console tool composition library](lib/console/README.md)
 - [Display interaction](docs/engine-provider.md)
 - [Content observation and interpretation](docs/content.md)
 - [Device input and output](docs/device-sessions.md)

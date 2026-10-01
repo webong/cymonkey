@@ -184,13 +184,14 @@ The authenticated, provider-neutral `cymonkey.display/v1alpha1` HTTP API transpo
 calls. The cooperative Unity bridge implements the same vocabulary.
 
 The repository uses `src/` for Cymonkey provider code, generic contracts,
-adapters, and protocol assets. Standalone Jangolova, Blockade, and Board
-libraries live under root `lib/`; `src/main.go` is the single Cymonkey interface
-binary. `pkg/` remains the distribution surface for runtime packages and platform
+adapters, and protocol assets. Standalone Jangolova, Blockade, Board, and
+Console libraries live under root `lib/`; `src/main.go` is the single Cymonkey
+interface binary. `pkg/` remains the distribution surface for runtime packages and platform
 products, while `tests/` remains the conformance and fixture surface. The
-Jangolova, Blockade, and Board libraries are separate Go modules (`jangolova`,
-`blockade`, and `board`). They share the neutral `providerplugin` transport
-module and join the Cymonkey module through `go.work` and local replacements.
+Jangolova, Blockade, Board, and Console libraries are separate Go modules
+(`jangolova`, `blockade`, `board`, and `console`). They share the neutral
+`providerplugin` transport module and join the Cymonkey module through `go.work`
+and local replacements.
 Each library's plugin adapter selects the native executable contracts it understands;
 `providerplugin` checks package structure and integrity without enumerating
 libraries. Cymonkey owns the command handlers, shared plugin directory, and
@@ -201,6 +202,18 @@ The host manifest also uses a generic `services` map keyed by public contract
 names such as `display.interaction` and `content.interpretation`. The internal
 host validates and supervises these endpoints without library-specific fields.
 
+Console is the standalone composition library for callable tools. It publishes
+definitions, makes one explicitly requested model turn, and dispatches a
+selected call implemented by Jangolova, Blockade, Board, MCP, or application
+code. The caller owns approvals, tool selection, transcripts, and subsequent
+turns. Console has no autonomous agent loop.
+
+Blockade owns neutral generation, streaming, multimodal message, tool proposal,
+and speech contracts. Its catalogs start empty and accept opaque provider/model
+IDs through explicit registration. Provider clients, API dialects, endpoint
+configuration, and credential selection live in optional external packages;
+Blockade never hardcodes them. See [SDK model and tool composition](sdk-model-tools.md).
+
 ## Package direction
 
 ```text
@@ -210,6 +223,7 @@ src/devicecli/                 Cymonkey device command handlers
 src/internal/provider/         provider and MCP implementation
 src/fixtures/native-bridge/    native bridge fixture implementation
 lib/blockade/                  standalone Blockade inference library
+lib/console/                   standalone tool composition library
 src/adapters/browserautomation/ Playwright CDP and Puppeteer CDP/BiDi attachment
 src/adapters/webdriverclassic/  existing W3C WebDriver session attachment
 src/adapters/safarimcp/         caller-owned Safari MCP relay attachment
