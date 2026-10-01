@@ -52,7 +52,7 @@ func Audio(o AudioOptions) (*device.Provider, error) {
 	}
 	server := "--server=unix:" + o.Socket
 	caps := []board.CapabilityDescriptor{device.Descriptor(board.AudioDescribe, device.EmptySchema, false), device.Descriptor(board.DeviceHealth, device.EmptySchema, false)}
-	schema := `{"type":"object","properties":{"encoding":{"enum":["pcm","pcmu"]}},"additionalProperties":false}`
+	schema := `{"type":"object","properties":{"encoding":{"enum":["pcm","pcmu"]},"sampleRate":{"type":"integer","minimum":8000,"maximum":192000},"channels":{"type":"integer","minimum":1,"maximum":8}},"additionalProperties":false}`
 	for cap, enabled := range map[board.Capability]bool{board.AudioCapture: o.SystemCapture, board.AudioMicrophone: o.Microphone, board.AudioPlayback: o.Playback} {
 		if enabled {
 			caps = append(caps, device.Descriptor(cap, schema, false))
@@ -91,18 +91,32 @@ func Audio(o AudioOptions) (*device.Provider, error) {
 			cap := cap
 			ops[cap] = device.Operation{Channel: func(ctx context.Context, a board.Action, l board.ChannelLimits) (io.ReadWriteCloser, error) {
 				var in struct {
-					Encoding string `json:"encoding"`
+					Encoding   string `json:"encoding"`
+					SampleRate *int   `json:"sampleRate"`
+					Channels   *int   `json:"channels"`
 				}
 				if err := device.Decode(a.Input, &in); err != nil {
 					return nil, err
 				}
-				format, rate, channels := "s16le", "48000", "2"
+				format, sampleRate, channelCount := "s16le", 48000, 2
 				switch in.Encoding {
 				case "", "pcm":
 				case "pcmu":
-					format, rate, channels = "ulaw", "8000", "1"
+					format, sampleRate, channelCount = "ulaw", 8000, 1
 				default:
 					return nil, errors.New("unsupported audio encoding")
+				}
+				if in.SampleRate != nil {
+					if *in.SampleRate < 8000 || *in.SampleRate > 192000 || in.Encoding == "pcmu" && *in.SampleRate != 8000 {
+						return nil, errors.New("invalid audio sample rate")
+					}
+					sampleRate = *in.SampleRate
+				}
+				if in.Channels != nil {
+					if *in.Channels < 1 || *in.Channels > 8 || in.Encoding == "pcmu" && *in.Channels != 1 {
+						return nil, errors.New("invalid audio channel count")
+					}
+					channelCount = *in.Channels
 				}
 				read := cap != board.AudioPlayback
 				if read && l.WriteBytes != 0 || !read && l.ReadBytes != 0 {
@@ -115,7 +129,7 @@ func Audio(o AudioOptions) (*device.Provider, error) {
 				if !read {
 					direction, target = "--playback", o.OutputDevice
 				}
-				return processStream(ctx, nil, read, "pacat", server, direction, "--raw", "--device="+target, "--format="+format, "--rate="+rate, "--channels="+channels)
+				return processStream(ctx, nil, read, "pacat", server, direction, "--raw", "--device="+target, "--format="+format, "--rate="+strconv.Itoa(sampleRate), "--channels="+strconv.Itoa(channelCount))
 			}}
 		}
 		ops[board.AudioConfigure] = device.Operation{Invoke: func(ctx context.Context, a board.Action) (board.Result, error) {

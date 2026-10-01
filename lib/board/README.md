@@ -42,6 +42,14 @@ channels, and cursor-based lifecycle events. See [device sessions](../../docs/de
 for configuration, capability grants, operator routes, and platform limits.
 The low-level SDKs remain available for hosts that enforce authorization themselves.
 
+Audio channels in `board/devices` accept `encoding`, `sampleRate`, and
+`channels`. PCM is signed 16-bit little endian; omitting rate/channels preserves
+48 kHz stereo. Hosts can request mono 24 kHz with
+`{"encoding":"pcm","sampleRate":24000,"channels":1}` for a compatible realtime
+model adapter. PCM allows 8–192 kHz and 1–8 channels; PCMU remains 8 kHz mono.
+The caller opens the granted channel with explicit byte/time limits and owns
+capture/playback lifetime. No model connection opens a device automatically.
+
 ## First workflow: import photos from a USB drive
 
 1. A registered drive provider reports the USB drive and its capabilities.

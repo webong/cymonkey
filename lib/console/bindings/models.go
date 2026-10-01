@@ -1,0 +1,130 @@
+package bindings
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"mime"
+	"strings"
+
+	"blockade"
+	"console"
+)
+
+// GenerationInput contains the inputs a caller may choose for a bound model
+// tool. Model selection and nested tool definitions belong to the host.
+type GenerationInput struct {
+	Messages        []blockade.Message `json:"messages"`
+	MaxOutputTokens int                `json:"maxOutputTokens,omitempty"`
+	Temperature     *float64           `json:"temperature,omitempty"`
+	OutputSchema    json.RawMessage    `json:"outputSchema,omitempty"`
+}
+
+// Generate binds one model to one tool. It makes one generation request and
+// returns the complete response, including proposed calls as data.
+func Generate(definition console.Definition, generator blockade.Generator, model string) (console.Tool, error) {
+	if generator == nil || strings.TrimSpace(model) == "" {
+		return console.Tool{}, errors.New("generation needs a generator and fixed model")
+	}
+	return console.NewJSONTool(definition, func(ctx context.Context, input GenerationInput) (blockade.GenerationResponse, error) {
+		request := blockade.GenerationRequest{
+			Model: model, Messages: input.Messages, MaxOutputTokens: input.MaxOutputTokens,
+			Temperature: input.Temperature, OutputSchema: input.OutputSchema,
+		}
+		if err := blockade.ValidateGenerationRequest(request); err != nil {
+			return blockade.GenerationResponse{}, err
+		}
+		response, err := generator.Generate(ctx, request)
+		if err != nil {
+			return blockade.GenerationResponse{}, err
+		}
+		if err := blockade.ValidateGenerationResponse(response); err != nil {
+			return blockade.GenerationResponse{}, err
+		}
+		return response, nil
+	})
+}
+
+type TranscriptionOptions struct {
+	Model         string
+	MaxAudioBytes int64 // positive, explicit per-call ceiling chosen by the host
+}
+
+// Audio is base64 in the tool's JSON arguments, following encoding/json's
+// standard []byte representation. No device is opened by this binding.
+type TranscriptionInput struct {
+	Audio     []byte `json:"audio"`
+	MediaType string `json:"mediaType"`
+	Language  string `json:"language,omitempty"`
+	Prompt    string `json:"prompt,omitempty"`
+}
+
+func Transcribe(definition console.Definition, transcriber blockade.Transcriber, options TranscriptionOptions) (console.Tool, error) {
+	if transcriber == nil || strings.TrimSpace(options.Model) == "" || options.MaxAudioBytes <= 0 {
+		return console.Tool{}, errors.New("transcription needs a transcriber, fixed model, and audio byte ceiling")
+	}
+	return console.NewJSONTool(definition, func(ctx context.Context, input TranscriptionInput) (blockade.TranscriptionResponse, error) {
+		mediaType, _, err := mime.ParseMediaType(input.MediaType)
+		if err != nil || !strings.Contains(mediaType, "/") || len(input.Audio) == 0 || int64(len(input.Audio)) > options.MaxAudioBytes {
+			return blockade.TranscriptionResponse{}, errors.New("transcription needs a valid media type and audio within the host byte ceiling")
+		}
+		return transcriber.Transcribe(ctx, blockade.TranscriptionRequest{
+			Model: options.Model, Audio: input.Audio, MediaType: input.MediaType,
+			Language: input.Language, Prompt: input.Prompt,
+		})
+	})
+}
+
+type SpeechOptions struct {
+	Model        string
+	Voice        string
+	Format       string
+	Instructions string
+	MaxTextBytes int // positive, explicit per-call ceiling chosen by the host
+}
+
+type SpeechInput struct {
+	Text string `json:"text"`
+}
+
+// SpeechConsumer synchronously consumes a borrowed audio stream and returns
+// JSON metadata, such as a host-owned content reference or playback receipt.
+// The binding closes the stream when the consumer returns. Consumers must not
+// retain it, and own destination selection, authorization, and byte/time limits.
+type SpeechConsumer func(context.Context, blockade.SpeechStream) (json.RawMessage, error)
+
+// Synthesize binds a fixed model, voice, format, and audio consumer. Only text
+// is chosen by the tool caller; device and file destinations remain host-owned.
+func Synthesize(definition console.Definition, synthesizer blockade.SpeechSynthesizer, options SpeechOptions, consume SpeechConsumer) (console.Tool, error) {
+	if synthesizer == nil || consume == nil || strings.TrimSpace(options.Model) == "" || strings.TrimSpace(options.Voice) == "" || strings.TrimSpace(options.Format) == "" || options.MaxTextBytes <= 0 {
+		return console.Tool{}, errors.New("speech needs a synthesizer, fixed model/voice/format, text byte ceiling, and audio consumer")
+	}
+	return console.NewJSONTool(definition, func(ctx context.Context, input SpeechInput) (output json.RawMessage, err error) {
+		if strings.TrimSpace(input.Text) == "" || len(input.Text) > options.MaxTextBytes {
+			return nil, errors.New("speech text must be nonempty and within the host byte ceiling")
+		}
+		stream, err := synthesizer.Synthesize(ctx, blockade.SpeechRequest{
+			Model: options.Model, Text: input.Text, Voice: options.Voice,
+			Format: options.Format, Instructions: options.Instructions,
+		})
+		if err != nil {
+			// A faulty adapter may return an attachment alongside an error.
+			if stream.Audio != nil {
+				err = errors.Join(err, stream.Audio.Close())
+			}
+			return nil, err
+		}
+		if stream.Audio == nil {
+			return nil, errors.New("speech adapter returned no audio stream")
+		}
+		defer func() { err = errors.Join(err, stream.Audio.Close()) }()
+		mediaType, _, parseErr := mime.ParseMediaType(stream.MediaType)
+		if parseErr != nil || !strings.HasPrefix(mediaType, "audio/") {
+			return nil, errors.New("speech adapter returned an invalid audio media type")
+		}
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		return consume(ctx, stream)
+	})
+}

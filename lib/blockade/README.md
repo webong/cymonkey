@@ -1,6 +1,6 @@
 # Blockade library
 
-Blockade is the internal content observation and interpretation library. It
+Blockade is the content observation, interpretation, and model contract library. It
 defines Go contracts for text, image, audio, and video requests, validates
 provider output, selects configured adapters, and manages local model and
 runtime artifacts.
@@ -30,6 +30,31 @@ An inference adapter owns:
 
 Blockade does not ship a command line application. Host applications decide
 which commands and public wire contracts they expose.
+
+## Generation and speech SDK contracts
+
+`Generator` and `StreamingGenerator` accept a neutral `GenerationRequest` with
+explicit model ID, messages, inline multimodal parts, tool definitions, output
+schema, and generation controls. Responses contain assistant content, proposed
+tool calls, stop reason, and token usage. `Text()` selects only text; opaque
+provider context is retained separately for reuse with the same adapter.
+
+`ModelCatalog` is a zero-value, empty registry of host-selected generators and
+model metadata. Register arbitrary bindings yourself; it has no built-in
+providers, endpoint URLs, model IDs, credential lookup, fallback, or retry
+policy. `ValidateGenerationRequest` and `ValidateGenerationResponse` validate
+the neutral contract. Adapters enforce their native feature support and limits.
+
+`Transcriber`, `SpeechSynthesizer`, and `RealtimeSession` define optional speech
+operations. The caller supplies audio, owns returned streams, and explicitly
+controls realtime input, turn completion, response creation, interruption, and
+tool results. Blockade never captures devices, plays audio, or executes tools.
+
+Implement these interfaces in a host or an optional provider module. For one
+such implementation see [`providers/content-endpoints/generation`](../../providers/content-endpoints/generation/README.md).
+These are native embedding APIs; the existing content HTTP/plugin contracts
+continue to expose observation and interpretation. The generation/speech SDK
+does not add corresponding CLI or process-plugin methods.
 
 ## Models, formats, and adapters
 

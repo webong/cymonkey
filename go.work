@@ -4,6 +4,7 @@ use (
 	.
 	./lib/blockade
 	./lib/board
+	./lib/console
 	./lib/jangolova
 	./lib/plugin
 	./providers/content-onnx
