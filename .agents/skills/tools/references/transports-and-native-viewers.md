@@ -71,7 +71,7 @@ and supply its caller-owned authenticated `websocket` endpoint.
 for `macos-application` or `windows-application`. It contains the loopback
 control URL, short-lived token, and exact protocol version. The agent may pass
 that material to the authorized target owner through an approved secure channel.
-The owner adds the absolute `JANGOLOVA_CYMONKEY_CONFIG` path and launches the
+The owner adds the absolute `CYMONKEY_CONFIG` path and launches the
 signed platform helper.
 
 The direct `cymonkey provider connect-engine` command is intentionally excluded from

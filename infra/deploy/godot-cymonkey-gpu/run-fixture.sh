@@ -2,7 +2,7 @@
 set -euo pipefail
 
 project_path="${GODOT_PROJECT_PATH:-/workspace/tests/godot-cymonkey-fixture}"
-artifact_dir="${GODOT_ARTIFACT_DIR:-${JANGOLOVA_ARTIFACT_DIR:-/workspace/artifacts}}"
+artifact_dir="${GODOT_ARTIFACT_DIR:-${CYMONKEY_ARTIFACT_DIR:-/workspace/artifacts}}"
 display_driver="${GODOT_DISPLAY_DRIVER:-x11}"
 rendering_method="${GODOT_RENDERING_METHOD:-gl_compatibility}"
 rendering_driver="${GODOT_RENDERING_DRIVER:-opengl3}"
@@ -13,8 +13,8 @@ if [[ ! -f "${project_path}/project.godot" ]]; then
   echo "Godot Cymonkey fixture project is missing: ${project_path}" >&2
   exit 1
 fi
-if [[ -z "${JANGOLOVA_CYMONKEY_TOKEN:-}" ]]; then
-  echo "JANGOLOVA_CYMONKEY_TOKEN must be supplied at runtime." >&2
+if [[ -z "${CYMONKEY_TOKEN:-}" ]]; then
+  echo "CYMONKEY_TOKEN must be supplied at runtime." >&2
   exit 1
 fi
 

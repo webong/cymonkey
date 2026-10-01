@@ -25,7 +25,7 @@ COPY --from=builder /out/cymy /usr/local/bin/cymy
 COPY --from=builder /out/cymy /usr/local/bin/cymonkey
 
 ENV JANGOLOVA_BROWSER_WORKER=/usr/local/lib/jangolova/browser-worker.mjs
-ENV JANGOLOVA_CYMONKEY_WORKER=/usr/local/lib/jangolova/cymonkey-worker.mjs
+ENV CYMONKEY_WORKER=/usr/local/lib/jangolova/cymonkey-worker.mjs
 
 ENTRYPOINT ["cymy"]
 CMD ["provider", "serve-engine-provider"]

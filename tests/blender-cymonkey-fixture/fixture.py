@@ -125,7 +125,7 @@ def run_contract(registry):
 
 if __name__ == "__main__":
     result = run_contract(build_registry())
-    capture_path = os.environ.get("JANGOLOVA_CAPTURE_PATH")
+    capture_path = os.environ.get("CYMONKEY_CAPTURE_PATH")
     if capture_path:
         Path(capture_path).write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print("Blender Cymonkey headless fixture passed.")

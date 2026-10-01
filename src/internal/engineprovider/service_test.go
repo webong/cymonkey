@@ -111,8 +111,8 @@ func (launchEngineAdapter) Connect(context.Context, manifest.EngineSpec, orchest
 
 func (*launchEngineInstance) EngineCallerLaunch() orchestrator.CallerLaunch {
 	return orchestrator.CallerLaunch{Environment: map[string]string{
-		"JANGOLOVA_CYMONKEY_CONTROL_URL":   "ws://127.0.0.1:7394/bridge",
-		"JANGOLOVA_CYMONKEY_CONTROL_TOKEN": "ephemeral-test-token",
+		"CYMONKEY_CONTROL_URL":   "ws://127.0.0.1:7394/bridge",
+		"CYMONKEY_CONTROL_TOKEN": "ephemeral-test-token",
 	}}
 }
 
@@ -440,7 +440,7 @@ func TestServiceReturnsCallerLaunchOnlyOnInitialConnection(t *testing.T) {
 	if err := json.NewDecoder(response.Body).Decode(&connected); err != nil {
 		t.Fatal(err)
 	}
-	if connected.CallerLaunch == nil || connected.CallerLaunch.Environment["JANGOLOVA_CYMONKEY_CONTROL_TOKEN"] != "ephemeral-test-token" {
+	if connected.CallerLaunch == nil || connected.CallerLaunch.Environment["CYMONKEY_CONTROL_TOKEN"] != "ephemeral-test-token" {
 		t.Fatalf("caller launch = %#v", connected.CallerLaunch)
 	}
 

@@ -63,7 +63,7 @@ func _ready() -> void:
 	registry._build_allowlist()
 	host.registry_path = registry.get_path()
 	registry.event_published.connect(_on_registry_event)
-	_capture_path = OS.get_environment("JANGOLOVA_CAPTURE_PATH")
+	_capture_path = OS.get_environment("CYMONKEY_CAPTURE_PATH")
 	if not _capture_path.is_empty():
 		call_deferred("_capture_frame")
 

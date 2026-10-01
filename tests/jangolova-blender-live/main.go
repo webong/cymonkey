@@ -163,8 +163,8 @@ func run() error {
 			if closeErr != nil {
 				return nil, closeErr
 			}
-			cmd := exec.CommandContext(ctx, "docker", "run", "--detach", "--rm", "--name", name, "--cpus", "4", "--memory", "2g", "--user", fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid()), "--publish", "127.0.0.1::9321", "--mount", "type=bind,src="+dir+",dst=/workspace/module,readonly", "--mount", "type=bind,src="+filepath.Join(base, "tests/blender-cymonkey-fixture")+",dst=/workspace/fixture,readonly", "--mount", "type=bind,src="+out+",dst=/workspace/artifacts", "-e", "JANGOLOVA_CYMONKEY_TOKEN", "-e", "JANGOLOVA_BLENDER_MODULE_DIR=/workspace/module", *image, "--python", "/workspace/fixture/live.py")
-			cmd.Env = append(os.Environ(), "JANGOLOVA_CYMONKEY_TOKEN="+token)
+			cmd := exec.CommandContext(ctx, "docker", "run", "--detach", "--rm", "--name", name, "--cpus", "4", "--memory", "2g", "--user", fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid()), "--publish", "127.0.0.1::9321", "--mount", "type=bind,src="+dir+",dst=/workspace/module,readonly", "--mount", "type=bind,src="+filepath.Join(base, "tests/blender-cymonkey-fixture")+",dst=/workspace/fixture,readonly", "--mount", "type=bind,src="+out+",dst=/workspace/artifacts", "-e", "CYMONKEY_TOKEN", "-e", "JANGOLOVA_BLENDER_MODULE_DIR=/workspace/module", *image, "--python", "/workspace/fixture/live.py")
+			cmd.Env = append(os.Environ(), "CYMONKEY_TOKEN="+token)
 			if result, err := cmd.CombinedOutput(); err != nil {
 				return nil, fmt.Errorf("start Blender fixture: %w: %s", err, result)
 			}

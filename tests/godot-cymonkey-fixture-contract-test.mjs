@@ -36,7 +36,7 @@ for (const resource of ["object:house", "object:door", "object:hero", "material:
 for (const action of ["object.transform.set", "material.color.set", "camera.transform.set", "ui.text.set"]) assert.match(registry, new RegExp(action.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 for (const node of ["House", "Door", "WindowLeft", "WindowRight", "InteriorLight", "Hero", "Status", "CameraMain"]) assert.match(scene, new RegExp(`name=\\"${node}\\"`));
 assert.match(fixture, /object\.visible\.set/);
-assert.match(fixture, /JANGOLOVA_CAPTURE_PATH/);
+assert.match(fixture, /CYMONKEY_CAPTURE_PATH/);
 assert.equal(scenePlan.apiVersion, "cymonkey.scene/v1alpha1");
 assert.equal(scenePlan.name, "midnight-house");
 assert.equal(scenePlan.actions.length, 5);
@@ -44,5 +44,5 @@ assert.ok(scenePlan.requires.some((resource) => resource.id === "material:interi
 assert.match(project, /run\/main_scene/);
 assert.match(container, /--headless/);
 assert.match(container, /GODOT_IMAGE/);
-assert.doesNotMatch(container, /JANGOLOVA_CYMONKEY_TOKEN=.*[A-Za-z0-9]{8}/);
+assert.doesNotMatch(container, /CYMONKEY_TOKEN=.*[A-Za-z0-9]{8}/);
 console.log("Godot Cymonkey fixture environment contract is valid.");

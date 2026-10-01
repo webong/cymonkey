@@ -15,7 +15,7 @@ Run the source-only conformance fixture:
 
 ```sh
 docker run --rm \
-  -e JANGOLOVA_CYMONKEY_TOKEN=replace-at-runtime \
+  -e CYMONKEY_TOKEN=replace-at-runtime \
   cymonkey/blender-fixture:local
 ```
 

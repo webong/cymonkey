@@ -379,7 +379,7 @@ class CymonkeyWebSocketHost:
 
     def __init__(self, registry: CymonkeyRegistry, token: str | None = None, host: str = "127.0.0.1", port: int = 9321):
         self.registry = registry
-        self.token = token or os.environ.get("JANGOLOVA_CYMONKEY_TOKEN", "")
+        self.token = token or os.environ.get("CYMONKEY_TOKEN", "")
         self.host = host
         self.port = int(port)
         self._pending: queue.Queue[_PendingRequest] = queue.Queue()
@@ -389,7 +389,7 @@ class CymonkeyWebSocketHost:
 
     def start(self) -> None:
         if not self.token:
-            raise ValueError("JANGOLOVA_CYMONKEY_TOKEN is required")
+            raise ValueError("CYMONKEY_TOKEN is required")
         self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._server.bind((self.host, self.port))

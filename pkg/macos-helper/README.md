@@ -67,11 +67,11 @@ result. Jangolova never selects the identity or performs this step at runtime.
 Start from `helper-config.example.json`. Configuration contains allowlists and
 semantic-to-native mappings, never credentials. The launcher provides:
 
-- `JANGOLOVA_CYMONKEY_CONTROL_URL`: an absolute `ws://` loopback or `wss://`
+- `CYMONKEY_CONTROL_URL`: an absolute `ws://` loopback or `wss://`
   control endpoint;
-- `JANGOLOVA_CYMONKEY_CONTROL_TOKEN`: a short-lived bearer token;
-- `JANGOLOVA_CYMONKEY_PROTOCOL`: exactly `cymonkey/v1alpha1`;
-- `JANGOLOVA_CYMONKEY_CONFIG`: an absolute path to the helper configuration.
+- `CYMONKEY_CONTROL_TOKEN`: a short-lived bearer token;
+- `CYMONKEY_PROTOCOL`: exactly `cymonkey/v1alpha1`;
+- `CYMONKEY_CONFIG`: an absolute path to the helper configuration.
 
 Non-loopback plaintext WebSocket endpoints and credentials embedded in URLs
 are rejected. Disconnecting the socket ends the helper without quitting any

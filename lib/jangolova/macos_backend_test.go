@@ -60,9 +60,9 @@ func TestMacOSCooperativeBackendHandshakesAndEnforcesBundlePolicy(t *testing.T) 
 }
 
 func TestMacOSSwiftHelperLive(t *testing.T) {
-	executable := os.Getenv("JANGOLOVA_CYMONKEY_MACOS_HELPER")
+	executable := os.Getenv("CYMONKEY_MACOS_HELPER")
 	if executable == "" {
-		t.Skip("set JANGOLOVA_CYMONKEY_MACOS_HELPER to the test-built Swift helper")
+		t.Skip("set CYMONKEY_MACOS_HELPER to the test-built Swift helper")
 	}
 	connected, err := (Adapter{Host: testHost()}).Connect(context.Background(), sdk.EngineSpec{Options: json.RawMessage(`{"domain":"viewer"}`)}, sdk.EngineTarget{Kind: "macos-application"})
 	if err != nil {
@@ -83,10 +83,10 @@ func TestMacOSSwiftHelperLive(t *testing.T) {
 	}
 	command := exec.Command(executable)
 	command.Env = append(os.Environ(),
-		"JANGOLOVA_CYMONKEY_CONTROL_URL="+launch["JANGOLOVA_CONTROL_URL"],
-		"JANGOLOVA_CYMONKEY_CONTROL_TOKEN="+launch["JANGOLOVA_CONTROL_TOKEN"],
-		"JANGOLOVA_CYMONKEY_PROTOCOL="+launch["JANGOLOVA_CONTROL_PROTOCOL"],
-		"JANGOLOVA_CYMONKEY_CONFIG="+configPath,
+		"CYMONKEY_CONTROL_URL="+launch["JANGOLOVA_CONTROL_URL"],
+		"CYMONKEY_CONTROL_TOKEN="+launch["JANGOLOVA_CONTROL_TOKEN"],
+		"CYMONKEY_PROTOCOL="+launch["JANGOLOVA_CONTROL_PROTOCOL"],
+		"CYMONKEY_CONFIG="+configPath,
 	)
 	if err := command.Start(); err != nil {
 		t.Fatal(err)

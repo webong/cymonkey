@@ -7,9 +7,9 @@ explicit Unity target, and an explicit action allowlist. Cymonkey never scans or
 exports unregistered GameObjects.
 
 The initial `CymonkeyWebSocketHost` binding uses `websocket`. The target owner
-supplies `JANGOLOVA_CYMONKEY_PREFIX` (an `HttpListener` prefix,
+supplies `CYMONKEY_PREFIX` (an `HttpListener` prefix,
 for example `http://127.0.0.1:8090/cymonkey/`) and
-`JANGOLOVA_CYMONKEY_TOKEN` through a secret injection mechanism. It then gives
+`CYMONKEY_TOKEN` through a secret injection mechanism. It then gives
 Jangolova the corresponding `ws://...` `websocket` target endpoint and an
 opaque credential reference that resolves to the Authorization header.
 

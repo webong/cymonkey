@@ -34,7 +34,7 @@ blender --background scene.blend --python bootstrap_cymonkey.py
 
 `bootstrap_cymonkey.py` creates a `CymonkeyRegistry`, registers selected
 objects/materials/cameras, and starts `CymonkeyWebSocketHost` with the token
-from `JANGOLOVA_CYMONKEY_TOKEN`. The host accepts either an
+from `CYMONKEY_TOKEN`. The host accepts either an
 `Authorization: Bearer <token>` WebSocket upgrade or a first-frame auth
 message of the form `{"type":"auth","token":"..."}`.
 

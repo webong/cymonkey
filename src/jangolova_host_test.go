@@ -95,9 +95,9 @@ func TestHostBindingForwardsCallsEventsAndDisconnect(t *testing.T) {
 		t.Fatalf("call: %s %v", raw, err)
 	}
 	launch := instance.(orchestrator.EngineCallerLaunchProvider).EngineCallerLaunch()
-	if launch.Environment["JANGOLOVA_CYMONKEY_CONTROL_URL"] != "ws://127.0.0.1:7391" ||
-		launch.Environment["JANGOLOVA_CYMONKEY_CONTROL_TOKEN"] != "fixture" ||
-		launch.Environment["JANGOLOVA_CYMONKEY_PROTOCOL"] != "fixture/v1" ||
+	if launch.Environment["CYMONKEY_CONTROL_URL"] != "ws://127.0.0.1:7391" ||
+		launch.Environment["CYMONKEY_CONTROL_TOKEN"] != "fixture" ||
+		launch.Environment["CYMONKEY_PROTOCOL"] != "fixture/v1" ||
 		launch.Environment["JANGOLOVA_CONTROL_URL"] != "" {
 		t.Fatalf("host launch compatibility = %#v", launch.Environment)
 	}

@@ -7,14 +7,14 @@ import (
 	"strings"
 )
 
-// Worker layout and legacy environment settings belong to Cymonkey's host,
-// not to a standalone Jangolova library.
+// Worker selection belongs to Cymonkey's host, not to a standalone Jangolova
+// library.
 func resolveBrowserWorker(kind string) (string, error) {
 	if kind != "browser" {
 		return "", errors.New("unsupported worker kind")
 	}
 	candidates := []string{
-		strings.TrimSpace(os.Getenv("JANGOLOVA_CYMONKEY_WORKER")),
+		strings.TrimSpace(os.Getenv("CYMONKEY_WORKER")),
 		"scripts/cymonkey-worker.mjs",
 		"/usr/local/lib/jangolova/cymonkey-worker.mjs",
 	}
@@ -33,5 +33,5 @@ func resolveBrowserWorker(kind string) (string, error) {
 			return absolute, nil
 		}
 	}
-	return "", errors.New("Cymonkey browser worker not found; set JANGOLOVA_CYMONKEY_WORKER")
+	return "", errors.New("Cymonkey browser worker not found; set CYMONKEY_WORKER")
 }

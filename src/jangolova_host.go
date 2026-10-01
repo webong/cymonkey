@@ -205,15 +205,15 @@ func (i *sessionBinding) EngineCallerLaunch() orchestrator.CallerLaunch {
 	if p, ok := i.source.(sdk.EngineCallerLaunchProvider); ok {
 		environment := maps.Clone(p.EngineCallerLaunch().Environment)
 		if value := environment["JANGOLOVA_CONTROL_URL"]; value != "" {
-			environment["JANGOLOVA_CYMONKEY_CONTROL_URL"] = value
+			environment["CYMONKEY_CONTROL_URL"] = value
 			delete(environment, "JANGOLOVA_CONTROL_URL")
 		}
 		if value := environment["JANGOLOVA_CONTROL_TOKEN"]; value != "" {
-			environment["JANGOLOVA_CYMONKEY_CONTROL_TOKEN"] = value
+			environment["CYMONKEY_CONTROL_TOKEN"] = value
 			delete(environment, "JANGOLOVA_CONTROL_TOKEN")
 		}
 		if value := environment["JANGOLOVA_CONTROL_PROTOCOL"]; value != "" {
-			environment["JANGOLOVA_CYMONKEY_PROTOCOL"] = value
+			environment["CYMONKEY_PROTOCOL"] = value
 			delete(environment, "JANGOLOVA_CONTROL_PROTOCOL")
 		}
 		return orchestrator.CallerLaunch{Environment: environment}

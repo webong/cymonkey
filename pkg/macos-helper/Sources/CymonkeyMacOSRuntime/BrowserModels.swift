@@ -27,11 +27,11 @@ public struct ManagedRuntimeConfiguration: Sendable {
     public let helperConfiguration: URL
 
     public init(environment: [String: String]) throws {
-        guard let rawEndpoint = environment["JANGOLOVA_CYMONKEY_CONTROL_URL"],
+        guard let rawEndpoint = environment["CYMONKEY_CONTROL_URL"],
               let endpoint = URL(string: rawEndpoint),
-              let token = environment["JANGOLOVA_CYMONKEY_CONTROL_TOKEN"], !token.isEmpty,
-              let protocolVersion = environment["JANGOLOVA_CYMONKEY_PROTOCOL"],
-              let path = environment["JANGOLOVA_CYMONKEY_CONFIG"], NSString(string: path).isAbsolutePath else {
+              let token = environment["CYMONKEY_CONTROL_TOKEN"], !token.isEmpty,
+              let protocolVersion = environment["CYMONKEY_PROTOCOL"],
+              let path = environment["CYMONKEY_CONFIG"], NSString(string: path).isAbsolutePath else {
             throw MacHelperError.invalidManagedConfiguration
         }
         self.endpoint = endpoint

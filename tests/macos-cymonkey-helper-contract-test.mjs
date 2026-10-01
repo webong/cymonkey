@@ -15,8 +15,8 @@ test('macOS helper is caller-owned and consumes Cymonkey v1alpha1', async () => 
   ]);
   assert.match(readme, /Jangolova\s+never launches or terminates it/);
   assert.match(models, /cymonkey\/v1alpha1/);
-  assert.match(main, /JANGOLOVA_CYMONKEY_CONTROL_URL/);
-  assert.match(main, /JANGOLOVA_CYMONKEY_CONTROL_TOKEN/);
+  assert.match(main, /CYMONKEY_CONTROL_URL/);
+  assert.match(main, /CYMONKEY_CONTROL_TOKEN/);
   assert.match(client, /Authorization/);
   assert.match(client, /plaintext Cymonkey control endpoints must use loopback/);
   assert.match(signing, /CODESIGN_IDENTITY/);

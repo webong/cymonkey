@@ -272,9 +272,9 @@ adds its configuration path and launches its signed helper:
 {
   "callerLaunch": {
     "environment": {
-      "JANGOLOVA_CYMONKEY_CONTROL_URL": "ws://127.0.0.1:49152/bridge",
-      "JANGOLOVA_CYMONKEY_CONTROL_TOKEN": "ephemeral-secret",
-      "JANGOLOVA_CYMONKEY_PROTOCOL": "cymonkey/v1alpha1"
+      "CYMONKEY_CONTROL_URL": "ws://127.0.0.1:49152/bridge",
+      "CYMONKEY_CONTROL_TOKEN": "ephemeral-secret",
+      "CYMONKEY_PROTOCOL": "cymonkey/v1alpha1"
     }
   }
 }
@@ -284,6 +284,11 @@ This material appears only in the initial authenticated connection response.
 It is not retained in subsequent instance descriptions, events, or logs.
 Jangolova creates the control attachment but never launches or signs the
 caller-owned helper.
+
+`CYMONKEY_CONTROL_TOKEN` authenticates this helper's outbound connection.
+Render packages that host their own socket use `CYMONKEY_TOKEN` instead.
+`JANGOLOVA_PROVIDER_TOKEN` authenticates the separate Jangolova provider
+service; these credentials are not interchangeable.
 
 Call the common semantic protocol:
 

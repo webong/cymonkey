@@ -23,10 +23,10 @@ go build -o cymonkey-windows-helper.exe ./pkg/windows-helper
 Set these launch variables; do not put them in the JSON configuration:
 
 ```text
-JANGOLOVA_CYMONKEY_CONTROL_URL=ws://127.0.0.1:...
-JANGOLOVA_CYMONKEY_CONTROL_TOKEN=<short-lived-token>
-JANGOLOVA_CYMONKEY_PROTOCOL=cymonkey/v1alpha1
-JANGOLOVA_CYMONKEY_CONFIG=C:\\absolute\\path\\helper-config.json
+CYMONKEY_CONTROL_URL=ws://127.0.0.1:...
+CYMONKEY_CONTROL_TOKEN=<short-lived-token>
+CYMONKEY_PROTOCOL=cymonkey/v1alpha1
+CYMONKEY_CONFIG=C:\\absolute\\path\\helper-config.json
 ```
 
 Plaintext WebSocket is accepted only on loopback. The helper should run in the

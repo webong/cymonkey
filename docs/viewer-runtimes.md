@@ -96,10 +96,10 @@ PowerShell, command-shell, process-launch, or raw UI Automation passthrough.
 The Windows helper's outbound control channel follows the same launch material
 as macOS:
 
-- `JANGOLOVA_CYMONKEY_CONTROL_URL`
-- `JANGOLOVA_CYMONKEY_CONTROL_TOKEN`
-- `JANGOLOVA_CYMONKEY_PROTOCOL=cymonkey/v1alpha1`
-- `JANGOLOVA_CYMONKEY_CONFIG`
+- `CYMONKEY_CONTROL_URL`
+- `CYMONKEY_CONTROL_TOKEN`
+- `CYMONKEY_PROTOCOL=cymonkey/v1alpha1`
+- `CYMONKEY_CONFIG`
 
 Plaintext `ws://` is accepted only for loopback. A production distributed
 helper is signed by its owner; unsigned builds are for local development only.

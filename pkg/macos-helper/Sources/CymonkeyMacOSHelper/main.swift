@@ -7,11 +7,11 @@ struct CymonkeyMacOSHelperCommand {
     static func main() async {
         do {
             let environment = ProcessInfo.processInfo.environment
-            guard let endpointValue = environment["JANGOLOVA_CYMONKEY_CONTROL_URL"],
+            guard let endpointValue = environment["CYMONKEY_CONTROL_URL"],
                   let endpointURL = URL(string: endpointValue),
-                  let token = environment["JANGOLOVA_CYMONKEY_CONTROL_TOKEN"],
-                  environment["JANGOLOVA_CYMONKEY_PROTOCOL"] == cymonkeyProtocolVersion,
-                  let configPath = environment["JANGOLOVA_CYMONKEY_CONFIG"],
+                  let token = environment["CYMONKEY_CONTROL_TOKEN"],
+                  environment["CYMONKEY_PROTOCOL"] == cymonkeyProtocolVersion,
+                  let configPath = environment["CYMONKEY_CONFIG"],
                   NSString(string: configPath).isAbsolutePath else {
                 throw RuntimeError.invalidRequest("required Cymonkey helper launch configuration is missing")
             }

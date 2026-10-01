@@ -10,8 +10,8 @@ namespace Jangolova.Cymonkey
         public const string DomainRender = "render";
         public const string RuntimeUnity = "unity";
         public const string DriverWebSocket = "websocket";
-        public const string PrefixEnvironmentVariable = "JANGOLOVA_CYMONKEY_PREFIX";
-        public const string TokenEnvironmentVariable = "JANGOLOVA_CYMONKEY_TOKEN";
+        public const string PrefixEnvironmentVariable = "CYMONKEY_PREFIX";
+        public const string TokenEnvironmentVariable = "CYMONKEY_TOKEN";
         public const int MaximumMessageBytes = 4 * 1024 * 1024;
     }
 

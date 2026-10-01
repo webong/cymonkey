@@ -29,14 +29,14 @@ func main() {
 }
 
 func run(lookup func(string) string) error {
-	endpoint, err := newControlEndpoint(lookup("JANGOLOVA_CYMONKEY_CONTROL_URL"), lookup("JANGOLOVA_CYMONKEY_CONTROL_TOKEN"))
+	endpoint, err := newControlEndpoint(lookup("CYMONKEY_CONTROL_URL"), lookup("CYMONKEY_CONTROL_TOKEN"))
 	if err != nil {
 		return err
 	}
-	if lookup("JANGOLOVA_CYMONKEY_PROTOCOL") != protocolVersion {
+	if lookup("CYMONKEY_PROTOCOL") != protocolVersion {
 		return errors.New("required Cymonkey protocol launch configuration is missing")
 	}
-	config, err := loadConfig(lookup("JANGOLOVA_CYMONKEY_CONFIG"))
+	config, err := loadConfig(lookup("CYMONKEY_CONFIG"))
 	if err != nil {
 		return err
 	}
