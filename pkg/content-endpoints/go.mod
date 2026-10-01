@@ -4,6 +4,7 @@ go 1.26.5
 
 require (
 	blockade v0.0.0
+	github.com/gorilla/websocket v1.5.3
 	providerplugin v0.0.0
 )
 

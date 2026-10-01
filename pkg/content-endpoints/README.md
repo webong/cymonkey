@@ -7,6 +7,12 @@ hosted inference APIs:
 - `anthropic-compatible` uses `POST /v1/messages`.
 - `google-compatible` uses Gemini `generateContent`.
 
+For native embedding, the optional [`generation`](generation/README.md) and
+[`realtime`](realtime/README.md) packages implement Blockade's generation and
+speech contracts. Those SDK packages require explicit endpoint/model settings
+and have no built-in provider profiles. The CLI profiles below belong to the
+existing observation/interpretation executables.
+
 The OpenAI-compatible provider has profiles for the common local servers. A
 profile supplies only the conventional local base URL; `baseURL` can always
 override it.
