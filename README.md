@@ -106,8 +106,7 @@ audit events, reviewed packages, and caller-supplied target connections.
 - [Architecture](docs/architecture.md)
 - [Browser packages](docs/browser-augmentation-packages.md)
 - [Browser extension manager](docs/browser-extension-installation.md)
-- [Extension manager library for other browser extensions](pkg/extension-manager/README.md)
-- [Composable browser adapter library](pkg/browser-adapter/README.md)
+- [Browser helper library for extensions, userscripts, and browser APIs](pkg/browser-helper/README.md)
 - [Use the `cymy` CLI](docs/cymy-cli.md)
 - [Persistent operator API](docs/operator-api.md)
 - [Install extensions with the `cymy` CLI](docs/cymy-extension-cli.md)
@@ -121,7 +120,6 @@ audit events, reviewed packages, and caller-supplied target connections.
 ```bash
 go test ./...
 npm run test:cymonkey
-npm run test:browser-adapter
-npm run test:extension-manager
+npm run test:browser-helper
 npm run test:threejs-cymonkey
 ```

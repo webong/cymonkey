@@ -12,7 +12,7 @@ The caller retains ownership of the submitted extension and its source.
 ## Build an extension manager with Cymonkey
 
 Cymonkey also provides the reusable
-[`@cymonkey/extension-manager` library](../pkg/extension-manager/README.md).
+[`@cymonkey/browser-helper` library](../pkg/browser-helper/README.md).
 An extension can import it, pass its own native `management` API, and implement
 its own list, detail, enable/disable, uninstall, and change-event UI. That
 extension is self-owned. The library has
@@ -223,7 +223,7 @@ Safari uses `extension.package-safari` and `extension.install` with
 `target.browser` set to `safari`, or its discovered Safari target ID.
 
 After installation, a caller-owned WebExtension can use
-[`@cymonkey/extension-manager`](../pkg/extension-manager/README.md) to read
+[`@cymonkey/browser-helper`](../pkg/browser-helper/README.md) to read
 the browser's native management API. Its `list` and `describe` methods return
 source-free installed state, including the browser-assigned ID, version,
 enabled flag, install type, and declared permissions, when that API exists.

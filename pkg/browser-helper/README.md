@@ -1,12 +1,12 @@
-# Cymonkey browser adapter
+# Cymonkey browser helper
 
-`@cymonkey/browser-adapter` supplies the browser-facing pieces that an
-integrating extension can compose into its own manager or augmentation host.
-It is a library, not an extension build. It does not import WXT and does not
-register a service worker, popup, or content script.
+`@cymonkey/browser-helper` provides APIs for browser integrations, extension
+management, userscripts, and page augmentations. An integrating extension or
+host can use them to build its own manager or augmentation flow. The caller
+supplies its own browser entry points, UI, and manifest permissions.
 
 ```ts
-import {createBrowserAdapter, decidePolicy} from '@cymonkey/browser-adapter';
+import {createBrowserAdapter, decidePolicy} from '@cymonkey/browser-helper';
 
 const adapter = createBrowserAdapter({
   storage: browser.storage.local,
@@ -42,12 +42,57 @@ composes these with scoped script injection to mount a reviewed package. The
 extension provides its own package assets, content receiver, sandbox page,
 approval UI, and manifest permissions.
 
-`createNativeUserscriptManager` manages browser-native registration and
-reconciliation. The caller supplies source validation, revision checks,
-registration planning, and approval. Pair it with
-[`@jangolova/userscript-runtime`](../userscript-runtime/README.md) for those
-validation and planning functions. The caller's `describe` function must
-return source-free metadata.
+## Extension management
+
+`createExtensionManager` wraps an integrating extension's native
+`browser.management` or `chrome.management` API. The extension declares the
+`management` permission and calls actions from its own UI. The browser still
+decides whether disabling or uninstalling an extension needs confirmation.
+
+```ts
+import {createExtensionManager} from '@cymonkey/browser-helper';
+
+const manager = createExtensionManager(browser.management);
+const installed = await manager.list();
+const stopWatching = manager.watch((change) => renderChange(change));
+```
+
+`list`, `describe`, `setEnabled`, `uninstall`, and `watch` operate on installed
+extensions through the supplied browser API. `capabilities()` reports which
+methods are present. Packaging and installation use an optional trusted host
+backend:
+
+```ts
+const manager = createExtensionManager(browser.management, {
+  prepare: (source) => trustedHost.prepareExtension(source),
+  install: (request) => trustedHost.installExtension(request),
+});
+```
+
+The host handles source review, installation, and native browser consent. The
+browser management API does not install arbitrary ZIP or XPI files.
+
+## Userscripts
+
+`createManifest`, `parseMetadata`, `sourceRevision`, `validateManifest`,
+`permissionIncrease`, and `registrationPlan` prepare and review a
+`cymonkey.userscript/v1alpha1` userscript. `createNativeUserscriptManager`
+manages browser-native registration and reconciliation. The caller supplies
+source validation, revision checks, registration planning, and approval, and
+its `describe` function must return source-free metadata. All of these APIs
+are exported from this package's root entry point.
+
+## Cookie export
+
+`createCookieExporter` lets an integrating extension export selected cookies
+through its privileged `browser.cookies` or `chrome.cookies` API. It uses the
+existing approval manager and control gate, asks for cookie and selected-host
+permissions from an approved UI click, checks the selected store, and hands a
+bounded payload to a caller-supplied delivery callback. It never falls back to
+`document.cookie`. See [browser cookie export](../../docs/browser-cookie-export.md)
+for the API, popup integration, scope rules, and the current CTX handoff limit.
+
+## Host and page integrations
 
 `OutboundControlClient` is also available for extensions that explicitly
 configure an authenticated outbound host connection. Its socket and storage
@@ -76,7 +121,6 @@ sandbox pages.
 tab, package runtime, sandbox, or caller-supplied main-world executor. The
 integrating host authenticates that caller before using the router.
 
-Pair this with [`@cymonkey/extension-manager`](../extension-manager/README.md)
-to list and manage installed extensions, or with the userscript runtime for
-userscript-specific validation. Cymonkey/Jangolova's host adapters can manage
-installation and browser connections outside an extension.
+Cymonkey and other hosts can manage installation and browser connections
+outside an extension. Run `npm run test:browser-helper` at the repository root
+to build and test the package.

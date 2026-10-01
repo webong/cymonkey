@@ -25,7 +25,7 @@ Lens IDs from Snap.
 Camera Kit Web downloads its Lens renderer as WebAssembly from Snap. A
 consuming extension can bundle this package in its own sandbox page with a
 reviewed Content Security Policy and camera consent flow. Cymonkey provides
-the package and browser-adapter library; it does not ship the sandbox page or
+the package and browser-helper library; it does not ship the sandbox page or
 a composed Chrome/Edge extension.
 
 Build the package with:

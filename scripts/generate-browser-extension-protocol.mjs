@@ -3,7 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
 const schemaURL = new URL('src/protocol/browser-extension/v1alpha1/protocol.schema.json', root);
-const typescriptURL = new URL('pkg/browser-adapter/src/generated/browser-extension-v1alpha1.ts', root);
+const typescriptURL = new URL('pkg/browser-helper/src/generated/browser-extension-v1alpha1.ts', root);
 const schemaSource = await readFile(schemaURL, 'utf8');
 const schema = JSON.parse(schemaSource);
 const digest = createHash('sha256').update(schemaSource).digest('hex');

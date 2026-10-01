@@ -4,6 +4,8 @@ export {decidePolicy, validatePolicy} from './policy.js';
 export type {ControlContext, ControlPolicy, PolicyDecision} from './policy.js';
 export {createControlGate} from './control-gate.js';
 export type {AuditEvent, ControlGateDependencies} from './control-gate.js';
+export {createCookieExporter} from './cookies.js';
+export type {CookieExporterDependencies, CookieExportRequest, CookieExportPayload, CookieExportGrant, CookieSelection, NativeCookie, NativeCookieAPI, NativeCookiePermissions} from './cookies.js';
 export {validateBrowserPackage} from './packages.js';
 export type {BrowserPackage} from './packages.js';
 export {createPackageCatalog, validateBrowserPackageRegistry} from './catalog.js';
@@ -37,3 +39,6 @@ export type {OutboundControlConfiguration, OutboundControlStatus} from './outbou
 export {installEphemeralWebStorage, createMemoryStorage} from './sandbox-storage.js';
 export {BrowserExtensionClient, browserExtensionProtocolVersion} from './generated/browser-extension-v1alpha1.js';
 export type {ControlCall, ControlResponse, ControlTransport} from './generated/browser-extension-v1alpha1.js';
+export {createExtensionManager} from './extension-manager.js';
+export type {ExtensionDescription, NativeExtensionInfo, ManagementEvent, NativeEvent, NativeManagement, InstallRequest, InstallBackend, ManagerCapabilities} from './extension-manager.js';
+export * from './userscript-runtime/index.js';

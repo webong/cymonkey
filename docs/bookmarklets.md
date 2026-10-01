@@ -75,7 +75,7 @@ and [managed userscripts](userscripts.md) for persistent workflows.
 
 ```sh
 go test ./lib/jangolova/bookmarklet ./src
-npm run test:browser-adapter
+npm run test:browser-helper
 go build -o .cache/cymy-augmentation ./src
 CYMONKEY_CYMY_BIN="$PWD/.cache/cymy-augmentation" \
 CYMONKEY_BROWSER_BIN='/Applications/Chrome.app/Contents/MacOS/Google Chrome' \

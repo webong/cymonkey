@@ -11,7 +11,7 @@ test('generated browser-extension TypeScript bindings match the checked-in schem
   assert.equal(result.status, 0, result.stderr || result.stdout);
   const [schema, typescript] = await Promise.all([
     readFile(new URL('src/protocol/browser-extension/v1alpha1/protocol.schema.json', root), 'utf8'),
-    readFile(new URL('pkg/browser-adapter/src/generated/browser-extension-v1alpha1.ts', root), 'utf8'),
+    readFile(new URL('pkg/browser-helper/src/generated/browser-extension-v1alpha1.ts', root), 'utf8'),
   ]);
   const parsed = JSON.parse(schema);
   const methods = parsed.$defs.controlCall.allOf[0].then.properties.method.enum;

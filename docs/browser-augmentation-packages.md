@@ -6,9 +6,7 @@ their assets in its own build, declares browser permissions, and owns its UI.
 
 | Library | Role |
 | --- | --- |
-| [`@cymonkey/browser-adapter`](../pkg/browser-adapter/README.md) | Scoped browser API operations, reviewed catalog, approvals, policy/audit gate, tab and engine routing, mounting, page runtime and bridge, userscript lifecycle and connection hub, sandbox handshake, and optional control/media integrations. |
-| [`@cymonkey/extension-manager`](../pkg/extension-manager/README.md) | Installed-extension inventory, enable/disable, uninstall, change events, and an optional trusted host installation adapter. |
-| [`@jangolova/userscript-runtime`](../pkg/userscript-runtime/README.md) | Shared userscript validation and registration planning. |
+| [`@cymonkey/browser-helper`](../pkg/browser-helper/README.md) | Scoped browser API operations, extension management, userscript validation and registration, reviewed catalog, approvals, policy/audit gate, tab and engine routing, mounting, page runtime and bridge, sandbox handshake, cookie export, and optional control/media integrations. |
 | [`pkg/macos-helper`](../pkg/macos-helper/README.md) | Swift native helper, userscript catalog, and managed-runtime controller for a caller-owned macOS host. |
 
 Jangolova's CDP and WebDriver BiDi worker can attach to a caller-owned
@@ -29,7 +27,7 @@ Factories must release partially-created resources when they throw. Callbacks
 must settle, and must not await calls back into the same augmentation's queue.
 Independent augmentations can proceed concurrently.
 
-`npm run test:browser-adapter` covers ownership, approval scope/replay, lifecycle
+`npm run test:browser-helper` covers ownership, approval scope/replay, lifecycle
 races and cleanup retries. `npm run test:augmentation:live` runs the library in
 a disposable real browser with a consuming web-host fixture: approval/denial,
 mount, DOM change, events, unmount, remount and reload. Set

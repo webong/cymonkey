@@ -1,7 +1,7 @@
 import type {StorageArea} from './runtime.js';
 
 export type ApprovalScope = {
-  kind: 'package' | 'userscript';
+  kind: 'package' | 'userscript' | 'cookie';
   subjectId: string;
   augmentationId?: string;
   revision?: string;
@@ -102,7 +102,7 @@ export function createApprovalManager(dependencies: ApprovalDependencies) {
 }
 
 function validateScope(value: ApprovalScope): ApprovalScope {
-  if (!value || (value.kind !== 'package' && value.kind !== 'userscript') || typeof value.subjectId !== 'string' || !identifier.test(value.subjectId)
+  if (!value || (value.kind !== 'package' && value.kind !== 'userscript' && value.kind !== 'cookie') || typeof value.subjectId !== 'string' || !identifier.test(value.subjectId)
     || (value.revision !== undefined && (typeof value.revision !== 'string' || value.revision.length > 256))
     || (value.augmentationId !== undefined && (typeof value.augmentationId !== 'string' || !identifier.test(value.augmentationId)))
     || (value.targetId !== undefined && (typeof value.targetId !== 'string' || value.targetId.length > 256))

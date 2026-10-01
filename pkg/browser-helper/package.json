@@ -1,8 +1,8 @@
 {
-  "name": "@cymonkey/extension-manager",
+  "name": "@cymonkey/browser-helper",
   "version": "0.1.0",
   "type": "module",
-  "description": "Reusable extension management interface for browser extensions and host adapters",
+  "description": "Composable browser, extension, and userscript APIs for Cymonkey integrations",
   "files": ["dist", "README.md"],
   "exports": {
     ".": {

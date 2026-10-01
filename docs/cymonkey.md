@@ -215,7 +215,7 @@ objects are untrusted. The page global is never an authentication mechanism.
 
 Jangolova's CDP/BiDi worker attaches to a caller-owned browser endpoint and
 applies Cymonkey policy before dispatch. A consuming extension may instead
-use the [browser adapter library](../pkg/browser-adapter/README.md) with its
+use the [browser helper library](../pkg/browser-helper/README.md) with its
 own browser APIs, UI, and authenticated control channel. The optional
 [extension control protocol](browser-extension-control.md) remains available
 as a library contract.
@@ -239,8 +239,8 @@ as a library contract.
 
 ## Browser extension libraries
 
-`pkg/browser-adapter` contains composable browser API and control helpers;
-`pkg/extension-manager` lets another extension become an extension manager.
+`pkg/browser-helper` contains composable browser APIs, extension management,
+and userscript validation and registration helpers.
 An integrating extension chooses its own framework, manifest, package assets,
 permissions, and installation flow. Jangolova's host-side
 `browserextension` package can inspect, prepare, and guide installation of

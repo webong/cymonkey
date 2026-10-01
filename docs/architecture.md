@@ -74,8 +74,8 @@ Userscripts are a privileged Cymonkey augmentation form with the shared
 `jangolova.cymonkey.userscript/v1alpha1` manifest. Cymonkey owns their semantic
 lifecycle through `capabilities`, `describe`, `act`, and `events`. Cymonkey's
 local store and Jangolova's CDP/BiDi attachment provide extension-free
-registration. Integrators can use the shared userscript runtime in their own
-extensions, and the macOS helper supplies source-free catalog data.
+registration. Integrators can use the browser helper's userscript APIs in their
+own extensions, and the macOS helper supplies source-free catalog data.
 
 `pkg/macos-helper` includes a reusable Swift catalog and managed-runtime
 controller. A caller-owned macOS app can import it and provide its own UI and
@@ -212,10 +212,8 @@ lib/jangolova/registry/         reviewed module discovery and activation
 src/protocol/cymonkey/          canonical versioned Cymonkey schemas
 src/protocol/browser-extension/ schema, recorded exchanges, and generated binding source
 tests/cymonkey-core-conformance.mjs  portable Cymonkey contract checks
-pkg/browser-adapter/            composable browser API, policy, and package library
-pkg/extension-manager/         management API interface with optional host installation adapter
+pkg/browser-helper/             browser API, extension management, and userscript library
 pkg/macos-helper/       Swift native binding, userscript catalog, and managed-runtime controller
-pkg/userscript-runtime/          shared userscript validation and registration planning
 pkg/threejs/            explicit-registration Three.js runtime
 pkg/                             distributable Godot, Unity, and Unreal Cymonkey packages
 tests/godot-cymonkey-fixture/    license-free Godot conformance project

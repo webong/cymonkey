@@ -15,7 +15,7 @@ test('consuming web host approves, mounts, calls and cleans an augmentation', {t
     try {
       if (/^\/modules\/(?:[a-z0-9-]+\/)*[a-z0-9-]+\.js$/.test(req.url)) {
         res.setHeader('Content-Type', 'text/javascript');
-        res.end(await readFile(path.join('pkg/browser-adapter/dist', req.url.slice('/modules/'.length))));
+        res.end(await readFile(path.join('pkg/browser-helper/dist', req.url.slice('/modules/'.length))));
       } else {
         res.setHeader('Content-Type', 'text/html');
         res.end('<!doctype html><title>Caller-owned augmentation host</title><p id="content">Original page</p>');

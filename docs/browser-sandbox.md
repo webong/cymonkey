@@ -4,7 +4,7 @@ Some browser packages need an isolated document with a different content
 security policy from an ordinary extension script. A consuming extension may
 provide that sandbox and bundle reviewed package assets in its own build.
 
-[`@cymonkey/browser-adapter`](../pkg/browser-adapter/README.md) provides
+[`@cymonkey/browser-helper`](../pkg/browser-helper/README.md) provides
 package validation, approvals, tab routing, and `createMediaBrokerController`
 for tab-scoped camera sessions. `installEphemeralWebStorage` gives a sandboxed
 document in-memory storage that disappears when the document closes.

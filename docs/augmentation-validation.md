@@ -45,7 +45,7 @@ Build the CLI and browser library first:
 
 ```sh
 go build -o .cache/cymy-augmentation ./src
-npm run test:browser-adapter
+npm run test:browser-helper
 go test ./src ./src/internal/userscripts ./src/internal/provider ./lib/jangolova/...
 go test -race ./lib/jangolova/bookmarklet
 ```

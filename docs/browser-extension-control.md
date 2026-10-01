@@ -20,5 +20,5 @@ npm run generate:browser-extension-protocol
 npm run check:browser-extension-protocol
 ```
 
-The TypeScript binding is generated into `pkg/browser-adapter/src/generated/`.
+The TypeScript binding is generated into `pkg/browser-helper/src/generated/`.
 No website should receive this private protocol or its credentials.

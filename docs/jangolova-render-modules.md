@@ -27,7 +27,7 @@ The stable public names are module IDs, not repository directory names:
 
 | Module ID | Runtime | State | Current distribution path |
 | --- | --- | --- | --- |
-| `render/browser-dom` | Browser document/augmentation | implemented | `scripts/cymonkey-worker.mjs`, `pkg/browser-adapter` |
+| `render/browser-dom` | Browser document/augmentation | implemented | `scripts/cymonkey-worker.mjs`, `pkg/browser-helper` |
 | `render/threejs` | Three.js | implemented | `pkg/threejs` |
 | `render/godot` | Godot 4 | implemented | `pkg/godot` |
 | `render/unity` | Unity | implemented | `pkg/unity` |
