@@ -13,7 +13,7 @@ public actor UserscriptCatalog {
         do {
             return try JSONDecoder().decode([UserscriptSummary].self, from: data).sorted { $0.id < $1.id }
         } catch {
-            throw MacExtensionError.userscriptCatalogInvalid
+            throw MacHelperError.userscriptCatalogInvalid
         }
     }
 
@@ -25,7 +25,7 @@ public actor UserscriptCatalog {
     public func setEnabled(id: String, enabled: Bool) throws -> UserscriptSummary {
         var values = try list()
         guard let index = values.firstIndex(where: { $0.id == id }) else {
-            throw MacExtensionError.userscriptCatalogInvalid
+            throw MacHelperError.userscriptCatalogInvalid
         }
         values[index].enabled = enabled
         try replace(values)

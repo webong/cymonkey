@@ -56,13 +56,13 @@ test('engine container package sources and Unity local dependencies exist', asyn
   }
 });
 
-test('macOS adapter local dependency path and product identity agree', async () => {
-  const manifest = await read('pkg/macos-browser-adapter/Package.swift');
-  const dependency = manifest.match(/\.package\(path: "([^"]+)"\)/)?.[1];
-  assert.ok(dependency, 'expected a local runtime dependency');
-  await exists(resolve(root, 'pkg/macos-browser-adapter', dependency, 'Package.swift'));
-  const identity = dependency.split('/').at(-1);
-  assert.ok(manifest.includes(`package: "${identity}"`), 'Swift product must use the local package identity');
+test('macOS helper exposes native and browser host APIs from one Swift package', async () => {
+  const manifest = await read('pkg/macos-helper/Package.swift');
+  assert.match(manifest, /\.library\(name: "CymonkeyMacOSRuntime"/);
+  assert.match(manifest, /\.executable\(name: "cymonkey-macos-helper"/);
+  for (const file of ['ManagedRuntime.swift', 'BrowserModels.swift', 'UserscriptCatalog.swift']) {
+    await exists(`pkg/macos-helper/Sources/CymonkeyMacOSRuntime/${file}`);
+  }
 });
 
 test('skill folders, declared names, invocations, and reference links agree', async () => {

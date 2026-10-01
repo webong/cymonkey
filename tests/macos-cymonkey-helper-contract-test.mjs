@@ -13,7 +13,7 @@ test('macOS helper is caller-owned and consumes Cymonkey v1alpha1', async () => 
     source('Sources/CymonkeyMacOSRuntime/ControlClient.swift'),
     source('scripts/build-and-sign.sh'),
   ]);
-  assert.match(readme, /Jangolova never launches or terminates it/);
+  assert.match(readme, /Jangolova\s+never launches or terminates it/);
   assert.match(models, /cymonkey\/v1alpha1/);
   assert.match(main, /JANGOLOVA_CYMONKEY_CONTROL_URL/);
   assert.match(main, /JANGOLOVA_CYMONKEY_CONTROL_TOKEN/);

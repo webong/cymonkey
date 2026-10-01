@@ -70,7 +70,7 @@ viewer extension uses Screen Recording permission for `display.capture` and
 Accessibility permission for input injection. Screen capture and input are
 kept separate: a user may consent to either one without granting the other.
 
-`pkg/macos-browser-adapter` provides a Swift catalog and managed-runtime
+The same package provides a Swift userscript catalog and managed-runtime
 controller for a caller-owned macOS host. The host retains ownership of the
 application it augments.
 

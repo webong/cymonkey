@@ -75,9 +75,9 @@ Userscripts are a privileged Cymonkey augmentation form with the shared
 lifecycle through `capabilities`, `describe`, `act`, and `events`. Cymonkey's
 local store and Jangolova's CDP/BiDi attachment provide extension-free
 registration. Integrators can use the shared userscript runtime in their own
-extensions, and the macOS browser adapter supplies source-free catalog data.
+extensions, and the macOS helper supplies source-free catalog data.
 
-`pkg/macos-browser-adapter` is a reusable Swift catalog and managed-runtime
+`pkg/macos-helper` includes a reusable Swift catalog and managed-runtime
 controller. A caller-owned macOS app can import it and provide its own UI and
 Safari extension if desired. It owns only its helper connection, never the
 target applications it augments.
@@ -214,8 +214,7 @@ src/protocol/browser-extension/ schema, recorded exchanges, and generated bindin
 tests/cymonkey-core-conformance.mjs  portable Cymonkey contract checks
 pkg/browser-adapter/            composable browser API, policy, and package library
 pkg/extension-manager/         management API interface with optional host installation adapter
-pkg/macos-helper/       caller-owned Swift Apple Events/Accessibility binding
-pkg/macos-browser-adapter/      reusable Swift catalog and managed-runtime controller
+pkg/macos-helper/       Swift native binding, userscript catalog, and managed-runtime controller
 pkg/userscript-runtime/          shared userscript validation and registration planning
 pkg/threejs/            explicit-registration Three.js runtime
 pkg/                             distributable Godot, Unity, and Unreal Cymonkey packages

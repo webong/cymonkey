@@ -9,7 +9,7 @@ their assets in its own build, declares browser permissions, and owns its UI.
 | [`@cymonkey/browser-adapter`](../pkg/browser-adapter/README.md) | Scoped browser API operations, reviewed catalog, approvals, policy/audit gate, tab and engine routing, mounting, page runtime and bridge, userscript lifecycle and connection hub, sandbox handshake, and optional control/media integrations. |
 | [`@cymonkey/extension-manager`](../pkg/extension-manager/README.md) | Installed-extension inventory, enable/disable, uninstall, change events, and an optional trusted host installation adapter. |
 | [`@jangolova/userscript-runtime`](../pkg/userscript-runtime/README.md) | Shared userscript validation and registration planning. |
-| [`pkg/macos-browser-adapter`](../pkg/macos-browser-adapter/README.md) | Swift catalog and managed-runtime controller for a caller-owned macOS host. |
+| [`pkg/macos-helper`](../pkg/macos-helper/README.md) | Swift native helper, userscript catalog, and managed-runtime controller for a caller-owned macOS host. |
 
 Jangolova's CDP and WebDriver BiDi worker can attach to a caller-owned
 browser endpoint and apply approved augmentations without an extension. The

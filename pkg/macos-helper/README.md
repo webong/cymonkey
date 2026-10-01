@@ -1,8 +1,9 @@
 # Cymonkey macOS Helper
 
-This package is the caller-owned native binding for Cymonkey's `viewer`
-domain with runtime `macos-app`. It is a Swift executable that a native host builds, signs, configures,
-and launches. Jangolova never launches or terminates it.
+This package provides the caller-owned native binding for Cymonkey's `viewer`
+domain with runtime `macos-app`, plus Swift APIs for a macOS browser host. A
+native host builds, signs, configures, and launches the executable. Jangolova
+never launches or terminates it.
 
 The helper connects outward to an authenticated WebSocket control endpoint and
 implements the same five `cymonkey/v1alpha1` operations used by other
@@ -21,6 +22,16 @@ It exposes only:
 It does not accept AppleScript source, raw Apple Event descriptors, arbitrary
 bundle identifiers, process launch requests, raw display-server handles, or
 system-wide Accessibility tree dumps.
+
+## Swift library APIs
+
+Import `CymonkeyMacOSRuntime` to use the native runtime, the managed control
+connection, and the userscript catalog from a caller-owned macOS app.
+`ManagedRuntimeController` starts and stops the authenticated control
+connection from a `ManagedRuntimeConfiguration`. `HelperMode` selects an
+external or managed connection based on the host's available runtime.
+`UserscriptCatalog` stores source-free `UserscriptSummary` records in standard
+or app-group `UserDefaults`; the host supplies its own UI and lifecycle.
 
 ## Build and test
 

@@ -1,5 +1,9 @@
 # Skill and runtime directory validation — 2026-09-29
 
+This records validation performed on 2026-09-29. The Swift catalog and
+managed-runtime controller are now part of `pkg/macos-helper`; run
+`swift test --package-path pkg/macos-helper` for the current package.
+
 ## Completion checklist
 
 - [x] Correct all five engine runner `COPY` paths.
@@ -25,8 +29,8 @@ were not reviewed or modified by this pass.
   now resolve the shortened paths. Published package names, runtime identifiers,
   protocol versions, image tags, and existing test command names are unchanged.
 - **P1 — Update the Swift local dependency and its product identity together.**
-  `pkg/macos-browser-adapter/Package.swift` still referred to the old helper
-  directory and Swift package identity. Both now use `macos-helper`.
+  The Swift catalog package still referred to the old helper directory and
+  Swift package identity. Both were updated to `macos-helper` at the time.
 - **P2 — Match skill identities and invocation prompts to the renamed folders.**
   All four entrypoints and UI default prompts still named the old skills.
   They now use `display-engine-control`, `display-engine-setup`,
@@ -48,7 +52,8 @@ paths to `COPY infra/deploy/...` and added local-input regression coverage.
   No engine images are downloaded, no engine process runs, and no image is tagged.
 - Focused Node runtime/fixture suite: 17 passing checks, including two Three.js
   browser-bundle checks. Three.js typechecking and Camera Kit builds pass.
-- `swift test --package-path pkg/macos-browser-adapter`: three tests pass.
+- The Swift catalog's three tests passed in its then-current package. They now
+  run within `pkg/macos-helper`.
 - `npm run test:cymonkey:macos-helper`: seven Swift tests and two contract checks
   pass. The moved helper's generated `.build` cache retained old absolute PCH
   paths; `swift package --package-path pkg/macos-helper clean` removed that

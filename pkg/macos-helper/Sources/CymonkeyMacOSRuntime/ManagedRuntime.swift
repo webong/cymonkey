@@ -1,4 +1,3 @@
-import CymonkeyMacOSRuntime
 import Foundation
 
 public actor ManagedRuntimeController {
@@ -9,7 +8,7 @@ public actor ManagedRuntimeController {
 
     public func start(configuration: ManagedRuntimeConfiguration) async throws {
         guard configuration.protocolVersion == cymonkeyProtocolVersion else {
-            throw MacExtensionError.protocolMismatch
+            throw MacHelperError.protocolMismatch
         }
         stop()
         let helper = try HelperConfiguration.load(from: configuration.helperConfiguration)

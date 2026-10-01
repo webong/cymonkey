@@ -32,7 +32,7 @@ public struct ManagedRuntimeConfiguration: Sendable {
               let token = environment["JANGOLOVA_CYMONKEY_CONTROL_TOKEN"], !token.isEmpty,
               let protocolVersion = environment["JANGOLOVA_CYMONKEY_PROTOCOL"],
               let path = environment["JANGOLOVA_CYMONKEY_CONFIG"], NSString(string: path).isAbsolutePath else {
-            throw MacExtensionError.invalidManagedConfiguration
+            throw MacHelperError.invalidManagedConfiguration
         }
         self.endpoint = endpoint
         self.bearerToken = token
@@ -57,7 +57,7 @@ public struct UserscriptSummary: Codable, Equatable, Sendable, Identifiable {
     }
 }
 
-public enum MacExtensionError: Error, Equatable, CustomStringConvertible {
+public enum MacHelperError: Error, Equatable, CustomStringConvertible {
     case invalidManagedConfiguration
     case protocolMismatch
     case userscriptCatalogInvalid

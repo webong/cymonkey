@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-@testable import JangolovaMacCore
+@testable import CymonkeyMacOSRuntime
 
 final class CoreTests: XCTestCase {
     func testAutoModeUsesManagedRuntimeOnlyWhenLocalRuntimeExists() {
