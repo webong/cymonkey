@@ -33,6 +33,68 @@ external or managed connection based on the host's available runtime.
 `UserscriptCatalog` stores source-free `UserscriptSummary` records in standard
 or app-group `UserDefaults`; the host supplies its own UI and lifecycle.
 
+## App-owned WKWebView scripts
+
+Import the separate `MacOSWebViewScripts` product in an app that owns a
+`WKWebView`. Register approved source on the web view's content controller
+before creating the view or starting navigation:
+
+```swift
+import MacOSWebViewScripts
+import WebKit
+
+let configuration = WKWebViewConfiguration()
+let installer = MacOSWebViewScriptInstaller(
+    contentController: configuration.userContentController)
+try installer.installApprovedScript(
+    id: "reading-tools", source: reviewedSource,
+    allowedOrigins: [URL(string: "https://example.com")!],
+    timing: .documentStart)
+let webView = WKWebView(frame: .zero, configuration: configuration)
+```
+
+The installer uses `WKUserScript` at `.documentStart` or `.documentEnd` and
+checks the page's exact HTTPS origin before executing. It defaults to the main
+frame. The host reviews source and chooses which content controller receives
+the script. A controller shared by multiple web views shares its scripts.
+WebKit has no per-script removal API for `WKUserContentController`, so an
+installed script stays on that controller for future navigations; use a fresh
+controller and web view to retire it. The installer never removes the host's
+other scripts. This is a library for an app-owned web view; the macOS viewer
+executable does not inject into arbitrary apps or Safari.
+
+## Native browser cookies
+
+Import the standalone `MacOSBrowserCookies` product to discover local Safari,
+Chromium, and Firefox cookie stores and read an explicitly selected store for
+exact domains and optional cookie names:
+
+```swift
+import MacOSBrowserCookies
+
+let reader = MacOSBrowserCookieReader()
+let stores = reader.discover(browsers: [.safari, .chrome, .firefox])
+let selected = stores[0] // Select through the host's own UI and approval flow.
+let cookies = try reader.read(
+    from: selected, domains: ["example.com"], names: ["session"])
+```
+
+Discovery returns source metadata only. `read` returns values, rechecks that
+the selected store still exists, and suppresses interactive Keychain prompts
+by default. A host can pass `allowKeychainUI: true` after a user action.
+For a custom profile, call `select(browser:cookieFile:)` with an absolute path
+to its `Cookies`, `cookies.sqlite`, or `Cookies.binarycookies` file, then pass
+the returned store to `read`.
+Safari access may require Full Disk Access. The returned records include
+host-only/domain scope, expiry, Secure, and HttpOnly; the underlying reader
+does not expose partition, container, or SameSite metadata, so callers must
+not infer those fields or replay the records across browser contexts without
+additional validation. The host owns approval and delivery; this library
+does not store or transmit cookie values.
+
+The source reader uses an attributed [SweetCookieKit snapshot](ThirdParty/SweetCookieKit.md)
+as a separate Swift target so this package remains buildable with Swift 6.0.
+
 ## Build and test
 
 ```sh

@@ -87,6 +87,24 @@ The current macOS helper may map an action through Apple Events or
 Accessibility after user consent. Those are helper implementation details;
 the attachment driver remains `macos-cooperative`.
 
+## App-owned web view libraries
+
+| Library | Runtime | Driver | Transport |
+| --- | --- | --- | --- |
+| [`pkg/ios-helper`](../pkg/ios-helper/README.md) | `render/browser-dom` | `ios-wkwebview` | caller-owned app transport |
+| [`pkg/android-helper`](../pkg/android-helper/README.md) | `render/browser-dom` | `android-webview` | caller-owned app transport |
+| [`pkg/macos-helper` WebKit product](../pkg/macos-helper/README.md#app-owned-wkwebview-scripts) | `render/browser-dom` | `macos-wkwebview` | caller-owned app transport |
+| [`pkg/windows-helper` WebView2 product](../pkg/windows-helper/README.md#app-owned-webview2-scripts-and-extensions) | `render/browser-dom` | `windows-webview2` | caller-owned app transport |
+
+The iOS and Android web-view helpers implement the five operations in-process,
+but are not automatically mounted as built-in operator modules. A mobile host
+must provide an authenticated transport and target attachment. They can apply
+only host-registered scripts and expose cookie reads only when the host supplies
+an authorization callback. The macOS WebKit and Windows WebView2 products are
+direct host APIs; their native viewer executables do not automatically expose
+these browser capabilities through the operator. None of these libraries
+discovers other apps' browser data.
+
 ## Composite attachments
 
 A composite is a list of module bindings. One binding uses the Adapter's root

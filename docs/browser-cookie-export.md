@@ -4,9 +4,9 @@
 that wants to provide a user-approved cookie export. It is a library, not a
 first-party Cymonkey extension. The integrating extension supplies its popup,
 browser APIs, trusted browser/profile selection, approval UI, and authenticated
-delivery channel. Cymonkey owns the approval and audit interaction. CTX remains
-an independent consumer and owns browser-specific scope normalization in its
-adapters.
+delivery channel. Cymonkey owns the approval and audit interaction. A Cymonkey
+integration may pass approved results to CTX through CTX's public cookie
+contract; CTX does not depend on this exporter or its payload format.
 
 The exporter works in a privileged extension page or background context. A
 content script or ordinary web page does not have the required cookies API.
@@ -119,19 +119,42 @@ SameSite, and any additional serializable fields returned by the browser.
 Exports are bounded to 8 MiB. Permission denial, stale selection, unsupported
 APIs, and incomplete native cookie records fail without delivery.
 
+## Local host readers
+
+`@cymonkey/browser-helper/node` now exposes metadata-only
+`discoverLocalCookieSources` and `createLocalCookieReader` for a Node.js host.
+The caller selects a browser and, for Chromium or Firefox, a profile; an
+injected authorization callback receives the exact query before the reader
+touches a local cookie store. The reader returns cookie values and warnings
+without logging or transmitting them. It uses Sweet Cookie for
+cross-platform local reads and offers `toCookieHeader` when a host explicitly
+needs an HTTP request header.
+
+On macOS, the separate [`MacOSBrowserCookies`](../pkg/macos-helper/README.md)
+Swift product discovers Safari, Chromium, and Firefox stores and reads an
+explicitly selected store. Its Keychain interaction is disabled by default.
+Both local readers expose fewer browser isolation fields than the privileged
+extension API. The host must inspect each reader's scope limits before using
+its result as an input to another browser session or CTX.
+
 ## CTX handoff
 
 The current CTX generic inline parser accepts portable cookie fields but
 rejects populated raw `storeId`, `firstPartyDomain`, and structured
 `partitionKey`. A normal browser export contains `storeId`, so passing this
 raw payload directly to `ctx share:browser cookie query --inline-stdin` or
-`--fallback-stdin` is not yet a valid end-to-end path. The owning CTX browser
-adapter needs a public normalization route that accepts this versioned export,
-checks its browser/profile/store identity, and maps native scope into its
-canonical `partition_key` and namespaced `attributes` fields. Until that
-contract exists, the trusted delivery callback should retain the raw scope
-and report the CTX handoff as unsupported. It must not drop scope fields to
-make generic parsing succeed.
+`--fallback-stdin` is not yet a valid end-to-end path. Cymonkey's integration
+must check the selected browser/profile/store identity and translate this
+versioned export into CTX's independent public cookie contract, including its
+canonical `partition_key` and namespaced `attributes` fields. CTX owns its
+generic record and validation; it does not need to recognize
+`cymonkey.webextension-cookies/v1`. Cross-platform JavaScript browser-source
+discovery, local cookie readers, and format conversion belong in Cymonkey's
+JavaScript packages. A native macOS cookie reader belongs in
+[`pkg/macos-helper`](../pkg/macos-helper/README.md). If CTX's public contract
+cannot represent a source field without changing its meaning, the integration
+must retain the raw scope and report the handoff as unsupported. It must not
+drop scope fields to make generic parsing succeed.
 
 This browser export can provide authorized live values when a standalone disk
 read is unavailable or stale. It does not make CTX decrypt protected browser

@@ -3,11 +3,18 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Composable browser, extension, and userscript APIs for Cymonkey integrations",
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "default": "./dist/node.js"
     }
   },
   "scripts": {
@@ -16,6 +23,10 @@
     "test": "npm run build && node --test test/*.test.mjs"
   },
   "devDependencies": {
+    "@types/node": "^22.20.5",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@steipete/sweet-cookie": "0.4.1"
   }
 }

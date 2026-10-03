@@ -44,3 +44,46 @@ extra owner policy boundary, and sensitive text is redacted in events.
 Windows may reject activation/input for a different integrity level, session,
 or the secure desktop. Those failures are returned as semantic unavailable or
 denied results; they never trigger an elevated fallback.
+
+## App-owned WebView2 scripts and extensions
+
+The separate [WebView2 class library](WebView2/Cymonkey.Windows.WebView2.csproj)
+binds to a host application's `CoreWebView2` and its selected profile. It can
+register approved scripts for future documents, run a registered script in
+the current page, and remove its future-document registration. Scripts check
+exact HTTPS origins inside the page. The library also lists extensions in the
+selected profile and, after a host approval callback, installs an unpacked
+extension directory or enables, disables, or removes an installed extension.
+
+The host must enable extensions when it creates its WebView2 environment:
+
+```csharp
+var options = new CoreWebView2EnvironmentOptions {
+    AreBrowserExtensionsEnabled = true
+};
+var environment = await CoreWebView2Environment.CreateAsync(
+    null, userDataFolder, options);
+await webView.EnsureCoreWebView2Async(environment);
+
+var helper = new WebView2BrowserHelper(
+    webView.CoreWebView2,
+    request => approvalUI.AuthorizeAsync(request));
+await helper.InstallApprovedDocumentScriptAsync(
+    "reading-tools", reviewedSource, new[] { "https://example.com" });
+var installed = await helper.InstallApprovedExtensionAsync(unpackedFolder);
+```
+
+Add `using Cymonkey.Windows.WebView2;` and
+`using Microsoft.Web.WebView2.Core;` in the host. The host chooses the
+WebView2 environment and profile, reviews scripts and extension files,
+supplies approval UI, and calls these APIs on the WebView2 UI thread. The
+extension directory must remain available because WebView2 does not copy its
+contents into the profile. Extension installation persists in that WebView2
+profile; it does not install into Microsoft Edge or another browser profile.
+Build the library on Windows with `dotnet build
+pkg/windows-helper/WebView2/Cymonkey.Windows.WebView2.csproj`.
+
+The existing Go executable remains a desktop-window helper. It does not
+attach to another app's WebView2 or expose these APIs through its WebSocket
+control connection. An embedding app can route its own authenticated Cymonkey
+requests to this library.

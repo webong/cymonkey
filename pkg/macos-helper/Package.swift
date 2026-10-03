@@ -6,10 +6,15 @@ let package = Package(
     platforms: [.macOS(.v13)],
     products: [
         .library(name: "CymonkeyMacOSRuntime", targets: ["CymonkeyMacOSRuntime"]),
+        .library(name: "MacOSBrowserCookies", targets: ["MacOSBrowserCookies"]),
+        .library(name: "MacOSWebViewScripts", targets: ["MacOSWebViewScripts"]),
         .executable(name: "cymonkey-macos-helper", targets: ["CymonkeyMacOSHelper"]),
     ],
     targets: [
         .target(name: "CymonkeyMacOSRuntime"),
+        .target(name: "SweetCookieKit", linkerSettings: [.linkedLibrary("sqlite3")]),
+        .target(name: "MacOSBrowserCookies", dependencies: ["SweetCookieKit"]),
+        .target(name: "MacOSWebViewScripts"),
         .executableTarget(
             name: "CymonkeyMacOSHelper",
             dependencies: ["CymonkeyMacOSRuntime"]
@@ -17,6 +22,14 @@ let package = Package(
         .testTarget(
             name: "CymonkeyMacOSRuntimeTests",
             dependencies: ["CymonkeyMacOSRuntime"]
+        ),
+        .testTarget(
+            name: "MacOSBrowserCookiesTests",
+            dependencies: ["MacOSBrowserCookies"]
+        ),
+        .testTarget(
+            name: "MacOSWebViewScriptsTests",
+            dependencies: ["MacOSWebViewScripts"]
         ),
     ]
 )
