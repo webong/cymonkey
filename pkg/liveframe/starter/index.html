@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Liveframe</title>
+    <style>
+      :root { color-scheme: dark; font-family: ui-sans-serif, system-ui, sans-serif; }
+      * { box-sizing: border-box; }
+      body { min-height: 100vh; margin: 0; background: #0b1020; color: #e8edff; }
+      #liveframe { min-height: 100vh; display: grid; place-items: center; padding: 3rem; }
+      .welcome { max-width: 36rem; text-align: center; }
+      .welcome h1 { font-size: clamp(2.5rem, 7vw, 5rem); margin: 0 0 1rem; }
+      .welcome p { color: #aebbe1; line-height: 1.6; }
+    </style>
+  </head>
+  <body>
+    <main id="liveframe"><div class="welcome"><h1>Liveframe</h1><p>Canvas is serving this workspace. Cymonkey can now write and capture a live presentation.</p></div></main>
+    <script>
+      (() => {
+        const root = document.querySelector('#liveframe');
+        const events = [];
+        let revision = 0;
+        let sequence = 0;
+        let documentState = { html: root.innerHTML, css: '', js: '' };
+        const capabilities = [
+          { name: 'presentation.write', effect: 'write', inputSchema: { type: 'object', required: ['html', 'expectedStateRevision'] } },
+          { name: 'presentation.execute', effect: 'external', inputSchema: { type: 'object', required: ['code'] } },
+          { name: 'presentation.describe', effect: 'read', inputSchema: { type: 'object' } },
+          { name: 'presentation.capture', effect: 'read', inputSchema: { type: 'object' } },
+        ];
+        function emit(type, data = {}) {
+          sequence += 1;
+          events.push({ id: String(sequence), type, data, occurredAt: new Date().toISOString() });
+          if (events.length > 256) events.shift();
+        }
+        function describe() {
+          return { engine: 'cymonkey-liveframe', stateRevision: String(revision), document: { ...documentState }, viewport: { width: innerWidth, height: innerHeight, devicePixelRatio } };
+        }
+        function execute(code) {
+          if (typeof code !== 'string' || !code) throw new Error('presentation code is required');
+          return new Function('root', 'emit', code)(root, emit);
+        }
+        function act(name, input = {}) {
+          if (name === 'presentation.describe') return describe();
+          if (name === 'presentation.execute') return { ok: true, result: execute(input.code) ?? null };
+          if (name !== 'presentation.write') throw new Error(`Unsupported Liveframe action: ${name}`);
+          if (input.expectedStateRevision === undefined || String(input.expectedStateRevision) !== String(revision)) {
+            throw new Error(`Presentation state revision conflict: expected ${revision}`);
+          }
+          if (typeof input.html !== 'string' || (input.css !== undefined && typeof input.css !== 'string') || (input.js !== undefined && typeof input.js !== 'string')) {
+            throw new Error('presentation.write requires HTML and optional CSS/JS strings');
+          }
+          const next = { html: input.html, css: input.css || '', js: input.js || '' };
+          root.innerHTML = next.html;
+          let style = document.querySelector('style[data-liveframe-authored]');
+          if (!style) {
+            style = document.createElement('style');
+            style.dataset.liveframeAuthored = 'true';
+            document.head.append(style);
+          }
+          style.textContent = next.css;
+          if (next.js) execute(next.js);
+          documentState = next;
+          revision += 1;
+          emit('presentation.write', { stateRevision: String(revision) });
+          return { ok: true, stateRevision: String(revision) };
+        }
+        (window.cymonkey ??= {}).display = {
+          hello: () => ({ protocolVersion: 'cymonkey.display-bridge/v1alpha1', implementation: { name: 'cymonkey-liveframe' }, features: ['presentation.document', 'events.cursor'] }),
+          capabilities: () => capabilities,
+          describe,
+          act,
+          events: ({ after = '0', types = [], limit = 100 } = {}) => ({
+            events: events.filter(event => Number(event.id) > Number(after) && (!types.length || types.includes(event.type))).slice(0, Math.min(Math.max(Number(limit) || 100, 1), 256)),
+            cursor: String(sequence),
+          }),
+        };
+        addEventListener('resize', () => emit('presentation.resize', { width: innerWidth, height: innerHeight }));
+      })();
+    </script>
+  </body>
+</html>

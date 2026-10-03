@@ -95,6 +95,7 @@ audit events, reviewed packages, and caller-supplied target connections.
 - [Browser packages](docs/browser-augmentation-packages.md)
 - [Browser extension manager](docs/browser-extension-installation.md)
 - [Browser helper library for extensions, userscripts, and browser APIs](pkg/browser-helper/README.md)
+- [Liveframe Canvas workspace connector](pkg/liveframe/README.md)
 - [Use the `cymy` CLI](docs/cymy-cli.md)
 - [Persistent operator API](docs/operator-api.md)
 - [Install extensions with the `cymy` CLI](docs/cymy-extension-cli.md)
