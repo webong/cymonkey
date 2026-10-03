@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:cymonkey:device:v1alpha1",
+  "title": "Cymonkey device contract v1alpha1",
+  "$comment": "Select an envelope through its $defs reference. HTTP routing determines the envelope; this schema does not authorize access.",
+  "$defs": {
+    "action": {
+      "type": "object",
+      "properties": {
+        "capability": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resourceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input": {}
+      },
+      "required": [
+        "capability"
+      ],
+      "additionalProperties": false
+    },
+    "grant": {
+      "type": "object",
+      "properties": {
+        "capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "resourceIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "capabilities"
+      ],
+      "additionalProperties": false
+    },
+    "open": {
+      "type": "object",
+      "properties": {
+        "adapterId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "deviceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "grant": {
+          "$ref": "#/$defs/grant"
+        }
+      },
+      "required": [
+        "adapterId",
+        "deviceId",
+        "grant"
+      ],
+      "additionalProperties": false
+    },
+    "sessionRequest": {
+      "type": "object",
+      "properties": {
+        "open": {
+          "$ref": "#/$defs/open"
+        },
+        "ttlSeconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3600,
+          "default": 300
+        }
+      },
+      "required": [
+        "open"
+      ],
+      "additionalProperties": false
+    },
+    "session": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "const": "cymonkey.device/v1alpha1"
+        },
+        "sessionId": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{48}$"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "apiVersion",
+        "sessionId",
+        "expiresAt"
+      ],
+      "additionalProperties": false
+    },
+    "actionRequest": {
+      "type": "object",
+      "properties": {
+        "open": {
+          "$ref": "#/$defs/open"
+        },
+        "action": {
+          "$ref": "#/$defs/action"
+        }
+      },
+      "required": [
+        "open",
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "channelRequest": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/action"
+        },
+        "readBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1099511627776
+        },
+        "writeBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1099511627776
+        },
+        "durationSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600
+        }
+      },
+      "required": [
+        "action",
+        "durationSeconds"
+      ],
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "readBytes"
+          ],
+          "properties": {
+            "readBytes": {
+              "minimum": 1
+            }
+          }
+        },
+        {
+          "required": [
+            "writeBytes"
+          ],
+          "properties": {
+            "writeBytes": {
+              "minimum": 1
+            }
+          }
+        }
+      ]
+    },
+    "channelClose": {
+      "type": "object",
+      "properties": {
+        "close": {
+          "const": true
+        }
+      },
+      "required": [
+        "close"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

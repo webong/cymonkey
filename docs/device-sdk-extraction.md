@@ -2,14 +2,16 @@
 
 Cymonkey owns the reusable device and I/O implementations through its independent
 Board library. Board covers physical and virtual devices, local or remote.
-Xallet will consume these libraries and runtime artifacts as a host.
+Xallet consumes the public Cymonkey device contract as a host. Board is the
+implementation library behind that contract; its local Go module path is not
+a separately published integration promise.
 
 This extraction takes implementation and existing tests from Xallet revision
 `d281a1e84dcd08cee4583dc121a92152cdf6035e`. The source Xallet checkout is retained
 for its later integration; it has not yet switched to these implementations.
 New device-mechanics development belongs here.
 
-## Public packages
+## Implementation inventory
 
 All imports below are relative to the standalone `board` Go module at `lib/board`.
 These low-level SDKs are also wrapped by `board/devices` providers, with
@@ -89,24 +91,24 @@ lifecycle. Cymonkey can host the gateway handler through
 
 ## Xallet adoption
 
-1. Select a Board source revision or published module version. The current module
-   name is `board`; local development can require `board v0.0.0` and replace it
-   with the checked-out `lib/board` directory. Board also requires the adjacent
-   `providerplugin` module; a consuming module must supply that replacement too.
-   A published module identity/version must be established before remote Go
-   dependency resolution can replace these local mappings.
-2. Change Xallet SDK/Organizer adapters to call Board packages. Map Board
-   observations into Xallet protocol responses; keep request IDs and Xallet's
-   operation envelope in Xallet.
-3. Supply Xallet's authorized command runner to native actions and permission
-   helpers, and its authorized client/dialer to network probes. Keep Host Broker
-   admission, identity, grants, audit, and artifact metadata at the host boundary.
-4. Keep Xallet's runtime images and service manifests in Xallet. Wire their
-   approved endpoints and device identifiers into the Board providers used by
-   the host.
-5. Retire Xallet's duplicate SDK code and image recipes after its callers and
-   deployment manifests consume the Board implementation and pass integration
-   checks. The existing gateway accepts legacy `XALLET_*` environment aliases.
+1. Pin a Cymonkey executable and the `cymonkey.device/v1alpha1` contract. Use
+   `cymy device`, `CYMONKEY_DEVICE_CONFIG`, and the documented `/v1/device-*`
+   routes. The local `board` module is an implementation detail; integrations
+   should not depend on Cymonkey's internal bridge packages.
+2. Replace Xallet device mechanics with thin adapters to the public contract.
+   Map results into Xallet protocol responses, retaining request IDs and domain
+   semantics in Xallet.
+3. Bind approved devices and resource handles to explicit grants. Retain Host
+   Broker admission, identity, user approvals, audit, and artifact metadata in
+   Xallet. The operator token authorizes the host inventory and must not be
+   handed directly to untrusted viewers.
+4. Keep runtime images, service manifests, placement, private networks, sockets,
+   and process supervision in Xallet. Supply their approved endpoints to
+   Cymonkey. The gateway is hosted with `cymy device gateway serve`.
+5. Retire duplicate SDK and gateway implementation code only after replacement
+   callers pass integration checks. Retain deployment recipes and orchestration.
+   Use the current gateway CLI and explicit token environment variable; legacy
+   standalone gateway environment aliases are not the current public contract.
 
 Xallet's Entity/Computer graph, peer identity, routing policy, approvals, workload
 placement, and product HTTP/ACP interfaces continue to be host responsibilities.
@@ -116,7 +118,8 @@ placement, and product HTTP/ACP interfaces continue to be host responsibilities.
 The extracted source tests, audio device-selection checks, network bounds tests,
 and Board dependency-isolation test pass with `GOWORK=off go test ./...` from
 `lib/board`. The module also builds for Linux/amd64 and Windows/amd64 with cgo
-disabled. All extracted runtime entrypoints pass `sh -n`.
+disabled. These are implementation-stage results, not a hardware or deployment
+certification. Runtime entrypoints are owned by the deploying host.
 
 Native actions use fake command runners. Local Pion peers exercise VP8 video, bidirectional
 audio, keyboard/playback grant denial, and ICE restart; operator checks cover persistent

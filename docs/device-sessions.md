@@ -167,3 +167,26 @@ query string.
   credentials.
 - Availability probes report readiness. They do not prove that capture or
   input permissions will remain valid for a later action.
+
+## Compatibility and validation
+
+Session creation responses include `apiVersion: "cymonkey.device/v1alpha1"`.
+The request envelopes are specified in
+[`device.schema.json`](../src/protocol/device/v1alpha1/device.schema.json).
+Clients must use the public `adapterId` field and ignore additional response
+fields. Session deletion revokes open channels immediately, including idle
+write-only channels.
+
+See [adoption validation](device-validation.md) for automated checks, required
+live evidence, and generation of a local candidate with artifact checksums.
+A successful build does not certify live-device permissions or remote networks.
+
+
+## Cross-platform remote access
+
+The [device roadmap](roadmap.md#device-access-across-macos-windows-ios-and-android)
+covers macOS, Windows, iOS and Android. A scoped browser viewer and native media
+primitives are implemented; native media wiring into Board and live acceptance
+remain pending. See [platform implementation status](device-platforms.md) for
+exact coverage. The current configured PulseAudio provider does not establish
+native audio support on those platforms.

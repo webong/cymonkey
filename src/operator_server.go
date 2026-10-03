@@ -68,6 +68,10 @@ func (server *operatorServer) Routes() http.Handler {
 			engineRoutes.ServeHTTP(w, r)
 			return
 		}
+		if strings.HasPrefix(r.URL.Path, "/v1/device-viewer/") {
+			server.handleDeviceViewer(w, r)
+			return
+		}
 		if !server.authorized(r) {
 			operatorError(w, http.StatusUnauthorized, "unauthorized", "authorization is required")
 			return

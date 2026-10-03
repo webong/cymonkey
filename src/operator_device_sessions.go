@@ -20,14 +20,21 @@ import (
 )
 
 type managedDeviceSession struct {
-	connection *board.Connection
-	expires    time.Time
-	timer      *time.Timer
-	once       sync.Once
+	connection   *board.Connection
+	expires      time.Time
+	timer        *time.Timer
+	once         sync.Once
+	lifetime     context.Context
+	cancel       context.CancelFunc
+	viewerHash   [32]byte
+	viewerIssued bool
 }
 
 func (s *managedDeviceSession) close() {
 	s.once.Do(func() {
+		if s.cancel != nil {
+			s.cancel()
+		}
 		if s.timer != nil {
 			s.timer.Stop()
 		}
@@ -60,10 +67,7 @@ func (server *operatorServer) handleDeviceSessions(w http.ResponseWriter, r *htt
 			operatorError(w, 405, "method_not_allowed", "POST is required")
 			return
 		}
-		var req struct {
-			Open       contracts.DeviceOpenRequest `json:"open"`
-			TTLSeconds int                         `json:"ttlSeconds"`
-		}
+		var req contracts.DeviceSessionRequest
 		if err := decodeOperatorJSON(w, r, &req); err != nil {
 			operatorError(w, 400, "invalid_request", err.Error())
 			return
@@ -92,7 +96,8 @@ func (server *operatorServer) handleDeviceSessions(w http.ResponseWriter, r *htt
 			return
 		}
 		id := hex.EncodeToString(key[:])
-		s := &managedDeviceSession{connection: conn, expires: time.Now().Add(time.Duration(req.TTLSeconds) * time.Second)}
+		lifetime, cancel := context.WithCancel(context.Background())
+		s := &managedDeviceSession{lifetime: lifetime, cancel: cancel, connection: conn, expires: time.Now().Add(time.Duration(req.TTLSeconds) * time.Second)}
 		server.mu.Lock()
 		if server.deviceClosed || len(server.deviceSessions) >= 64 {
 			server.mu.Unlock()
@@ -106,7 +111,7 @@ func (server *operatorServer) handleDeviceSessions(w http.ResponseWriter, r *htt
 		server.deviceSessions[id] = s
 		s.timer = time.AfterFunc(time.Until(s.expires), func() { server.removeDeviceSession(id) })
 		server.mu.Unlock()
-		operatorJSON(w, 201, map[string]any{"sessionId": id, "expiresAt": s.expires})
+		operatorJSON(w, 201, contracts.DeviceSession{APIVersion: contracts.DeviceAPIVersion, SessionID: id, ExpiresAt: s.expires})
 		return
 	}
 	parts := strings.Split(strings.TrimPrefix(path, "/"), "/")
@@ -128,6 +133,10 @@ func (server *operatorServer) handleDeviceSessions(w http.ResponseWriter, r *htt
 		}
 		server.removeDeviceSession(parts[0])
 		w.WriteHeader(204)
+		return
+	}
+	if parts[1] == "viewer" {
+		server.issueDeviceViewer(w, r, s, parts[0])
 		return
 	}
 	if parts[1] == "events" {
@@ -210,14 +219,11 @@ func (server *operatorServer) deviceChannel(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	defer ws.Close()
+	stopSession := context.AfterFunc(s.lifetime, func() { _ = ws.Close() })
+	defer stopSession()
 	ws.SetReadLimit(64 << 10)
 	_ = ws.SetReadDeadline(time.Now().Add(10 * time.Second))
-	var req struct {
-		Action          contracts.DeviceAction `json:"action"`
-		ReadBytes       int64                  `json:"readBytes"`
-		WriteBytes      int64                  `json:"writeBytes"`
-		DurationSeconds int                    `json:"durationSeconds"`
-	}
+	var req contracts.DeviceChannelRequest
 	kind, data, err := ws.ReadMessage()
 	if err != nil || kind != websocket.TextMessage {
 		return
@@ -290,7 +296,10 @@ func (server *operatorServer) deviceChannel(w http.ResponseWriter, r *http.Reque
 			var control struct {
 				Close bool `json:"close"`
 			}
-			if json.Unmarshal(data, &control) == nil && control.Close {
+			controlDecoder := json.NewDecoder(strings.NewReader(string(data)))
+			controlDecoder.DisallowUnknownFields()
+			var trailing any
+			if controlDecoder.Decode(&control) == nil && controlDecoder.Decode(&trailing) == io.EOF && control.Close {
 				err = ch.Close()
 				if err == nil {
 					_ = send(websocket.TextMessage, []byte(`{"closed":true}`))

@@ -66,3 +66,24 @@ type DeviceEventBatch struct {
 	Events     []DeviceEvent `json:"events"`
 	Cursor     uint64        `json:"cursor"`
 }
+
+// DeviceSessionRequest opens a host-authorized persistent attachment. A zero
+// lifetime uses the server default; nonzero values are seconds, at most 3600.
+type DeviceSessionRequest struct {
+	Open       DeviceOpenRequest `json:"open"`
+	TTLSeconds int               `json:"ttlSeconds,omitempty"`
+}
+type DeviceSession struct {
+	APIVersion string    `json:"apiVersion"`
+	SessionID  string    `json:"sessionId"`
+	ExpiresAt  time.Time `json:"expiresAt"`
+}
+
+// DeviceChannelRequest is the first WebSocket text frame. Content uses binary
+// frames after the server acknowledges opening the channel.
+type DeviceChannelRequest struct {
+	Action          DeviceAction `json:"action"`
+	ReadBytes       int64        `json:"readBytes"`
+	WriteBytes      int64        `json:"writeBytes"`
+	DurationSeconds int          `json:"durationSeconds"`
+}

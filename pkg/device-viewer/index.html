@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cymonkey device viewer</title>
+<style>body{font:16px system-ui;background:#111827;color:#eee;max-width:1100px;margin:2rem auto;padding:1rem}video{width:100%;max-height:70vh;background:#000}input,button{font:inherit;padding:.6rem;margin:.3rem}fieldset{border:1px solid #64748b}label{display:block}#status{min-height:2rem}</style>
+<h1>Device viewer</h1><p>Connect using a session credential provided by your host.</p>
+<form id="connect"><label>Session endpoint <input id="endpoint" required placeholder="/v1/device-viewer/…" autocomplete="off"></label>
+<label>Viewer credential <input id="credential" type="password" required autocomplete="off"></label>
+<label><input id="keyboard" type="checkbox"> Request keyboard control</label>
+<label><input id="microphone" type="checkbox"> Share this microphone with the target</label>
+<button>Connect</button></form>
+<p id="status" role="status">Disconnected</p><video id="video" controls autoplay playsinline></video>
+<fieldset><legend>Session controls</legend><button id="play">Play audio/video</button><button id="mute">Mute microphone</button><button id="restart">Reconnect</button><button id="disconnect">Disconnect</button>
+<label>Send text <input id="text" maxlength="1024"><button id="send">Send</button></label></fieldset>
+<script type="module" src="./app.js"></script></html>

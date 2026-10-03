@@ -232,3 +232,87 @@
 - [x] Extend generated clients and compatibility fixtures to the remaining
   Jangolova protocols after their contracts stabilize.
 - [ ] Sign and publish versioned interaction-runtime images.
+
+## Device access across macOS, Windows, iOS and Android
+
+Planned work extending the extracted Board mechanics. Platform implementations
+remain in Board; the viewer and public integration surface belong to Cymonkey.
+Xallet consumes those public contracts and retains its policy and deployment
+lifecycle. These tasks are not claims of current end-to-end platform support.
+
+### Native audio backends
+
+- [ ] Add macOS system-audio capture, microphone capture, and playback through
+  native platform facilities, without requiring PulseAudio.
+- [ ] Add Windows system-audio capture, microphone capture, and playback through
+  native platform facilities, without requiring PulseAudio.
+- [ ] Expose host-approved audio device selection and supported formats through
+  the device contract. Advertise only operations available on the selected host.
+- [ ] Enforce independent grants for system audio, microphone, and playback.
+  Surface missing permissions and handle revocation or device removal.
+- [ ] Connect both native backends to the common WebRTC media interface, including
+  format conversion, bounded buffers, and cleanup on session close.
+- [ ] Add Opus, bounded jitter buffering, and packet-loss handling to the shared
+  audio transport; retain explicit codec negotiation and interoperability checks.
+
+Acceptance: send a known test tone in each authorized direction; prove denied
+microphone/playback grants prevent access; disconnect and revoke during active
+media; verify all owned audio streams stop. Native macOS/Windows audio remains
+pending until these checks pass on the corresponding OS.
+
+### Remote viewer
+
+- [ ] Add a Cymonkey viewer client using the public device-session contract for
+  attachment, SDP/ICE exchange, video rendering, and audio playback.
+- [ ] Add explicit viewer controls for keyboard control and microphone sharing.
+  Keep view-only sessions view-only; show granted capabilities and active media.
+- [ ] Support host-approved source selection, connection state, permission errors,
+  session expiry, disconnect, and ICE restart/reconnection.
+- [x] Provide a trusted session bridge for browser clients so the broad operator
+  bearer credential is never delivered to the browser or placed in a URL.
+  Browser access must be scoped to one authorized session and its capabilities.
+- [ ] Define viewer keyboard mappings across Mac and Windows, including named
+  keys, modifiers, key release, and focus-loss behavior. Document unsupported
+  shortcuts instead of silently substituting text input.
+- [ ] Evaluate separately granted pointer/button/scroll operations before calling
+  the client a complete remote-desktop controller. Current keyboard transport
+  alone is not full mouse-and-keyboard desktop control.
+
+Acceptance: a viewer can attach to an explicitly approved target, display live
+media, request only authorized input/audio, and immediately lose access when the
+session is revoked. Closing the viewer releases its attachment without shutting
+down the caller-owned desktop.
+
+### Cross-platform and network acceptance
+
+- [ ] Mac viewer → Mac target.
+- [ ] Mac viewer → Windows target.
+- [ ] Windows viewer → Mac target.
+- [ ] Windows viewer → Windows target.
+- [ ] Repeat each supported pairing on the same network and on different
+  networks; confirm the selected ICE route in a forced TURN-relay run.
+- [ ] Exercise capture, keyboard mappings, system audio, microphone, playback,
+  recording, temporary-file transfer, expiry, revocation, and network recovery.
+- [ ] Record target OS version, viewer/browser version, backend and codec,
+  permission state, and candidate checksum for every acceptance result.
+
+Implementation order: native audio interfaces/backends and scoped viewer access;
+then a minimal video/keyboard viewer; then shared audio improvements and the
+four-direction acceptance matrix. Existing Wayland/PipeWire capture and native
+capture-source selection remain on the device backlog. See
+[device validation](device-validation.md) for the required evidence and
+[device sessions](device-sessions.md) for the current public contract.
+
+### Cross-platform implementation increment
+
+- [x] Add a reusable session-scoped browser WebRTC viewer and minimal UI.
+- [x] Add macOS ScreenCaptureKit/microphone sources and bounded Apple playback.
+- [x] Add iOS ReplayKit app capture and a broadcast-extension base with audio grant filtering.
+- [x] Add Android MediaProjection, audio capture and bounded playback primitives.
+- [x] Add a selected-endpoint Windows WASAPI capture/playback source library.
+- [ ] Wire these native primitives into authenticated Board media sessions.
+- [ ] Build the Windows library and signed mobile host integrations.
+- [ ] Run all supported desktop/mobile viewer-target pairings and forced TURN.
+
+These checked items describe source implementation only. Type-check/build results,
+required host integration and remaining gaps are in [device platforms](device-platforms.md).
