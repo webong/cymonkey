@@ -1,5 +1,31 @@
 # Cymonkey userscripts
 
+## Compatibility with userscript managers
+
+Violentmonkey, Tampermonkey, and Greasemonkey all use `.user.js` metadata,
+but their grants, sandbox, injection timing, and privileged APIs differ.
+Cymonkey treats the declared features as requirements rather than treating a
+manager name as a compatibility guarantee. In particular, an omitted `@grant`
+is distinct from `@grant none`.
+
+The [Android WebView SDK](../pkg/android-helper/README.md) can inspect any
+imported userscript and return a compatibility report before approval. Its
+current execution backend supports explicit `@grant none`, bounded HTTPS
+`@match`/`@exclude-match` and `@include`/`@exclude` rules. On WebViews with
+AndroidX `DOCUMENT_START_SCRIPT` support, it registers scripts in matching
+frames and runs them at DOMContentLoaded or shortly afterward. `@noframes`
+scripts use the main-frame page-finish path. Scripts needing privileged
+`GM_*` or `GM.*` APIs, `@require`, `@resource`, a sandbox, or document-start
+timing receive blockers in that report and are not offered as runnable. A
+script requiring frames is blocked for a selected WebView without frame
+registration support. This applies
+equally to scripts authored for all three managers. Future backends can satisfy
+more requirements without changing the import decision model.
+
+The shared JavaScript browser helper also requires explicit `@grant none` for
+its current registration contract. It does not silently interpret an omitted
+grant as page-world execution.
+
 ## Local manager without a browser extension
 
 The `cymy userscript` CLI stores approved source in Cymonkey's private local

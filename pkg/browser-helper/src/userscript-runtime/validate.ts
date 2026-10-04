@@ -18,6 +18,7 @@ export function validateManifest(value: UserScriptManifest, options: {allowMainW
   if (value.spec.grants.length !== 1 || value.spec.grants[0] !== 'none') throw new Error('userscript MVP supports @grant none only');
   if (value.spec.world === 'MAIN' && !options.allowMainWorld) throw new Error('MAIN world userscripts require explicit approval');
   const metadata = parseMetadata(value.source.code);
+  if (metadata.grants.length === 0) throw new Error('userscript source requires explicit @grant none');
   if (metadata.name && metadata.name !== value.metadata.name) throw new Error('userscript manifest name does not match source metadata');
   if (!sameStrings(metadata.matches, value.spec.matches)) throw new Error('userscript matches do not match source metadata');
   if (!sameStrings(metadata.excludeMatches, value.spec.excludeMatches)) throw new Error('userscript excludes do not match source metadata');

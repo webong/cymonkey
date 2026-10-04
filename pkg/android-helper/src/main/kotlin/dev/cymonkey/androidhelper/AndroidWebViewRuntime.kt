@@ -16,6 +16,7 @@ private class HelperError(val code: String, override val message: String) : Runt
  */
 class AndroidWebViewRuntime(
     private val authorizeCookieRead: ((surfaceId: String, url: String, names: List<String>) -> Boolean)? = null,
+    userScriptStore: UserScriptStore = InMemoryUserScriptStore(),
 ) {
     private data class ApprovedScript(val source: String, val origins: Set<String>)
 
@@ -23,25 +24,34 @@ class AndroidWebViewRuntime(
     private val scripts = mutableMapOf<String, ApprovedScript>()
     private val eventLog = mutableListOf<JSONObject>()
     private var sequence = 0L
+    val userScripts = AndroidUserScriptManager(userScriptStore, { surfaces[it] }, { surfaces.keys.toSet() },
+        { surfaceId, scriptId -> emit("userscript.applied", surfaceId, scriptId) }, { scripts.containsKey(it) })
 
     fun registerSurface(id: String, surface: BrowserSurface) {
         requireMainThread()
         if (id.isBlank() || surfaces.containsKey(id)) {
             throw IllegalArgumentException("surface ID is empty or already registered")
         }
+        userScripts.assertSurfaceSupported(surface)
         surfaces[id] = surface
+        try { userScripts.onSurfaceRegistered(id) } catch (error: Exception) {
+            surfaces.remove(id)
+            userScripts.forgetSurface(id)
+            throw error
+        }
     }
 
     fun unregisterSurface(id: String) {
         requireMainThread()
         surfaces.remove(id)
+        userScripts.forgetSurface(id)
     }
 
     /** The trusted host provides script source; control requests can only name its ID. */
     fun registerApprovedScript(id: String, source: String, allowedOrigins: List<String>) {
         requireMainThread()
         val origins = allowedOrigins.mapNotNull(::approvedOrigin).toSet()
-        if (id.isBlank() || scripts.containsKey(id) || source.isBlank() || origins.isEmpty() || origins.size != allowedOrigins.size) {
+        if (id.isBlank() || scripts.containsKey(id) || userScripts.contains(id) || source.isBlank() || origins.isEmpty() || origins.size != allowedOrigins.size) {
             throw IllegalArgumentException("script ID must be new and have source and valid HTTPS origins")
         }
         scripts[id] = ApprovedScript(source, origins)
@@ -52,12 +62,19 @@ class AndroidWebViewRuntime(
         scripts.remove(id)
     }
 
+    /** Call from the host's WebViewClient.onPageStarted for main-frame navigations. */
+    fun onNavigationStarted(surfaceId: String) {
+        requireMainThread()
+        userScripts.onNavigationStarted(surfaceId)
+    }
+
     /** Call from the host's WebViewClient.onPageFinished to reapply registered scripts. */
     fun onNavigationFinished(surfaceId: String) {
         requireMainThread()
         for (id in scripts.keys.sorted()) {
             try { apply(id, surfaceId) { } } catch (_: HelperError) { }
         }
+        userScripts.onNavigationFinished(surfaceId)
     }
 
     fun handle(request: JSONObject, completion: (JSONObject) -> Unit) {
@@ -85,7 +102,7 @@ class AndroidWebViewRuntime(
         .put("domains", JSONArray().put("render"))
         .put("runtimes", JSONArray().put("browser-dom"))
         .put("drivers", JSONArray().put("android-webview"))
-        .put("features", JSONArray().put("events.cursor").put("host.reviewed-scripts"))
+        .put("features", JSONArray().put("events.cursor").put("host.reviewed-scripts").put("host.userscript-manager"))
 
     private fun capabilities(): JSONArray {
         val result = JSONArray().put(capability("userscript.apply", "write", "surfaceId", "scriptId"))
@@ -180,7 +197,16 @@ class AndroidWebViewRuntime(
         val pageOrigin = surface.currentUrl?.let(::origin)
             ?: throw HelperError("stale_reference", "registered web view has no HTTPS page")
         val script = scripts[scriptId]
-        if (script == null || pageOrigin !in script.origins) {
+        if (script == null) {
+            if (!userScripts.contains(scriptId)) throw HelperError("denied", "script is not approved for this page")
+            try {
+                userScripts.apply(scriptId, surfaceId, completion)
+            } catch (_: IllegalArgumentException) {
+                throw HelperError("denied", "script is not approved for this page")
+            }
+            return
+        }
+        if (pageOrigin !in script.origins) {
             throw HelperError("denied", "script is not approved for this page")
         }
         val guarded = "(() => { if (location.origin !== ${JSONObject.quote(pageOrigin)}) return false;\n${script.source}\nreturn true; })()"

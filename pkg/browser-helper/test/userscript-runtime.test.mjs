@@ -53,6 +53,15 @@ test('rejects undeclared grants and unapproved main-world source', async () => {
   assert.throws(() => validateManifest(main), /explicit approval/);
 });
 
+test('keeps an omitted @grant distinct from @grant none', async () => {
+  const withoutGrant = source.replace('// @grant none\n', '');
+  assert.deepEqual(parseMetadata(withoutGrant).grants, []);
+  const value = await manifest();
+  value.source = {origin: 'user', code: withoutGrant};
+  value.metadata.revision = await sourceRevision(withoutGrant);
+  assert.throws(() => validateManifest(value), /explicit @grant none/);
+});
+
 test('detects permission increases before update', async () => {
   const previous = await manifest();
   const next = await manifest();

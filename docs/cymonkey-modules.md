@@ -99,8 +99,9 @@ the attachment driver remains `macos-cooperative`.
 The iOS and Android web-view helpers implement the five operations in-process,
 but are not automatically mounted as built-in operator modules. A mobile host
 must provide an authenticated transport and target attachment. They can apply
-only host-registered scripts and expose cookie reads only when the host supplies
-an authorization callback. The macOS WebKit and Windows WebView2 products are
+only host-approved scripts and expose cookie reads only when the host supplies
+an authorization callback. The Android helper also has an app-owned userscript
+store and metadata-based URL matching. The macOS WebKit and Windows WebView2 products are
 direct host APIs; their native viewer executables do not automatically expose
 these browser capabilities through the operator. None of these libraries
 discovers other apps' browser data.

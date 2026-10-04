@@ -23,7 +23,8 @@ export function parseMetadata(source: string): ParsedMetadata {
     description: first(values, 'description'),
     matches: values.get('match') ?? [],
     excludeMatches: values.get('exclude-match') ?? [],
-    grants: values.get('grant') ?? ['none'],
+    // Modern userscript managers distinguish an omitted grant from @grant none.
+    grants: values.get('grant') ?? [],
     runAt: normalizeRunAt(first(values, 'run-at')),
     world: normalizeWorld(first(values, 'inject-into')),
     updateUrl: first(values, 'updateurl') ?? first(values, 'downloadurl'),
