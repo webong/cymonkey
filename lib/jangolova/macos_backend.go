@@ -112,13 +112,35 @@ func (i *macOSInstance) Call(ctx context.Context, method string, params json.Raw
 		if !capabilityAllowed(i.policy.AllowedCapabilities, action.Name) || !i.advertises(action.Name) {
 			return nil, fmt.Errorf("Jangolova policy denied capability %q", action.Name)
 		}
-		if i.runtime == "macos-app" && !bundleAllowedForMacOSAction(i.policy.AllowedBundleIDs, action.Input) {
+		if i.runtime == "macos-app" && !nativeResourceAllowed(i.policy, action) {
 			return nil, errors.New("Jangolova policy denied the macOS application surface")
 		}
 		return connection.Call(ctx, method, params)
 	default:
 		return nil, fmt.Errorf("unsupported Jangolova method %q", method)
 	}
+}
+
+func nativeResourceAllowed(policy PolicyLimits, action semanticAction) bool {
+	if strings.HasPrefix(action.Name, "clipboard.") {
+		resource, _ := action.Input["resourceId"].(string)
+		for _, allowed := range policy.AllowedClipboardResources {
+			if resource != "" && resource == allowed {
+				return true
+			}
+		}
+		return false
+	}
+	surface, _ := action.Input["surfaceId"].(string)
+	if strings.HasPrefix(surface, "macos-viewer:") {
+		for _, allowed := range policy.AllowedViewerSurfaces {
+			if surface == allowed {
+				return true
+			}
+		}
+		return false
+	}
+	return bundleAllowedForMacOSAction(policy.AllowedBundleIDs, action.Input)
 }
 
 func (i *macOSInstance) ensureConnected(ctx context.Context) (sdk.Transport, error) {
@@ -195,7 +217,7 @@ func (i *macOSInstance) handshake(ctx context.Context, connection sdk.Transport)
 	}
 	filtered := capabilities[:0]
 	for _, capability := range capabilities {
-		if capabilityAllowed(i.policy.AllowedCapabilities, capability.Name) {
+		if capabilityAllowed(i.policy.AllowedCapabilities, capability.Name) && !(i.runtime == "macos-app" && strings.HasPrefix(capability.Name, "clipboard.") && len(i.policy.AllowedClipboardResources) == 0) {
 			filtered = append(filtered, capability)
 		}
 	}

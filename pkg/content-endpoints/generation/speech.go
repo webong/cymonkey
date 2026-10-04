@@ -9,7 +9,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
-	"strings"
 
 	"blockade"
 )
@@ -18,7 +17,7 @@ func (c *Client) Transcribe(ctx context.Context, request blockade.TranscriptionR
 	if c.config.Protocol != OpenAI {
 		return blockade.TranscriptionResponse{}, unsupported("transcription endpoint")
 	}
-	if request.Model == "" || len(request.Audio) == 0 || len(request.Audio) > 25<<20 || !strings.HasPrefix(request.MediaType, "audio/") {
+	if blockade.ValidateTranscriptionRequest(request) != nil || len(request.Audio) > 25<<20 {
 		return blockade.TranscriptionResponse{}, errors.New("transcription needs a model and at most 25 MiB of audio")
 	}
 	extensions := map[string]string{"audio/wav": "wav", "audio/x-wav": "wav", "audio/mpeg": "mp3", "audio/mp4": "m4a", "audio/ogg": "ogg", "audio/webm": "webm", "audio/flac": "flac"}
@@ -28,11 +27,20 @@ func (c *Client) Transcribe(ctx context.Context, request blockade.TranscriptionR
 	}
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
-	for key, value := range map[string]string{"model": request.Model, "response_format": "json", "language": request.Language, "prompt": request.Prompt} {
+	responseFormat := "json"
+	if request.Metadata || len(request.Timestamps) > 0 {
+		responseFormat = "verbose_json"
+	}
+	for key, value := range map[string]string{"model": request.Model, "response_format": responseFormat, "language": request.Language, "prompt": request.Prompt} {
 		if value != "" {
 			if err := writer.WriteField(key, value); err != nil {
 				return blockade.TranscriptionResponse{}, err
 			}
+		}
+	}
+	for _, granularity := range request.Timestamps {
+		if err := writer.WriteField("timestamp_granularities[]", granularity); err != nil {
+			return blockade.TranscriptionResponse{}, err
 		}
 	}
 	header := textproto.MIMEHeader{}
@@ -58,7 +66,11 @@ func (c *Client) Transcribe(ctx context.Context, request blockade.TranscriptionR
 		return blockade.TranscriptionResponse{}, err
 	}
 	var result struct {
-		Text *string `json:"text"`
+		Text     *string                         `json:"text"`
+		Language string                          `json:"language"`
+		Duration *float64                        `json:"duration"`
+		Segments []blockade.TranscriptionSegment `json:"segments"`
+		Words    []blockade.TranscriptionWord    `json:"words"`
 	}
 	if err = json.Unmarshal(data, &result); err != nil {
 		return blockade.TranscriptionResponse{}, err
@@ -66,7 +78,8 @@ func (c *Client) Transcribe(ctx context.Context, request blockade.TranscriptionR
 	if result.Text == nil {
 		return blockade.TranscriptionResponse{}, errors.New("transcription response has no text field")
 	}
-	return blockade.TranscriptionResponse{Text: *result.Text}, nil
+	response := blockade.TranscriptionResponse{Text: *result.Text, Language: result.Language, DurationSeconds: result.Duration, Segments: result.Segments, Words: result.Words}
+	return response, blockade.ValidateTranscriptionResponse(response)
 }
 
 func (c *Client) Synthesize(ctx context.Context, request blockade.SpeechRequest) (blockade.SpeechStream, error) {

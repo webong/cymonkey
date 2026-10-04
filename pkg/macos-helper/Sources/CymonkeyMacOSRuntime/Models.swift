@@ -115,6 +115,7 @@ public struct Capability: Codable, Equatable, Sendable {
         self.effect = effect
         self.inputSchema = .object([
             "type": .string("object"),
+            "properties": .object(Dictionary(uniqueKeysWithValues: required.map { ($0, JSONValue.object([:])) })),
             "required": .array(required.map(JSONValue.string)),
             "additionalProperties": .bool(additionalProperties),
         ])

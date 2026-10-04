@@ -440,3 +440,10 @@ cymy content serve --config /absolute/path/to/content.yaml \
 `serve` defaults to `127.0.0.1:8091`, or the value of `CYMONKEY_CONTENT_BIND`.
 See the [content guide](content.md) for adapter configuration and the
 difference between direct image observation and `cymy observe`.
+
+## Console composition
+
+`cymy console` provides explicit tool/model catalogs, single tool calls, single
+generation/stream turns and HTTP/MCP serving. It borrows configured display
+instances and granted device sessions. See [Console configuration](console.md)
+for commands, schemas, model endpoints, named MCP tools and artifact destinations.

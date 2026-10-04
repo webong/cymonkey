@@ -30,14 +30,16 @@ wire encoding, paths, and headers, and works with compatible custom endpoints.
 | --- | --- |
 | `OpenAI` (`openai-compatible`) | Chat Completions; text/image and WAV/MP3 input; function tools; JSON Schema output; SSE; transcription and speech |
 | `Responses` (`responses-compatible`) | Responses; text/image/file input; function tools; JSON Schema output; SSE; opaque reasoning context round-trip |
-| `Anthropic` (`anthropic`) | Messages; text/image/PDF input; tool use/results; JSON Schema output; SSE |
-| `Gemini` (`gemini`) | Generate Content; inline text/image/audio/video/file; function tools/results; JSON Schema output; SSE; thought signatures |
+| `Anthropic` (`anthropic`) | Messages; text/image/PDF input; tool use/results; JSON Schema output; SSE; signed/redacted thinking replay |
+| `Gemini` (`gemini`) | Generate Content; inline/referenced text/image/audio/video/file; function tools/results; JSON Schema output; SSE; thoughts/signatures |
+| `Cohere`, `Voyage` | Explicit embedding-only wire mappings; no generation inference |
 
 An endpoint/model may implement fewer features than its dialect. This package
 rejects unmapped modalities or output block types with
 `blockade.ErrGenerationUnsupported`. It does not execute tools, enable hosted
 built-in tools, select another endpoint, or retry errors. Structured output
-schemas are forwarded; hosts must validate resulting JSON against their schema.
+schemas are forwarded and completed object output is locally validated. Tool
+proposals and refusals remain distinct from structured object output.
 Anthropic defaults an omitted output token limit to 4096 because the wire API
 requires one. Speech defaults an omitted format to MP3; model and voice remain
 explicit. Chat-compatible servers must support `max_completion_tokens` when
@@ -45,9 +47,8 @@ an output limit is supplied.
 
 Responses requests use `store:false` and request encrypted reasoning context,
 allowing callers to own the transcript. Reasoning context belongs to its
-original adapter/model; do not forward it to a different dialect. Extended
-Anthropic thinking blocks, hosted uploads, and remote file references are not
-mapped. Gemini emits function calls as whole native proposals, without enabling
+original adapter/model; do not forward it to a different dialect. Anthropic signed thinking and supported remote media references are mapped;
+hosted uploads remain unsupported. Gemini emits function calls as whole native proposals, without enabling
 incremental function-call-argument streaming.
 
 `Stream` invokes callbacks synchronously. Callback errors stop the request;
@@ -66,3 +67,22 @@ Wire references: [Chat Completions](https://developers.openai.com/api/reference/
 [Anthropic streaming](https://platform.claude.com/docs/en/build-with-claude/streaming),
 [Anthropic structured output](https://platform.claude.com/docs/en/build-with-claude/structured-outputs),
 [Gemini Generate Content](https://ai.google.dev/api/generate-content).
+
+## Embeddings and native options
+
+`Client.Embed` supports explicit OpenAI-compatible, Cohere and Voyage embedding
+protocols. Requests specify text or tokens and optional dimensions; unsupported
+input kinds fail. Cohere requires the host's `EmbeddingInputType`. There is no
+implicit truncation, normalization or endpoint/model selection. Bounded batch
+embedding and vector helpers live in Blockade.
+
+`GenerationRequest.Options` is an adapter-owned JSON object with a restricted
+vocabulary. It cannot override endpoints, models, messages or tool definitions.
+The package maps supported reasoning/thinking, sampling, tool-choice and
+verbosity fields, rejecting unsupported keys and combinations. These fields
+are model-dependent; the adapter never guesses capabilities from model names.
+
+Transcription optionally requests metadata and word/segment timestamps, with
+validated finite timing in the neutral response. Endpoint/model support is
+required; the client does not retry with simpler options. See the official
+[speech-to-text guide](https://developers.openai.com/api/docs/guides/speech-to-text).

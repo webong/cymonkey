@@ -3,6 +3,7 @@ package generation
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -43,8 +44,13 @@ func (c *Client) encode(request blockade.GenerationRequest, stream bool) ([]byte
 		if stream {
 			path = "/models/" + url.PathEscape(request.Model) + ":streamGenerateContent?alt=sse"
 		}
+	default:
+		return nil, "", unsupported("generation for this protocol")
 	}
 	if err != nil {
+		return nil, "", err
+	}
+	if err := applyOptions(c.config.Protocol, request, payload); err != nil {
 		return nil, "", err
 	}
 	data, err := json.Marshal(payload)
@@ -69,11 +75,25 @@ func openAIRequest(request blockade.GenerationRequest) (map[string]any, error) {
 	for _, message := range request.Messages {
 		wire := map[string]any{"role": message.Role}
 		if message.Role == "tool" || message.Role == "system" || message.Role == "assistant" {
-			text, err := plainText(message)
-			if err != nil {
-				return nil, err
+			var text strings.Builder
+			for _, part := range message.Parts {
+				switch part.Kind {
+				case "text":
+					text.WriteString(part.Text)
+				case "reasoning":
+					if message.Role != "assistant" {
+						return nil, unsupported("reasoning outside assistant message")
+					}
+					previous, _ := wire["reasoning_content"].(string)
+					wire["reasoning_content"] = previous + part.Text
+				case "refusal":
+					previous, _ := wire["refusal"].(string)
+					wire["refusal"] = previous + part.Text
+				default:
+					return nil, unsupported("non-text chat message role")
+				}
 			}
-			wire["content"] = text
+			wire["content"] = text.String()
 		} else {
 			parts := make([]any, 0, len(message.Parts))
 			for _, part := range message.Parts {
@@ -81,8 +101,18 @@ func openAIRequest(request blockade.GenerationRequest) (map[string]any, error) {
 				case "text":
 					parts = append(parts, map[string]any{"type": "text", "text": part.Text})
 				case "image":
-					parts = append(parts, map[string]any{"type": "image_url", "image_url": map[string]any{"url": "data:" + part.MediaType + ";base64," + base64.StdEncoding.EncodeToString(part.Data)}})
+					uri := "data:" + part.MediaType + ";base64," + base64.StdEncoding.EncodeToString(part.Data)
+					if part.Reference != nil {
+						if part.Reference.Kind != "url" {
+							return nil, unsupported("chat image file reference")
+						}
+						uri = part.Reference.URI
+					}
+					parts = append(parts, map[string]any{"type": "image_url", "image_url": map[string]any{"url": uri}})
 				case "audio":
+					if part.Reference != nil {
+						return nil, unsupported("chat audio references")
+					}
 					format := ""
 					switch part.MediaType {
 					case "audio/wav":
@@ -151,19 +181,48 @@ func anthropicRequest(request blockade.GenerationRequest) (map[string]any, error
 				return nil, err
 			}
 			role = "user"
-			blocks = append(blocks, map[string]any{"type": "tool_result", "tool_use_id": message.ToolCallID, "content": text})
+			blocks = append(blocks, map[string]any{"type": "tool_result", "tool_use_id": message.ToolCallID, "content": text, "is_error": message.ToolError})
 		} else {
 			for _, part := range message.Parts {
 				switch part.Kind {
 				case "text":
 					blocks = append(blocks, map[string]any{"type": "text", "text": part.Text})
+				case "context":
+					var block map[string]any
+					if json.Unmarshal(part.ProviderData, &block) != nil || block["type"] != "thinking" && block["type"] != "redacted_thinking" {
+						return nil, unsupported("foreign thinking context")
+					}
+					blocks = append(blocks, part.ProviderData)
+				case "reasoning":
+					if len(part.ProviderData) == 0 {
+						return nil, unsupported("unsigned thinking replay")
+					}
+					var block map[string]any
+					if json.Unmarshal(part.ProviderData, &block) != nil || block["type"] != "thinking" {
+						return nil, unsupported("foreign thinking context")
+					}
+					blocks = append(blocks, part.ProviderData)
 				case "image":
-					blocks = append(blocks, map[string]any{"type": "image", "source": map[string]any{"type": "base64", "media_type": part.MediaType, "data": base64.StdEncoding.EncodeToString(part.Data)}})
+					source := map[string]any{"type": "base64", "media_type": part.MediaType, "data": base64.StdEncoding.EncodeToString(part.Data)}
+					if part.Reference != nil {
+						if part.Reference.Kind != "url" {
+							return nil, unsupported("Anthropic image file reference")
+						}
+						source = map[string]any{"type": "url", "url": part.Reference.URI}
+					}
+					blocks = append(blocks, map[string]any{"type": "image", "source": source})
 				case "file":
 					if part.MediaType != "application/pdf" {
 						return nil, unsupported("Anthropic file format")
 					}
-					blocks = append(blocks, map[string]any{"type": "document", "source": map[string]any{"type": "base64", "media_type": part.MediaType, "data": base64.StdEncoding.EncodeToString(part.Data)}})
+					source := map[string]any{"type": "base64", "media_type": part.MediaType, "data": base64.StdEncoding.EncodeToString(part.Data)}
+					if part.Reference != nil {
+						if part.Reference.Kind != "url" {
+							return nil, unsupported("Anthropic document file reference")
+						}
+						source = map[string]any{"type": "url", "url": part.Reference.URI}
+					}
+					blocks = append(blocks, map[string]any{"type": "document", "source": source})
 				default:
 					return nil, unsupported("Anthropic " + part.Kind + " input")
 				}
@@ -235,10 +294,20 @@ func geminiRequest(request blockade.GenerationRequest) (map[string]any, error) {
 		} else {
 			for _, part := range message.Parts {
 				wire := map[string]any{}
-				if part.Kind == "text" {
+				if part.Kind == "text" || part.Kind == "reasoning" {
 					wire["text"] = part.Text
+					if part.Kind == "reasoning" {
+						wire["thought"] = true
+					}
 				} else if part.Kind != "context" {
-					wire["inlineData"] = map[string]any{"mimeType": part.MediaType, "data": base64.StdEncoding.EncodeToString(part.Data)}
+					if part.Kind == "refusal" {
+						return nil, unsupported("Gemini refusal replay")
+					}
+					if part.Reference != nil {
+						wire["fileData"] = map[string]any{"mimeType": part.MediaType, "fileUri": part.Reference.URI}
+					} else {
+						wire["inlineData"] = map[string]any{"mimeType": part.MediaType, "data": base64.StdEncoding.EncodeToString(part.Data)}
+					}
 				}
 				if len(part.ProviderData) > 0 {
 					var context map[string]any
@@ -311,6 +380,7 @@ type wireMessage struct {
 	Role      string         `json:"role"`
 	Content   string         `json:"content"`
 	Refusal   string         `json:"refusal"`
+	Reasoning string         `json:"reasoning_content"`
 	ToolCalls []wireToolCall `json:"tool_calls"`
 }
 type openAIResponse struct {
@@ -323,18 +393,27 @@ type openAIResponse struct {
 		FinishReason string      `json:"finish_reason"`
 	} `json:"choices"`
 	Usage struct {
-		Input  int64 `json:"prompt_tokens"`
-		Output int64 `json:"completion_tokens"`
-		Total  int64 `json:"total_tokens"`
+		Input        int64 `json:"prompt_tokens"`
+		Output       int64 `json:"completion_tokens"`
+		Total        int64 `json:"total_tokens"`
+		InputDetails struct {
+			Cached int64 `json:"cached_tokens"`
+		} `json:"prompt_tokens_details"`
+		OutputDetails struct {
+			Reasoning int64 `json:"reasoning_tokens"`
+		} `json:"completion_tokens_details"`
 	} `json:"usage"`
 	Error json.RawMessage `json:"error"`
 }
 type anthropicBlock struct {
-	Type  string          `json:"type"`
-	Text  string          `json:"text"`
-	ID    string          `json:"id"`
-	Name  string          `json:"name"`
-	Input json.RawMessage `json:"input"`
+	Type      string          `json:"type"`
+	Text      string          `json:"text"`
+	ID        string          `json:"id"`
+	Name      string          `json:"name"`
+	Input     json.RawMessage `json:"input"`
+	Thinking  string          `json:"thinking"`
+	Signature string          `json:"signature"`
+	Data      string          `json:"data"`
 }
 type anthropicResponse struct {
 	ID         string           `json:"id"`
@@ -342,8 +421,10 @@ type anthropicResponse struct {
 	Content    []anthropicBlock `json:"content"`
 	StopReason string           `json:"stop_reason"`
 	Usage      struct {
-		Input  int64 `json:"input_tokens"`
-		Output int64 `json:"output_tokens"`
+		Input      int64 `json:"input_tokens"`
+		Output     int64 `json:"output_tokens"`
+		Cached     int64 `json:"cache_read_input_tokens"`
+		CacheWrite int64 `json:"cache_creation_input_tokens"`
 	} `json:"usage"`
 }
 type geminiPart struct {
@@ -370,9 +451,11 @@ type geminiResponse struct {
 		FinishReason string `json:"finishReason"`
 	} `json:"candidates"`
 	Usage struct {
-		Input  int64 `json:"promptTokenCount"`
-		Output int64 `json:"candidatesTokenCount"`
-		Total  int64 `json:"totalTokenCount"`
+		Input     int64 `json:"promptTokenCount"`
+		Output    int64 `json:"candidatesTokenCount"`
+		Total     int64 `json:"totalTokenCount"`
+		Cached    int64 `json:"cachedContentTokenCount"`
+		Reasoning int64 `json:"thoughtsTokenCount"`
 	} `json:"usageMetadata"`
 	Error json.RawMessage `json:"error"`
 }
@@ -402,8 +485,11 @@ func (c *Client) decodeOffset(data []byte, model string, callOffset int) (blocka
 		if m.Content != "" {
 			r.Message.Parts = append(r.Message.Parts, blockade.MessagePart{Kind: "text", Text: m.Content})
 		}
+		if m.Reasoning != "" {
+			r.Message.Parts = append(r.Message.Parts, blockade.MessagePart{Kind: "reasoning", Text: m.Reasoning})
+		}
 		if m.Refusal != "" {
-			r.Message.Parts = append(r.Message.Parts, blockade.MessagePart{Kind: "text", Text: m.Refusal})
+			r.Message.Parts = append(r.Message.Parts, blockade.MessagePart{Kind: "refusal", Text: m.Refusal})
 			r.StopReason = "refusal"
 		}
 		for _, call := range m.ToolCalls {
@@ -415,7 +501,7 @@ func (c *Client) decodeOffset(data []byte, model string, callOffset int) (blocka
 		if r.StopReason == "" {
 			r.StopReason = wire.Choices[0].FinishReason
 		}
-		r.Usage = blockade.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output, Total: wire.Usage.Total}
+		r.Usage = blockade.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output, Total: wire.Usage.Total, CachedInput: wire.Usage.InputDetails.Cached, Reasoning: wire.Usage.OutputDetails.Reasoning}
 	case Anthropic:
 		var wire anthropicResponse
 		if err := json.Unmarshal(data, &wire); err != nil {
@@ -429,6 +515,12 @@ func (c *Client) decodeOffset(data []byte, model string, callOffset int) (blocka
 			switch block.Type {
 			case "text":
 				r.Message.Parts = append(r.Message.Parts, blockade.MessagePart{Kind: "text", Text: block.Text})
+			case "thinking", "redacted_thinking":
+				part, err := thinkingPart(block)
+				if err != nil {
+					return r, err
+				}
+				r.Message.Parts = append(r.Message.Parts, part)
 			case "tool_use":
 				r.Message.ToolCalls = append(r.Message.ToolCalls, blockade.ToolCall{ID: block.ID, Name: block.Name, Arguments: block.Input})
 			default:
@@ -436,7 +528,7 @@ func (c *Client) decodeOffset(data []byte, model string, callOffset int) (blocka
 			}
 		}
 		r.StopReason = normalizeStop(wire.StopReason)
-		r.Usage = blockade.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output, Total: wire.Usage.Input + wire.Usage.Output}
+		r.Usage = blockade.TokenUsage{Input: wire.Usage.Input + wire.Usage.Cached + wire.Usage.CacheWrite, Output: wire.Usage.Output, Total: wire.Usage.Input + wire.Usage.Cached + wire.Usage.CacheWrite + wire.Usage.Output, CachedInput: wire.Usage.Cached}
 	case Gemini:
 		var wire geminiResponse
 		if err := json.Unmarshal(data, &wire); err != nil {
@@ -449,12 +541,12 @@ func (c *Client) decodeOffset(data []byte, model string, callOffset int) (blocka
 		if wire.Model != "" {
 			r.Model = wire.Model
 		}
-		r.Usage = blockade.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output, Total: wire.Usage.Total}
+		r.Usage = blockade.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output + wire.Usage.Reasoning, Total: wire.Usage.Total, CachedInput: wire.Usage.Cached, Reasoning: wire.Usage.Reasoning}
 		if len(wire.Candidates) == 0 {
 			return r, nil
 		}
 		for _, part := range wire.Candidates[0].Content.Parts {
-			if part.Thought || hasError(part.InlineData) || hasError(part.FileData) || hasError(part.ExecutableCode) || hasError(part.CodeExecutionResult) {
+			if hasError(part.InlineData) || hasError(part.FileData) || hasError(part.ExecutableCode) || hasError(part.CodeExecutionResult) {
 				return r, unsupported("Gemini non-text output part")
 			}
 			var signature json.RawMessage
@@ -473,13 +565,17 @@ func (c *Client) decodeOffset(data []byte, model string, callOffset int) (blocka
 				}
 				r.Message.ToolCalls = append(r.Message.ToolCalls, blockade.ToolCall{ID: id, Name: call.Name, Arguments: args, ProviderData: signature})
 			} else if part.Text != "" {
-				r.Message.Parts = append(r.Message.Parts, blockade.MessagePart{Kind: "text", Text: part.Text, ProviderData: signature})
+				kind := "text"
+				if part.Thought {
+					kind = "reasoning"
+				}
+				r.Message.Parts = append(r.Message.Parts, blockade.MessagePart{Kind: kind, Text: part.Text, ProviderData: signature})
 			} else if len(signature) > 0 {
 				r.Message.Parts = append(r.Message.Parts, blockade.MessagePart{Kind: "context", ProviderData: signature})
 			}
 		}
 		r.StopReason = normalizeStop(wire.Candidates[0].FinishReason)
-		r.Usage = blockade.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output, Total: wire.Usage.Total}
+		r.Usage = blockade.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output + wire.Usage.Reasoning, Total: wire.Usage.Total, CachedInput: wire.Usage.Cached, Reasoning: wire.Usage.Reasoning}
 	}
 	return r, nil
 }
@@ -489,7 +585,7 @@ func hasError(raw json.RawMessage) bool {
 }
 func normalizeStop(reason string) string {
 	switch reason {
-	case "end_turn", "STOP":
+	case "end_turn", "stop_sequence", "STOP":
 		return "stop"
 	case "max_tokens", "MAX_TOKENS":
 		return "length"
@@ -498,4 +594,22 @@ func normalizeStop(reason string) string {
 	default:
 		return reason
 	}
+}
+
+func thinkingPart(block anthropicBlock) (blockade.MessagePart, error) {
+	var raw []byte
+	var err error
+	kind := "context"
+	text := ""
+	if block.Type == "thinking" {
+		if block.Signature == "" {
+			return blockade.MessagePart{}, errors.New("thinking block is missing its replay signature")
+		}
+		kind = "reasoning"
+		text = block.Thinking
+		raw, err = json.Marshal(map[string]string{"type": "thinking", "thinking": block.Thinking, "signature": block.Signature})
+	} else {
+		raw, err = json.Marshal(map[string]string{"type": "redacted_thinking", "data": block.Data})
+	}
+	return blockade.MessagePart{Kind: kind, Text: text, ProviderData: raw}, err
 }

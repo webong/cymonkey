@@ -54,6 +54,8 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return runDevice(args[1:], stdout, stderr)
 	case "content":
 		return runContent(args[1:], stdout, stderr)
+	case "console":
+		return consoleCommand(args[1:], stdout, stderr)
 	case "plugins":
 		return pluginsCommand(args[1:], stdout, stderr)
 	case "native-bridge-fixture":
@@ -184,6 +186,7 @@ Commands:
   bookmarklet             Import or export user-activated browser bookmarklets
   display                 Connect and serve display interaction engines
   content                 Configure and run content interpretation
+  console                 Compose selected tools and models; serve HTTP or MCP
   device                  Use approved input and output devices
   operator                Serve or call the unified Cymonkey operator API
   plugins                 Build, install, and inspect Cymonkey plugins`)

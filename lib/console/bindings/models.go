@@ -38,7 +38,7 @@ func Generate(definition console.Definition, generator blockade.Generator, model
 		if err != nil {
 			return blockade.GenerationResponse{}, err
 		}
-		if err := blockade.ValidateGenerationResponse(response); err != nil {
+		if err := blockade.ValidateGenerationResult(response, request); err != nil {
 			return blockade.GenerationResponse{}, err
 		}
 		return response, nil
@@ -53,10 +53,12 @@ type TranscriptionOptions struct {
 // Audio is base64 in the tool's JSON arguments, following encoding/json's
 // standard []byte representation. No device is opened by this binding.
 type TranscriptionInput struct {
-	Audio     []byte `json:"audio"`
-	MediaType string `json:"mediaType"`
-	Language  string `json:"language,omitempty"`
-	Prompt    string `json:"prompt,omitempty"`
+	Audio      []byte   `json:"audio"`
+	MediaType  string   `json:"mediaType"`
+	Language   string   `json:"language,omitempty"`
+	Prompt     string   `json:"prompt,omitempty"`
+	Metadata   bool     `json:"metadata,omitempty"`
+	Timestamps []string `json:"timestamps,omitempty"`
 }
 
 func Transcribe(definition console.Definition, transcriber blockade.Transcriber, options TranscriptionOptions) (console.Tool, error) {
@@ -68,10 +70,18 @@ func Transcribe(definition console.Definition, transcriber blockade.Transcriber,
 		if err != nil || !strings.Contains(mediaType, "/") || len(input.Audio) == 0 || int64(len(input.Audio)) > options.MaxAudioBytes {
 			return blockade.TranscriptionResponse{}, errors.New("transcription needs a valid media type and audio within the host byte ceiling")
 		}
-		return transcriber.Transcribe(ctx, blockade.TranscriptionRequest{
+		request := blockade.TranscriptionRequest{
 			Model: options.Model, Audio: input.Audio, MediaType: input.MediaType,
-			Language: input.Language, Prompt: input.Prompt,
-		})
+			Language: input.Language, Prompt: input.Prompt, Metadata: input.Metadata, Timestamps: input.Timestamps,
+		}
+		if err := blockade.ValidateTranscriptionRequest(request); err != nil {
+			return blockade.TranscriptionResponse{}, err
+		}
+		result, err := transcriber.Transcribe(ctx, request)
+		if err != nil {
+			return result, err
+		}
+		return result, blockade.ValidateTranscriptionResponse(result)
 	})
 }
 

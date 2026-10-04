@@ -108,7 +108,7 @@ func (s *Session) send(ctx context.Context, event any) error {
 	return err
 }
 func (s *Session) SendText(ctx context.Context, text string) error {
-	if text == "" {
+	if text == "" || len(text) > 1<<20 {
 		return errors.New("realtime text cannot be empty")
 	}
 	return s.send(ctx, map[string]any{"type": "conversation.item.create", "item": map[string]any{"type": "message", "role": "user", "content": []any{map[string]any{"type": "input_text", "text": text}}}})
@@ -129,7 +129,7 @@ func (s *Session) Interrupt(ctx context.Context) error {
 	return s.send(ctx, map[string]any{"type": "response.cancel"})
 }
 func (s *Session) SendToolResult(ctx context.Context, id string, output []byte) error {
-	if id == "" || !json.Valid(output) {
+	if id == "" || len(id) > 256 || len(output) > 1<<20 || !json.Valid(output) {
 		return errors.New("tool result requires a call ID and valid JSON")
 	}
 	return s.send(ctx, map[string]any{"type": "conversation.item.create", "item": map[string]any{"type": "function_call_output", "call_id": id, "output": string(output)}})
@@ -154,25 +154,66 @@ func (s *Session) Receive(ctx context.Context) (blockade.RealtimeEvent, error) {
 		return blockade.RealtimeEvent{}, err
 	}
 	var wire struct {
-		Type      string `json:"type"`
-		Delta     string `json:"delta"`
-		CallID    string `json:"call_id"`
-		Name      string `json:"name"`
-		Arguments string `json:"arguments"`
+		Type       string `json:"type"`
+		Delta      string `json:"delta"`
+		CallID     string `json:"call_id"`
+		Name       string `json:"name"`
+		Arguments  string `json:"arguments"`
+		ID         string `json:"event_id"`
+		ItemID     string `json:"item_id"`
+		ResponseID string `json:"response_id"`
+		Transcript string `json:"transcript"`
+		Response   struct {
+			ID     string `json:"id"`
+			Status string `json:"status"`
+			Usage  struct {
+				Input  int64 `json:"input_tokens"`
+				Output int64 `json:"output_tokens"`
+				Total  int64 `json:"total_tokens"`
+			} `json:"usage"`
+		} `json:"response"`
 	}
 	if err = json.Unmarshal(raw, &wire); err != nil {
 		return blockade.RealtimeEvent{}, err
 	}
-	event := blockade.RealtimeEvent{Kind: wire.Type, Raw: raw}
+	event := blockade.RealtimeEvent{Kind: wire.Type, NativeType: wire.Type, ID: wire.ID, ItemID: wire.ItemID, ResponseID: wire.ResponseID, OccurredAt: time.Now().UTC(), Raw: raw}
 	switch wire.Type {
-	case "response.output_text.delta", "response.output_audio_transcript.delta":
+	case "session.created", "session.updated":
+		event.Kind = "session.ready"
+	case "response.created":
+		event.Kind = "response.started"
+		event.ResponseID = wire.Response.ID
+		event.Status = wire.Response.Status
+	case "response.done":
+		event.Kind = "response.completed"
+		event.ResponseID = wire.Response.ID
+		event.Status = wire.Response.Status
+		if wire.Response.Status == "cancelled" {
+			event.Kind = "response.interrupted"
+		}
+		event.Usage = &blockade.TokenUsage{Input: wire.Response.Usage.Input, Output: wire.Response.Usage.Output, Total: wire.Response.Usage.Total}
+	case "input_audio_buffer.committed":
+		event.Kind = "audio.committed"
+	case "conversation.item.input_audio_transcription.completed":
+		event.Kind = "transcription.completed"
+		event.Text = wire.Transcript
+	case "conversation.item.input_audio_transcription.delta":
+		event.Kind = "transcription.delta"
+		event.Text = wire.Delta
+	case "response.output_text.delta":
+		event.Kind = "text.delta"
+		event.Text = wire.Delta
+	case "response.output_audio_transcript.delta":
+		event.Kind = "transcript.delta"
 		event.Text = wire.Delta
 	case "response.output_audio.delta":
+		event.Kind = "audio.delta"
 		event.Audio, err = base64.StdEncoding.DecodeString(wire.Delta)
-		if err != nil {
-			return blockade.RealtimeEvent{}, err
+		if err != nil || len(event.Audio)%2 != 0 {
+			return blockade.RealtimeEvent{}, errors.New("invalid realtime PCM16 audio delta")
 		}
 	case "response.function_call_arguments.done":
+		event.Kind = "tool.completed"
 		var args map[string]json.RawMessage
 		if wire.CallID == "" || wire.Name == "" || json.Unmarshal([]byte(wire.Arguments), &args) != nil || args == nil {
 			return blockade.RealtimeEvent{}, errors.New("invalid realtime tool proposal")
@@ -186,3 +227,15 @@ func (s *Session) Receive(ctx context.Context) (blockade.RealtimeEvent, error) {
 func (s *Session) Close() error { s.once.Do(func() { s.closeErr = s.conn.Close() }); return s.closeErr }
 
 var _ blockade.RealtimeSession = (*Session)(nil)
+
+func (s *Session) ClearInputAudio(ctx context.Context) error {
+	return s.send(ctx, map[string]any{"type": "input_audio_buffer.clear"})
+}
+func (s *Session) TruncateAudio(ctx context.Context, itemID string, contentIndex, audioMilliseconds int) error {
+	if itemID == "" || contentIndex < 0 || audioMilliseconds < 0 || audioMilliseconds > 3600000 {
+		return errors.New("invalid played-audio boundary")
+	}
+	return s.send(ctx, map[string]any{"type": "conversation.item.truncate", "item_id": itemID, "content_index": contentIndex, "audio_end_ms": audioMilliseconds})
+}
+
+var _ blockade.RealtimeAudioControl = (*Session)(nil)

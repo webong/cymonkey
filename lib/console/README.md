@@ -52,8 +52,10 @@ result, err := tools.Invoke(ctx, console.Call{
 not convenient. Tool outputs must be valid JSON. The registry checks that
 arguments are JSON objects and, for `NewJSONTool`, rejects unknown fields and
 trailing JSON values.
-Console publishes the schema but does not evaluate its constraints; handlers
-must enforce required fields and application-specific rules.
+Console compiles and evaluates a bounded offline JSON Schema vocabulary before
+invocation. Unsupported assertion keywords fail registration. Handlers enforce
+resource authorization and application-specific rules. `NewResultTool` also
+preserves an explicit `isError` result flag.
 
 ## Composing Cymonkey SDKs
 
@@ -123,7 +125,7 @@ closes them. Application-specific tools use `NewTool` or `NewJSONTool`.
 matching schema for each bound tool. Typed decoding rejects unknown fields,
 so arguments such as `model`, `voice`, or an output path cannot replace the
 fixed host binding. Binding validation and handler checks supplement the
-advertised schema; Console does not evaluate JSON Schema.
+advertised schema; Console evaluates its supported JSON Schema constraints.
 
 An audio consumer can store a bounded response in an existing host content
 store, or write to an already approved playback channel. It must enforce its
@@ -165,3 +167,24 @@ host retains process ownership.
 
 See [SDK model and tool composition](../../docs/sdk-model-tools.md) for the
 feature mapping and module ownership.
+
+## Additional composition APIs
+
+- `bindings.Embed` fixes an embedding provider/model and validates vectors.
+- `bindings.Observe`, `Verify` and `Wait` borrow one fixed UI surface. Waits
+  perform bounded reads and pin target identity.
+- `bindings.ObservedAction` requires a fresh originating observation and
+  returns dispatch/verification evidence.
+- `bindings.See` combines pixels and semantics for the same process/window.
+  Reads are sequential; it does not claim an atomic desktop snapshot.
+- `httpapi.Server` exposes tool/model catalogs, selected invocation and one
+  generation/stream turn. The embedding host supplies authentication and origins.
+- `mcp.Server` publishes selected tools over stateless JSON POST or supplied
+  JSON-lines streams. No listener or process is created by the library.
+- MCP clients expose explicit `Resources`, `ResourceTemplates`, `ReadResource`,
+  `Prompts` and `GetPrompt`. Returned context remains inert native JSON; no model
+  request, tool execution or local URI fetch follows a read.
+
+See [Console configuration](../../docs/console.md) for the `cymy console` host
+and [feature extraction](../../docs/tachikoma-peekaboo-extraction.md) for status
+and platform limitations.

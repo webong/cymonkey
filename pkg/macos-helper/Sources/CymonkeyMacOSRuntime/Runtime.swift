@@ -6,6 +6,7 @@ public actor CymonkeyRuntime {
     private let appleEvents: AppleEventSending
     private let accessibility: AccessibilityProviding?
     private let viewer: ViewerProviding?
+    private let clipboard: SystemClipboardProvider?
     private var events: [SemanticEvent] = []
     private var sequence: UInt64 = 0
 
@@ -18,6 +19,7 @@ public actor CymonkeyRuntime {
         try configuration.validate()
         self.configuration = configuration
         self.appleEvents = appleEvents
+        self.clipboard = try configuration.clipboard.map { try SystemClipboardProvider(policy: $0) }
         if let accessibility {
             self.accessibility = accessibility
         } else if let policy = configuration.accessibility {
@@ -80,6 +82,9 @@ public actor CymonkeyRuntime {
             ))
         }
         if let accessibility, accessibility.authorized {
+            if accessibility is ObservationProviding {
+                result.append(Capability(name: "ui.observe", description: "Read a fresh bounded Accessibility observation with target identity and completeness.", driver: "macos-accessibility", effect: "read", required: ["surfaceId", "selector"]))
+            }
             result.append(Capability(
                 name: "ui.query",
                 description: "Query a bounded Accessibility subtree in one allowlisted application.",
@@ -92,7 +97,8 @@ public actor CymonkeyRuntime {
                 description: "Invoke an action reported by an attachment-scoped Accessibility element.",
                 driver: "macos-accessibility",
                 effect: "write",
-                required: ["surfaceId", "elementId", "action"]
+                required: ["surfaceId", "elementId", "action"],
+                additionalProperties: true
             ))
             if !(configuration.accessibility?.allowedWritableAttributes.isEmpty ?? true) {
                 result.append(Capability(
@@ -100,7 +106,8 @@ public actor CymonkeyRuntime {
                     description: "Set an allowlisted attribute reported settable by an Accessibility element.",
                     driver: "macos-accessibility",
                     effect: "write",
-                    required: ["surfaceId", "elementId", "attribute", "value"]
+                    required: ["surfaceId", "elementId", "attribute", "value"],
+                    additionalProperties: true
                 ))
             }
         }
@@ -110,8 +117,12 @@ public actor CymonkeyRuntime {
         }
         if let viewer, viewer.inputAuthorized {
             for name in ["pointer.move", "pointer.click", "pointer.drag", "pointer.scroll", "keyboard.type", "keyboard.press"] {
-                result.append(Capability(name: name, description: "Inject policy-bounded input into an allowlisted viewer surface.", driver: "macos-viewer", effect: "write", required: ["surfaceId"], additionalProperties: true, runtime: "macos-viewer"))
+                result.append(Capability(name: name, description: "Inject policy-bounded input into an allowlisted viewer surface.", driver: "macos-viewer", effect: "write", required: ["surfaceId", "captureId"], additionalProperties: true, runtime: "macos-viewer"))
             }
+        }
+        if let policy = configuration.clipboard {
+            if policy.allowRead { result.append(Capability(name: "clipboard.read", description: "Read a complete bounded clipboard snapshot.", driver: "macos-clipboard", effect: "read", required: ["resourceId", "maxBytes"])) }
+            if policy.allowWrite { result.append(Capability(name: "clipboard.write", description: "Conditionally replace clipboard contents at the supplied generation.", driver: "macos-clipboard", effect: "write", required: ["resourceId", "maxBytes", "expectedGeneration", "items"])) }
         }
         return result.sorted { $0.name < $1.name }
     }
@@ -121,6 +132,7 @@ public actor CymonkeyRuntime {
         if !configuration.appleEventCommands.isEmpty { drivers.append(.string("macos-apple-events")) }
         if accessibility != nil { drivers.append(.string("macos-accessibility")) }
         if viewer != nil { drivers.append(.string("macos-viewer")) }
+        if clipboard != nil { drivers.append(.string("macos-clipboard")) }
         var runtimes: [JSONValue] = [.string("macos-app")]
         if viewer != nil { runtimes.append(.string("macos-viewer")) }
         return .object([
@@ -173,11 +185,41 @@ public actor CymonkeyRuntime {
 
     private func act(_ params: JSONValue) throws -> JSONValue {
         let action = try decode(ActionRequest.self, from: params)
-        guard let input = action.input.objectValue else {
+        guard var input = action.input.objectValue else {
             throw RuntimeError.invalidRequest("Cymonkey action input must be an object")
+        }
+        if input["observationId"] != nil {
+            guard ["ui.action.invoke", "ui.attribute.set"].contains(action.name),
+                  let observer = accessibility as? ObservationProviding,
+                  let targetValue = input["target"] else { throw RuntimeError.invalidRequest("observation-bound action is unsupported") }
+            let target = try decode(NativeTargetReference.self, from: targetValue)
+            guard target.surfaceId == (try requiredString(input, "surfaceId")) else { throw RuntimeError.denied("observed surface differs from action target") }
+            let observationID = try requiredString(input, "observationId")
+            try observer.validateObservation(id: observationID, target: target)
+            try observer.validateElement(observationId: observationID, elementId: requiredString(input, "elementId"))
+        }
+        var captureTarget: NativeTargetReference?
+        if ["pointer.move", "pointer.click", "pointer.drag", "pointer.scroll", "keyboard.type", "keyboard.press"].contains(action.name), let snapshots = viewer as? SnapshotViewerProviding {
+            let captureID = try requiredString(input, "captureId")
+            let surfaceID = try requiredString(input, "surfaceId")
+            captureTarget = try snapshots.validateCapture(id: captureID, surfaceId: surfaceID)
+            let pairs = action.name == "pointer.drag" ? [("startX", "startY"), ("endX", "endY")] : (action.name.hasPrefix("pointer.") ? [("x", "y")] : [])
+            for (xKey, yKey) in pairs {
+                let point = try snapshots.capturePoint(id: captureID, surfaceId: surfaceID, x: requiredInt(input, xKey), y: requiredInt(input, yKey))
+                input[xKey] = .number(Double(point.0)); input[yKey] = .number(Double(point.1))
+            }
         }
         let result: JSONValue
         switch action.name {
+        case "clipboard.read", "clipboard.write":
+            guard let clipboard, try requiredString(input, "resourceId") == "general" else { throw RuntimeError.denied("clipboard resource is unavailable") }
+            let limit = try requiredInt(input, "maxBytes")
+            if action.name == "clipboard.read" { result = try encodeToJSON(clipboard.read(maxBytes: limit)) }
+            else {
+                guard let itemValues = input["items"] else { throw RuntimeError.invalidRequest("clipboard items are required") }
+                let items = try decode([ClipboardItem].self, from: itemValues)
+                result = try encodeToJSON(clipboard.write(expectedGeneration: requiredString(input, "expectedGeneration"), items: items, maxBytes: limit))
+            }
         case "app.command.list":
             let bundleID = try bundleIDForSurface(requiredString(input, "surfaceId"))
             result = .array(commands(bundleID: bundleID).map { .string($0.name) })
@@ -190,6 +232,11 @@ public actor CymonkeyRuntime {
             publish("app.command.invoked", driver: "macos-apple-events", data: .object([
                 "bundleId": .string(command.bundleId), "command": .string(command.name),
             ]))
+        case "ui.observe":
+            guard let observer = accessibility as? ObservationProviding else { throw RuntimeError.unavailable("snapshot observation is unavailable") }
+            let surfaceID = try requiredString(input, "surfaceId")
+            guard let selector = input["selector"]?.objectValue else { throw RuntimeError.invalidRequest("ui.observe selector must be an object") }
+            result = try encodeToJSON(observer.observe(surfaceId: surfaceID, selector: selector))
         case "ui.query":
             guard let accessibility else { throw RuntimeError.unavailable("Accessibility backend is unavailable") }
             let surfaceID = try requiredString(input, "surfaceId")
@@ -214,7 +261,10 @@ public actor CymonkeyRuntime {
             let attribute = try requiredString(input, "attribute")
             guard let value = input["value"] else { throw RuntimeError.invalidRequest("value is required") }
             try accessibility.setAttribute(surfaceId: surfaceID, elementId: elementID, attribute: attribute, value: value)
-            result = .object(["ok": .bool(true)])
+            // Readback describes current native state, not settled geometry or
+            // permission to retry a mutation. Unavailable readback stays unknown.
+            let readback = try? (accessibility as? AttributeReading)?.readAttribute(surfaceId: surfaceID, elementId: elementID, attribute: attribute)
+            result = .object(["ok": .bool(true), "readback": readback ?? .null, "readbackState": .string(readback == nil ? "unknown" : (readback == value ? "matches" : "differs"))])
             publish("ui.attribute.updated", driver: "macos-accessibility", data: .object([
                 "surfaceId": .string(surfaceID), "elementId": .string(elementID), "attribute": .string(attribute),
             ]))
@@ -249,6 +299,12 @@ public actor CymonkeyRuntime {
             try viewer.press(surfaceId: try requiredString(input, "surfaceId"), key: try requiredString(input, "key")); result = .object(["ok": .bool(true)])
         default:
             throw RuntimeError.denied("Cymonkey capability was not advertised")
+        }
+        if let target = captureTarget {
+            return .object(["id": .string(UUID().uuidString.lowercased()), "action": .string(action.name), "target": try encodeToJSON(target), "observationId": input["captureId"] ?? .null, "dispatch": .string("dispatched"), "verification": .string("unknown"), "occurredAt": .string(nativeTimestamp(Date())), "output": result])
+        }
+        if let observationID = input["observationId"]?.stringValue, let target = input["target"] {
+            return .object(["id": .string(UUID().uuidString.lowercased()), "action": .string(action.name), "target": target, "observationId": .string(observationID), "dispatch": .string("dispatched"), "verification": .string("unknown"), "occurredAt": .string(nativeTimestamp(Date())), "output": result])
         }
         return result
     }
@@ -344,7 +400,7 @@ private func requiredString(_ input: [String: JSONValue], _ name: String) throws
 }
 
 private func requiredInt(_ input: [String: JSONValue], _ name: String) throws -> Int {
-    guard case .number(let value) = input[name], value.rounded() == value else {
+    guard case .number(let value) = input[name], value.isFinite, value.rounded() == value, value >= Double(Int.min), value < Double(Int.max) else {
         throw RuntimeError.invalidRequest("\(name) must be an integer")
     }
     return Int(value)

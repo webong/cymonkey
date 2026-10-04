@@ -57,3 +57,11 @@ provider/model feature is supported or add generation/speech routes to Cymonkey'
 existing observation/interpretation CLI and process-plugin contracts. Adapter
 support depends on the selected endpoint/model; unmapped native features fail
 explicitly.
+
+## Extracted desktop and model features
+
+The [extraction map](tachikoma-peekaboo-extraction.md) records pinned upstream
+revisions, implementation ownership and remaining gaps. Added surfaces include
+structured-output validation/streaming, embeddings, native options, UI snapshot
+identity, verification/waits, capture processing and clipboard grants.
+[Console configuration](console.md) covers explicit CLI, HTTP and MCP composition.

@@ -26,6 +26,9 @@ type PolicyLimits struct {
 	AllowedCapabilities []string `json:"allowedCapabilities,omitempty"`
 	AllowedOrigins      []string `json:"allowedOrigins,omitempty"`
 	AllowedBundleIDs    []string `json:"allowedBundleIds,omitempty"`
+	// Clipboard and captured viewer targets have independent explicit grants.
+	AllowedClipboardResources []string `json:"allowedClipboardResources,omitempty"`
+	AllowedViewerSurfaces     []string `json:"allowedViewerSurfaces,omitempty"`
 }
 
 // compositeOptions describes explicit caller-owned module bindings. One

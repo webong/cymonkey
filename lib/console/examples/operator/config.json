@@ -1,0 +1,36 @@
+{
+  "apiVersion": "cymonkey.console/v1alpha1",
+  "mcpProtocolVersion": "2025-06-18",
+  "models": [
+    {
+      "id": "selected-text-model",
+      "provider": "host-selected-endpoint",
+      "model": "replace-with-your-model-id",
+      "protocol": "openai-compatible",
+      "baseURL": "https://models.example.invalid/v1",
+      "apiKeyEnvironment": "MY_MODEL_KEY",
+      "capabilities": ["generation", "streaming"]
+    }
+  ],
+  "tools": [
+    {
+      "kind": "generate",
+      "modelId": "selected-text-model",
+      "definition": {
+        "name": "ask_selected_model",
+        "description": "Make one explicit request to the host-selected model.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "messages": {"type": "array", "minItems": 1},
+            "maxOutputTokens": {"type": "integer", "minimum": 1},
+            "temperature": {"type": "number"},
+            "outputSchema": {"type": "object"}
+          },
+          "required": ["messages"],
+          "additionalProperties": false
+        }
+      }
+    }
+  ]
+}

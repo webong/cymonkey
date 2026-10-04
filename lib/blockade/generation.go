@@ -6,9 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"mime"
+	"net/url"
 	"sort"
 	"strings"
 	"sync"
+
+	"providerplugin/jsonschema"
 )
 
 // Generation is independent of observation/interpretation. Providers produce
@@ -19,16 +23,25 @@ type Message struct {
 	ToolCalls  []ToolCall    `json:"toolCalls,omitempty"`
 	ToolCallID string        `json:"toolCallId,omitempty"`
 	ToolName   string        `json:"toolName,omitempty"`
+	ToolError  bool          `json:"toolError,omitempty"`
 }
 
 type MessagePart struct {
-	Kind      string `json:"kind"` // text, image, audio, video, file, context
-	Text      string `json:"text,omitempty"`
-	MediaType string `json:"mediaType,omitempty"`
-	Data      []byte `json:"data,omitempty"`
+	Kind      string          `json:"kind"` // text, reasoning, refusal, image, audio, video, file, context
+	Text      string          `json:"text,omitempty"`
+	MediaType string          `json:"mediaType,omitempty"`
+	Data      []byte          `json:"data,omitempty"`
+	Reference *MediaReference `json:"reference,omitempty"`
 	// ProviderData preserves opaque provider context, such as thought signatures.
 	// It is passed back only to that provider and is never treated as an action.
 	ProviderData json.RawMessage `json:"providerData,omitempty"`
+}
+
+// MediaReference is passed to the selected adapter. Libraries never download
+// URLs or upload local files implicitly. Provider file IDs are opaque.
+type MediaReference struct {
+	Kind string `json:"kind"` // url or file
+	URI  string `json:"uri"`
 }
 
 type ToolDefinition struct {
@@ -51,12 +64,16 @@ type GenerationRequest struct {
 	MaxOutputTokens int              `json:"maxOutputTokens,omitempty"`
 	Temperature     *float64         `json:"temperature,omitempty"`
 	OutputSchema    json.RawMessage  `json:"outputSchema,omitempty"`
+	// Options are owned and validated by the explicitly selected adapter.
+	Options json.RawMessage `json:"options,omitempty"`
 }
 
 type TokenUsage struct {
-	Input  int64 `json:"input"`
-	Output int64 `json:"output"`
-	Total  int64 `json:"total"`
+	Input       int64 `json:"input"`
+	Output      int64 `json:"output"`
+	Total       int64 `json:"total"`
+	CachedInput int64 `json:"cachedInput,omitempty"`
+	Reasoning   int64 `json:"reasoning,omitempty"`
 }
 
 type GenerationResponse struct {
@@ -79,13 +96,15 @@ func (r GenerationResponse) Text() string {
 }
 
 type GenerationEvent struct {
-	Kind           string              `json:"kind"` // text.delta, tool.delta, completed
+	Kind           string              `json:"kind"` // started, text.delta, reasoning.delta, refusal.delta, tool.delta, tool.completed, usage, completed
 	Text           string              `json:"text,omitempty"`
 	Index          int                 `json:"index,omitempty"`
 	CallID         string              `json:"callId,omitempty"`
 	ToolName       string              `json:"toolName,omitempty"`
 	ArgumentsDelta string              `json:"argumentsDelta,omitempty"`
 	Response       *GenerationResponse `json:"response,omitempty"`
+	Call           *ToolCall           `json:"call,omitempty"`
+	Usage          *TokenUsage         `json:"usage,omitempty"`
 }
 
 type Generator interface {
@@ -124,6 +143,14 @@ func ValidateGenerationRequest(request GenerationRequest) error {
 	if len(request.OutputSchema) != 0 && !jsonObject(request.OutputSchema) {
 		return fmt.Errorf("%w: output schema", ErrInvalidGeneration)
 	}
+	if len(request.OutputSchema) != 0 {
+		if _, err := jsonschema.Compile(request.OutputSchema); err != nil {
+			return fmt.Errorf("%w: %w", ErrInvalidGeneration, err)
+		}
+	}
+	if len(request.Options) != 0 && !jsonObject(request.Options) {
+		return fmt.Errorf("%w: adapter options must be an object", ErrInvalidGeneration)
+	}
 	for _, message := range request.Messages {
 		if err := validateMessage(message); err != nil {
 			return err
@@ -145,6 +172,9 @@ func validateMessage(message Message) error {
 	if message.Role == "tool" && message.ToolCallID == "" {
 		return fmt.Errorf("%w: tool result needs a call ID", ErrInvalidGeneration)
 	}
+	if message.ToolError && message.Role != "tool" {
+		return fmt.Errorf("%w: failure flag belongs to a tool result", ErrInvalidGeneration)
+	}
 	if len(message.ToolCalls) > 0 && message.Role != "assistant" {
 		return fmt.Errorf("%w: only assistant messages contain tool calls", ErrInvalidGeneration)
 	}
@@ -157,16 +187,32 @@ func validateMessage(message Message) error {
 		}
 		switch part.Kind {
 		case "context":
-			if message.Role != "assistant" || len(part.ProviderData) == 0 || part.Text != "" || part.MediaType != "" || len(part.Data) != 0 {
+			if message.Role != "assistant" || len(part.ProviderData) == 0 || part.Text != "" || part.MediaType != "" || len(part.Data) != 0 || part.Reference != nil {
 				return fmt.Errorf("%w: opaque model context", ErrInvalidGeneration)
 			}
-		case "text":
-			if part.MediaType != "" || len(part.Data) != 0 {
+		case "text", "reasoning", "refusal":
+			if part.MediaType != "" || len(part.Data) != 0 || part.Reference != nil || part.Kind != "text" && message.Role != "assistant" {
 				return fmt.Errorf("%w: mixed text/binary part", ErrInvalidGeneration)
 			}
 		case "image", "audio", "video", "file":
-			if part.Text != "" || len(part.Data) == 0 || !strings.Contains(part.MediaType, "/") {
+			_, _, mediaErr := mime.ParseMediaType(part.MediaType)
+			if part.Text != "" || (len(part.Data) == 0) == (part.Reference == nil) || mediaErr != nil || !strings.Contains(part.MediaType, "/") {
 				return fmt.Errorf("%w: binary part", ErrInvalidGeneration)
+			}
+			if ref := part.Reference; ref != nil {
+				if ref.URI == "" || len(ref.URI) > 8192 {
+					return fmt.Errorf("%w: media reference", ErrInvalidGeneration)
+				}
+				switch ref.Kind {
+				case "url":
+					u, err := url.Parse(ref.URI)
+					if err != nil || u.Host == "" || u.Scheme != "https" || u.User != nil || u.Fragment != "" {
+						return fmt.Errorf("%w: media URL must use HTTPS", ErrInvalidGeneration)
+					}
+				case "file":
+				default:
+					return fmt.Errorf("%w: media reference kind", ErrInvalidGeneration)
+				}
 			}
 		default:
 			return fmt.Errorf("%w: part kind", ErrInvalidGeneration)
@@ -183,10 +229,28 @@ func validateMessage(message Message) error {
 }
 
 func ValidateGenerationResponse(response GenerationResponse) error {
-	if response.Model == "" || response.Message.Role != "assistant" || response.Usage.Input < 0 || response.Usage.Output < 0 || response.Usage.Total < 0 {
+	if response.Model == "" || response.Message.Role != "assistant" || response.Usage.Input < 0 || response.Usage.Output < 0 || response.Usage.Total < 0 || response.Usage.CachedInput < 0 || response.Usage.Reasoning < 0 {
 		return fmt.Errorf("%w: response metadata", ErrInvalidGeneration)
 	}
 	return validateMessage(response.Message)
+}
+
+// ValidateGenerationResult includes requested output constraints. Truncated
+// output, refusals and proposals cannot be decoded as successful objects.
+func ValidateGenerationResult(response GenerationResponse, request GenerationRequest) error {
+	if err := ValidateGenerationResponse(response); err != nil {
+		return err
+	}
+	refused := response.StopReason == "refusal"
+	for _, part := range response.Message.Parts {
+		if part.Kind == "refusal" {
+			refused = true
+		}
+	}
+	if len(request.OutputSchema) > 0 && len(response.Message.ToolCalls) == 0 && !refused {
+		return ValidateStructuredOutput(response, request.OutputSchema)
+	}
+	return nil
 }
 
 func jsonObject(raw json.RawMessage) bool {
@@ -278,7 +342,7 @@ func (c *ModelCatalog) Generate(ctx context.Context, request GenerationRequest) 
 	if err != nil {
 		return GenerationResponse{}, err
 	}
-	if err := ValidateGenerationResponse(response); err != nil {
+	if err := ValidateGenerationResult(response, request); err != nil {
 		return GenerationResponse{}, err
 	}
 	return response, nil
@@ -308,7 +372,7 @@ func (c *ModelCatalog) Stream(ctx context.Context, request GenerationRequest, em
 	if err != nil {
 		return GenerationResponse{}, err
 	}
-	if err := ValidateGenerationResponse(response); err != nil {
+	if err := ValidateGenerationResult(response, request); err != nil {
 		return GenerationResponse{}, err
 	}
 	return response, nil

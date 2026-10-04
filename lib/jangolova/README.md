@@ -67,3 +67,20 @@ host supplies endpoints, credentials, worker paths, policy decisions, and
 approval. No operator implementation is imported by this Go module.
 
 See the [SDK guide](sdk/README.md).
+
+## Fresh UI observations
+
+`jangolova/ui.Client` borrows one caller-owned surface for `Observe` and
+observation-bound `Invoke`. Observations include producer/process/window identity,
+expiry, bounds and traversal completeness; receipts separate dispatch from
+verification. `Verify` reads once and `Wait` performs bounded reads while pinning
+the resolved target. Partial observations cannot establish absence.
+
+Native macOS configuration independently selects `allowedClipboardResources`
+and `allowedViewerSurfaces`; these are not implied by allowed application
+bundles. Native pointer/keyboard input requires a fresh capture ID, and input
+coordinates are pixels in that capture. The helper converts them to desktop
+points and targets the selected process.
+
+See [feature extraction](../../docs/tachikoma-peekaboo-extraction.md) for platform
+limitations and [Console](../console/README.md) for composition bindings.

@@ -6,6 +6,7 @@ require (
 	blockade v0.0.0
 	board v0.0.0
 	jangolova v0.0.0
+	providerplugin v0.0.0
 )
 
 require (

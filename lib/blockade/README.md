@@ -124,3 +124,27 @@ Python installation.
 Runtime and model stores reject symbolic links, verify files before use, and
 publish installations atomically. Cloud adapters normally keep a remote model
 identifier in adapter settings and do not use the local model store.
+
+## Additional neutral model primitives
+
+`EmbeddingRequest`, `Embedder` and `EmbeddingResponse` validate bounded text/token
+inputs, dimensions and finite vectors. `EmbedBatch` uses explicit bounded
+concurrency; `NormalizeVector` and `CosineSimilarity` are pure helpers.
+
+`ValidateStructuredOutput`, `DecodeStructuredOutput[T]` and
+`StreamStructuredOutput[T]` validate completed objects without repairing JSON
+or requesting another turn. Stream candidates are complete, schema-valid
+objects and may change; the returned final object is authoritative.
+
+Messages distinguish reasoning, refusal and opaque replay context. Media can
+carry caller-selected HTTPS URLs or provider file IDs; Blockade never fetches
+media or uploads files. `GenerationRequest.Options` is an opaque JSON object
+validated by the selected external adapter.
+
+Speech contracts include transcription timing metadata, normalized realtime
+events, optional input clearing/played-audio truncation and a pure state reducer.
+`ModelError` and `ClassifyModelError` describe failures without retrying.
+
+See [feature extraction](../../docs/tachikoma-peekaboo-extraction.md) for ownership
+and implementation limits. Provider names, clients, endpoints, credentials and
+model/pricing defaults remain outside Blockade.

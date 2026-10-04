@@ -19,9 +19,10 @@ type Transport interface {
 }
 
 type Client struct {
-	mu        sync.Mutex
-	transport Transport
-	ready     bool
+	mu           sync.Mutex
+	transport    Transport
+	ready        bool
+	capabilities map[string]json.RawMessage
 }
 
 func New(transport Transport) (*Client, error) {
@@ -47,10 +48,8 @@ func (c *Client) Initialize(ctx context.Context, version string) error {
 		return err
 	}
 	var result struct {
-		ProtocolVersion string `json:"protocolVersion"`
-		Capabilities    struct {
-			Tools json.RawMessage `json:"tools"`
-		} `json:"capabilities"`
+		ProtocolVersion string                     `json:"protocolVersion"`
+		Capabilities    map[string]json.RawMessage `json:"capabilities"`
 	}
 	if err = json.Unmarshal(raw, &result); err != nil {
 		return err
@@ -58,13 +57,14 @@ func (c *Client) Initialize(ctx context.Context, version string) error {
 	if result.ProtocolVersion != version {
 		return fmt.Errorf("MCP server negotiated unsupported version %q", result.ProtocolVersion)
 	}
-	if len(result.Capabilities.Tools) == 0 || string(result.Capabilities.Tools) == "null" {
-		return errors.New("MCP server does not advertise tools")
+	if result.Capabilities == nil {
+		return errors.New("MCP server returned invalid capabilities")
 	}
 	if err = c.transport.Notify(ctx, "notifications/initialized", nil); err != nil {
 		return err
 	}
 	c.ready = true
+	c.capabilities = result.Capabilities
 	return nil
 }
 
@@ -77,16 +77,14 @@ type toolSpec struct {
 // Tools returns a snapshot of discovered tools. prefix is a host-chosen
 // namespace. The host selects and registers the returned tools itself.
 func (c *Client) Tools(ctx context.Context, prefix string) ([]console.Tool, error) {
-	c.mu.Lock()
-	ready := c.ready
-	c.mu.Unlock()
-	if !ready {
-		return nil, errors.New("MCP client is not initialized")
+	if err := c.requireCapability("tools"); err != nil {
+		return nil, err
 	}
 	var tools []console.Tool
 	cursor := ""
 	cursors := map[string]bool{}
 	names := map[string]bool{}
+	var catalogBytes int
 	for page := 0; page < 128; page++ {
 		params := map[string]string{}
 		if cursor != "" {
@@ -95,6 +93,10 @@ func (c *Client) Tools(ctx context.Context, prefix string) ([]console.Tool, erro
 		raw, err := c.transport.Call(ctx, "tools/list", params)
 		if err != nil {
 			return nil, err
+		}
+		catalogBytes += len(raw)
+		if catalogBytes > 16<<20 {
+			return nil, errors.New("MCP tool catalog exceeds byte ceiling")
 		}
 		var result struct {
 			Tools      []toolSpec `json:"tools"`
@@ -111,8 +113,19 @@ func (c *Client) Tools(ctx context.Context, prefix string) ([]console.Tool, erro
 				return nil, errors.New("MCP tool catalog contains invalid or duplicate names")
 			}
 			names[spec.Name] = true
-			tool, err := console.NewTool(console.Definition{Name: prefix + spec.Name, Description: spec.Description, InputSchema: spec.InputSchema}, func(ctx context.Context, args json.RawMessage) (json.RawMessage, error) {
-				return c.transport.Call(ctx, "tools/call", map[string]any{"name": spec.Name, "arguments": args})
+			tool, err := console.NewResultTool(console.Definition{Name: prefix + spec.Name, Description: spec.Description, InputSchema: spec.InputSchema}, func(ctx context.Context, args json.RawMessage) (console.Result, error) {
+				data, err := c.transport.Call(ctx, "tools/call", map[string]any{"name": spec.Name, "arguments": args})
+				if err != nil {
+					return console.Result{}, err
+				}
+				var envelope struct {
+					Content []json.RawMessage `json:"content"`
+					IsError bool              `json:"isError"`
+				}
+				if json.Unmarshal(data, &envelope) != nil || envelope.Content == nil {
+					return console.Result{}, errors.New("invalid MCP tool result")
+				}
+				return console.Result{Output: data, IsError: envelope.IsError}, nil
 			})
 			if err != nil {
 				return nil, err

@@ -5,6 +5,8 @@ go 1.26.5
 require (
 	blockade v0.0.0
 	board v0.0.0
+	console v0.0.0
+	cymonkey-content-plugin-endpoints v0.0.0
 	github.com/gorilla/websocket v1.5.3
 	gopkg.in/yaml.v3 v3.0.1
 	jangolova v0.0.0
@@ -12,6 +14,10 @@ require (
 )
 
 replace blockade => ./lib/blockade
+
+replace console => ./lib/console
+
+replace cymonkey-content-plugin-endpoints => ./pkg/content-endpoints
 
 replace board => ./lib/board
 

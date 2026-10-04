@@ -5,17 +5,20 @@ public struct HelperConfiguration: Codable, Sendable {
     public let appleEventCommands: [AppleEventCommand]
     public let accessibility: AccessibilityPolicy?
     public let viewer: ViewerPolicy?
+    public let clipboard: ClipboardPolicy?
 
     public init(
         allowedBundleIds: [String],
         appleEventCommands: [AppleEventCommand] = [],
         accessibility: AccessibilityPolicy? = nil,
-        viewer: ViewerPolicy? = nil
+        viewer: ViewerPolicy? = nil,
+        clipboard: ClipboardPolicy? = nil
     ) throws {
         self.allowedBundleIds = try Self.validatedBundleIDs(allowedBundleIds)
         self.appleEventCommands = appleEventCommands
         self.accessibility = accessibility
         self.viewer = viewer
+        self.clipboard = clipboard
         try validate()
     }
 
@@ -37,6 +40,7 @@ public struct HelperConfiguration: Codable, Sendable {
         if let viewer {
             try viewer.validate()
         }
+        try clipboard?.validate()
     }
 
     public static func load(from url: URL) throws -> HelperConfiguration {

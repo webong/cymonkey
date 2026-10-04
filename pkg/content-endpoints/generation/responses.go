@@ -44,13 +44,30 @@ func responsesRequest(request blockade.GenerationRequest) (map[string]any, error
 				}
 				parts = append(parts, wire)
 			case "image":
-				parts = append(parts, map[string]any{"type": "input_image", "image_url": "data:" + part.MediaType + ";base64," + base64.StdEncoding.EncodeToString(part.Data)})
+				wire := map[string]any{"type": "input_image"}
+				if part.Reference == nil {
+					wire["image_url"] = "data:" + part.MediaType + ";base64," + base64.StdEncoding.EncodeToString(part.Data)
+				} else if part.Reference.Kind == "url" {
+					wire["image_url"] = part.Reference.URI
+				} else {
+					wire["file_id"] = part.Reference.URI
+				}
+				parts = append(parts, wire)
 			case "file":
 				filename := "input"
 				if extensions, err := mime.ExtensionsByType(part.MediaType); err == nil && len(extensions) > 0 {
 					filename += extensions[0]
 				}
-				parts = append(parts, map[string]any{"type": "input_file", "filename": filename, "file_data": "data:" + part.MediaType + ";base64," + base64.StdEncoding.EncodeToString(part.Data)})
+				wire := map[string]any{"type": "input_file"}
+				if part.Reference == nil {
+					wire["filename"] = filename
+					wire["file_data"] = "data:" + part.MediaType + ";base64," + base64.StdEncoding.EncodeToString(part.Data)
+				} else if part.Reference.Kind == "url" {
+					wire["file_url"] = part.Reference.URI
+				} else {
+					wire["file_id"] = part.Reference.URI
+				}
+				parts = append(parts, wire)
 			default:
 				return nil, unsupported("Responses " + part.Kind + " input")
 			}
@@ -92,9 +109,15 @@ func decodeResponses(data []byte, model string) (blockade.GenerationResponse, er
 		} `json:"incomplete_details"`
 		Output []json.RawMessage `json:"output"`
 		Usage  struct {
-			Input  int64 `json:"input_tokens"`
-			Output int64 `json:"output_tokens"`
-			Total  int64 `json:"total_tokens"`
+			Input        int64 `json:"input_tokens"`
+			Output       int64 `json:"output_tokens"`
+			Total        int64 `json:"total_tokens"`
+			InputDetails struct {
+				Cached int64 `json:"cached_tokens"`
+			} `json:"input_tokens_details"`
+			OutputDetails struct {
+				Reasoning int64 `json:"reasoning_tokens"`
+			} `json:"output_tokens_details"`
 		} `json:"usage"`
 	}
 	if err := json.Unmarshal(data, &wire); err != nil {
@@ -103,13 +126,13 @@ func decodeResponses(data []byte, model string) (blockade.GenerationResponse, er
 	if wire.Status != "completed" && wire.Status != "incomplete" {
 		return blockade.GenerationResponse{}, errors.New("Responses request did not complete")
 	}
-	r := blockade.GenerationResponse{ID: wire.ID, Model: model, Message: blockade.Message{Role: "assistant"}, StopReason: "stop", Usage: blockade.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output, Total: wire.Usage.Total}}
+	r := blockade.GenerationResponse{ID: wire.ID, Model: model, Message: blockade.Message{Role: "assistant"}, StopReason: "stop", Usage: blockade.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output, Total: wire.Usage.Total, CachedInput: wire.Usage.InputDetails.Cached, Reasoning: wire.Usage.OutputDetails.Reasoning}}
 	if wire.Model != "" {
 		r.Model = wire.Model
 	}
 	if wire.Status == "incomplete" {
-		r.StopReason = wire.Incomplete.Reason
-		if r.StopReason == "max_output_tokens" {
+		r.StopReason = "incomplete"
+		if wire.Incomplete.Reason == "max_output_tokens" {
 			r.StopReason = "length"
 		}
 		if r.StopReason == "" {
@@ -140,7 +163,7 @@ func decodeResponses(data []byte, model string) (blockade.GenerationResponse, er
 				case "output_text":
 					r.Message.Parts = append(r.Message.Parts, blockade.MessagePart{Kind: "text", Text: part.Text})
 				case "refusal":
-					r.Message.Parts = append(r.Message.Parts, blockade.MessagePart{Kind: "text", Text: part.Refusal})
+					r.Message.Parts = append(r.Message.Parts, blockade.MessagePart{Kind: "refusal", Text: part.Refusal})
 					r.StopReason = "refusal"
 				default:
 					return r, unsupported("Responses content " + part.Type)
@@ -174,6 +197,9 @@ func (c *Client) streamResponses(ctx context.Context, request blockade.Generatio
 		if err := ctx.Err(); err != nil {
 			return err
 		}
+		if complete {
+			return errors.New("Responses event follows terminal response")
+		}
 		var event struct {
 			Type  string `json:"type"`
 			Index int    `json:"output_index"`
@@ -189,6 +215,10 @@ func (c *Client) streamResponses(ctx context.Context, request blockade.Generatio
 			return err
 		}
 		switch event.Type {
+		case "response.reasoning_summary_text.delta":
+			return emit(blockade.GenerationEvent{Kind: "reasoning.delta", Text: event.Delta})
+		case "response.refusal.delta":
+			return emit(blockade.GenerationEvent{Kind: "refusal.delta", Text: event.Delta})
 		case "response.output_text.delta":
 			return emit(blockade.GenerationEvent{Kind: "text.delta", Text: event.Delta})
 		case "response.output_item.added":
@@ -215,7 +245,7 @@ func (c *Client) streamResponses(ctx context.Context, request blockade.Generatio
 	if !complete {
 		return blockade.GenerationResponse{}, io.ErrUnexpectedEOF
 	}
-	if err := blockade.ValidateGenerationResponse(result); err != nil {
+	if err := blockade.ValidateGenerationResult(result, request); err != nil {
 		return blockade.GenerationResponse{}, err
 	}
 	if err := emitCompleted(result, emit); err != nil {

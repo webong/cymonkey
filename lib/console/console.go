@@ -16,6 +16,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
+
+	"providerplugin/jsonschema"
 )
 
 var (
@@ -45,19 +47,36 @@ type Call struct {
 // Result contains the JSON value returned by a tool. The caller decides how to
 // present it to a person or feed it back to a model.
 type Result struct {
-	ID     string          `json:"id,omitempty"`
-	Name   string          `json:"name"`
-	Output json.RawMessage `json:"output"`
+	ID      string          `json:"id,omitempty"`
+	Name    string          `json:"name"`
+	Output  json.RawMessage `json:"output"`
+	IsError bool            `json:"isError,omitempty"`
 }
 
-// Handler executes one tool call. Console publishes InputSchema but does not
-// evaluate JSON Schema constraints; handlers must validate their inputs.
+// Handler executes one tool call after schema validation. Handlers also enforce
+// semantic constraints, resource authorization and their own output bounds.
 type Handler func(context.Context, json.RawMessage) (json.RawMessage, error)
 
 // Tool binds a public definition to its implementation.
 type Tool struct {
-	definition Definition
-	handler    Handler
+	definition    Definition
+	handler       Handler
+	resultHandler func(context.Context, json.RawMessage) (Result, error)
+	schema        *jsonschema.Schema
+}
+
+// NewResultTool preserves a tool's explicit failure flag as well as JSON output.
+// Call IDs and tool names are supplied by the registry, never by the handler.
+func NewResultTool(definition Definition, handler func(context.Context, json.RawMessage) (Result, error)) (Tool, error) {
+	if handler == nil {
+		return Tool{}, fmt.Errorf("%w: handler is required", ErrInvalidTool)
+	}
+	tool, err := NewTool(definition, func(context.Context, json.RawMessage) (json.RawMessage, error) { return nil, ErrInvalidResult })
+	if err != nil {
+		return tool, err
+	}
+	tool.resultHandler = handler
+	return tool, nil
 }
 
 // NewTool binds a JSON Schema definition to a handler.
@@ -69,7 +88,11 @@ func NewTool(definition Definition, handler Handler) (Tool, error) {
 		return Tool{}, fmt.Errorf("%w: handler is required", ErrInvalidTool)
 	}
 	definition.InputSchema = append(json.RawMessage(nil), definition.InputSchema...)
-	return Tool{definition: definition, handler: handler}, nil
+	schema, err := jsonschema.Compile(definition.InputSchema)
+	if err != nil {
+		return Tool{}, fmt.Errorf("%w: %w", ErrInvalidTool, err)
+	}
+	return Tool{definition: definition, handler: handler, schema: schema}, nil
 }
 
 // NewJSONTool adapts typed JSON input and output to the provider-neutral
@@ -165,14 +188,27 @@ func (r *Registry) Invoke(ctx context.Context, call Call) (Result, error) {
 	if !ok {
 		return Result{}, fmt.Errorf("%w: %q", ErrToolNotFound, call.Name)
 	}
-	output, err := tool.handler(ctx, append(json.RawMessage(nil), call.Arguments...))
+	if err := tool.schema.Validate(call.Arguments); err != nil {
+		return Result{}, fmt.Errorf("%w: %w", ErrInvalidCall, err)
+	}
+	arguments := append(json.RawMessage(nil), call.Arguments...)
+	var output json.RawMessage
+	var isError bool
+	var err error
+	if tool.resultHandler != nil {
+		var result Result
+		result, err = tool.resultHandler(ctx, arguments)
+		output, isError = result.Output, result.IsError
+	} else {
+		output, err = tool.handler(ctx, arguments)
+	}
 	if err != nil {
 		return Result{}, fmt.Errorf("invoke Console tool %q: %w", call.Name, err)
 	}
-	if !json.Valid(output) {
+	if len(output) > 32<<20 || !json.Valid(output) {
 		return Result{}, fmt.Errorf("%w: tool %q did not return valid JSON", ErrInvalidResult, call.Name)
 	}
-	return Result{ID: call.ID, Name: call.Name, Output: append(json.RawMessage(nil), output...)}, nil
+	return Result{ID: call.ID, Name: call.Name, Output: append(json.RawMessage(nil), output...), IsError: isError}, nil
 }
 
 func validateDefinition(definition Definition) error {

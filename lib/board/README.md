@@ -198,3 +198,25 @@ unregistered devices.
 Board is its own Go module (`module board`) and imports neither
 Cymonkey nor Jangolova nor Blockade; a dependency-graph test enforces that. Run
 `go test ./...` from this directory.
+
+## Capture and clipboard SDKs
+
+`board/capture` provides bounded PNG processing and read-only sampling over a
+caller-supplied source: digest/metadata manifests, changed-region detection,
+heartbeat retention, crop, element-box annotation and contact sheets.
+`SampleVideo` accepts explicit offsets and a borrowed decoder. `Bridge` borrows
+a native capture caller; `Around` captures evidence around one caller-selected
+operation. Storage, codec and target ownership stay with the host.
+
+`board/clipboard.NewProvider` adapts a host-supplied clipboard backend to explicit
+Board capabilities/resources. Read returns finite content; describe returns
+metadata. Write/clear require the observed generation. Restoration is another
+explicit write. Atomicity against other processes depends on the backend; macOS
+uses change-count checks and cannot guarantee an atomic cross-process operation.
+Board action JSON remains limited to 64 KiB.
+
+`board/audio.WAV` and `ReadWAV` encode/decode finite PCM16 containers without
+opening a microphone/player, resampling, or selecting an output destination.
+
+See [feature extraction](../../docs/tachikoma-peekaboo-extraction.md) for native
+byte limits and independent clipboard/viewer grants.

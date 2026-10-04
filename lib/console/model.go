@@ -41,7 +41,7 @@ func (m ModelTools) Generate(ctx context.Context, request blockade.GenerationReq
 	if err != nil {
 		return blockade.GenerationResponse{}, err
 	}
-	if err := blockade.ValidateGenerationResponse(response); err != nil {
+	if err := blockade.ValidateGenerationResult(response, request); err != nil {
 		return blockade.GenerationResponse{}, err
 	}
 	return response, nil
@@ -66,7 +66,7 @@ func (m ModelTools) Stream(ctx context.Context, request blockade.GenerationReque
 	if err != nil {
 		return blockade.GenerationResponse{}, err
 	}
-	if err := blockade.ValidateGenerationResponse(response); err != nil {
+	if err := blockade.ValidateGenerationResult(response, request); err != nil {
 		return blockade.GenerationResponse{}, err
 	}
 	return response, nil
@@ -109,6 +109,7 @@ func Continue(messages []blockade.Message, response blockade.GenerationResponse,
 			return nil, fmt.Errorf("%w: tool result does not match proposal %q", ErrInvalidResult, call.ID)
 		}
 		message := blockade.TextMessage("tool", string(result.Output))
+		message.ToolError = result.IsError
 		message.ToolCallID = call.ID
 		message.ToolName = call.Name
 		updated = append(updated, message)
@@ -130,5 +131,5 @@ func Continue(messages []blockade.Message, response blockade.GenerationResponse,
 // The host chooses the public error text and should redact private details.
 func FailureResult(call Call, message string) Result {
 	output, _ := json.Marshal(map[string]string{"error": message})
-	return Result{ID: call.ID, Name: call.Name, Output: output}
+	return Result{ID: call.ID, Name: call.Name, Output: output, IsError: true}
 }

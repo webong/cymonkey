@@ -25,14 +25,17 @@ const (
 	Responses Protocol = "responses-compatible"
 	Anthropic Protocol = "anthropic"
 	Gemini    Protocol = "gemini"
+	Cohere    Protocol = "cohere-embeddings"
+	Voyage    Protocol = "voyage-embeddings"
 )
 
 type Config struct {
-	Protocol         Protocol
-	BaseURL          string // API root, including /v1 or /v1beta
-	HTTPClient       *http.Client
-	APIKey           func(context.Context) (string, error)
-	MaxResponseBytes int64
+	Protocol           Protocol
+	BaseURL            string // API root, including /v1 or /v1beta
+	HTTPClient         *http.Client
+	APIKey             func(context.Context) (string, error)
+	MaxResponseBytes   int64
+	EmbeddingInputType string // required by Cohere; explicit, model-dependent
 }
 type Client struct{ config Config }
 
@@ -42,7 +45,7 @@ func New(config Config) (*Client, error) {
 		return nil, errors.New("model endpoint needs an HTTP(S) API root without credentials, query, or fragment")
 	}
 	switch config.Protocol {
-	case OpenAI, Responses, Anthropic, Gemini:
+	case OpenAI, Responses, Anthropic, Gemini, Cohere, Voyage:
 	default:
 		return nil, errors.New("unsupported model endpoint protocol")
 	}
@@ -83,10 +86,23 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("model endpoint returned HTTP %d (%s)", e.Status, e.Kind)
 }
 
+func (e *Error) Unwrap() error {
+	kind := blockade.ErrorUnavailable
+	switch e.Kind {
+	case "authentication":
+		kind = blockade.ErrorAuthentication
+	case "rate_limit":
+		kind = blockade.ErrorRateLimit
+	case "invalid_request", "not_found":
+		kind = blockade.ErrorInvalidInput
+	}
+	return &blockade.ModelError{Kind: kind, Operation: "http", Retryable: e.Status == 429 || e.Status >= 500, RetryAfter: e.RetryAfter}
+}
+
 func (c *Client) do(ctx context.Context, method, path, contentType string, body io.Reader, stream bool) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, method, c.config.BaseURL+path, body)
 	if err != nil {
-		return nil, err
+		return nil, &blockade.ModelError{Kind: blockade.ClassifyModelError(err), Operation: "http", Cause: err}
 	}
 	if contentType != "" {
 		req.Header.Set("Content-Type", contentType)
@@ -113,7 +129,7 @@ func (c *Client) do(ctx context.Context, method, path, contentType string, body 
 	}
 	resp, err := c.config.HTTPClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, &blockade.ModelError{Kind: blockade.ErrorTransport, Operation: "request", Cause: err}
 	}
 	if resp.StatusCode/100 != 2 {
 		resp.Body.Close()
@@ -168,10 +184,13 @@ func (c *Client) Generate(ctx context.Context, request blockade.GenerationReques
 	}
 	result, err := c.decode(data, request.Model)
 	if err != nil {
-		return blockade.GenerationResponse{}, err
+		if errors.Is(err, blockade.ErrGenerationUnsupported) {
+			return blockade.GenerationResponse{}, err
+		}
+		return blockade.GenerationResponse{}, &blockade.ModelError{Kind: blockade.ErrorInvalidResponse, Operation: "generate", Cause: err}
 	}
-	if err := blockade.ValidateGenerationResponse(result); err != nil {
-		return blockade.GenerationResponse{}, err
+	if err := blockade.ValidateGenerationResult(result, request); err != nil {
+		return blockade.GenerationResponse{}, &blockade.ModelError{Kind: blockade.ErrorInvalidResponse, Operation: "generate", Cause: err}
 	}
 	return result, nil
 }

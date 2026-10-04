@@ -24,3 +24,12 @@ their existing grants and byte/time limits. Audio frames are bounded at 4 MiB
 per send, and incoming events at 16 MiB.
 
 Protocol reference: [Realtime conversations](https://developers.openai.com/api/docs/guides/realtime-conversations).
+
+## Event and interruption metadata
+
+Events retain their native type/raw data while exposing normalized text, audio,
+transcript, proposal and response lifecycle fields. `ClearInputAudio` clears
+uncommitted input; `TruncateAudio` explicitly supplies the item/content index
+and milliseconds actually played. Neither follows an interruption automatically.
+The neutral `RealtimeState.Apply` reducer stores only lifecycle state and owns
+no microphone, player, tool registry or transcript persistence.
