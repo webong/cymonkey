@@ -9,7 +9,7 @@ Build locally or in CI:
 ```sh
 docker build \
   --build-arg GODOT_IMAGE=barichello/godot-ci:4.3 \
-  -f infra/deploy/godot-cymonkey-fixture/Containerfile \
+  -f scripts/deploy/godot-cymonkey/Containerfile \
   -t jangolova/godot-cymonkey-fixture:local .
 ```
 

@@ -257,9 +257,9 @@ pkg/threejs/            explicit-registration Three.js runtime
 pkg/                             distributable Godot, Unity, and Unreal Cymonkey packages
 tests/godot-cymonkey-fixture/    license-free Godot conformance project
 tests/unreal-cymonkey-fixture/   caller-owned Unreal conformance project
-infra/deploy/engine-runtime/     optional interaction artifact
-infra/deploy/godot-cymonkey-fixture/ optional headless Godot target image
-infra/deploy/unreal-cymonkey-fixture/ optional packaged Unreal target image
+scripts/deploy/engine-runtime/     optional interaction artifact
+scripts/deploy/godot-cymonkey/ optional headless Godot target image
+scripts/deploy/unreal-cymonkey/ optional packaged Unreal target image
 tests/docker/                    target-owning portability fixture only
 ```
 

@@ -33,11 +33,11 @@ Build the executable that matches the package name:
 
 ```sh
 go build -o /path/to/openai-compatible/provider \
-  ./providers/content-endpoints/cmd/openai-compatible
+  ./pkg/content-endpoints/cmd/openai-compatible
 go build -o /path/to/anthropic-compatible/provider \
-  ./providers/content-endpoints/cmd/anthropic-compatible
+  ./pkg/content-endpoints/cmd/anthropic-compatible
 go build -o /path/to/google-compatible/provider \
-  ./providers/content-endpoints/cmd/google-compatible
+  ./pkg/content-endpoints/cmd/google-compatible
 ```
 
 Place a `plugin.json` beside each binary. The package `name` must be

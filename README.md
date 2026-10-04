@@ -56,7 +56,7 @@ Build the executables and start Cymonkey:
 
 The example content component expects the `local-ultralytics` plugin and a
 `yolo-sam@1.0.0` model to be installed first. Follow the
-[content configuration guide](infra/deploy/content/README.md) once per host.
+[content configuration guide](scripts/deploy/content/README.md) once per host.
 
 ```bash
 mkdir -p .cache/bin
@@ -65,7 +65,7 @@ go build -o .cache/bin/cymy ./src
 export CYMONKEY_DISPLAY_TOKEN="replace-with-a-random-secret"
 export CYMONKEY_CONTENT_TOKEN="replace-with-another-random-secret"
 PATH="$PWD/.cache/bin:$PATH" cymy run \
-  --config infra/deploy/cymonkey/cymonkey.example.yaml
+  --config scripts/deploy/cymonkey/cymonkey.example.yaml
 ```
 
 The host manifest starts the display and content services.
@@ -73,7 +73,7 @@ After a target has been connected, request a visual observation with:
 
 ```bash
 PATH="$PWD/.cache/bin:$PATH" cymy observe \
-  --config infra/deploy/cymonkey/cymonkey.example.yaml \
+  --config scripts/deploy/cymonkey/cymonkey.example.yaml \
   --instance browser-1 \
   --prompt "find the primary action"
 ```

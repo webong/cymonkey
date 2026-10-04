@@ -243,7 +243,7 @@ func TestStandaloneOnnxProviderUsesExecutableBoundary(t *testing.T) {
 		t.Fatal(err)
 	}
 	executable := filepath.Join(source, "provider")
-	build := exec.Command("go", "build", "-o", executable, "./providers/content-onnx")
+	build := exec.Command("go", "build", "-o", executable, "./pkg/content-onnx")
 	build.Dir = filepath.Dir(filepath.Dir(fixtureSourcePath(t)))
 	if output, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build ONNX provider: %v\n%s", err, output)

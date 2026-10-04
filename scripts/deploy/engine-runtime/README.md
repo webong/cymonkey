@@ -7,7 +7,7 @@ Chromium, a display server, or container/session topology.
 Build it locally:
 
 ```sh
-docker build -f infra/deploy/engine-runtime/Containerfile \
+docker build -f scripts/deploy/engine-runtime/Containerfile \
   -t cymonkey/display-runtime:latest .
 ```
 

@@ -4,7 +4,7 @@ This executable implements `cymonkey.content@v1alpha1` with WebLLM in a
 plugin owned Chromium process and dedicated Web Worker.
 
 ```sh
-go build -o /path/to/package/provider ./providers/content-webllm
+go build -o /path/to/package/provider ./pkg/content-webllm
 ```
 
 Create `plugin.json` beside the binary with package name `webllm`, the

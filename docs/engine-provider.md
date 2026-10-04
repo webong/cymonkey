@@ -184,7 +184,7 @@ serving the presentation URL, and supplying the CDP endpoint:
   "instanceId": "presentation-one",
   "engine": {
     "adapter": "web-presentation",
-    "source": "http://127.0.0.1:8080/examples/web-presentation/",
+    "source": "http://127.0.0.1:8080/etc/web-presentation/",
     "options": {
       "policy": {
         "allowedSourceOrigins": ["http://127.0.0.1:8080"],

@@ -1,7 +1,7 @@
 # Content configuration examples
 
 This directory contains Cymonkey content configurations. Plugin implementations
-live under `providers/` and are installed before
+live under `pkg/` and are installed before
 these files are used.
 
 - [`content.example.yaml`](content.example.yaml) selects the source
@@ -15,7 +15,7 @@ these files are used.
 The old direct Python HTTP service and local `engines` configuration were
 removed. The internal content library owns the Python runtime and worker pool. The
 Ultralytics package supplies source and vendored dependencies from
-[`providers/content-ultralytics`](../../../providers/content-ultralytics/).
+[`pkg/content-ultralytics`](../../../pkg/content-ultralytics/).
 
 Install the matching plugin package, install any local model, then validate
 and serve:
@@ -24,11 +24,11 @@ and serve:
 cymy content runtime install --manifest /path/to/python/runtime.json
 cymy plugins install --manifest /path/to/plugin/plugin.json
 cymy content model install --manifest /path/to/model/model.json \
-  --config infra/deploy/content/content.example.yaml
+  --config scripts/deploy/content/content.example.yaml
 cymy content validate \
-  --config infra/deploy/content/content.example.yaml --check-files
+  --config scripts/deploy/content/content.example.yaml --check-files
 cymy content serve \
-  --config infra/deploy/content/content.example.yaml \
+  --config scripts/deploy/content/content.example.yaml \
   --inference local-yolo-sam --bind 127.0.0.1:8091
 ```
 

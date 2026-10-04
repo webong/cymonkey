@@ -35,18 +35,23 @@ test('npm script package paths resolve without requiring installed dependencies'
 });
 
 test('engine container package sources and Unity local dependencies exist', async () => {
-  const directories = await readdir(resolve(root, 'infra/deploy'), { withFileTypes: true });
   let checked = 0;
-  for (const directory of directories.filter((entry) => entry.isDirectory())) {
-    const base = `infra/deploy/${directory.name}`;
-    for (const name of (await readdir(resolve(root, base))).filter((file) => file.endsWith('Containerfile'))) {
-      const container = await read(`${base}/${name}`);
-      for (const [, path] of container.matchAll(/^COPY\s+(pkg\/\S+)\s/gm)) {
-        await exists(path);
-        checked++;
+  async function checkContainers(base) {
+    const entries = await readdir(resolve(root, base), { withFileTypes: true });
+    for (const entry of entries) {
+      const path = `${base}/${entry.name}`;
+      if (entry.isDirectory()) {
+        await checkContainers(path);
+      } else if (entry.name.endsWith('Containerfile')) {
+        const container = await read(path);
+        for (const [, source] of container.matchAll(/^COPY\s+(pkg\/\S+)\s/gm)) {
+          await exists(source);
+          checked++;
+        }
       }
     }
   }
+  await checkContainers('scripts/deploy');
   assert.ok(checked > 0, 'expected package COPY sources');
   const manifest = 'tests/unity-cymonkey-fixture/Packages/manifest.json';
   for (const dependency of Object.values(JSON.parse(await read(manifest)).dependencies)) {

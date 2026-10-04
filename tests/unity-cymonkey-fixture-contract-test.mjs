@@ -6,8 +6,8 @@ const manifest = JSON.parse(await readFile(new URL("Packages/manifest.json", fix
 const projectVersion = await readFile(new URL("ProjectSettings/ProjectVersion.txt", fixtureRoot), "utf8");
 const assembly = JSON.parse(await readFile(new URL("Assets/Editor/Jangolova.CymonkeyFixture.Editor.asmdef", fixtureRoot)));
 const fixture = await readFile(new URL("Assets/Editor/HeadlessCymonkeyFixture.cs", fixtureRoot), "utf8");
-const container = await readFile(new URL("../infra/deploy/unity-cymonkey-fixture/Containerfile", import.meta.url), "utf8");
-const runner = await readFile(new URL("../infra/deploy/unity-cymonkey-fixture/run-fixture.sh", import.meta.url), "utf8");
+const container = await readFile(new URL("../scripts/deploy/unity-cymonkey/Containerfile", import.meta.url), "utf8");
+const runner = await readFile(new URL("../scripts/deploy/unity-cymonkey/run-fixture.sh", import.meta.url), "utf8");
 
 assert.equal(manifest.dependencies["com.cymonkey.jangolova"], "file:../../../pkg/unity");
 assert.match(projectVersion, /m_EditorVersion: 2022\.3\./);

@@ -11,7 +11,7 @@ mapping into Cymonkey observations.
 ## Build and package
 
 ```sh
-go build -o /path/to/package/provider ./providers/content-onnx
+go build -o /path/to/package/provider ./pkg/content-onnx
 ```
 
 Create `/path/to/package/plugin.json`:

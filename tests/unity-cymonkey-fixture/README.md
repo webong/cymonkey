@@ -17,4 +17,4 @@ npm run test:unity-cymonkey-fixture
 
 Run the real Editor fixture through the separate container after supplying an
 approved `UNITY_EDITOR_IMAGE` and activating its Unity license outside the
-repository. See `infra/deploy/unity-cymonkey-fixture/README.md`.
+repository. See `scripts/deploy/unity-cymonkey/README.md`.

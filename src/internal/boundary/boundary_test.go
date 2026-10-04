@@ -72,7 +72,7 @@ func TestRepositoryOwnsEngineCodeOnly(t *testing.T) {
 			!allowedDeploymentFixture(relative) {
 			t.Errorf("deployment topology must live under tests or Xallet: %s", relative)
 		}
-		if relative == "infra/deploy/engine-runtime/Containerfile" {
+		if relative == "scripts/deploy/engine-runtime/Containerfile" {
 			contents, readErr := os.ReadFile(path)
 			if readErr != nil {
 				return readErr
@@ -92,14 +92,14 @@ func TestRepositoryOwnsEngineCodeOnly(t *testing.T) {
 
 func allowedDeploymentFixture(relative string) bool {
 	switch relative {
-	case "infra/deploy/engine-runtime/Containerfile",
-		"infra/deploy/blender-cymonkey-fixture/Containerfile",
-		"infra/deploy/godot-cymonkey-fixture/Containerfile",
-		"infra/deploy/godot-cymonkey-gpu/Containerfile",
-		"infra/deploy/unity-cymonkey-fixture/Containerfile",
-		"infra/deploy/unity-cymonkey-gpu/Containerfile",
-		"infra/deploy/unreal-cymonkey-fixture/Containerfile",
-		"infra/deploy/unreal-cymonkey-gpu/Containerfile":
+	case "scripts/deploy/engine-runtime/Containerfile",
+		"scripts/deploy/blender-cymonkey/Containerfile",
+		"scripts/deploy/godot-cymonkey/Containerfile",
+		"scripts/deploy/godot-cymonkey/godot-cymonkey-gpu/Containerfile",
+		"scripts/deploy/unity-cymonkey/Containerfile",
+		"scripts/deploy/unity-cymonkey/unity-cymonkey-gpu/Containerfile",
+		"scripts/deploy/unreal-cymonkey/Containerfile",
+		"scripts/deploy/unreal-cymonkey/unreal-cymonkey-gpu/Containerfile":
 		return true
 	default:
 		return false

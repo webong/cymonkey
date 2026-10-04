@@ -1,6 +1,6 @@
 # Cymonkey WebLLM content plugin
 
-`providers/content-webllm` builds a Cymonkey content plugin for browser
+`pkg/content-webllm` builds a Cymonkey content plugin for browser
 local, WebGPU accelerated vision language inference. It speaks
 `cymonkey.content@v1alpha1` and returns the same normalized image observation
 contract as other content plugins.
@@ -27,7 +27,7 @@ Build the plugin and create `plugin.json` beside it using the executable's
 real SHA-256:
 
 ```sh
-go build -o /tmp/webllm-provider ./providers/content-webllm
+go build -o /tmp/webllm-provider ./pkg/content-webllm
 cymy plugins install --manifest /path/to/webllm/plugin.json
 ```
 
@@ -74,7 +74,7 @@ access to the configured module and model artifacts unless both are cached.
 
 ```sh
 cymy content serve \
-  --config infra/deploy/content/content.webllm.example.yaml \
+  --config scripts/deploy/content/content.webllm.example.yaml \
   --inference browser-vlm \
   --bind 127.0.0.1:8091
 ```
@@ -99,7 +99,7 @@ API version, request ID, confidence values, regions, and masks.
 Run the opt in browser tests from the provider module:
 
 ```sh
-cd providers/content-webllm
+cd pkg/content-webllm
 CYMONKEY_CONTENT_WEBLLM_BOOT_PROBE=1 go test ./runtime -run TestWebLLMRuntimeBootProbe -v
 CYMONKEY_CONTENT_WEBLLM_SMOKE=1 go test ./runtime -run TestWebLLMFixtureSmoke -v
 ```

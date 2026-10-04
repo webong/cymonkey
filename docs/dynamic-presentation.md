@@ -21,7 +21,7 @@ surface. It attaches to a caller-owned CDP browser, optionally navigates to
 the cursor-based event stream. The browser still
 belongs to Xallet or the native host; the adapter only connects to it.
 
-The minimal host in `examples/web-presentation` is a reference renderer. It can
+The minimal host in `etc/web-presentation` is a reference renderer. It can
 be served by any static server and then attached through the provider API.
 
 ## Unity and Unreal

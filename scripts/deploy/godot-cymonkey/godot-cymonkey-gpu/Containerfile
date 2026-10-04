@@ -4,7 +4,7 @@ FROM ${GODOT_IMAGE}
 WORKDIR /workspace
 COPY pkg/godot ./pkg/godot
 COPY tests/godot-cymonkey-fixture ./tests/godot-cymonkey-fixture
-COPY infra/deploy/godot-cymonkey-gpu/run-fixture.sh /usr/local/bin/run-godot-cymonkey-gpu
+COPY scripts/deploy/godot-cymonkey/godot-cymonkey-gpu/run-fixture.sh /usr/local/bin/run-godot-cymonkey-gpu
 
 RUN mkdir -p tests/godot-cymonkey-fixture/addons \
     && cp -R pkg/godot/addons/jangolova_cymonkey tests/godot-cymonkey-fixture/addons/jangolova_cymonkey \

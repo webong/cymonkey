@@ -44,7 +44,7 @@ ARG UE_RUNTIME_USER=root
 USER root
 WORKDIR /opt/unreal-cymonkey-fixture
 COPY --from=builder /out/UnrealPacmanFixture ./
-COPY infra/deploy/unreal-cymonkey-gpu/run-fixture.sh /usr/local/bin/run-unreal-cymonkey-gpu
+COPY scripts/deploy/unreal-cymonkey/unreal-cymonkey-gpu/run-fixture.sh /usr/local/bin/run-unreal-cymonkey-gpu
 
 RUN chmod +x /usr/local/bin/run-unreal-cymonkey-gpu \
     && mkdir -p /workspace/artifacts \

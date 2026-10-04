@@ -17,6 +17,6 @@ platform. The project is intentionally source-only in this repository; cooked
 assets and packaged binaries belong in the separate build output.
 
 The optional container definition at
-`infra/deploy/unreal-cymonkey-fixture/Containerfile` uses operator-supplied Unreal build
+`scripts/deploy/unreal-cymonkey/Containerfile` uses operator-supplied Unreal build
 and runtime images. It never assumes a public Unreal image or puts the Unreal
 Editor in the Jangolova runtime image.

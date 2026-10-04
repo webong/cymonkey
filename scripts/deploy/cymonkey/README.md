@@ -6,7 +6,7 @@ Its public CLI is `cymy`.
 Validate and run a host manifest from the repository root:
 
 The example content component uses the configuration in
-`infra/deploy/content`. Install its plugin and local model first by following
+`scripts/deploy/content`. Install its plugin and local model first by following
 the [content deployment guide](../content/README.md).
 
 ```sh
@@ -14,12 +14,12 @@ mkdir -p .cache/bin
 go build -o .cache/bin/cymy ./src
 
 PATH="$PWD/.cache/bin:$PATH" \
-  cymy validate --config infra/deploy/cymonkey/cymonkey.example.yaml
+  cymy validate --config scripts/deploy/cymonkey/cymonkey.example.yaml
 
 CYMONKEY_DISPLAY_TOKEN="a-random-session-secret" \
 CYMONKEY_CONTENT_TOKEN="another-random-session-secret" \
 PATH="$PWD/.cache/bin:$PATH" \
-  cymy run --config infra/deploy/cymonkey/cymonkey.example.yaml
+  cymy run --config scripts/deploy/cymonkey/cymonkey.example.yaml
 ```
 
 The host starts components in manifest order, forwards their stdout and
@@ -32,7 +32,7 @@ The service interfaces remain independently usable through Cymonkey:
 
 ```sh
 cymy display serve-tools
-cymy content serve --config infra/deploy/content/content.example.yaml
+cymy content serve --config scripts/deploy/content/content.example.yaml
 ```
 
 To coordinate an observation, use the same token and the interaction instance
@@ -41,7 +41,7 @@ identifier created through the display service:
 ```sh
 CYMONKEY_DISPLAY_TOKEN="a-random-session-secret" \
 PATH="$PWD/.cache/bin:$PATH" \
-  cymy observe --config infra/deploy/cymonkey/cymonkey.example.yaml \
+  cymy observe --config scripts/deploy/cymonkey/cymonkey.example.yaml \
   --instance browser-1 --prompt "find the primary action"
 ```
 

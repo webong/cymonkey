@@ -19,13 +19,13 @@ Display and content services can be deployed and upgraded independently:
 
 ```sh
 cymy display serve-tools --bind 127.0.0.1:7393
-cymy content serve --config infra/deploy/content/content.example.yaml \
+cymy content serve --config scripts/deploy/content/content.example.yaml \
   --bind 127.0.0.1:8091
 ```
 
 The content example expects its separately packaged plugin and referenced
 local model to be installed first. See
-[`infra/deploy/content`](../infra/deploy/content/README.md).
+[`scripts/deploy/content`](../scripts/deploy/content/README.md).
 
 For a coordinated observation, Cymonkey requests the ordinary,
 policy-authorized `window.screenshot` display action, then supplies those
@@ -38,8 +38,8 @@ The `cymy` executable reads `cymonkey.config/v1alpha1` and supervises the
 commands listed in `components`:
 
 ```sh
-cymy validate --config infra/deploy/cymonkey/cymonkey.example.yaml
-cymy run --config infra/deploy/cymonkey/cymonkey.example.yaml
+cymy validate --config scripts/deploy/cymonkey/cymonkey.example.yaml
+cymy run --config scripts/deploy/cymonkey/cymonkey.example.yaml
 ```
 
 The host starts components in manifest order, forwards their standard output
@@ -74,7 +74,7 @@ The first coordinator surface is a CLI command:
 ```sh
 export CYMONKEY_DISPLAY_TOKEN="a-random-session-secret"
 export CYMONKEY_CONTENT_TOKEN="another-random-session-secret"
-cymy observe --config infra/deploy/cymonkey/cymonkey.example.yaml \
+cymy observe --config scripts/deploy/cymonkey/cymonkey.example.yaml \
   --instance browser-1 --prompt "find the primary action"
 ```
 
@@ -82,4 +82,4 @@ The manifest passes credentials to the two Cymonkey services and keeps the
 secret values out of the manifest.
 
 See the runnable example in
-[`infra/deploy/cymonkey`](../infra/deploy/cymonkey/README.md).
+[`scripts/deploy/cymonkey`](../scripts/deploy/cymonkey/README.md).

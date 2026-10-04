@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import process from "node:process";
 
 const port = Number.parseInt(process.env.PRESENTATION_TARGET_PORT || "8081", 10);
-const root = new URL("../examples/web-presentation/", import.meta.url);
+const root = new URL("../etc/web-presentation/", import.meta.url);
 const assets = new Map([
   ["/", { file: new URL("index.html", root), type: "text/html; charset=utf-8" }],
   ["/index.html", { file: new URL("index.html", root), type: "text/html; charset=utf-8" }],

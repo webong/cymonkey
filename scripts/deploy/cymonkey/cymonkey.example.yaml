@@ -19,7 +19,7 @@ components:
       - content
       - serve
       - --config
-      - infra/deploy/content/content.example.yaml
+      - scripts/deploy/content/content.example.yaml
       - --bind
       - 127.0.0.1:8091
       - --token-env

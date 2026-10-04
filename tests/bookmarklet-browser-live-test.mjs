@@ -26,7 +26,7 @@ test('bookmarklet CLI exports executable, reversible links in a real browser', {
     res.end(html);
   });
   try {
-    const original = await readFile('examples/bookmarklets/highlight-links.js', 'utf8');
+    const original = await readFile('etc/bookmarklets/highlight-links.js', 'utf8');
     const source = original + "\nwindow.bookmarkletText = '你好 + café %20 # &';\nreturn '<h1>must not replace the page</h1>'; // trailing comment";
     await writeFile(sourcePath, source);
     const exported = execFileSync(cymy, ['bookmarklet', 'export', '--source', sourcePath], {encoding: 'utf8'}).trim();

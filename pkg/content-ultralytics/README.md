@@ -25,13 +25,13 @@ match its platform and Python version:
 
 ```sh
 /path/to/python3 -m pip install \
-  --target providers/content-ultralytics/python/vendor \
-  -r providers/content-ultralytics/python/requirements.txt
-python3 providers/content-ultralytics/package.py \
+  --target pkg/content-ultralytics/python/vendor \
+  -r pkg/content-ultralytics/python/requirements.txt
+python3 pkg/content-ultralytics/package.py \
   --version 1.0.0 --platform darwin-arm64
 cymy content runtime install --manifest /path/to/python/runtime.json
 cymy plugins install \
-  --manifest providers/content-ultralytics/plugin.json
+  --manifest pkg/content-ultralytics/plugin.json
 ```
 
 `package.py` includes `content.json`, the plugin source, requirements, and

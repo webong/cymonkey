@@ -9,7 +9,7 @@ attaches to a browser that somebody else already started through a CDP
 endpoint. The adapter launches only a short-lived Node/Puppeteer interaction
 worker; it does not launch, stop, provision, or display a browser.
 
-The reference page is [examples/web-presentation](../examples/web-presentation).
+The reference page is [etc/web-presentation](../etc/web-presentation).
 It exposes `window.cymonkey.display` and can render either structured documents or
 authored HTML/CSS/JavaScript.
 
@@ -108,7 +108,7 @@ schemas.
 
 ### 3. Connect Three.js as a first-class presentation host
 
-`examples/threejs-scene` already exposes scene actions and pointer events, but
+`etc/threejs-scene` already exposes scene actions and pointer events, but
 it is not converted to the new `presentation.*` document contract. Decide
 whether Three.js remains an engine-specific bridge or also implements the
 common presentation artifact lifecycle. Add an adapter/fixture if common
@@ -147,7 +147,7 @@ remain `jangolova/engine-runtime` until a release process exists.
 
 - Adapter: `src/adapters/webpresentation/adapter.go`
 - Worker: `scripts/presentation-worker.mjs`
-- Reference host: `examples/web-presentation/main.js`
+- Reference host: `etc/web-presentation/main.js`
 - Provider API docs: `docs/engine-provider.md`
 - Xallet contract: `docs/presentation-provider.md`
 - Product model: `docs/interface-model.md`

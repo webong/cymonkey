@@ -32,7 +32,7 @@ FROM ${UE_RUNTIME_IMAGE} AS runtime
 
 WORKDIR /opt/unreal-cymonkey-fixture
 COPY --from=builder /out/UnrealPacmanFixture ./
-COPY infra/deploy/unreal-cymonkey-fixture/run-fixture.sh /usr/local/bin/run-unreal-cymonkey-fixture
+COPY scripts/deploy/unreal-cymonkey/run-fixture.sh /usr/local/bin/run-unreal-cymonkey-fixture
 RUN chmod +x /usr/local/bin/run-unreal-cymonkey-fixture
 
 ENV CYMONKEY_TOKEN=

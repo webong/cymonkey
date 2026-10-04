@@ -5,9 +5,9 @@ import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 
 export const engineContainers = [
-  'godot-cymonkey-fixture', 'godot-cymonkey-gpu',
-  'unity-cymonkey-fixture', 'unity-cymonkey-gpu',
-  'unreal-cymonkey-fixture', 'unreal-cymonkey-gpu',
+  'godot-cymonkey', 'godot-cymonkey/godot-cymonkey-gpu',
+  'unity-cymonkey', 'unity-cymonkey/unity-cymonkey-gpu',
+  'unreal-cymonkey', 'unreal-cymonkey/unreal-cymonkey-gpu',
 ];
 const root = fileURLToPath(new URL('../', import.meta.url));
 
@@ -33,7 +33,7 @@ export function localCopySources(container) {
 export async function engineCopyInputs() {
   const inputs = new Set();
   for (const engine of engineContainers) {
-    const container = await readFile(resolve(root, `infra/deploy/${engine}/Containerfile`), 'utf8');
+    const container = await readFile(resolve(root, `scripts/deploy/${engine}/Containerfile`), 'utf8');
     for (const source of localCopySources(container)) {
       await access(resolve(root, source));
       inputs.add(source);

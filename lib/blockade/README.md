@@ -51,7 +51,7 @@ controls realtime input, turn completion, response creation, interruption, and
 tool results. Blockade never captures devices, plays audio, or executes tools.
 
 Implement these interfaces in a host or an optional provider module. For one
-such implementation see [`providers/content-endpoints/generation`](../../providers/content-endpoints/generation/README.md).
+such implementation see [`pkg/content-endpoints/generation`](../../pkg/content-endpoints/generation/README.md).
 These are native embedding APIs; the existing content HTTP/plugin contracts
 continue to expose observation and interpretation. The generation/speech SDK
 does not add corresponding CLI or process-plugin methods.

@@ -81,7 +81,7 @@ ssh -L 8787:127.0.0.1:8787 codex@SERVER_IP
 ## Engine coverage
 
 - **Godot:** license-free reference runtime; use the repository's
-  `infra/deploy/godot-cymonkey-fixture` image and `--headless`.
+  `scripts/deploy/godot-cymonkey` image and `--headless`.
 - **Unity:** use an operator-supplied, licensed Unity Linux Editor image and
   run `-batchmode -nographics`.
 - **Unreal:** use operator-supplied, licensed Linux Engine binaries/image and
@@ -94,8 +94,8 @@ when no pixels are rendered.
 
 Rendered screenshots, shaders, lighting, and pixel comparisons require a
 separate GPU-backed runner using the same Cymonkey conformance tests. The
-render-capable image definitions are under `infra/deploy/godot-cymonkey-gpu`,
-`infra/deploy/unity-cymonkey-gpu`, and `infra/deploy/unreal-cymonkey-gpu`; see their shared
-[`infra/deploy/cymonkey-gpu/README.md`](../infra/deploy/cymonkey-gpu/README.md). These images
+render-capable image definitions are under `scripts/deploy/godot-cymonkey/godot-cymonkey-gpu`,
+`scripts/deploy/unity-cymonkey/unity-cymonkey-gpu`, and `scripts/deploy/unreal-cymonkey/unreal-cymonkey-gpu`; see their shared
+[`scripts/deploy/cymonkey/cymonkey-gpu/README.md`](../scripts/deploy/cymonkey/cymonkey-gpu/README.md). These images
 expect an NVIDIA-enabled runtime such as a RunPod GPU Pod. Xvfb is only a
 fallback display server and does not prove hardware acceleration.

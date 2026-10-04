@@ -13,7 +13,7 @@ docker build \
   --build-arg UE_BUILD_IMAGE=registry.example/unreal-build:5.3 \
   --build-arg UE_RUNTIME_IMAGE=registry.example/unreal-runtime:5.3 \
   --build-arg UE_ROOT=/opt/UnrealEngine \
-  -f infra/deploy/unreal-cymonkey-fixture/Containerfile \
+  -f scripts/deploy/unreal-cymonkey/Containerfile \
   -t jangolova/unreal-cymonkey-fixture:local .
 ```
 

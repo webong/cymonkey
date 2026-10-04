@@ -7,7 +7,7 @@ is required. The image accepts an operator-selected Blender base image:
 ```sh
 docker build \
   --build-arg BLENDER_IMAGE=your-registry/blender:4.x \
-  -f infra/deploy/blender-cymonkey-fixture/Containerfile \
+  -f scripts/deploy/blender-cymonkey/Containerfile \
   -t cymonkey/blender-fixture:local .
 ```
 

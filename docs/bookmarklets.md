@@ -13,7 +13,7 @@ link-highlighter:
 ```sh
 go build -o ./bin/cymy ./src
 ./bin/cymy bookmarklet export \
-  --source examples/bookmarklets/highlight-links.js \
+  --source etc/bookmarklets/highlight-links.js \
   --format html --name 'Highlight links' > /tmp/highlight-links.html
 ```
 
@@ -26,7 +26,7 @@ For manual bookmark creation, export a URL and paste the complete `javascript:`
 value into the bookmark's URL/location field:
 
 ```sh
-./bin/cymy bookmarklet export --source examples/bookmarklets/highlight-links.js
+./bin/cymy bookmarklet export --source etc/bookmarklets/highlight-links.js
 ```
 
 The CLI does not edit browser profiles or install bookmarks automatically.

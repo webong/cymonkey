@@ -93,10 +93,10 @@ All three host commands accept `--config PATH`. You can set
 `CYMONKEY_CONFIG` instead. A config path is required either way.
 
 ```sh
-cymy validate --config infra/deploy/cymonkey/cymonkey.example.yaml
+cymy validate --config scripts/deploy/cymonkey/cymonkey.example.yaml
 
 export CYMONKEY_DISPLAY_TOKEN='a-random-session-secret'
-cymy run --config infra/deploy/cymonkey/cymonkey.example.yaml
+cymy run --config scripts/deploy/cymonkey/cymonkey.example.yaml
 ```
 
 `validate` reports the number of configured components. `run` starts the
@@ -109,7 +109,7 @@ run this from another terminal:
 
 ```sh
 export CYMONKEY_DISPLAY_TOKEN='a-random-session-secret'
-cymy observe --config infra/deploy/cymonkey/cymonkey.example.yaml \
+cymy observe --config scripts/deploy/cymonkey/cymonkey.example.yaml \
   --instance browser-1 --prompt 'find the primary action'
 ```
 
@@ -365,8 +365,8 @@ userscript manager. See [userscripts](userscripts.md) and
 ## Content interpretation
 
 ```sh
-cymy content validate --config infra/deploy/content/content.example.yaml
-cymy content validate --config infra/deploy/content/content.example.yaml --check-files
+cymy content validate --config scripts/deploy/content/content.example.yaml
+cymy content validate --config scripts/deploy/content/content.example.yaml --check-files
 ```
 
 `validate` checks the Cymonkey content YAML. `--check-files` additionally verifies the

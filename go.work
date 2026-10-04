@@ -7,7 +7,7 @@ use (
 	./lib/console
 	./lib/jangolova
 	./lib/plugin
-	./providers/content-onnx
-	./providers/content-endpoints
-	./providers/content-webllm
+	./pkg/content-onnx
+	./pkg/content-endpoints
+	./pkg/content-webllm
 )

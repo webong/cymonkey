@@ -17,7 +17,7 @@ running.
 
 The target provider starts a Chromium-compatible browser and supplies a CDP
 endpoint. The provider may host the reference page in
-`examples/web-presentation` or provide another page implementing the same
+`etc/web-presentation` or provide another page implementing the same
 `window.cymonkey.display` bridge:
 
 ```json

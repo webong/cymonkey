@@ -6,8 +6,8 @@ contract is authoritative:
 - `src/contracts/content.go`
 - `docs/cymonkey-plugins.md`
 - `docs/content.md`
-- `providers/content-ultralytics/content.json`
-- `providers/content-ultralytics/python/provider.py`
+- `pkg/content-ultralytics/content.json`
+- `pkg/content-ultralytics/python/provider.py`
 
 The last provider path is an implementation example; its directory name and
 internal imports are not part of the public contract.

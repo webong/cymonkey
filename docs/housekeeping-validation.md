@@ -38,7 +38,7 @@ were not reviewed or modified by this pass.
   was used for these narrow corrections; behavioral instructions were preserved.
 
 The follow-up also corrected all five pre-existing `COPY deploy/...` runner
-paths to `COPY infra/deploy/...` and added local-input regression coverage.
+paths to `COPY scripts/deploy/...` and added local-input regression coverage.
 
 ## Verification
 
