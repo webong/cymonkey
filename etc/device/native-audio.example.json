@@ -1,0 +1,25 @@
+{
+  "devices": [
+    {
+      "id": "native-sound",
+      "nativeAudio": {
+        "helper": "/absolute/path/to/cymonkey-device-audio",
+        "systemSource": "REPLACE_WITH_APPROVED_SOURCE_ID",
+        "microphoneSource": "default",
+        "playbackSource": "default",
+        "systemCapture": true,
+        "microphone": true,
+        "playback": true
+      }
+    },
+    {
+      "id": "audio-peer",
+      "webrtc": {
+        "ttlSeconds": 300,
+        "audio": { "providerId": "native-sound", "deviceId": "audio" },
+        "microphone": { "providerId": "native-sound", "deviceId": "audio" },
+        "playback": { "providerId": "native-sound", "deviceId": "audio" }
+      }
+    }
+  ]
+}

@@ -120,19 +120,27 @@ func (a Actions) Input(ctx context.Context, input Input) error {
 		if input.Kind != "key" && input.Kind != "text" {
 			return fmt.Errorf("native macOS input kind %q is unsupported", input.Kind)
 		}
-		value := input.Key
-		if input.Kind == "text" {
-			value = input.Text
+		command := "keystroke " + appleScriptString(input.Text)
+		if input.Kind == "key" {
+			var err error
+			command, err = keyCommands(input.Key, "darwin")
+			if err != nil {
+				return err
+			}
 		}
-		_, err := a.runner.Run(ctx, "osascript", "-e", "tell application \"System Events\" to keystroke "+appleScriptString(value))
+		_, err := a.runner.Run(ctx, "osascript", "-e", "tell application \"System Events\" to "+command)
 		return err
 	case "windows":
 		if input.Kind != "key" && input.Kind != "text" {
 			return fmt.Errorf("native Windows input kind %q is unsupported", input.Kind)
 		}
-		value := input.Key
-		if input.Kind == "text" {
-			value = input.Text
+		value := windowsLiteral(input.Text)
+		if input.Kind == "key" {
+			var err error
+			value, err = keyCommands(input.Key, "windows")
+			if err != nil {
+				return err
+			}
 		}
 		_, err := a.runner.Run(ctx, "powershell", "-NoProfile", "-NonInteractive", "-Command", "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait("+powershellString(value)+")")
 		return err

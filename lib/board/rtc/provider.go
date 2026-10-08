@@ -383,19 +383,10 @@ func (p *peer) receive(track *pion.TrackRemote) {
 	defer writer.Close()
 	stop := context.AfterFunc(p.ctx, func() { _ = writer.Close() })
 	defer stop()
-	for {
-		packet, _, err := track.ReadRTP()
-		if err != nil {
-			return
-		}
-		if len(packet.Payload) > 4096 {
-			p.emit("media.denied")
-			return
-		}
-		if _, err := writer.Write(packet.Payload); err != nil {
-			p.emit("media.failed")
-			return
-		}
+	// Closing also unblocks the RTP reader if native playback fails.
+	defer p.close()
+	if err := playPCMU(p.ctx, track, writer); err != nil && p.ctx.Err() == nil {
+		p.emit("media.failed")
 	}
 }
 func (p *peer) close() error {

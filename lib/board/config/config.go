@@ -19,14 +19,25 @@ type Config struct {
 	Devices []Device `json:"devices"`
 }
 type Device struct {
-	ID       string    `json:"id"`
-	Name     string    `json:"name,omitempty"`
-	Desktop  *Desktop  `json:"desktop,omitempty"`
-	Audio    *Audio    `json:"audio,omitempty"`
-	Storage  *Storage  `json:"storage,omitempty"`
-	Endpoint *Endpoint `json:"endpoint,omitempty"`
-	WebRTC   *WebRTC   `json:"webrtc,omitempty"`
+	NativeAudio *NativeAudio `json:"nativeAudio,omitempty"`
+	ID          string       `json:"id"`
+	Name        string       `json:"name,omitempty"`
+	Desktop     *Desktop     `json:"desktop,omitempty"`
+	Audio       *Audio       `json:"audio,omitempty"`
+	Storage     *Storage     `json:"storage,omitempty"`
+	Endpoint    *Endpoint    `json:"endpoint,omitempty"`
+	WebRTC      *WebRTC      `json:"webrtc,omitempty"`
 }
+type NativeAudio struct {
+	Helper           string `json:"helper"`
+	SystemSource     string `json:"systemSource,omitempty"`
+	MicrophoneSource string `json:"microphoneSource,omitempty"`
+	PlaybackSource   string `json:"playbackSource,omitempty"`
+	SystemCapture    bool   `json:"systemCapture,omitempty"`
+	Microphone       bool   `json:"microphone,omitempty"`
+	Playback         bool   `json:"playback,omitempty"`
+}
+
 type Desktop struct {
 	Scope              string            `json:"scope"`
 	Environment        map[string]string `json:"environment,omitempty"`
@@ -101,7 +112,7 @@ func (c Config) Providers() ([]board.Provider, error) {
 		}
 		seen[d.ID] = true
 		n := 0
-		for _, present := range []bool{d.Desktop != nil, d.Audio != nil, d.Storage != nil, d.Endpoint != nil, d.WebRTC != nil} {
+		for _, present := range []bool{d.Desktop != nil, d.Audio != nil, d.NativeAudio != nil, d.Storage != nil, d.Endpoint != nil, d.WebRTC != nil} {
 			if present {
 				n++
 			}
@@ -115,6 +126,9 @@ func (c Config) Providers() ([]board.Provider, error) {
 		case d.Desktop != nil:
 			o := d.Desktop
 			p, err = devices.Desktop(devices.DesktopOptions{ID: d.ID, Name: d.Name, Scope: o.Scope, Environment: o.Environment, Capture: o.Capture, Input: o.Input, Video: o.Video, Recording: o.Recording, Permissions: o.Permissions, RecordingDirectory: o.RecordingDirectory, MaxRecordingDuration: time.Duration(o.RecordingSeconds) * time.Second})
+		case d.NativeAudio != nil:
+			o := d.NativeAudio
+			p, err = devices.NativeAudio(devices.NativeAudioOptions{ID: d.ID, Name: d.Name, Helper: o.Helper, SystemSource: o.SystemSource, MicrophoneSource: o.MicrophoneSource, PlaybackSource: o.PlaybackSource, SystemCapture: o.SystemCapture, Microphone: o.Microphone, Playback: o.Playback})
 		case d.Audio != nil:
 			o := d.Audio
 			p, err = devices.Audio(devices.AudioOptions{ID: d.ID, Name: d.Name, Socket: o.Socket, OutputDevice: o.OutputDevice, InputDevice: o.InputDevice, Playback: o.Playback, Microphone: o.Microphone, SystemCapture: o.SystemCapture, Configure: o.Configure})
