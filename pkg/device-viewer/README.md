@@ -32,8 +32,8 @@ through the trusted host, never in committed examples. `state` events report
 connection changes/errors. `restart()` restarts ICE on the same session; an
 expired session requires new host authorization and a new viewer instance.
 
-`type(text)` and `press(key)` send atomic actions. The UI currently exposes text
-only because native named-key/modifier mappings are not yet normalized. There
+`type(text)` and `press(key)` send atomic actions. The UI exposes text and a named-key picker for Mac/Windows targets; programmatic
+`press` also supports the modifier mappings documented in the platform guide. There
 are no held keys and no global event listeners that forward typing from other
 fields. Pointer control is not implemented. Microphone upload negotiates PCMU;
 Opus transport is still pending. Use Play when mobile autoplay blocks audio.

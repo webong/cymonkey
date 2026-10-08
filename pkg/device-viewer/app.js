@@ -12,6 +12,7 @@ element('connect').onsubmit=async event=>{
   } catch(error){report(error);}
 };
 element('send').onclick=()=>{try{viewer.type(element('text').value);element('text').value='';}catch(error){report(error);}};
+element('press').onclick=()=>{try{viewer.press(element('key').value);}catch(error){report(error);}};
 element('play').onclick=()=>element('video').play().catch(report);
 element('mute').onclick=()=>{muted=!muted;viewer?.muteMicrophone(muted);element('mute').textContent=muted?'Unmute microphone':'Mute microphone';};
 element('restart').onclick=()=>viewer?.restart().catch(report);

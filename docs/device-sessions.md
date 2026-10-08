@@ -188,5 +188,6 @@ The [device roadmap](roadmap.md#device-access-across-macos-windows-ios-and-andro
 covers macOS, Windows, iOS and Android. A scoped browser viewer and native media
 primitives are implemented; native media wiring into Board and live acceptance
 remain pending. See [platform implementation status](device-platforms.md) for
-exact coverage. The current configured PulseAudio provider does not establish
-native audio support on those platforms.
+exact coverage. Use the explicit `nativeAudio` provider for native Mac/Windows audio; the
+legacy `audio` provider still requires PulseAudio. See the platform guide for
+helper builds, source selection and remaining mobile integration.

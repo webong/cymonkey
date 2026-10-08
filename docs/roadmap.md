@@ -310,7 +310,12 @@ capture-source selection remain on the device backlog. See
 - [x] Add iOS ReplayKit app capture and a broadcast-extension base with audio grant filtering.
 - [x] Add Android MediaProjection, audio capture and bounded playback primitives.
 - [x] Add a selected-endpoint Windows WASAPI capture/playback source library.
-- [ ] Wire these native primitives into authenticated Board media sessions.
+- [x] Wire desktop native audio helpers into granted Board channels and PCMU
+  WebRTC sessions, with session-owned conversion and subprocess cleanup.
+- [x] Build the macOS native audio executable and expose source/permission reporting.
+- [x] Add bounded PCMU playout buffering and silence concealment for missing samples.
+- [x] Implement atomic Mac/Windows named-key mappings and literal Windows text input.
+- [ ] Wire mobile native primitives into authenticated Board media sessions.
 - [ ] Build the Windows library and signed mobile host integrations.
 - [ ] Run all supported desktop/mobile viewer-target pairings and forced TURN.
 
