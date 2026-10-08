@@ -22,6 +22,12 @@ func (server *operatorServer) deviceRegistry() (*board.Registry, error) {
 	if err != nil {
 		return nil, err
 	}
+	providers = append([]board.Provider(nil), providers...)
+	server.mu.Lock()
+	for _, target := range server.mobileTargets {
+		providers = append(providers, target.provider)
+	}
+	server.mu.Unlock()
 	return board.NewRegistry(providers...)
 }
 

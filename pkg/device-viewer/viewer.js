@@ -23,7 +23,7 @@ export class DeviceViewer extends EventTarget {
     this.serial = task.catch(() => {}); return task;
   }
   state(value) { this.dispatchEvent(new CustomEvent('state', {detail:value})); }
-  async connect({microphone = false, keyboard = false} = {}) {
+  async connect({microphone = false, keyboard = false, pointer = false} = {}) {
     if (this.started || this.closed) throw new Error('Create a new viewer for a new session');
     this.started = true;
     try {
@@ -45,12 +45,12 @@ export class DeviceViewer extends EventTarget {
         for(const track of this.microphone.getTracks()) {
           const sender = this.pc.addTrack(track, this.microphone);
           const transceiver = this.pc.getTransceivers().find(t=>t.sender===sender);
-          const codecs = RTCRtpSender.getCapabilities('audio').codecs.filter(c=>c.mimeType.toLowerCase()==='audio/pcmu');
-          if(!codecs.length) throw new Error('Target playback requires PCMU');
+          const codecs = RTCRtpSender.getCapabilities('audio').codecs.filter(c=>['audio/opus','audio/pcmu'].includes(c.mimeType.toLowerCase()));
+          if(!codecs.length) throw new Error('No compatible Opus/PCMU microphone codec');
           transceiver.setCodecPreferences(codecs);
         }
       }
-      if(keyboard) this.input = this.pc.createDataChannel('board.input',{ordered:true});
+      if(keyboard || pointer) this.input = this.pc.createDataChannel('board.input',{ordered:true});
       await this.offer(); this.poll();
     } catch(error) { this.close(); throw error; }
   }
@@ -81,13 +81,38 @@ export class DeviceViewer extends EventTarget {
     } catch(error) { if(!this.closed) this.fail(error); }
   }
   // Atomic keystrokes never hold keys remotely after focus loss/disconnection.
+  move(x,y) { this.sendInput("pointer.move",{x,y}); }
+  click(x,y,button="left") { this.sendInput("pointer.click",{x,y,button}); }
+  scroll(x,y,deltaX,deltaY) { this.sendInput("pointer.scroll",{x,y,deltaX,deltaY}); }
   type(text) { this.sendInput('keyboard.type',{text}); }
   press(key) { this.sendInput('keyboard.press',{key}); }
   sendInput(capability,input) {
-    if(this.input?.readyState !== 'open') throw new Error('Keyboard control is not connected');
+    if(this.input?.readyState !== 'open') throw new Error('Input control is not connected');
     const data=JSON.stringify({capability,input});
     if(new TextEncoder().encode(data).length > 16384 || this.input.bufferedAmount > 65536) throw new Error('Input limit reached');
     this.input.send(data);
+  }
+  // Export only route types/counters. Never expose ICE credentials, addresses or SDP.
+  async diagnostics() {
+    if (!this.pc || this.closed) throw new Error('No active connection');
+    const stats = await this.pc.getStats();
+    const routes = [], media = [];
+    for (const value of stats.values()) {
+      if (value.type === 'transport' && value.selectedCandidatePairId) {
+        const pair = stats.get(value.selectedCandidatePairId);
+        const local = pair && stats.get(pair.localCandidateId), remote = pair && stats.get(pair.remoteCandidateId);
+        routes.push({localType:local?.candidateType ?? 'unknown', remoteType:remote?.candidateType ?? 'unknown',
+          protocol:local?.protocol, state:pair?.state, bytesSent:pair?.bytesSent, bytesReceived:pair?.bytesReceived});
+      }
+      if (value.type === 'inbound-rtp' || value.type === 'outbound-rtp') {
+        const codec = stats.get(value.codecId);
+        media.push({direction:value.type, kind:value.kind, codec:codec?.mimeType,
+          packetsReceived:value.packetsReceived, packetsSent:value.packetsSent, packetsLost:value.packetsLost,
+          jitter:value.jitter, framesDecoded:value.framesDecoded, bytesReceived:value.bytesReceived, bytesSent:value.bytesSent});
+      }
+    }
+    return {time:new Date().toISOString(), connectionState:this.pc.connectionState,
+      icePolicy:this.configuration.iceTransportPolicy, routes, media};
   }
   muteMicrophone(muted) { this.microphone?.getAudioTracks().forEach(t=>{t.enabled=!muted;}); }
   fail(error) { this.state(error.message); this.close(); }

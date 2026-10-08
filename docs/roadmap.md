@@ -242,29 +242,30 @@ lifecycle. These tasks are not claims of current end-to-end platform support.
 
 ### Native audio backends
 
-- [ ] Add macOS system-audio capture, microphone capture, and playback through
+- [x] Add macOS system-audio capture, microphone capture, and playback through
   native platform facilities, without requiring PulseAudio.
-- [ ] Add Windows system-audio capture, microphone capture, and playback through
+- [x] Add Windows system-audio capture, microphone capture, and playback through
   native platform facilities, without requiring PulseAudio.
 - [ ] Expose host-approved audio device selection and supported formats through
   the device contract. Advertise only operations available on the selected host.
 - [ ] Enforce independent grants for system audio, microphone, and playback.
   Surface missing permissions and handle revocation or device removal.
-- [ ] Connect both native backends to the common WebRTC media interface, including
+- [x] Connect both native backends to the common WebRTC media interface, including
   format conversion, bounded buffers, and cleanup on session close.
-- [ ] Add Opus, bounded jitter buffering, and packet-loss handling to the shared
-  audio transport; retain explicit codec negotiation and interoperability checks.
+- [x] Add optional Opus, bounded jitter buffering and silence concealment to the
+  desktop audio transport, with explicit codec negotiation.
+- [ ] Validate codec interoperability and loss behavior on live devices.
 
 Acceptance: send a known test tone in each authorized direction; prove denied
 microphone/playback grants prevent access; disconnect and revoke during active
-media; verify all owned audio streams stop. Native macOS/Windows audio remains
-pending until these checks pass on the corresponding OS.
+media; verify all owned audio streams stop. Native macOS/Windows audio acceptance
+remains pending until these checks pass on the corresponding OS.
 
 ### Remote viewer
 
-- [ ] Add a Cymonkey viewer client using the public device-session contract for
+- [x] Add a Cymonkey viewer client using the public device-session contract for
   attachment, SDP/ICE exchange, video rendering, and audio playback.
-- [ ] Add explicit viewer controls for keyboard control and microphone sharing.
+- [x] Add explicit viewer controls for keyboard control and microphone sharing.
   Keep view-only sessions view-only; show granted capabilities and active media.
 - [ ] Support host-approved source selection, connection state, permission errors,
   session expiry, disconnect, and ICE restart/reconnection.
@@ -274,9 +275,8 @@ pending until these checks pass on the corresponding OS.
 - [ ] Define viewer keyboard mappings across Mac and Windows, including named
   keys, modifiers, key release, and focus-loss behavior. Document unsupported
   shortcuts instead of silently substituting text input.
-- [ ] Evaluate separately granted pointer/button/scroll operations before calling
-  the client a complete remote-desktop controller. Current keyboard transport
-  alone is not full mouse-and-keyboard desktop control.
+- [x] Add separately granted desktop pointer move, atomic click and scroll.
+- [ ] Add held-button/drag support if required and validate input on live desktops.
 
 Acceptance: a viewer can attach to an explicitly approved target, display live
 media, request only authorized input/audio, and immediately lose access when the
@@ -315,8 +315,12 @@ capture-source selection remain on the device backlog. See
 - [x] Build the macOS native audio executable and expose source/permission reporting.
 - [x] Add bounded PCMU playout buffering and silence concealment for missing samples.
 - [x] Implement atomic Mac/Windows named-key mappings and literal Windows text input.
-- [ ] Wire mobile native primitives into authenticated Board media sessions.
-- [ ] Build the Windows library and signed mobile host integrations.
+- [x] Wire mobile native primitives into scoped authenticated Board media sessions.
+- [x] Build the Windows helper and publish a self-contained win-x64 candidate.
+- [x] Add optional desktop Opus encoding/decoding, bounded reordering and silence concealment.
+- [x] Add separately granted desktop pointer move, atomic click and scroll.
+- [x] Provide reference mobile host sources, iOS extension and Android foreground service.
+- [ ] Build/sign reference hosts with an approved identity and run on real devices.
 - [ ] Run all supported desktop/mobile viewer-target pairings and forced TURN.
 
 These checked items describe source implementation only. Type-check/build results,

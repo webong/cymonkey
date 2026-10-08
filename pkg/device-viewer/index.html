@@ -6,10 +6,13 @@
 <form id="connect"><label>Session endpoint <input id="endpoint" required placeholder="/v1/device-viewer/…" autocomplete="off"></label>
 <label>Viewer credential <input id="credential" type="password" required autocomplete="off"></label>
 <label><input id="keyboard" type="checkbox"> Request keyboard control</label>
+<label><input id="pointer" type="checkbox"> Request pointer control (click and scroll)</label>
 <label><input id="microphone" type="checkbox"> Share this microphone with the target</label>
+<details><summary>Network validation</summary><label>ICE servers JSON (short-lived credentials) <textarea id="ice" autocomplete="off" placeholder='[{"urls":"turn:host:3478","username":"…","credential":"…"}]'></textarea></label><label><input id="relay" type="checkbox"> Require TURN relay</label></details>
 <button>Connect</button></form>
 <p id="status" role="status">Disconnected</p><video id="video" controls autoplay playsinline></video>
 <fieldset><legend>Session controls</legend><button id="play">Play audio/video</button><button id="mute">Mute microphone</button><button id="restart">Reconnect</button><button id="disconnect">Disconnect</button>
 <label>Send text <input id="text" maxlength="1024"><button id="send">Send</button></label>
 <label>Send a key <select id="key"><option>Enter</option><option>Tab</option><option>Escape</option><option>Backspace</option><option>Delete</option><option>ArrowLeft</option><option>ArrowRight</option><option>ArrowUp</option><option>ArrowDown</option><option>Home</option><option>End</option><option>PageUp</option><option>PageDown</option></select><button id="press">Press</button></label></fieldset>
+<button id="diagnostics">Show connection evidence</button><pre id="evidence"></pre>
 <script type="module" src="./app.js"></script></html>

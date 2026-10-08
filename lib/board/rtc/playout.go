@@ -106,3 +106,87 @@ func playPCMU(ctx context.Context, track *pion.TrackRemote, writer io.Writer) er
 		}
 	}
 }
+
+// Opus packets are kept intact for the decoder. This receive path inserts a
+// 20 ms Opus silence packet for missing timestamps; it does not claim FEC decode.
+func playOpus(ctx context.Context, track *pion.TrackRemote, writer io.Writer) error {
+	packets := make(chan *rtp.Packet, 32)
+	failures := make(chan error, 1)
+	go func() {
+		for {
+			packet, _, err := track.ReadRTP()
+			if err != nil {
+				failures <- err
+				return
+			}
+			if _, err := opusDuration(packet.Payload); err != nil {
+				continue
+			}
+			select {
+			case packets <- packet:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+	pending := map[uint32]*rtp.Packet{}
+	var next uint32
+	initialized := false
+	timer := time.NewTimer(time.Hour)
+	defer timer.Stop()
+	var tick <-chan time.Time
+	empty := 0
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case err := <-failures:
+			return err
+		case packet := <-packets:
+			if !initialized {
+				next = packet.Timestamp
+				initialized = true
+				timer.Reset(60 * time.Millisecond)
+				tick = timer.C
+			}
+			delta := int32(packet.Timestamp - next)
+			if delta >= 0 && delta < 9600 && len(pending) < 32 {
+				if _, exists := pending[packet.Timestamp]; !exists {
+					pending[packet.Timestamp] = packet
+				}
+			}
+		case <-tick:
+			payload := []byte{0xf8, 0xff, 0xfe}
+			duration := 20 * time.Millisecond
+			if packet, ok := pending[next]; ok {
+				payload = packet.Payload
+				duration, _ = opusDuration(payload)
+				empty = 0
+			} else {
+				empty++
+			}
+			delete(pending, next)
+			next += uint32(duration * 48000 / time.Second)
+			for timestamp := range pending {
+				if int32(timestamp-next) < 0 {
+					delete(pending, timestamp)
+				}
+			}
+			n, err := writer.Write(payload)
+			if err != nil {
+				return err
+			}
+			if n != len(payload) {
+				return io.ErrShortWrite
+			}
+			if empty >= 50 {
+				clear(pending)
+				initialized = false
+				empty = 0
+				tick = nil
+			} else {
+				timer.Reset(duration)
+			}
+		}
+	}
+}

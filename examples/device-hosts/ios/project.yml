@@ -1,0 +1,65 @@
+name: BoardReference
+options:
+  deploymentTarget:
+    iOS: '15.0'
+packages:
+  CymonkeyIOSHelper:
+    path: ../../../pkg/ios-helper
+settings:
+  base:
+    SWIFT_VERSION: '5.0'
+    CODE_SIGN_STYLE: Automatic
+    BOARD_BUNDLE_PREFIX: dev.cymonkey.reference
+    BOARD_APP_GROUP: group.dev.cymonkey.reference
+    TARGETED_DEVICE_FAMILY: '1,2'
+targets:
+  BoardReference:
+    type: application
+    platform: iOS
+    sources: [App, Shared]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(BOARD_BUNDLE_PREFIX)
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Board reference
+        UILaunchScreen: {}
+        NSMicrophoneUsageDescription: Test an explicitly granted Board microphone session.
+        BoardAppGroup: $(BOARD_APP_GROUP)
+        BoardBroadcastID: $(BOARD_BUNDLE_PREFIX).broadcast
+    entitlements:
+      path: App/Board.entitlements
+      properties:
+        com.apple.security.application-groups: [$(BOARD_APP_GROUP)]
+    dependencies:
+      - package: CymonkeyIOSHelper
+      - target: BoardBroadcast
+        embed: true
+  BoardBroadcast:
+    type: app-extension
+    platform: iOS
+    sources: [Broadcast, Shared]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(BOARD_BUNDLE_PREFIX).broadcast
+        APPLICATION_EXTENSION_API_ONLY: YES
+    info:
+      path: Broadcast/Info.plist
+      properties:
+        BoardAppGroup: $(BOARD_APP_GROUP)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.broadcast-services-upload
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).SampleHandler
+          RPBroadcastProcessMode: RPBroadcastProcessModeSampleBuffer
+    entitlements:
+      path: Broadcast/Board.entitlements
+      properties:
+        com.apple.security.application-groups: [$(BOARD_APP_GROUP)]
+    dependencies:
+      - package: CymonkeyIOSHelper
+schemes:
+  BoardReference:
+    build:
+      targets:
+        BoardReference: all

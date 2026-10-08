@@ -30,13 +30,16 @@ func (c *ownedChannel) Close() error {
 	return errors.Join(c.ReadWriteCloser.Close(), c.connection.Close(context.Background()))
 }
 func channel(ctx context.Context, r *board.Registry, t Target, cap board.Capability, write bool) (*ownedChannel, error) {
+	return channelEncoding(ctx, r, t, cap, write, "pcmu")
+}
+func channelEncoding(ctx context.Context, r *board.Registry, t Target, cap board.Capability, write bool, encoding string) (*ownedChannel, error) {
 	c, err := openTarget(ctx, r, t, cap)
 	if err != nil {
 		return nil, err
 	}
 	a := board.Action{Capability: cap}
 	if cap != board.DisplayVideo {
-		a.Input = []byte(`{"encoding":"pcmu"}`)
+		a.Input = []byte(`{"encoding":"` + encoding + `"}`)
 	}
 	l := board.ChannelLimits{ReadBytes: 1 << 30, Duration: time.Hour}
 	if write {
@@ -95,7 +98,7 @@ func BoardPlayback(r *board.Registry, t Target) *Playback {
 }
 func BoardInput(r *board.Registry, t Target) func(context.Context, board.Action) error {
 	return func(ctx context.Context, a board.Action) error {
-		if a.Capability != board.KeyboardPress && a.Capability != board.KeyboardType {
+		if !inputCapability(a.Capability) {
 			return board.ErrNotGranted
 		}
 		c, err := openTarget(ctx, r, t, a.Capability)
@@ -133,4 +136,12 @@ func (s *samples) ReadSample(ctx context.Context) (media.Sample, error) {
 	data := make([]byte, int(size))
 	_, err := io.ReadFull(s.ch, data)
 	return media.Sample{Data: data, Duration: s.duration}, err
+}
+
+func inputCapability(cap board.Capability) bool {
+	switch cap {
+	case board.KeyboardPress, board.KeyboardType, board.PointerMove, board.PointerClick, board.PointerScroll:
+		return true
+	}
+	return false
 }

@@ -77,14 +77,14 @@ func New(o Options) (*device.Provider, error) {
 		}
 	}
 	if o.Playback != nil {
-		if o.Playback.Open == nil || !strings.EqualFold(o.Playback.Codec.MimeType, pion.MimeTypePCMU) {
-			return nil, errors.New("WebRTC playback currently requires PCMU audio")
+		if o.Playback.Open == nil || (!strings.EqualFold(o.Playback.Codec.MimeType, pion.MimeTypePCMU) && !strings.EqualFold(o.Playback.Codec.MimeType, pion.MimeTypeOpus)) {
+			return nil, errors.New("WebRTC playback requires PCMU or Opus audio")
 		}
 		caps = append(caps, device.Descriptor(board.AudioPlayback, device.EmptySchema, false))
 	}
 	for _, cap := range o.InputCapabilities {
-		if o.Input == nil || cap != board.KeyboardPress && cap != board.KeyboardType {
-			return nil, errors.New("WebRTC input requires a bound keyboard handler")
+		if o.Input == nil || !inputCapability(cap) {
+			return nil, errors.New("WebRTC input requires a bound input handler")
 		}
 		caps = append(caps, device.Descriptor(cap, `{"type":"object"}`, false))
 	}
@@ -237,7 +237,11 @@ func openPeer(parent context.Context, o Options, allowed map[board.Capability]bo
 		if err != nil {
 			return fail(err)
 		}
-		if err := tr.SetCodecPreferences([]pion.RTPCodecParameters{{RTPCodecCapability: o.Playback.Codec, PayloadType: 0}}); err != nil {
+		payloadType := pion.PayloadType(0)
+		if strings.EqualFold(o.Playback.Codec.MimeType, pion.MimeTypeOpus) {
+			payloadType = 111
+		}
+		if err := tr.SetCodecPreferences([]pion.RTPCodecParameters{{RTPCodecCapability: o.Playback.Codec, PayloadType: payloadType}}); err != nil {
 			return fail(err)
 		}
 	}
@@ -267,7 +271,7 @@ func openPeer(parent context.Context, o Options, allowed map[board.Capability]bo
 				p.emit("input.denied")
 				return
 			}
-			if !p.allowed[a.Capability] || a.ResourceID != "" || a.Capability != board.KeyboardPress && a.Capability != board.KeyboardType {
+			if !p.allowed[a.Capability] || a.ResourceID != "" || !inputCapability(a.Capability) {
 				p.emit("input.denied")
 				return
 			}
@@ -323,7 +327,7 @@ func (p *peer) input(ctx context.Context, a board.Action) error {
 	if p.ctx.Err() != nil {
 		return board.ErrClosed
 	}
-	if !p.allowed[a.Capability] || p.o.Input == nil || a.ResourceID != "" || a.Capability != board.KeyboardPress && a.Capability != board.KeyboardType {
+	if !p.allowed[a.Capability] || p.o.Input == nil || a.ResourceID != "" || !inputCapability(a.Capability) {
 		return board.ErrNotGranted
 	}
 	call, cancel := context.WithCancel(ctx)
@@ -335,6 +339,9 @@ func (p *peer) input(ctx context.Context, a board.Action) error {
 func (p *peer) send(src sending) {
 	reader, err := src.source.Open(p.ctx)
 	if err != nil {
+		if errors.Is(err, board.ErrClosed) {
+			go p.close()
+		}
 		p.emit("media.failed")
 		return
 	}
@@ -344,6 +351,9 @@ func (p *peer) send(src sending) {
 	for {
 		sample, err := reader.ReadSample(p.ctx)
 		if err != nil {
+			if errors.Is(err, board.ErrClosed) {
+				go p.close()
+			}
 			if p.ctx.Err() == nil {
 				p.emit("media.ended")
 			}
@@ -385,7 +395,11 @@ func (p *peer) receive(track *pion.TrackRemote) {
 	defer stop()
 	// Closing also unblocks the RTP reader if native playback fails.
 	defer p.close()
-	if err := playPCMU(p.ctx, track, writer); err != nil && p.ctx.Err() == nil {
+	play := playPCMU
+	if strings.EqualFold(track.Codec().MimeType, pion.MimeTypeOpus) {
+		play = playOpus
+	}
+	if err := play(p.ctx, track, writer); err != nil && p.ctx.Err() == nil {
 		p.emit("media.failed")
 	}
 }

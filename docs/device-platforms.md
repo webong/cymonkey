@@ -5,15 +5,15 @@
 These changes add reusable native media primitives and a scoped browser viewer.
 They do **not** complete end-to-end support for all four operating systems.
 Desktop audio now has a `nativeAudio` Board provider, session-owned helper
-executables, and ffmpeg format conversion connected to the existing PCMU WebRTC
-source/playback adapters. Mobile media callbacks still need their authenticated
-transport and codec integration. The legacy `audio` provider remains PulseAudio;
+executables, and ffmpeg format conversion connected to PCMU or Opus WebRTC
+source/playback adapters. Mobile capture now has scoped authenticated WebSocket
+transport, JPEG/PCM conversion and registered Board WebRTC targets. The legacy `audio` provider remains PulseAudio;
 use `nativeAudio` explicitly for the desktop native helper path.
 
 | Platform | New target primitives | Viewer | Validation |
 | --- | --- | --- | --- |
 | macOS 13+ | ScreenCaptureKit selected display and system audio; AVAudioEngine microphone; bounded PCM playback | Shared WebRTC browser client | Native audio executable built against macOS 15.2 SDK; no live capture |
-| Windows | WASAPI selected-endpoint microphone, loopback capture and bounded PCM playback library; existing desktop video/input | Shared WebRTC browser client | New C# library not compiled; no .NET SDK available here |
+| Windows | WASAPI selected-endpoint microphone, loopback capture and bounded PCM playback library; existing desktop video/input | Shared WebRTC browser client | C# helper built with zero warnings; self-contained win-x64 publish produced; no Windows execution |
 | iOS 15+ | ReplayKit app capture, broadcast-extension base, app/system audio and microphone samples; bounded PCM playback | Shared WebRTC browser client | New Swift files type-checked against iOS 18.2 SDK; no device run |
 | Android 26+ | MediaProjection encoder surface, microphone capture; playback capture on API 29+; bounded AudioTrack playback | Shared WebRTC browser client | New Kotlin files compiled against Android 36 SDK; no device run |
 
@@ -66,24 +66,26 @@ The Windows wrapper uses [NAudio's WASAPI interfaces](https://github.com/naudio/
 
 ## Remaining before claiming full platform support
 
-1. Mobile native helper lifecycle and authenticated media transport wiring into
-   Board discovery, grants, format conversion and WebRTC adapters; native desktop
-   audio wiring is implemented but still needs live permission/device checks.
-2. Mobile host application/extension/service integration, codec pipelines and
-   signed device builds. These adapters are libraries, not installable apps.
-3. Shared Opus negotiation and loss recovery. PCMU playback now has a bounded
-   timestamp-based jitter buffer and silence insertion for missing samples.
-4. Separately authorized pointer controls and platform-specific app-owned input
-   handlers. Mac/Windows atomic named-key mappings are implemented; live shortcut
-   validation is pending.
-5. Source selection and permission state in the public capability descriptors.
-6. Live viewer/target combinations across all four OSes, direct and forced TURN,
+1. Signed mobile host apps, iOS broadcast extension and Android foreground service
+   integration, including consent UI and playback workers. The delivered adapters
+   are reusable libraries, not installable apps.
+2. Live viewer/target combinations across all four OSes, direct and forced TURN,
    checking permission denial, rotation, backgrounding, revoke, expiry and
-   interrupted connectivity. No live acceptance tests were run in this change.
+   interrupted connectivity.
+3. Native receiver Opus FEC decoding/retransmission, if required: the current
+   receiver reorders packets and inserts silence; outbound encoding enables FEC
+   for compatible browser receivers. The mobile bridge currently uses PCMU.
+4. Broader input operations such as drag/held buttons and platform-specific
+   app-owned mobile input. Desktop move, atomic click and scroll are implemented
+   with separate grants; mobile global input is not exposed.
 
-The Board module and the macOS native audio executable build. Mobile Swift
-validation remains type-checking of the new files, not a signed app build.
-Existing tests were not run or extended in this implementation increment.
+The Board module, operator and macOS native helper build. The Windows helper
+build and self-contained publish succeeded. Mobile Swift type-checking and Kotlin
+compilation succeeded; these are not signed app builds or live acceptance.
+No tests were run in this implementation increment.
+
+See [mobile sessions, Opus and pointer integration](device-mobile-sessions.md)
+for the registration protocol, lifecycle responsibilities and configuration.
 
 ## Native desktop audio sessions
 
@@ -134,3 +136,11 @@ characters and `Plus`. Prefix with `Control+`, `Alt+`, `Shift+`, or macOS `Meta+
 (Command). Windows Meta shortcuts are explicitly unsupported by this backend.
 Presses are atomic; no held-key state survives focus loss. `keyboard.type`
 escapes Windows SendKeys syntax so typed punctuation cannot become shortcuts.
+
+## Reference hosts
+
+Build and run the [Cymonkey reference hosts](../examples/device-hosts/README.md)
+to exercise the reusable libraries before product adoption. They include local
+signing configuration, consent/lifecycle examples and a pending acceptance record.
+Signing identities, approved hardware and TURN access must be supplied by the
+validation operator. Product-specific integration remains with the consuming app.

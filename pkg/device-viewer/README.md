@@ -35,8 +35,15 @@ expired session requires new host authorization and a new viewer instance.
 `type(text)` and `press(key)` send atomic actions. The UI exposes text and a named-key picker for Mac/Windows targets; programmatic
 `press` also supports the modifier mappings documented in the platform guide. There
 are no held keys and no global event listeners that forward typing from other
-fields. Pointer control is not implemented. Microphone upload negotiates PCMU;
-Opus transport is still pending. Use Play when mobile autoplay blocks audio.
+fields. Pointer click/scroll controls require the explicit pointer option and
+separate grants; dragging is not implemented. Microphone upload negotiates Opus
+or PCMU according to the target peer. Use Play when mobile autoplay blocks audio.
 
 See [native adapter integration](../../docs/device-platforms.md) for target
 adapters, host responsibilities and the unfinished transport work.
+
+For network acceptance, the example UI accepts short-lived ICE server settings and
+a relay-only policy. Show connection evidence reports selected route types and
+media counters without candidate addresses, credentials or SDP. An empty selected
+route does not establish connectivity. See the reference-host acceptance procedure
+in `examples/device-hosts/README.md`.

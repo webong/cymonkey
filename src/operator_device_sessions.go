@@ -44,9 +44,14 @@ func (s *managedDeviceSession) close() {
 func (server *operatorServer) closeDeviceSessions() {
 	server.mu.Lock()
 	server.deviceClosed = true
+	targets := server.mobileTargets
+	server.mobileTargets = nil
 	all := server.deviceSessions
 	server.deviceSessions = nil
 	server.mu.Unlock()
+	for _, target := range targets {
+		target.close()
+	}
 	for _, s := range all {
 		s.close()
 	}

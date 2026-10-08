@@ -10,6 +10,7 @@ internal static class Program
     {
         try
         {
+            if (args.Length == 3 && args[0] == "pointer") { NativePointer.Perform(args[1], args[2]); return 0; }
             if (args.Length != 2) throw new ArgumentException("Expected mode and source");
             var mode = args[0];
             var source = args[1];

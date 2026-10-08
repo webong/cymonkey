@@ -3,6 +3,9 @@ package board
 // Standard device operations. Providers advertise only operations their selected
 // target implements; the host chooses the subset granted to each session.
 const (
+	PointerMove     Capability = "pointer.move"
+	PointerClick    Capability = "pointer.click"
+	PointerScroll   Capability = "pointer.scroll"
 	DisplayDescribe Capability = "display.describe"
 	DisplayCapture  Capability = "display.capture"
 	DisplayVideo    Capability = "display.video"

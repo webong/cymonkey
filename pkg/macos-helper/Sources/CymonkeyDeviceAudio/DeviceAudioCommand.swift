@@ -60,6 +60,7 @@ final class AudioSink: DeviceMediaSink {
     @MainActor static func main() async {
         do {
             let args = Array(CommandLine.arguments.dropFirst())
+            if args.count == 3, args[0] == "pointer" { try NativePointer.perform(source: args[1], json: args[2]); return }
             guard args.count == 2 else { throw Failure.invalidArguments }
             let mode = args[0], source = args[1]
             if mode == "describe" {

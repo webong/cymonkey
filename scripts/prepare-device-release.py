@@ -64,7 +64,7 @@ def main():
         build_info = run('go', 'version', '-m', str(binary)).replace(str(binary).encode(), binary.name.encode(), 1)
         (stage / 'go-build-info.txt').write_bytes(build_info)
         (stage / 'docs').mkdir()
-        for name in ('device-sessions.md', 'device-sdk-extraction.md', 'device-validation.md'):
+        for name in ('device-sessions.md', 'device-sdk-extraction.md', 'device-validation.md', 'device-platforms.md', 'device-mobile-sessions.md'):
             shutil.copyfile(ROOT / 'docs' / name, stage / 'docs' / name)
         schema = Path('src/protocol/device/v1alpha1/device.schema.json')
         (stage / schema).parent.mkdir(parents=True)

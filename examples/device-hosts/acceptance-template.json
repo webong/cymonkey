@@ -1,0 +1,38 @@
+{
+  "kind": "cymonkey.device.acceptance",
+  "status": "pending",
+  "sourceRevision": "",
+  "sourceModified": true,
+  "sourceFingerprintSha256": "",
+  "artifacts": [{"name": "", "sha256": ""}],
+  "runs": [{
+    "viewerOS": "",
+    "viewerBrowserVersion": "",
+    "targetOS": "",
+    "targetMode": "app-capture | broadcast | projection | desktop",
+    "networkMode": "direct | forced-relay",
+    "separateNetworks": null,
+    "capabilities": [],
+    "startedAt": "",
+    "endedAt": "",
+    "routeEvidence": [],
+    "checks": {
+      "video": "pending",
+      "systemAudio": "pending",
+      "microphone": "pending",
+      "playback": "pending",
+      "ungrantedMediaDenied": "pending",
+      "permissionDenial": "pending",
+      "permissionRevocation": "pending",
+      "rotation": "pending",
+      "backgrounding": "pending",
+      "expiry": "pending",
+      "targetDeletion": "pending",
+      "viewerDisconnect": "pending",
+      "producerDisconnect": "pending",
+      "networkRecoveryWithFreshConsent": "pending",
+      "ownedResourcesReleased": "pending"
+    },
+    "observations": []
+  }]
+}

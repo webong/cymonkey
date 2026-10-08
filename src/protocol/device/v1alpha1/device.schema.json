@@ -185,6 +185,143 @@
         "close"
       ],
       "additionalProperties": false
+    },
+    "mobileTargetRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "video": {
+          "type": "boolean"
+        },
+        "audio": {
+          "type": "boolean"
+        },
+        "microphone": {
+          "type": "boolean"
+        },
+        "playback": {
+          "type": "boolean"
+        },
+        "ttlSeconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3600
+        },
+        "iceServers": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "relayOnly": {
+          "type": "boolean"
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "video"
+          ],
+          "properties": {
+            "video": {
+              "const": true
+            }
+          }
+        },
+        {
+          "required": [
+            "audio"
+          ],
+          "properties": {
+            "audio": {
+              "const": true
+            }
+          }
+        },
+        {
+          "required": [
+            "microphone"
+          ],
+          "properties": {
+            "microphone": {
+              "const": true
+            }
+          }
+        },
+        {
+          "required": [
+            "playback"
+          ],
+          "properties": {
+            "playback": {
+              "const": true
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "mobileTarget": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "const": "cymonkey.device/v1alpha1"
+        },
+        "adapterId": {
+          "type": "string",
+          "pattern": "^mobile-[a-f0-9]{32}$"
+        },
+        "deviceId": {
+          "const": "peer"
+        },
+        "path": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "media": {
+          "type": "object",
+          "properties": {
+            "video": {
+              "type": "boolean"
+            },
+            "audio": {
+              "type": "boolean"
+            },
+            "microphone": {
+              "type": "boolean"
+            },
+            "playback": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "video",
+            "audio",
+            "microphone",
+            "playback"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "apiVersion",
+        "adapterId",
+        "deviceId",
+        "path",
+        "token",
+        "expiresAt",
+        "media"
+      ]
     }
   }
 }

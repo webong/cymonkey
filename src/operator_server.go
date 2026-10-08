@@ -35,6 +35,7 @@ type operatorServer struct {
 	deviceProviders     func() ([]board.Provider, error)
 	deviceSessions      map[string]*managedDeviceSession
 	deviceClosed        bool
+	mobileTargets       map[string]*mobileTarget
 }
 
 type operatorBrowserSession struct {
@@ -68,6 +69,10 @@ func (server *operatorServer) Routes() http.Handler {
 			engineRoutes.ServeHTTP(w, r)
 			return
 		}
+		if strings.HasPrefix(r.URL.Path, "/v1/device-targets/") {
+			server.handleMobileTarget(w, r)
+			return
+		}
 		if strings.HasPrefix(r.URL.Path, "/v1/device-viewer/") {
 			server.handleDeviceViewer(w, r)
 			return
@@ -91,6 +96,8 @@ func (server *operatorServer) Routes() http.Handler {
 			server.handleObservation(w, r)
 		case "/v1/interpretations":
 			server.handleInterpretation(w, r)
+		case "/v1/device-targets":
+			server.createMobileTarget(w, r)
 		case "/v1/devices":
 			server.handleDeviceInventory(w, r)
 		case "/v1/device-actions":

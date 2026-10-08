@@ -186,8 +186,9 @@ A successful build does not certify live-device permissions or remote networks.
 
 The [device roadmap](roadmap.md#device-access-across-macos-windows-ios-and-android)
 covers macOS, Windows, iOS and Android. A scoped browser viewer and native media
-primitives are implemented; native media wiring into Board and live acceptance
-remain pending. See [platform implementation status](device-platforms.md) for
+primitives, desktop audio wiring and authenticated mobile target registration
+are implemented. Signed mobile host integration and live acceptance remain pending. See [platform implementation status](device-platforms.md) for
 exact coverage. Use the explicit `nativeAudio` provider for native Mac/Windows audio; the
 legacy `audio` provider still requires PulseAudio. See the platform guide for
-helper builds, source selection and remaining mobile integration.
+helper builds and source selection. See [mobile sessions](device-mobile-sessions.md)
+for target registration, Opus and separately granted pointer controls.

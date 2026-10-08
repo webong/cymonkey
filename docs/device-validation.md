@@ -70,10 +70,9 @@ not be omitted when sharing a working-tree candidate.
 ## Open capability work
 
 - Continuous Wayland/PipeWire capture and portal lifetime management.
-- Native macOS and Windows system-audio capture, microphone capture, and playback.
-- Opus plus bounded audio jitter and packet-loss handling.
-- A Cymonkey remote viewer with scoped session access, media rendering,
-  permission-aware input/audio controls, and reconnect handling.
+- Live acceptance of implemented macOS/Windows native audio paths.
+- Live codec interoperability and loss behavior for implemented Opus/PCMU buffering.
+- Live acceptance of the scoped viewer, media/input controls and reconnect behavior.
 - Mac → Mac, Mac → Windows, Windows → Mac, and Windows → Windows
   acceptance runs, both local-network and forced TURN relay.
 - Explicit platform-specific native capture-source selection.
@@ -86,7 +85,7 @@ does not authorize deleting those deployment recipes.
 ## Cross-platform completion criteria
 
 The detailed work items and acceptance criteria are tracked in the
-[device access roadmap](roadmap.md#device-access-across-macos-and-windows).
+[device access roadmap](roadmap.md#device-access-across-macos-windows-ios-and-android).
 A native capture implementation or a successful local WebRTC test alone does
 not complete a platform pairing. Each pairing needs evidence from the actual
 viewer and target OS, with independent system-audio/microphone/playback grants,
@@ -95,3 +94,11 @@ correct keyboard mappings, permission denial/revocation, and session cleanup.
 The viewer is a Cymonkey client of the device contract. Board owns reusable
 platform and transport mechanics. A browser viewer must receive narrowly scoped
 session access through a trusted bridge, not the operator's inventory-wide token.
+
+## Mobile reference hosts
+
+[Reference apps and acceptance procedure](../examples/device-hosts/README.md) provide
+an iOS app/broadcast extension and an Android projection service using the helper
+libraries. They belong to Cymonkey as integration fixtures. Consuming products own
+their own app packaging, signing, policy and deployment. The evidence template
+starts pending; builds and type-checks do not mark any device run as passed.
