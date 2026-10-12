@@ -31,8 +31,8 @@ content plugins.
 
 ## Packaging
 
-Every package has a `plugin.json` manifest with API version
-`cymonkey.plugin/v1alpha1` and contract `cymonkey.content@v1alpha1`.
+Every package has a `package.json` manifest (`ext.package/v1`) that declares
+contract `cymonkey.content@v1alpha1` with every operation it serves.
 
 An executable package sets `command` and its SHA-256. A source package lists
 all files and includes `content.json`:

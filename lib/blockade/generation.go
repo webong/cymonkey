@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync"
 
-	"providerplugin/jsonschema"
+	"github.com/webong/ext/pkg/plugin/jsonschema"
 )
 
 // Generation is independent of observation/interpretation. Providers produce

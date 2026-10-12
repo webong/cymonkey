@@ -1,4 +1,3 @@
-github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=
@@ -43,6 +42,12 @@ github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0t
 github.com/rogpeppe/go-internal v1.14.1/go.mod h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7so1lCWt35ZSgc=
 github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=
 github.com/stretchr/testify v1.12.1/go.mod h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg=
+github.com/webong/ext/pkg/graph v0.1.0 h1:bM0T6s9EUZlrhnjITeXyS9Wnq/aTTIVlJ5YC2L5+8Mw=
+github.com/webong/ext/pkg/graph v0.1.0/go.mod h1:3ICq+WAgHkT/gxHft7YtdAYmS5T07OxHlPc58WGnArA=
+github.com/webong/ext/pkg/plugin v0.5.1 h1:E1Xcdq/mCbd7f/ScIoCFO6oA15lgif/1x4wMqma/l5g=
+github.com/webong/ext/pkg/plugin v0.5.1/go.mod h1:4HjMr9xajSrI6DroQ7+3jntxmrZF1M5UPwhlMliljDE=
+github.com/webong/ext/res/web v0.2.0 h1:Yx+bPIMNe0WAqjqzQcLcIqTC2mpNJLyThpKrkCIpvYc=
+github.com/webong/ext/res/web v0.2.0/go.mod h1:DoAk6ydqtqqC21xr+XbngXzx2Br5J6DRXvACQx7DC5I=
 github.com/wlynxg/anet v0.0.5 h1:J3VJGi1gvo0JwZ/P1/Yc/8p63SoW98B5dHkYDmpgvvU=
 github.com/wlynxg/anet v0.0.5/go.mod h1:eay5PRQr7fIVAMbTbchTnO9gG65Hg/uYGdc7mguHxoA=
 go.yaml.in/yaml/v3 v3.0.5 h1:N6y/pJk8buWs9NY5ERU2HSMfm+IuD/OtfdAnq6kESPw=

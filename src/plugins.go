@@ -3,16 +3,15 @@ package main
 import (
 	"blockade"
 	blockadeplugin "blockade/plugin"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
-	"runtime"
+	"sort"
 	"strings"
 
 	"board"
@@ -21,7 +20,10 @@ import (
 	"cymonkey/src/contracts"
 	"cymonkey/src/internal/orchestrator"
 	displayplugin "jangolova/plugin"
-	"providerplugin"
+
+	"github.com/webong/ext/pkg/plugin"
+	"github.com/webong/ext/pkg/plugin/packagekit"
+	"github.com/webong/ext/pkg/plugin/store"
 )
 
 const (
@@ -31,12 +33,54 @@ const (
 	pluginContractVersion = "v1alpha1"
 )
 
-func installedPlugins() ([]providerplugin.Installed, error) {
+// pluginOperations maps each public contract to the operations its libraries
+// serve, which ext requires every package to declare.
+var pluginOperations = map[string][]string{
+	displayPluginContract: displayplugin.Operations,
+	contentPluginContract: blockadeplugin.Operations,
+	devicePluginContract:  boardplugin.Operations,
+}
+
+func installedPlugins() ([]store.Installed, error) {
 	root, err := defaultPluginRoot()
 	if err != nil {
 		return nil, err
 	}
-	return providerplugin.List(root)
+	packages, err := store.New(root, store.Limits{})
+	if err != nil {
+		return nil, err
+	}
+	return packages.List()
+}
+
+// pluginContract declares a Cymonkey contract with the operations its
+// libraries serve, which ext requires every package to list.
+func pluginContract(name string) plugin.Contract {
+	operations := make([]plugin.Operation, 0, len(pluginOperations[name]))
+	for _, operation := range pluginOperations[name] {
+		operations = append(operations, plugin.Operation{Name: operation})
+	}
+	return plugin.Contract{ContractRef: plugin.ContractRef{Name: name, Version: pluginContractVersion}, Operations: operations}
+}
+
+// packageDirectory returns the directory holding package.json for a path that
+// names either that directory or the manifest file.
+func packageDirectory(path string) (string, error) {
+	absolute, err := filepath.Abs(path)
+	if err != nil {
+		return "", err
+	}
+	info, err := os.Stat(absolute)
+	if err != nil {
+		return "", err
+	}
+	if info.IsDir() {
+		return absolute, nil
+	}
+	if filepath.Base(absolute) != store.ManifestName {
+		return "", errors.New("plugin manifest must be named " + store.ManifestName)
+	}
+	return filepath.Dir(absolute), nil
 }
 
 func defaultPluginRoot() (string, error) {
@@ -56,10 +100,10 @@ func registerDisplayPlugins(registry *orchestrator.Registry) error {
 		return err
 	}
 	for _, item := range installed {
-		if !item.Manifest.Supports(displayPluginContract, pluginContractVersion) {
+		if !item.Supports(displayPluginContract, pluginContractVersion) {
 			continue
 		}
-		if err := registry.RegisterEngine(item.Manifest.Name, wrapDisplayLibrary(displayplugin.Adapter{Installed: item, MethodPrefix: displayPluginContract})); err != nil {
+		if err := registry.RegisterEngine(item.Name(), wrapDisplayLibrary(displayplugin.Adapter{Installed: item, MethodPrefix: displayPluginContract})); err != nil {
 			return err
 		}
 	}
@@ -72,7 +116,7 @@ func devicePluginAdapters() ([]board.Provider, error) {
 	}
 	providers := make([]board.Provider, 0, len(installed))
 	for _, item := range installed {
-		if item.Manifest.Supports(devicePluginContract, pluginContractVersion) {
+		if item.Supports(devicePluginContract, pluginContractVersion) {
 			providers = append(providers, boardplugin.Provider{Installed: item, MethodPrefix: devicePluginContract})
 		}
 	}
@@ -102,7 +146,7 @@ func contentPluginRegistry() (*blockade.ProviderAdapterRegistry, error) {
 		return nil, err
 	}
 	for _, item := range installed {
-		if !item.Manifest.Supports(contentPluginContract, pluginContractVersion) {
+		if !item.Supports(contentPluginContract, pluginContractVersion) {
 			continue
 		}
 		if err := blockadeplugin.RegisterWithProtocol(registry, item, blockadeplugin.Protocol{
@@ -126,6 +170,10 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
+	packages, err := store.New(root, store.Limits{})
+	if err != nil {
+		return err
+	}
 	switch args[0] {
 	case "manifest":
 		flags := flag.NewFlagSet("plugins manifest", flag.ContinueOnError)
@@ -133,8 +181,13 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 		pluginType := flags.String("type", "", "display, content, or device")
 		name := flags.String("name", "", "plugin package name")
 		version := flags.String("version", "", "plugin semantic version")
-		command := flags.String("command", "", "plugin executable path")
-		output := flags.String("output", "", "plugin.json output path; defaults beside the executable")
+		command := flags.String("command", "", "plugin executable path (executable package)")
+		root := flags.String("root", "", "directory holding the package files (source package)")
+		var files, directories stringList
+		flags.Var(&files, "file", "file within --root to include; repeatable (source package)")
+		flags.Var(&directories, "dir", "directory within --root to include recursively; repeatable (source package)")
+		stage := flags.String("stage", "", "copy the listed files into this empty directory and write package.json there (source package)")
+		output := flags.String("output", "", "package.json output path; defaults beside the executable or in --root")
 		if err := flags.Parse(args[1:]); err != nil {
 			return err
 		}
@@ -143,48 +196,55 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 			"content": contentPluginContract,
 			"device":  devicePluginContract,
 		}[strings.TrimSpace(*pluginType)]
-		if flags.NArg() != 0 || !ok || strings.TrimSpace(*name) == "" || strings.TrimSpace(*version) == "" || strings.TrimSpace(*command) == "" {
-			return errors.New("plugins manifest requires --type display|content|device, --name, --version, and --command")
+		source := strings.TrimSpace(*root) != ""
+		if flags.NArg() != 0 || !ok || strings.TrimSpace(*name) == "" || strings.TrimSpace(*version) == "" || (strings.TrimSpace(*command) == "") == !source {
+			return errors.New("plugins manifest requires --type display|content|device, --name, --version, and either --command or --root with --file/--dir")
 		}
-		absCommand, err := filepath.Abs(*command)
+		var manifest packagekit.Manifest
+		var err error
+		var home string
+		var included []string
+		if source {
+			home, err = filepath.Abs(*root)
+			if err != nil {
+				return err
+			}
+			entries, copies, listErr := sourcePackageFiles(home, files, directories)
+			if listErr != nil {
+				return listErr
+			}
+			included = entries
+			if strings.TrimSpace(*stage) != "" {
+				// Install refuses a directory holding unlisted files, so staging
+				// gives a working tree an exact package directory.
+				staged, stageErr := stageSourcePackage(home, strings.TrimSpace(*stage), copies)
+				if stageErr != nil {
+					return stageErr
+				}
+				home = staged
+			}
+			manifest, err = packagekit.SourceManifest(strings.TrimSpace(*name), strings.TrimSpace(*version), []plugin.Contract{pluginContract(contract)}, home, included)
+		} else {
+			absCommand, absErr := filepath.Abs(*command)
+			if absErr != nil {
+				return absErr
+			}
+			home = filepath.Dir(absCommand)
+			manifest, err = packagekit.ExecutableManifest(strings.TrimSpace(*name), strings.TrimSpace(*version), []plugin.Contract{pluginContract(contract)}, absCommand)
+		}
 		if err != nil {
 			return err
-		}
-		file, err := os.Open(absCommand)
-		if err != nil {
-			return err
-		}
-		hash := sha256.New()
-		n, copyErr := io.Copy(hash, io.LimitReader(file, (128<<20)+1))
-		closeErr := file.Close()
-		if copyErr != nil || closeErr != nil {
-			return errors.Join(copyErr, closeErr)
-		}
-		if n > 128<<20 {
-			return errors.New("plugin command exceeds 128 MiB")
 		}
 		outputPath := strings.TrimSpace(*output)
 		if outputPath == "" {
-			outputPath = filepath.Join(filepath.Dir(absCommand), "plugin.json")
+			outputPath = filepath.Join(home, store.ManifestName)
 		}
 		absOutput, err := filepath.Abs(outputPath)
 		if err != nil {
 			return err
 		}
-		if filepath.Dir(absOutput) != filepath.Dir(absCommand) {
-			return errors.New("plugin.json must be written beside the plugin command")
-		}
-		manifest := providerplugin.Manifest{
-			APIVersion: contracts.PluginManifestVersion,
-			Name:       strings.TrimSpace(*name),
-			Version:    strings.TrimSpace(*version),
-			Contracts:  []providerplugin.Contract{{Name: contract, Version: pluginContractVersion}},
-			Platform:   runtime.GOOS + "-" + runtime.GOARCH,
-			Command:    filepath.Base(absCommand),
-			SHA256:     hex.EncodeToString(hash.Sum(nil)),
-		}
-		if err := manifest.Validate(); err != nil {
-			return err
+		if absOutput != filepath.Join(home, store.ManifestName) {
+			return errors.New(store.ManifestName + " must be written in the package directory")
 		}
 		encoded, err := json.MarshalIndent(manifest, "", "  ")
 		if err != nil {
@@ -198,14 +258,18 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 	case "install":
 		flags := flag.NewFlagSet("plugins install", flag.ContinueOnError)
 		flags.SetOutput(io.Discard)
-		manifest := flags.String("manifest", "", "local plugin.json path")
+		manifest := flags.String("manifest", "", "local package.json path or package directory")
 		if err := flags.Parse(args[1:]); err != nil {
 			return err
 		}
 		if flags.NArg() != 0 || strings.TrimSpace(*manifest) == "" {
 			return errors.New("plugins install requires --manifest")
 		}
-		item, err := providerplugin.Install(root, *manifest)
+		source, err := packageDirectory(*manifest)
+		if err != nil {
+			return err
+		}
+		item, err := packages.Install(source)
 		if err != nil {
 			return err
 		}
@@ -213,14 +277,18 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 	case "upgrade":
 		flags := flag.NewFlagSet("plugins upgrade", flag.ContinueOnError)
 		flags.SetOutput(io.Discard)
-		manifest := flags.String("manifest", "", "local plugin.json path")
+		manifest := flags.String("manifest", "", "local package.json path or package directory")
 		if err := flags.Parse(args[1:]); err != nil {
 			return err
 		}
 		if flags.NArg() != 0 || strings.TrimSpace(*manifest) == "" {
 			return errors.New("plugins upgrade requires --manifest")
 		}
-		item, err := providerplugin.Upgrade(root, *manifest)
+		source, err := packageDirectory(*manifest)
+		if err != nil {
+			return err
+		}
+		item, err := packages.Upgrade(source)
 		if err != nil {
 			return err
 		}
@@ -229,11 +297,11 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 		if len(args) != 1 {
 			return errors.New("plugins list accepts no arguments")
 		}
-		items, err := providerplugin.List(root)
+		items, err := packages.List()
 		if err != nil {
 			return err
 		}
-		manifests := make([]providerplugin.Manifest, 0, len(items))
+		manifests := make([]packagekit.Manifest, 0, len(items))
 		for _, item := range items {
 			manifests = append(manifests, item.Manifest)
 		}
@@ -242,7 +310,7 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 		if len(args) != 2 {
 			return errors.New("plugins remove requires one name")
 		}
-		if err := providerplugin.Remove(root, args[1]); err != nil {
+		if err := packages.Remove(args[1]); err != nil {
 			return err
 		}
 		_, err := fmt.Fprintf(stdout, "removed plugin %s\n", args[1])
@@ -253,4 +321,100 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 	default:
 		return fmt.Errorf("unknown plugins command %q", args[0])
 	}
+}
+
+// stringList collects a repeatable flag.
+type stringList []string
+
+func (list *stringList) String() string     { return strings.Join(*list, ",") }
+func (list *stringList) Set(v string) error { *list = append(*list, v); return nil }
+
+// sourcePackageFiles resolves --file and --dir into the package entries and the
+// files to copy when staging. Each --dir becomes one tree artifact: it is a
+// single manifest entry covered by a directory digest, so a vendored dependency
+// tree needs no per-file entry. Python bytecode caches are left out of the copy.
+// Paths are slash separated and relative to root.
+func sourcePackageFiles(root string, files, directories []string) (entries, copies []string, err error) {
+	seen := map[string]bool{}
+	copy := func(relative string) {
+		relative = filepath.ToSlash(relative)
+		if !seen[relative] {
+			seen[relative] = true
+			copies = append(copies, relative)
+		}
+	}
+	for _, file := range files {
+		entries = append(entries, filepath.ToSlash(file))
+		copy(file)
+	}
+	for _, directory := range directories {
+		directory = filepath.ToSlash(filepath.Clean(filepath.FromSlash(directory)))
+		entries = append(entries, directory)
+		start := filepath.Join(root, filepath.FromSlash(directory))
+		walkErr := filepath.WalkDir(start, func(path string, entry fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if entry.IsDir() {
+				if entry.Name() == "__pycache__" {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+			if info, statErr := os.Stat(path); statErr != nil || !info.Mode().IsRegular() {
+				return fmt.Errorf("source package file %s is not a regular file", path)
+			}
+			relative, err := filepath.Rel(root, path)
+			if err != nil {
+				return err
+			}
+			copy(relative)
+			return nil
+		})
+		if walkErr != nil {
+			return nil, nil, walkErr
+		}
+	}
+	sort.Strings(entries)
+	sort.Strings(copies)
+	return entries, copies, nil
+}
+
+// stageSourcePackage copies the listed files into an empty directory. Links
+// are followed so the staged package holds regular files only, and a file keeps
+// its owner-execute bit.
+func stageSourcePackage(root, destination string, files []string) (string, error) {
+	destination, err := filepath.Abs(destination)
+	if err != nil {
+		return "", err
+	}
+	if entries, err := os.ReadDir(destination); err == nil && len(entries) > 0 {
+		return "", errors.New("--stage directory must be empty")
+	}
+	for _, file := range files {
+		source := filepath.Join(root, filepath.FromSlash(file))
+		info, err := os.Stat(source)
+		if err != nil {
+			return "", err
+		}
+		if !info.Mode().IsRegular() {
+			return "", fmt.Errorf("source package file %s is not a regular file", file)
+		}
+		data, err := os.ReadFile(source)
+		if err != nil {
+			return "", err
+		}
+		mode := os.FileMode(0o600)
+		if info.Mode().Perm()&0o100 != 0 {
+			mode = 0o700
+		}
+		target := filepath.Join(destination, filepath.FromSlash(file))
+		if err := os.MkdirAll(filepath.Dir(target), 0o700); err != nil {
+			return "", err
+		}
+		if err := os.WriteFile(target, data, mode); err != nil {
+			return "", err
+		}
+	}
+	return destination, nil
 }

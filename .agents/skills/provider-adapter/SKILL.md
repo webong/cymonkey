@@ -23,7 +23,7 @@ Cymonkey's composition bridge.
 
 ## Choose the package form
 
-- Use an executable `plugin.json` package when the plugin owns its runtime.
+- Use an executable `package.json` (ext.package/v1) package when the plugin owns its runtime.
 - Use a verified source package with `content.json` when Cymonkey should launch
   it with an installed managed Python runtime. The package supplies source and
   dependencies; it does not select an ambient Python executable.
@@ -32,7 +32,7 @@ Cymonkey's composition bridge.
 
 ## Implementation requirements
 
-- Declare `cymonkey.content@v1alpha1` in `plugin.json`.
+- Declare `cymonkey.content@v1alpha1` in `package.json`.
 - Implement methods under `cymonkey.content.*` and use Cymonkey API versions in
   every public request and response.
 - Preserve request IDs and original media bytes unless the upstream service

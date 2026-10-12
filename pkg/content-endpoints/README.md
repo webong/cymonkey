@@ -40,31 +40,15 @@ go build -o /path/to/google-compatible/provider \
   ./pkg/content-endpoints/cmd/google-compatible
 ```
 
-Place a `plugin.json` beside each binary. The package `name` must be
-`openai-compatible`, `anthropic-compatible`, or `google-compatible`; use the
-host platform and the SHA-256 of that binary:
-
-```json
-{
-  "apiVersion": "cymonkey.plugin/v1alpha1",
-  "name": "openai-compatible",
-  "version": "1.0.0",
-  "contracts": [
-    {"name": "cymonkey.content", "version": "v1alpha1"}
-  ],
-  "platform": "darwin-arm64",
-  "command": "provider",
-  "sha256": "<sha256 of provider>"
-}
-```
-
-Generate the reviewed manifest and install each plugin through Cymonkey:
+Each binary needs a `package.json` beside it. The package name must be
+`openai-compatible`, `anthropic-compatible`, or `google-compatible`. Generate
+the reviewed manifest and install each plugin through Cymonkey:
 
 ```sh
 cymy plugins manifest --type content --name openai-compatible --version 1.0.0 \
   --command /path/to/openai-compatible/provider
 cymy plugins install \
-  --manifest /path/to/openai-compatible/plugin.json
+  --manifest /path/to/openai-compatible/package.json
 ```
 
 ## Configure

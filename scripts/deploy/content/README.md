@@ -22,7 +22,7 @@ and serve:
 
 ```sh
 cymy content runtime install --manifest /path/to/python/runtime.json
-cymy plugins install --manifest /path/to/plugin/plugin.json
+cymy plugins install --manifest /path/to/plugin/package.json
 cymy content model install --manifest /path/to/model/model.json \
   --config scripts/deploy/content/content.example.yaml
 cymy content validate \

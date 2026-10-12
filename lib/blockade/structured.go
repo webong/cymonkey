@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"providerplugin/jsonschema"
+	"github.com/webong/ext/pkg/plugin/jsonschema"
 )
 
 // StructuredEvent exposes unmodified text deltas and complete schema-valid

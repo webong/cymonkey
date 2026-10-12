@@ -12,16 +12,17 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
 	"blockade"
-	"providerplugin"
+	"github.com/webong/ext/pkg/plugin"
+	"github.com/webong/ext/pkg/plugin/packagekit"
+	"github.com/webong/ext/pkg/plugin/store"
 )
 
 func TestNormalizeProcessErrorPreservesBlockadeFailureKind(t *testing.T) {
-	err := normalizeProcessError(&providerplugin.RemoteError{
+	err := normalizeProcessError(&plugin.RemoteError{
 		Code:                   string(blockade.ProviderAdapterErrorRateLimit),
 		Message:                "capacity exhausted",
 		RetryAfterMilliseconds: 1500,
@@ -39,9 +40,9 @@ func TestNormalizeProcessErrorPreservesBlockadeFailureKind(t *testing.T) {
 // without importing or running Cymonkey.
 func TestRegisterInstalledSelectsOnlyBlockadeProviders(t *testing.T) {
 	registry := blockade.NewProviderAdapterRegistry()
-	installed := []providerplugin.Installed{
-		{Manifest: providerplugin.Manifest{APIVersion: providerplugin.APIVersion, Name: "vision", Version: "1.0.0", Contracts: []providerplugin.Contract{{Name: ContractName, Version: ContractVersion}}, Command: "provider", SHA256: strings.Repeat("0", 64)}},
-		{Manifest: providerplugin.Manifest{APIVersion: providerplugin.APIVersion, Name: "camera", Version: "1.0.0", Contracts: []providerplugin.Contract{{Name: "board.provider", Version: "v1alpha1"}}, Command: "provider", SHA256: strings.Repeat("0", 64)}},
+	installed := []store.Installed{
+		testInstalled(t, "vision", ContractName, Operations),
+		testInstalled(t, "camera", "board.provider", []string{"list"}),
 	}
 	if err := RegisterInstalled(registry, installed); err != nil {
 		t.Fatal(err)
@@ -67,18 +68,19 @@ func TestSourceLaunchPlanAcceptsHostOwnedDescriptor(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(source, "provider.py"), worker, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	descriptorDigest := sha256.Sum256(descriptor)
-	workerDigest := sha256.Sum256(worker)
-	manifest := providerplugin.Manifest{
-		APIVersion: "cymonkey.plugin/v1alpha1", Name: "source-fixture", Version: "1.0.0",
-		Contracts: []providerplugin.Contract{{Name: "host.content", Version: "v1alpha1"}},
-		Files: []providerplugin.PackageFile{
-			{Path: "content.json", SHA256: hex.EncodeToString(descriptorDigest[:])},
-			{Path: "provider.py", SHA256: hex.EncodeToString(workerDigest[:])},
-		},
+	manifest, err := packagekit.SourceManifest("source-fixture", "1.0.0",
+		[]plugin.Contract{testContract("host.content", Operations)}, source, []string{"content.json", "provider.py"})
+	if err != nil {
+		t.Fatal(err)
 	}
-	writeJSON(t, filepath.Join(source, "plugin.json"), manifest)
-	installed, err := providerplugin.Install(t.TempDir(), filepath.Join(source, "plugin.json"))
+	if err := store.WriteManifest(source, manifest); err != nil {
+		t.Fatal(err)
+	}
+	packages, err := store.New(t.TempDir(), store.Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	installed, err := packages.Install(source)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,47 +124,50 @@ func TestSourceProviderUsesBlockadeManagedRuntimeAndWorkerPool(t *testing.T) {
 	t.Setenv("BLOCKADE_RUNTIME_DIR", runtimeRoot)
 
 	providerSource := t.TempDir()
-	descriptor := []byte(`{"apiVersion":"blockade.provider-package/v1alpha1","runtime":{"name":"python","version":"3.12.8"},"entrypoint":"provider.py"}`)
+	descriptor := []byte(`{"apiVersion":"blockade.provider-package/v1alpha1","runtime":{"name":"python","version":"3.12.8"},"entrypoint":"python/provider.py"}`)
 	provider := []byte(`
 import base64, json, os, sys
 with open(os.environ["BLOCKADE_PLUGIN_MANIFEST"], encoding="utf-8") as source:
-    manifest = json.load(source)
+    package = json.load(source)
 ready = False
 for line in sys.stdin:
     request = json.loads(line)
-    method = request["method"]
-    if method == "plugin.hello": result = manifest
-    elif method == "blockade.start": ready = True; result = {}
-    elif method == "blockade.capabilities": result = {"apiVersion":"blockade.provider-adapter/v1alpha1","capabilities":["image.observe"]}
-    elif method == "blockade.health": result = {"apiVersion":"blockade.provider-adapter/v1alpha1","ready":ready}
-    elif method == "blockade.observe":
-        inner = request["params"]["request"]["request"]
+    operation = request["operation"]
+    payload = request.get("payload")
+    if operation == "plugin.hello": result = package["descriptor"]
+    elif operation == "start": ready = True; result = {}
+    elif operation == "capabilities": result = {"apiVersion":"blockade.provider-adapter/v1alpha1","capabilities":["image.observe"]}
+    elif operation == "health": result = {"apiVersion":"blockade.provider-adapter/v1alpha1","ready":ready}
+    elif operation == "observe":
+        inner = payload["request"]["request"]
         base64.b64decode(inner["image"])
         result = {"apiVersion":"blockade.provider-adapter/v1alpha1","response":{"apiVersion":"blockade.observation/v1alpha1","requestId":inner["requestId"],"observations":[{"kind":"text","label":str(os.getpid()),"confidence":1,"region":{"x":0,"y":0,"width":1,"height":1}}]}}
-    elif method == "blockade.close": ready = False; result = {}
-    else: raise RuntimeError(method)
-    print(json.dumps({"id":request["id"],"result":result}, separators=(",",":")), flush=True)
+    elif operation == "close": ready = False; result = {}
+    else: raise RuntimeError(operation)
+    print(json.dumps({"apiVersion":"ext.plugin/v1","id":request["id"],"payload":result}, separators=(",",":")), flush=True)
 `)
 	if err := os.WriteFile(filepath.Join(providerSource, "blockade.json"), descriptor, 0600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(providerSource, "provider.py"), provider, 0600); err != nil {
+	if err := os.MkdirAll(filepath.Join(providerSource, "python"), 0700); err != nil {
 		t.Fatal(err)
 	}
-	descriptorDigest := sha256.Sum256(descriptor)
-	providerDigest := sha256.Sum256(provider)
-	pluginManifest := providerplugin.Manifest{
-		APIVersion: providerplugin.APIVersion,
-		Name:       "source-vision",
-		Version:    "1.0.0",
-		Contracts:  []providerplugin.Contract{{Name: ContractName, Version: ContractVersion}},
-		Files: []providerplugin.PackageFile{
-			{Path: "blockade.json", SHA256: hex.EncodeToString(descriptorDigest[:])},
-			{Path: "provider.py", SHA256: hex.EncodeToString(providerDigest[:])},
-		},
+	if err := os.WriteFile(filepath.Join(providerSource, "python", "provider.py"), provider, 0600); err != nil {
+		t.Fatal(err)
 	}
-	writeJSON(t, filepath.Join(providerSource, "plugin.json"), pluginManifest)
-	installed, err := providerplugin.Install(t.TempDir(), filepath.Join(providerSource, "plugin.json"))
+	pluginManifest, err := packagekit.SourceManifest("source-vision", "1.0.0",
+		[]plugin.Contract{testContract(ContractName, Operations)}, providerSource, []string{"blockade.json", "python"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.WriteManifest(providerSource, pluginManifest); err != nil {
+		t.Fatal(err)
+	}
+	packages, err := store.New(t.TempDir(), store.Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	installed, err := packages.Install(providerSource)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,4 +202,37 @@ func writeJSON(t *testing.T, path string, value any) {
 	if err := os.WriteFile(path, encoded, 0600); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func testContract(name string, operations []string) plugin.Contract {
+	declared := make([]plugin.Operation, 0, len(operations))
+	for _, operation := range operations {
+		declared = append(declared, plugin.Operation{Name: operation})
+	}
+	return plugin.Contract{ContractRef: plugin.ContractRef{Name: name, Version: ContractVersion}, Operations: declared}
+}
+
+// testInstalled builds a verified executable package without running it.
+func testInstalled(t *testing.T, name, contract string, operations []string) store.Installed {
+	t.Helper()
+	source := t.TempDir()
+	if err := os.WriteFile(filepath.Join(source, "provider"), []byte("#!/bin/sh\n"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	manifest, err := packagekit.ExecutableManifest(name, "1.0.0", []plugin.Contract{testContract(contract, operations)}, filepath.Join(source, "provider"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.WriteManifest(source, manifest); err != nil {
+		t.Fatal(err)
+	}
+	packages, err := store.New(t.TempDir(), store.Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	installed, err := packages.Install(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return installed
 }

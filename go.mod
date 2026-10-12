@@ -10,8 +10,9 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	gopkg.in/yaml.v3 v3.0.1
 	jangolova v0.0.0
-	providerplugin v0.0.0
 )
+
+require github.com/webong/ext/pkg/graph v0.1.0 // indirect
 
 replace blockade => ./lib/blockade
 
@@ -21,13 +22,10 @@ replace cymonkey-content-plugin-endpoints => ./pkg/content-endpoints
 
 replace board => ./lib/board
 
-replace providerplugin => ./lib/plugin
-
 replace jangolova => ./lib/jangolova
 
 require (
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/kr/text v0.2.0 // indirect
 	github.com/pion/datachannel v1.6.3 // indirect
 	github.com/pion/dtls/v3 v3.1.9 // indirect
 	github.com/pion/ice/v4 v4.4.4 // indirect
@@ -43,7 +41,8 @@ require (
 	github.com/pion/stun/v4 v4.0.1 // indirect
 	github.com/pion/transport/v5 v5.1.1 // indirect
 	github.com/pion/turn/v5 v5.1.2 // indirect
-	github.com/pion/webrtc/v4 v4.2.22 // indirect
+	github.com/pion/webrtc/v4 v4.2.22
+	github.com/webong/ext/pkg/plugin v0.5.1
 	github.com/wlynxg/anet v0.0.5 // indirect
 	golang.org/x/crypto v0.48.0 // indirect
 	golang.org/x/net v0.50.0 // indirect

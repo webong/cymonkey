@@ -6,17 +6,27 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path"
 	"path/filepath"
 	"slices"
+	"strings"
 	"sync/atomic"
 	"time"
 
 	"blockade"
-	"providerplugin"
+	"github.com/webong/ext/pkg/plugin"
+	"github.com/webong/ext/pkg/plugin/host"
+	"github.com/webong/ext/pkg/plugin/packagekit"
+	"github.com/webong/ext/pkg/plugin/process"
+	"github.com/webong/ext/pkg/plugin/store"
 )
 
 const ContractName = "blockade.provider"
 const ContractVersion = "v1alpha1"
+
+// Operations lists every method a Blockade provider package serves.
+var Operations = []string{"start", "observe", "interpret", "capabilities", "health", "close", "model.inspect"}
 
 // Protocol lets a host expose its own plugin wire contract while this package
 // continues to implement Blockade's Go interfaces internally.
@@ -82,9 +92,9 @@ func (p Protocol) method(name string) string { return p.MethodPrefix + "." + nam
 const Kind = ContractName
 
 // RegisterInstalled selects Blockade adapters from a shared installation inventory.
-func RegisterInstalled(registry *blockade.ProviderAdapterRegistry, installed []providerplugin.Installed) error {
+func RegisterInstalled(registry *blockade.ProviderAdapterRegistry, installed []store.Installed) error {
 	for _, item := range installed {
-		if item.Manifest.Supports(ContractName, ContractVersion) {
+		if item.Supports(ContractName, ContractVersion) {
 			if err := Register(registry, item); err != nil {
 				return err
 			}
@@ -93,11 +103,11 @@ func RegisterInstalled(registry *blockade.ProviderAdapterRegistry, installed []p
 	return nil
 }
 
-func Register(registry *blockade.ProviderAdapterRegistry, installed providerplugin.Installed) error {
+func Register(registry *blockade.ProviderAdapterRegistry, installed store.Installed) error {
 	return RegisterWithProtocol(registry, installed, nativeProtocol())
 }
 
-func RegisterWithProtocol(registry *blockade.ProviderAdapterRegistry, installed providerplugin.Installed, protocol Protocol) error {
+func RegisterWithProtocol(registry *blockade.ProviderAdapterRegistry, installed store.Installed, protocol Protocol) error {
 	protocol = protocol.normalized()
 	launch, err := newLaunchPlan(installed, protocol)
 	if err != nil {
@@ -162,23 +172,55 @@ func RegisterWithProtocol(registry *blockade.ProviderAdapterRegistry, installed 
 		defer proc.Close()
 		return inspectModel(ctx, proc, runtime.Settings, model, protocol)
 	}
-	return registry.RegisterWithModelInspector(installed.Manifest.Name, factory, inspect)
+	return registry.RegisterWithModelInspector(installed.Name(), factory, inspect)
+}
+
+// packagePath returns the verified location of a package-relative path. The
+// path may name an artifact, or a file inside a tree artifact such as a
+// vendored "python" directory.
+func packagePath(installed store.Installed, relative string) (string, error) {
+	if path, err := installed.ArtifactPath(relative); err == nil {
+		return path, nil
+	}
+	clean := path.Clean(relative)
+	if clean != relative || clean == "." || path.IsAbs(clean) || strings.HasPrefix(clean, "../") {
+		return "", fmt.Errorf("package path %q must be a clean relative path", relative)
+	}
+	for _, artifact := range installed.Manifest.Artifacts {
+		if artifact.Kind != packagekit.ArtifactTree || !strings.HasPrefix(clean, artifact.Path+"/") {
+			continue
+		}
+		root, err := installed.ArtifactPath(artifact.Name)
+		if err != nil {
+			return "", err
+		}
+		target := filepath.Join(root, filepath.FromSlash(strings.TrimPrefix(clean, artifact.Path+"/")))
+		info, err := os.Stat(target)
+		if err != nil {
+			return "", err
+		}
+		if !info.Mode().IsRegular() {
+			return "", fmt.Errorf("package path %q is not a regular file", relative)
+		}
+		return target, nil
+	}
+	return "", fmt.Errorf("package has no file %q", relative)
 }
 
 type launchPlan struct {
-	installed  providerplugin.Installed
+	installed  store.Installed
 	descriptor *blockade.ProviderPackage
 }
 
-func newLaunchPlan(installed providerplugin.Installed, protocol Protocol) (launchPlan, error) {
+func newLaunchPlan(installed store.Installed, protocol Protocol) (launchPlan, error) {
 	plan := launchPlan{installed: installed}
-	if installed.Manifest.Command != "" {
+	if installed.IsExecutable() {
 		return plan, nil
 	}
 	if err := installed.Verify(); err != nil {
 		return launchPlan{}, err
 	}
-	descriptorPath, err := installed.Resource(protocol.DescriptorFile)
+	descriptorPath, err := packagePath(installed, protocol.DescriptorFile)
 	if err != nil {
 		return launchPlan{}, fmt.Errorf("source plugin descriptor: %w", err)
 	}
@@ -186,16 +228,16 @@ func newLaunchPlan(installed providerplugin.Installed, protocol Protocol) (launc
 	if err != nil {
 		return launchPlan{}, err
 	}
-	if _, err := installed.Resource(descriptor.Entrypoint); err != nil {
+	if _, err := packagePath(installed, descriptor.Entrypoint); err != nil {
 		return launchPlan{}, fmt.Errorf("source plugin entrypoint: %w", err)
 	}
 	plan.descriptor = &descriptor
 	return plan, nil
 }
 
-func (p launchPlan) open(ctx context.Context, protocol Protocol) (*providerplugin.Process, error) {
+func (p launchPlan) open(ctx context.Context, protocol Protocol) (*host.Process, error) {
 	if p.descriptor == nil {
-		return providerplugin.Open(ctx, p.installed)
+		return host.Open(ctx, p.installed, host.Options{})
 	}
 	root := protocol.RuntimeRoot
 	if root == "" {
@@ -209,23 +251,23 @@ func (p launchPlan) open(ctx context.Context, protocol Protocol) (*providerplugi
 	if err != nil {
 		return nil, fmt.Errorf("resolve Blockade runtime %s@%s: %w", p.descriptor.Runtime.Name, p.descriptor.Runtime.Version, err)
 	}
-	entrypoint, err := p.installed.Resource(p.descriptor.Entrypoint)
+	entrypoint, err := packagePath(p.installed, p.descriptor.Entrypoint)
 	if err != nil {
 		return nil, err
 	}
-	return providerplugin.OpenCommand(ctx, p.installed, providerplugin.Command{
-		Executable: runtime.ExecutablePath(),
-		Arguments:  []string{"-B", entrypoint},
-		Environment: []string{
+	return host.Open(ctx, p.installed, host.Options{Launch: &process.Command{
+		Path: runtime.ExecutablePath(),
+		Args: []string{"-B", entrypoint},
+		Env: []string{
 			"PYTHONNOUSERSITE=1",
 			"PYTHONDONTWRITEBYTECODE=1",
-			protocol.ManifestEnvironment + "=" + filepath.Join(p.installed.Directory, "plugin.json"),
+			protocol.ManifestEnvironment + "=" + filepath.Join(p.installed.Directory, store.ManifestName),
 		},
-	})
+	}})
 }
 
 type processPool struct {
-	processes []*providerplugin.Process
+	processes []*host.Process
 	next      atomic.Uint64
 }
 
@@ -241,7 +283,7 @@ func normalizeProcessError(err error) error {
 	if err == nil {
 		return nil
 	}
-	var remote *providerplugin.RemoteError
+	var remote *plugin.RemoteError
 	if !errors.As(err, &remote) {
 		return err
 	}
@@ -317,7 +359,7 @@ func (a *adapter) interpret(ctx context.Context, request blockade.ProviderAdapte
 	return result, err
 }
 
-func inspectModel(ctx context.Context, proc *providerplugin.Process, settings map[string]string, model blockade.InstalledModel, protocol Protocol) error {
+func inspectModel(ctx context.Context, proc *host.Process, settings map[string]string, model blockade.InstalledModel, protocol Protocol) error {
 	var result struct {
 		APIVersion string `json:"apiVersion"`
 		Compatible bool   `json:"compatible"`

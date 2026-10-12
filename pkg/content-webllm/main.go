@@ -3,24 +3,25 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"blockade"
 	webllmruntime "cymonkey-content-plugin-webllm/runtime"
-	"providerplugin"
-	"providerplugin/wirebridge"
+	"github.com/webong/ext/pkg/plugin"
+	"github.com/webong/ext/pkg/plugin/jsonline"
+	"github.com/webong/ext/pkg/plugin/packagekit"
+	"github.com/webong/ext/pkg/plugin/store"
+	"wirebridge"
 )
 
 var contentWire = wirebridge.Mapping{
-	PublicPrefix: "cymonkey.content.", InternalPrefix: "blockade.",
+	PublicPrefix: "cymonkey.content.", InternalPrefix: "blockade.", NativePrefix: "blockade.provider.",
 	ToInternal: map[string]string{
 		"cymonkey.content-adapter/v1alpha1":    blockade.ProviderAdapterAPIVersion,
 		"cymonkey.observation/v1alpha1":        blockade.APIVersion,
@@ -41,77 +42,41 @@ const (
 	blockadeContract        = "blockade.provider"
 	cymonkeyContentContract = "cymonkey.content"
 	blockadeContractVersion = "v1alpha1"
-	maxFrame                = 24 << 20
 )
 
-type rpcRequest struct {
-	ID     uint64          `json:"id"`
-	Method string          `json:"method"`
-	Params json.RawMessage `json:"params,omitempty"`
-}
-
-type rpcResponse struct {
-	ID     uint64 `json:"id"`
-	Result any    `json:"result,omitempty"`
-	Error  string `json:"error,omitempty"`
-}
-
 type provider struct {
-	manifest providerplugin.Manifest
-	adapter  blockade.ProviderAdapter
+	descriptor plugin.Descriptor
+	adapter    blockade.ProviderAdapter
 }
 
 func main() {
-	manifest, err := loadPluginManifest(filepath.Join(filepath.Dir(os.Args[0]), "plugin.json"))
+	descriptor, err := loadPluginDescriptor(filepath.Join(filepath.Dir(os.Args[0]), store.ManifestName))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
 	}
-	if err := (&provider{manifest: manifest}).serve(context.Background(), os.Stdin, os.Stdout); err != nil {
+	if err := serveProvider(context.Background(), descriptor); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func loadPluginManifest(path string) (providerplugin.Manifest, error) {
-	manifest, err := providerplugin.LoadManifest(path)
+func loadPluginDescriptor(path string) (plugin.Descriptor, error) {
+	descriptor, err := packagekit.LoadDescriptor(path)
 	if err != nil {
-		return providerplugin.Manifest{}, err
+		return plugin.Descriptor{}, err
 	}
+	manifest := packagekit.Manifest{Descriptor: descriptor}
 	if !manifest.Supports(blockadeContract, blockadeContractVersion) && !manifest.Supports(cymonkeyContentContract, blockadeContractVersion) {
-		return providerplugin.Manifest{}, errors.New("plugin manifest does not declare a supported content contract")
+		return plugin.Descriptor{}, errors.New("plugin manifest does not declare a supported content contract")
 	}
-	return manifest, nil
+	return descriptor, nil
 }
 
-func (p *provider) serve(ctx context.Context, input io.Reader, output io.Writer) error {
-	scanner := bufio.NewScanner(input)
-	scanner.Buffer(make([]byte, 4096), maxFrame)
-	writer := bufio.NewWriter(output)
+func serveProvider(ctx context.Context, descriptor plugin.Descriptor) error {
+	p := &provider{descriptor: descriptor}
 	defer p.close()
-	for scanner.Scan() {
-		var request rpcRequest
-		if err := json.Unmarshal(scanner.Bytes(), &request); err != nil {
-			return fmt.Errorf("decode plugin request: %w", err)
-		}
-		result, err := p.call(ctx, request.Method, request.Params)
-		response := rpcResponse{ID: request.ID, Result: result}
-		if err != nil {
-			response.Result = nil
-			response.Error = err.Error()
-		}
-		encoded, err := json.Marshal(response)
-		if err != nil {
-			return err
-		}
-		if _, err := writer.Write(append(encoded, '\n')); err != nil {
-			return err
-		}
-		if err := writer.Flush(); err != nil {
-			return err
-		}
-	}
-	return scanner.Err()
+	return jsonline.ServeFunc(ctx, descriptor, p.call, jsonline.FuncOptions{})
 }
 
 func (p *provider) call(ctx context.Context, method string, raw json.RawMessage) (any, error) {
@@ -122,8 +87,6 @@ func (p *provider) call(ctx context.Context, method string, raw json.RawMessage)
 
 func (p *provider) callLibrary(ctx context.Context, method string, raw json.RawMessage) (any, error) {
 	switch method {
-	case "plugin.hello":
-		return p.manifest, nil
 	case "blockade.start":
 		if p.adapter != nil {
 			return nil, errors.New("provider is already started")

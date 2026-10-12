@@ -3,7 +3,6 @@
 package contracts
 
 const (
-	PluginManifestVersion     = "cymonkey.plugin/v1alpha1"
 	ContentAPIVersion         = "cymonkey.content/v1alpha1"
 	ContentAdapterVersion     = "cymonkey.content-adapter/v1alpha1"
 	ObservationRequestVersion = "cymonkey.observation/v1alpha1"

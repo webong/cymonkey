@@ -49,12 +49,12 @@ type imageSource struct {
 }
 
 func main() {
-	manifest, err := providerexec.LoadManifest(os.Args[0])
+	descriptor, err := providerexec.LoadDescriptor(os.Args[0])
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
 	}
-	if err := providerexec.Serve(context.Background(), manifest, &provider{}, os.Stdin, os.Stdout); err != nil {
+	if err := providerexec.Serve(context.Background(), descriptor, &provider{}); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

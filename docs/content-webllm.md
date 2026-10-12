@@ -23,12 +23,13 @@ API.
 
 ## Install
 
-Build the plugin and create `plugin.json` beside it using the executable's
-real SHA-256:
+Build the plugin and generate `package.json` beside it with Cymy:
 
 ```sh
 go build -o /tmp/webllm-provider ./pkg/content-webllm
-cymy plugins install --manifest /path/to/webllm/plugin.json
+cymy plugins manifest --type content --name webllm --version 1.0.0 \
+  --command /tmp/webllm-provider
+cymy plugins install --manifest /tmp/package.json
 ```
 
 The manifest name should be `webllm` and its contract should be

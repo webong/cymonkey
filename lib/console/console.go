@@ -17,7 +17,7 @@ import (
 	"strings"
 	"sync"
 
-	"providerplugin/jsonschema"
+	"github.com/webong/ext/pkg/plugin/jsonschema"
 )
 
 var (

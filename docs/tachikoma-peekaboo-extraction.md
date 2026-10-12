@@ -20,7 +20,7 @@ model or desktop acceptance. Full upstream feature parity is not claimed.
 | `lib/board/capture` | Finite image processing, native capture bridge, frame sampling, manifests and caller-supplied video decoding |
 | `lib/board/clipboard` | Clipboard snapshots, conditional writes and Board resource grants |
 | `lib/board/audio` | Device interfaces and finite PCM16/WAV conversion |
-| `lib/plugin/jsonschema` | Shared bounded offline schema validation |
+| `github.com/webong/ext/pkg/plugin/jsonschema` | Shared bounded offline schema validation (ext) |
 | `pkg/content-endpoints` | Explicitly selected HTTP/WebSocket protocols, credentials and native model options |
 | `pkg/macos-helper` | Native AX, capture, targeted input and clipboard implementation |
 | `src/console_command.go` | Host configuration, borrowed operator resources, CLI, listener/authentication and artifact destinations |

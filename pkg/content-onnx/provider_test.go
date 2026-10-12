@@ -7,11 +7,11 @@ import (
 	"testing"
 
 	"blockade"
-	"providerplugin"
+	"github.com/webong/ext/pkg/plugin"
 )
 
 func TestModelInspectionRejectsWrongArtifactWithoutStarting(t *testing.T) {
-	p := &provider{manifest: providerplugin.Manifest{APIVersion: providerplugin.APIVersion, Name: "onnx", Contracts: []providerplugin.Contract{{Name: blockadeContract, Version: blockadeContractVersion}}}}
+	p := &provider{descriptor: plugin.Descriptor{Identity: plugin.Identity{ID: "onnx"}}}
 	model := blockade.InstalledModel{Manifest: blockade.ModelManifest{
 		APIVersion: blockade.ModelManifestAPIVersion,
 		Name:       "detector", Version: "1.0.0", Provider: "onnx",
@@ -33,7 +33,7 @@ func TestModelInspectionRejectsWrongArtifactWithoutStarting(t *testing.T) {
 }
 
 func TestStartRequiresInstalledModel(t *testing.T) {
-	p := &provider{manifest: providerplugin.Manifest{APIVersion: providerplugin.APIVersion, Name: "onnx", Contracts: []providerplugin.Contract{{Name: blockadeContract, Version: blockadeContractVersion}}}}
+	p := &provider{descriptor: plugin.Descriptor{Identity: plugin.Identity{ID: "onnx"}}}
 	params, _ := json.Marshal(map[string]any{"id": "detector", "settings": map[string]string{}})
 	if _, err := p.call(context.Background(), "blockade.start", params); err == nil {
 		t.Fatal("expected start without model to fail")

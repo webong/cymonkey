@@ -3,8 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
@@ -18,11 +16,12 @@ import (
 
 	"blockade"
 	"board"
-	"cymonkey/src/contracts"
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
+	"github.com/webong/ext/pkg/plugin"
+	"github.com/webong/ext/pkg/plugin/packagekit"
+	"github.com/webong/ext/pkg/plugin/store"
 	"jangolova/sdk"
-	"providerplugin"
 )
 
 func TestExecutablePluginsAcrossLibraries(t *testing.T) {
@@ -38,17 +37,14 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	digest := sha256.Sum256(data)
 	for _, item := range []struct {
 		name, contract string
-		legacy         bool
 	}{
-		{"display-fixture", displayPluginContract, false},
-		{"vision-fixture", contentPluginContract, false},
-		{"content-fixture", contentPluginContract, false},
-		{"legacy-vision-fixture", contentPluginContract, true},
-		{"device-fixture", devicePluginContract, false},
-		{"future-fixture", "future.provider", false},
+		{"display-fixture", displayPluginContract},
+		{"vision-fixture", contentPluginContract},
+		{"content-fixture", contentPluginContract},
+		{"device-fixture", devicePluginContract},
+		{"future-fixture", "future.provider"},
 	} {
 		source := filepath.Join(root, item.name)
 		if err := os.Mkdir(source, 0700); err != nil {
@@ -57,14 +53,16 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(source, "provider"), data, 0700); err != nil {
 			t.Fatal(err)
 		}
-		m := providerplugin.Manifest{APIVersion: contracts.PluginManifestVersion, Name: item.name, Version: "1.0.0", Command: "provider", SHA256: hex.EncodeToString(digest[:])}
-		if item.legacy {
-			m.Kind = item.contract
-		} else {
-			m.Contracts = []providerplugin.Contract{{Name: item.contract, Version: "v1alpha1"}}
+		contract := pluginContract(item.contract)
+		if len(contract.Operations) == 0 {
+			contract.Operations = []plugin.Operation{{Name: "noop"}}
+		}
+		m, err := packagekit.ExecutableManifest(item.name, "1.0.0", []plugin.Contract{contract}, filepath.Join(source, "provider"))
+		if err != nil {
+			t.Fatal(err)
 		}
 		encoded, _ := json.Marshal(m)
-		manifestPath := filepath.Join(source, "plugin.json")
+		manifestPath := filepath.Join(source, store.ManifestName)
 		if err := os.WriteFile(manifestPath, encoded, 0600); err != nil {
 			t.Fatal(err)
 		}
@@ -76,7 +74,7 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 	if err := pluginsCommand([]string{"list"}, &listed, io.Discard); err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Contains(listed.Bytes(), []byte("display-fixture")) || !bytes.Contains(listed.Bytes(), []byte("vision-fixture")) || !bytes.Contains(listed.Bytes(), []byte("content-fixture")) || !bytes.Contains(listed.Bytes(), []byte("legacy-vision-fixture")) || !bytes.Contains(listed.Bytes(), []byte("device-fixture")) || !bytes.Contains(listed.Bytes(), []byte("future-fixture")) {
+	if !bytes.Contains(listed.Bytes(), []byte("display-fixture")) || !bytes.Contains(listed.Bytes(), []byte("vision-fixture")) || !bytes.Contains(listed.Bytes(), []byte("content-fixture")) || !bytes.Contains(listed.Bytes(), []byte("device-fixture")) || !bytes.Contains(listed.Bytes(), []byte("future-fixture")) {
 		t.Fatalf("installed inventory: %s", listed.String())
 	}
 
@@ -165,17 +163,6 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 	if err := contentOnly.Close(); err != nil {
 		t.Fatal(err)
 	}
-	legacyImage, err := blockade.StartConfiguredProviderAdapter(context.Background(), blockade.ProviderAdapterConfig{ID: "legacy-vision", Provider: "legacy-vision-fixture"}, vision, blockade.EnvironmentSecretResolver{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := legacyImage.Observe(context.Background(), blockade.ObserveRequest{Image: []byte("image")}); err != nil {
-		t.Fatalf("legacy image plugin observation: %v", err)
-	}
-	if err := legacyImage.Close(); err != nil {
-		t.Fatal(err)
-	}
-
 	providers, err := devicePluginAdapters()
 	if err != nil {
 		t.Fatal(err)
@@ -248,18 +235,13 @@ func TestStandaloneOnnxProviderUsesExecutableBoundary(t *testing.T) {
 	if output, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build ONNX provider: %v\n%s", err, output)
 	}
-	data, err := os.ReadFile(executable)
+	pluginManifest, err := packagekit.ExecutableManifest("onnx", "1.0.0",
+		[]plugin.Contract{pluginContract(contentPluginContract)}, executable)
 	if err != nil {
 		t.Fatal(err)
 	}
-	digest := sha256.Sum256(data)
-	pluginManifest := providerplugin.Manifest{
-		APIVersion: contracts.PluginManifestVersion, Name: "onnx", Version: "1.0.0",
-		Contracts: []providerplugin.Contract{{Name: contentPluginContract, Version: pluginContractVersion}},
-		Command:   "provider", SHA256: hex.EncodeToString(digest[:]),
-	}
 	encoded, _ := json.Marshal(pluginManifest)
-	manifestPath := filepath.Join(source, "plugin.json")
+	manifestPath := filepath.Join(source, store.ManifestName)
 	if err := os.WriteFile(manifestPath, encoded, 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -288,4 +270,66 @@ func fixtureSourcePath(t *testing.T) string {
 		t.Fatal("resolve fixture source")
 	}
 	return path
+}
+
+func TestSourcePackageManifestInstallsEveryListedFile(t *testing.T) {
+	t.Setenv("CYMONKEY_PLUGIN_DIR", filepath.Join(t.TempDir(), "installed"))
+	root := t.TempDir()
+	staged := filepath.Join(t.TempDir(), "package")
+	for name, content := range map[string]string{
+		"content.json":                 `{"apiVersion":"x"}`,
+		"python/provider.py":           "print('provider')\n",
+		"python/lib/helper.py":         "VALUE = 1\n",
+		"python/__pycache__/cache.pyc": "ignored",
+	} {
+		path := filepath.Join(root, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(root, "python", "run.sh"), []byte("#!/bin/sh\n"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(root, "python", "provider.py"), filepath.Join(root, "python", "linked.py")); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if err := pluginsCommand([]string{"manifest", "--type", "content", "--name", "source-fixture", "--version", "1.0.0", "--root", root, "--file", "content.json", "--dir", "python", "--stage", staged}, &out, io.Discard); err != nil {
+		t.Fatal(err)
+	}
+	manifest, err := os.ReadFile(filepath.Join(staged, store.ManifestName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The python directory is one tree artifact, not one entry per file.
+	for _, want := range []string{`"path": "content.json"`, `"path": "python"`, `"kind": "tree"`} {
+		if !strings.Contains(string(manifest), want) {
+			t.Fatalf("manifest lacks %s:\n%s", want, manifest)
+		}
+	}
+	if strings.Contains(string(manifest), "provider.py") {
+		t.Fatalf("tree contents were listed individually:\n%s", manifest)
+	}
+	if strings.Contains(string(manifest), "pycache") {
+		t.Fatal("bytecode cache was included")
+	}
+	if info, err := os.Lstat(filepath.Join(staged, "python", "linked.py")); err != nil || !info.Mode().IsRegular() {
+		t.Fatalf("a symlink was not materialized: %v %v", info, err)
+	}
+	if info, err := os.Stat(filepath.Join(staged, "python", "run.sh")); err != nil || info.Mode().Perm()&0o100 == 0 {
+		t.Fatalf("the owner-execute bit was lost: %v %v", info, err)
+	}
+	if err := pluginsCommand([]string{"install", "--manifest", staged}, io.Discard, io.Discard); err != nil {
+		t.Fatal(err)
+	}
+	var listed bytes.Buffer
+	if err := pluginsCommand([]string{"list"}, &listed, io.Discard); err != nil || !strings.Contains(listed.String(), "source-fixture") {
+		t.Fatalf("list = %s %v", listed.String(), err)
+	}
+	if err := pluginsCommand([]string{"manifest", "--type", "content", "--name", "x", "--version", "1", "--command", "/bin/sh", "--root", root}, io.Discard, io.Discard); err == nil {
+		t.Fatal("--command and --root were accepted together")
+	}
 }

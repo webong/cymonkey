@@ -1,7 +1,6 @@
 package providerexec
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
@@ -10,14 +9,14 @@ import (
 	"strings"
 
 	"blockade"
-	"providerplugin"
-	"providerplugin/wirebridge"
+	"github.com/webong/ext/pkg/plugin"
+	"github.com/webong/ext/pkg/plugin/jsonline"
+	"github.com/webong/ext/pkg/plugin/packagekit"
+	"wirebridge"
 )
 
-const maxFrame = 24 << 20
-
 var contentWire = wirebridge.Mapping{
-	PublicPrefix: "cymonkey.content.", InternalPrefix: "blockade.",
+	PublicPrefix: "cymonkey.content.", InternalPrefix: "blockade.", NativePrefix: "blockade.provider.",
 	ToInternal: map[string]string{
 		"cymonkey.content-adapter/v1alpha1":    blockade.ProviderAdapterAPIVersion,
 		"cymonkey.observation/v1alpha1":        blockade.APIVersion,
@@ -48,67 +47,30 @@ type Provider interface {
 	Close() error
 }
 
-type request struct {
-	ID     uint64          `json:"id"`
-	Method string          `json:"method"`
-	Params json.RawMessage `json:"params,omitempty"`
-}
-
-type failure struct {
-	Code                   string `json:"code,omitempty"`
-	Message                string `json:"message"`
-	RetryAfterMilliseconds int64  `json:"retryAfterMilliseconds,omitempty"`
-}
-
-type response struct {
-	ID     uint64   `json:"id"`
-	Result any      `json:"result,omitempty"`
-	Error  *failure `json:"error,omitempty"`
-}
-
-func Serve(ctx context.Context, manifest providerplugin.Manifest, provider Provider, input io.Reader, output io.Writer) error {
+// Serve answers the ext handshake and runs the provider on stdin and stdout.
+func Serve(ctx context.Context, descriptor plugin.Descriptor, provider Provider) error {
+	manifest := packagekit.Manifest{Descriptor: descriptor}
 	if !manifest.Supports("blockade.provider", "v1alpha1") && !manifest.Supports("cymonkey.content", "v1alpha1") {
 		return errors.New("plugin manifest does not declare a supported content contract")
 	}
-	scanner := bufio.NewScanner(input)
-	scanner.Buffer(make([]byte, 4096), maxFrame)
-	writer := bufio.NewWriter(output)
 	defer provider.Close()
-	for scanner.Scan() {
-		var request request
-		if err := json.Unmarshal(scanner.Bytes(), &request); err != nil {
-			return fmt.Errorf("decode plugin request: %w", err)
-		}
-		result, err := call(ctx, manifest, provider, request.Method, request.Params)
-		response := response{ID: request.ID, Result: result}
+	return jsonline.ServeFunc(ctx, descriptor, func(ctx context.Context, method string, raw json.RawMessage) (any, error) {
+		result, err := call(ctx, provider, method, raw)
 		if err != nil {
-			response.Result = nil
-			response.Error = encodeFailure(err)
+			return nil, encodeFailure(err)
 		}
-		encoded, err := json.Marshal(response)
-		if err != nil {
-			return err
-		}
-		if _, err := writer.Write(append(encoded, '\n')); err != nil {
-			return err
-		}
-		if err := writer.Flush(); err != nil {
-			return err
-		}
-	}
-	return scanner.Err()
+		return result, nil
+	}, jsonline.FuncOptions{})
 }
 
-func call(ctx context.Context, manifest providerplugin.Manifest, provider Provider, method string, raw json.RawMessage) (any, error) {
+func call(ctx context.Context, provider Provider, method string, raw json.RawMessage) (any, error) {
 	return contentWire.WrapCall(method, raw, func(method string, raw json.RawMessage) (any, error) {
-		return callLibrary(ctx, manifest, provider, method, raw)
+		return callLibrary(ctx, provider, method, raw)
 	})
 }
 
-func callLibrary(ctx context.Context, manifest providerplugin.Manifest, provider Provider, method string, raw json.RawMessage) (any, error) {
+func callLibrary(ctx context.Context, provider Provider, method string, raw json.RawMessage) (any, error) {
 	switch method {
-	case "plugin.hello":
-		return manifest, nil
 	case "blockade.start":
 		var params StartRequest
 		if err := decodeParams(raw, &params); err != nil {
@@ -164,8 +126,8 @@ func invalidRequest(err error) error {
 	return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, err)
 }
 
-func encodeFailure(err error) *failure {
-	result := &failure{Code: string(blockade.ProviderAdapterErrorUnavailable), Message: "provider failed"}
+func encodeFailure(err error) *plugin.RemoteError {
+	result := &plugin.RemoteError{Code: string(blockade.ProviderAdapterErrorUnavailable), Message: "provider failed"}
 	var adapterError *blockade.ProviderAdapterError
 	if !errors.As(err, &adapterError) {
 		return result

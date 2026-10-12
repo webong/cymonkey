@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"blockade"
-	"providerplugin/jsonschema"
+	"github.com/webong/ext/pkg/plugin/jsonschema"
 )
 
 // Native options use the selected API dialect's names. Only documented fields

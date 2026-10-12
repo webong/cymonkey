@@ -189,12 +189,11 @@ Console libraries live under root `lib/`; `src/main.go` is the single Cymonkey
 interface binary. `pkg/` remains the distribution surface for runtime packages and platform
 products, while `tests/` remains the conformance and fixture surface. The
 Jangolova, Blockade, Board, and Console libraries are separate Go modules
-(`jangolova`, `blockade`, `board`, and `console`). They share the neutral
-`providerplugin` transport module and join the Cymonkey module through `go.work`
-and local replacements.
+(`jangolova`, `blockade`, `board`, and `console`). They share the ext plugin
+system (`github.com/webong/ext/pkg/plugin`) and join the Cymonkey module through
+`go.work` and local replacements.
 Each library's plugin adapter selects the native executable contracts it understands;
-`providerplugin` checks package structure and integrity without enumerating
-libraries. Cymonkey owns the command handlers, shared plugin directory, and
+ext checks package structure and integrity without enumerating libraries. Cymonkey owns the command handlers, shared plugin directory, and
 public `cymonkey.*` wire contracts. Its composition adapters translate to the
 native library contracts at the executable boundary.
 

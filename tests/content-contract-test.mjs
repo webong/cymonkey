@@ -15,12 +15,12 @@ assert.equal(providerSchema.$defs.modelInspectRequest.properties.settings.type, 
 for (const source of [onnx, webllm]) {
   assert.match(source, /PublicPrefix:\s*"cymonkey\.content\."/);
   assert.match(source, /cymonkeyContentContract\s*=\s*"cymonkey\.content"/);
-  assert.match(source, /providerplugin\.LoadManifest/);
+  assert.match(source, /packagekit\.LoadDescriptor/);
 }
 assert.match(onnx, /cymonkey\.content-adapter\/v1alpha1/);
 assert.match(ultralytics, /method\.startswith\("cymonkey\.content\."\)/);
 assert.match(ultralytics, /method\.removeprefix\("cymonkey\.content\."\)/);
 assert.match(ultralytics, /CYMONKEY_PLUGIN_MANIFEST/);
 assert.match(endpointServer, /PublicPrefix:\s*"cymonkey\.content\."/);
-assert.match(endpointServer, /retryAfterMilliseconds/);
+assert.match(endpointServer, /RetryAfterMilliseconds/);
 console.log("Cymonkey content contract checks passed");

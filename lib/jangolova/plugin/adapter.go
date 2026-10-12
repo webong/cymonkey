@@ -9,17 +9,21 @@ import (
 	"sync"
 	"time"
 
+	"github.com/webong/ext/pkg/plugin/host"
+	"github.com/webong/ext/pkg/plugin/store"
 	"jangolova/sdk"
-	"providerplugin"
 )
 
 type Adapter struct {
-	Installed    providerplugin.Installed
+	Installed    store.Installed
 	MethodPrefix string
 }
 
 const ContractName = "jangolova.engine"
 const ContractVersion = "v1alpha1"
+
+// Operations lists every method a Jangolova engine package serves.
+var Operations = []string{"inspect", "connect", "call", "authorize", "health", "disconnect", "events", "material"}
 
 func (a Adapter) method(name string) string {
 	prefix := a.MethodPrefix
@@ -39,18 +43,18 @@ type NamedAdapter struct {
 }
 
 // Adapters selects Jangolova engines from a shared installation inventory.
-func Adapters(installed []providerplugin.Installed) []NamedAdapter {
+func Adapters(installed []store.Installed) []NamedAdapter {
 	var adapters []NamedAdapter
 	for _, item := range installed {
-		if item.Manifest.Supports(ContractName, ContractVersion) {
-			adapters = append(adapters, NamedAdapter{Name: item.Manifest.Name, Adapter: Adapter{Installed: item}})
+		if item.Supports(ContractName, ContractVersion) {
+			adapters = append(adapters, NamedAdapter{Name: item.Name(), Adapter: Adapter{Installed: item}})
 		}
 	}
 	return adapters
 }
 
 func (a Adapter) InspectEngine(ctx context.Context) sdk.EngineInspection {
-	proc, err := providerplugin.Open(ctx, a.Installed)
+	proc, err := host.Open(ctx, a.Installed, host.Options{})
 	if err != nil {
 		return sdk.EngineInspection{Available: false, Message: err.Error()}
 	}
@@ -82,7 +86,7 @@ type wireTarget struct {
 }
 
 func (a Adapter) Connect(ctx context.Context, spec sdk.EngineSpec, target sdk.EngineTarget) (sdk.EngineInstance, error) {
-	proc, err := providerplugin.Open(ctx, a.Installed)
+	proc, err := host.Open(ctx, a.Installed, host.Options{})
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +115,7 @@ func (a Adapter) Connect(ctx context.Context, spec sdk.EngineSpec, target sdk.En
 }
 
 type session struct {
-	proc         *providerplugin.Process
+	proc         *host.Process
 	methodPrefix string
 	target       sdk.EngineTarget
 	capabilities []string

@@ -10,6 +10,9 @@ import (
 )
 
 type Mapping struct {
+	// NativePrefix is the declared native contract ("blockade.provider.") whose
+	// methods need no translation beyond the internal prefix.
+	NativePrefix   string
 	PublicPrefix   string
 	InternalPrefix string
 	ToInternal     map[string]string
@@ -21,6 +24,9 @@ type Mapping struct {
 func (mapping Mapping) NormalizeMethod(method string) (string, bool, error) {
 	if strings.HasPrefix(method, mapping.PublicPrefix) {
 		return mapping.InternalPrefix + strings.TrimPrefix(method, mapping.PublicPrefix), true, nil
+	}
+	if mapping.NativePrefix != "" && strings.HasPrefix(method, mapping.NativePrefix) {
+		return mapping.InternalPrefix + strings.TrimPrefix(method, mapping.NativePrefix), false, nil
 	}
 	if strings.HasPrefix(method, mapping.InternalPrefix) || method == "plugin.hello" {
 		return method, false, nil

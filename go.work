@@ -6,8 +6,8 @@ use (
 	./lib/board
 	./lib/console
 	./lib/jangolova
-	./lib/plugin
-	./pkg/content-onnx
+	./pkg/wirebridge
 	./pkg/content-endpoints
+	./pkg/content-onnx
 	./pkg/content-webllm
 )

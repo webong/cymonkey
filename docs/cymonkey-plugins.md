@@ -1,8 +1,12 @@
 # Cymonkey plugins
 
-Cymonkey has one installer and process transport for optional display, content,
-and device plugins. Plugin authors implement a Cymonkey contract. Adapters at
-the composition edge convert those requests to the internal library interfaces.
+Cymonkey builds on the [ext plugin system](https://github.com/webong/ext/tree/main/pkg/plugin)
+for optional display, content, and device plugins. ext owns the package format
+(`ext.package/v1`), the verified package store, the process backend, the
+handshake, and the JSON-line transport. Cymonkey supplies the domain contracts
+and maps its `<contract>.<operation>` method names onto ext sessions.
+Plugin authors implement a Cymonkey contract. Adapters at the composition edge
+convert those requests to the internal library interfaces.
 
 The installer verifies packages and manages their lifecycle. It does not
 contain a catalog of model runtimes, display engines, or device drivers.
@@ -16,31 +20,31 @@ cymy plugins manifest --type content --name onnx --version 1.0.0 \
   --command /path/to/plugin
 ```
 
-The resulting `plugin.json` uses the generic package schema and a Cymonkey
-contract:
+Cymy writes `package.json` beside the executable. It declares one package
+identity, one entrypoint, and the contract with every operation it serves:
 
 ```json
 {
-  "apiVersion": "cymonkey.plugin/v1alpha1",
-  "name": "onnx",
-  "version": "1.0.0",
-  "contracts": [
-    {"name": "cymonkey.content", "version": "v1alpha1"}
-  ],
-  "platform": "darwin-arm64",
-  "command": "plugin",
-  "sha256": "<sha256 of plugin>"
+  "apiVersion": "ext.package/v1",
+  "descriptor": {
+    "apiVersion": "ext.plugin/v1",
+    "identity": {"id": "onnx", "version": "1.0.0", "revision": "sha256:<digest>"},
+    "contracts": [
+      {"name": "cymonkey.content", "version": "v1alpha1",
+       "operations": [{"name": "start"}, {"name": "observe"}, "..."]}
+    ]
+  },
+  "artifacts": [{"name": "executable", "path": "plugin", "sha256": "<digest>", "os": "darwin", "arch": "arm64"}],
+  "entrypoints": [{"name": "main", "runtime": "process", "artifact": "executable", "protocols": ["jsonline.v1"]}]
 }
 ```
 
 | Field | Meaning |
 | --- | --- |
-| `name` | Installed plugin name, such as `onnx`. |
-| `version` | Package release version. |
-| `contracts` | Versioned Cymonkey protocols implemented by the package. |
-| `platform` | Optional `GOOS-GOARCH` restriction. |
-| `command` | Executable filename beside `plugin.json`; never interpreted by a shell. |
-| `sha256` | Digest checked during installation and before every launch. |
+| `descriptor.identity` | Installed plugin ID, release version, and an immutable revision. The revision changes with any content change. |
+| `descriptor.contracts` | Exact contract versions the package serves, each with its operations. |
+| `artifacts` | Every file in the package with its digest. An unlisted file fails verification. |
+| `entrypoints` | The executable to start. A package without entrypoints is source-only; the domain library supplies the runtime. |
 
 Current contracts are:
 
@@ -50,23 +54,25 @@ Current contracts are:
 | `cymonkey.content@v1alpha1` | Content observation and interpretation plugin |
 | `cymonkey.device@v1alpha1` | Input and output device plugin |
 
-The original `kind` field is read only for legacy manifests. New manifests use
-`contracts`.
+The original `plugin.json` format and its `kind` field are gone. Rebuild
+manifests with `cymy plugins manifest`.
 
 ## Lifecycle
 
 ```sh
-cymy plugins install --manifest /path/to/plugin.json
+cymy plugins install --manifest /path/to/package.json
 cymy plugins list
-cymy plugins upgrade --manifest /path/to/new/plugin.json
+cymy plugins upgrade --manifest /path/to/new/package.json
 cymy plugins remove onnx
 ```
 
-Install and upgrade read local files, verify every declared payload, and copy
-them into the Cymonkey plugin directory. They do not execute the plugin. Set
-`CYMONKEY_PLUGIN_DIR` to override that directory.
+`--manifest` accepts `package.json` or its directory. Install and upgrade read
+local files, verify every declared artifact, and copy them into the Cymonkey
+plugin directory. They do not execute the plugin. An upgrade must keep the same
+contracts and carry a new revision, and the old install survives any failure.
+Set `CYMONKEY_PLUGIN_DIR` to override that directory.
 
-Runtime discovery verifies payload digests again. The domain edge then selects
+Runtime discovery verifies artifact digests again. The domain edge then selects
 packages by contract:
 
 - display plugins become display adapters;
@@ -75,43 +81,41 @@ packages by contract:
 
 ## Process transport
 
-Requests and responses are newline-delimited JSON. Standard error is diagnostic
-output. Cymonkey starts commands directly, without a shell, and passes a small
-environment. Secrets and connection material use explicit request fields.
+Cymonkey starts the entrypoint directly, without a shell, with a scrubbed
+environment (`PATH`, plus `SystemRoot` on Windows, plus explicit extras).
+Standard error is diagnostic output. Secrets and connection material use
+explicit request fields.
 
-The first request is always:
+The first exchange is the ext `plugin.hello` handshake. The provider answers
+with its descriptor, and the host requires an exact match with the installed
+package. Each call is an ext envelope carrying the plugin identity, contract,
+operation, deadline, and payload. Calls are serialized within one process, and
+frames are limited to 24 MiB. A cancellation or timeout terminates the process.
+Providers written in Go use ext's `jsonline.ServeFunc`, and Python providers
+use ext's `ext_plugin` guest SDK (vendored under
+`pkg/content-ultralytics/python/ext_plugin`).
 
-```json
-{"id":1,"method":"plugin.hello"}
-```
+After the handshake, operations belong to the declared Cymonkey domain:
 
-The result must exactly identify the installed manifest. Calls are serialized
-within one process, response IDs must match, and frames are limited to 24 MiB.
-A cancellation or timeout terminates the process.
-
-After the handshake, methods use the declared Cymonkey domain:
-
-| Contract | Methods |
+| Contract | Operations |
 | --- | --- |
-| Display | `cymonkey.display.inspect`, `.connect`, `.authorize`, `.call`, `.health`, `.events`, `.material`, `.disconnect` |
-| Content | `cymonkey.content.start`, `.model.inspect`, `.observe`, `.interpret`, `.health`, `.capabilities`, `.close` |
-| Device | `cymonkey.device.list`, `.open`, `.invoke`, `.stream.open`, `.stream.read`, `.stream.close`, `.close` |
+| Display | `inspect`, `connect`, `authorize`, `call`, `health`, `events`, `material`, `disconnect` |
+| Content | `start`, `model.inspect`, `observe`, `interpret`, `health`, `capabilities`, `close` |
+| Device | `list`, `open`, `invoke`, `stream.open`, `stream.read`, `stream.close`, `close` |
 
-A structured failure can retain a stable category:
+A structured failure retains a stable category:
 
 ```json
 {
-  "id": 2,
-  "error": {
-    "code": "rate_limit",
-    "message": "plugin capacity is exhausted",
-    "retryAfterMilliseconds": 2000
-  }
+  "code": "rate_limit",
+  "message": "plugin capacity is exhausted",
+  "retryAfterMilliseconds": 2000
 }
 ```
 
-The transport preserves the code. The Cymonkey domain adapter validates it and
-maps the response into the public API.
+The transport preserves the code, and a failure leaves the process usable. The
+Cymonkey domain adapter validates the code and maps the response into the
+public API.
 
 ## Extension boundary
 

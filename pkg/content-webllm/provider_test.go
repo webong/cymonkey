@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"testing"
 
-	"providerplugin"
+	"github.com/webong/ext/pkg/plugin"
 )
 
 func TestCapabilitiesDoNotStartBrowser(t *testing.T) {
-	p := &provider{manifest: providerplugin.Manifest{APIVersion: providerplugin.APIVersion, Name: "webllm", Contracts: []providerplugin.Contract{{Name: blockadeContract, Version: blockadeContractVersion}}}}
+	p := &provider{descriptor: plugin.Descriptor{Identity: plugin.Identity{ID: "webllm"}}}
 	result, err := p.call(context.Background(), "blockade.capabilities", nil)
 	if err != nil || p.adapter != nil || result == nil {
 		t.Fatalf("result=%#v adapter=%#v err=%v", result, p.adapter, err)
@@ -17,7 +17,7 @@ func TestCapabilitiesDoNotStartBrowser(t *testing.T) {
 }
 
 func TestStartRequiresModelSetting(t *testing.T) {
-	p := &provider{manifest: providerplugin.Manifest{APIVersion: providerplugin.APIVersion, Name: "webllm", Contracts: []providerplugin.Contract{{Name: blockadeContract, Version: blockadeContractVersion}}}}
+	p := &provider{descriptor: plugin.Descriptor{Identity: plugin.Identity{ID: "webllm"}}}
 	params, _ := json.Marshal(map[string]any{"id": "browser", "settings": map[string]string{}})
 	if _, err := p.call(context.Background(), "blockade.start", params); err == nil {
 		t.Fatal("expected missing remote model setting to fail")

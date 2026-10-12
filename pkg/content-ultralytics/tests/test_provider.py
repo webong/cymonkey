@@ -10,6 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PROVIDER_PATH = ROOT / "python" / "provider.py"
+sys.path.insert(0, str(ROOT / "python"))
 
 
 class FakeWorker:
@@ -48,14 +49,22 @@ class ProviderTest(unittest.TestCase):
         FakeWorker.created.clear()
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
-        self.manifest_path = self.root / "plugin.json"
+        self.manifest_path = self.root / "package.json"
         self.manifest_path.write_text(
             json.dumps(
                 {
-                    "apiVersion": "cymonkey.plugin/v1alpha1",
-                    "name": "local-ultralytics",
-                    "version": "1.0.0",
-                    "contracts": [{"name": "cymonkey.content", "version": "v1alpha1"}],
+                    "apiVersion": "ext.package/v1",
+                    "descriptor": {
+                        "apiVersion": "ext.plugin/v1",
+                        "identity": {"id": "local-ultralytics", "version": "1.0.0", "revision": "test"},
+                        "contracts": [
+                            {
+                                "name": "cymonkey.content",
+                                "version": "v1alpha1",
+                                "operations": [{"name": "start"}],
+                            }
+                        ],
+                    },
                 }
             ),
             encoding="utf-8",

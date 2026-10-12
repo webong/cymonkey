@@ -27,32 +27,24 @@ match its platform and Python version:
 /path/to/python3 -m pip install \
   --target pkg/content-ultralytics/python/vendor \
   -r pkg/content-ultralytics/python/requirements.txt
-python3 pkg/content-ultralytics/package.py \
-  --version 1.0.0 --platform darwin-arm64
+cymy plugins manifest --type content --name local-ultralytics --version 1.0.0 \
+  --root pkg/content-ultralytics --file content.json --dir python \
+  --stage /tmp/local-ultralytics-package
 cymy content runtime install --manifest /path/to/python/runtime.json
-cymy plugins install \
-  --manifest pkg/content-ultralytics/plugin.json
+cymy plugins install --manifest /tmp/local-ultralytics-package
 ```
 
-`package.py` includes `content.json`, the plugin source, requirements, and
-every vendored dependency in a digest checked source package. Its generated
-manifest has this shape:
-
-```json
-{
-  "apiVersion": "cymonkey.plugin/v1alpha1",
-  "name": "local-ultralytics",
-  "version": "1.0.0",
-  "contracts": [
-    {"name": "cymonkey.content", "version": "v1alpha1"}
-  ],
-  "platform": "darwin-arm64",
-  "files": [
-    {"path": "content.json", "sha256": "<sha256>"},
-    {"path": "python/provider.py", "sha256": "<sha256>"}
-  ]
-}
-```
+`cymy plugins manifest` lists `content.json` as a file artifact and `python` as a
+single tree artifact (one entry covered by a directory digest, skipping
+`__pycache__`) of an ext source package,
+and `--stage` copies exactly those files into a clean directory, because the
+installer refuses a package directory that holds unlisted files.
+That includes `python/ext_plugin`, a vendored copy of ext's Python guest SDK
+(see `python/ext_plugin/VENDORED.md`), and every vendored dependency. A tree has
+no per-file limit (ext caps it at 250,000 files and 16 GiB by default), and file
+names inside it may use any case. The tree path itself (`python`) must be
+lower-case, symlinks inside it are followed when staging, and the installer
+re-hashes the whole tree each time a worker starts.
 
 `content.json` uses `cymonkey.content-source/v1alpha1` and selects the exact
 managed runtime and entrypoint. The generic installer treats its payload as

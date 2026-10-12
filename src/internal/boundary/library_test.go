@@ -37,7 +37,7 @@ func TestLibrariesStayOutsideInternal(t *testing.T) {
 			if err != nil {
 				return err
 			}
-			for _, library := range []string{"board", "blockade", "jangolova", "providerplugin"} {
+			for _, library := range []string{"board", "blockade", "jangolova"} {
 				if name == library || strings.HasPrefix(name, library+"/") {
 					t.Errorf("internal package imports %s: %s", library, path)
 				}
@@ -49,7 +49,7 @@ func TestLibrariesStayOutsideInternal(t *testing.T) {
 				return err
 			}
 			lower := bytes.ToLower(contents)
-			for _, library := range []string{"board", "blockade", "jangolova", "providerplugin"} {
+			for _, library := range []string{"board", "blockade", "jangolova"} {
 				if bytes.Contains(lower, []byte(library)) {
 					t.Errorf("internal package names standalone library %s: %s", library, path)
 				}

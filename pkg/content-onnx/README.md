@@ -14,26 +14,12 @@ mapping into Cymonkey observations.
 go build -o /path/to/package/provider ./pkg/content-onnx
 ```
 
-Create `/path/to/package/plugin.json`:
-
-```json
-{
-  "apiVersion": "cymonkey.plugin/v1alpha1",
-  "name": "onnx",
-  "version": "1.0.0",
-  "contracts": [
-    {"name": "cymonkey.content", "version": "v1alpha1"}
-  ],
-  "platform": "darwin-arm64",
-  "command": "provider",
-  "sha256": "<sha256 of provider>"
-}
-```
-
-Use the actual host platform and executable digest, then install it:
+Generate `package.json` beside the binary, then install it:
 
 ```sh
-cymy plugins install --manifest /path/to/package/plugin.json
+cymy plugins manifest --type content --name onnx --version 1.0.0 \
+  --command /path/to/package/provider
+cymy plugins install --manifest /path/to/package/package.json
 ```
 
 ## Model

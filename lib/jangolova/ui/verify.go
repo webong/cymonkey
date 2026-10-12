@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	"providerplugin/jsonschema"
+	"github.com/webong/ext/pkg/plugin/jsonschema"
 )
 
 type VerificationState string

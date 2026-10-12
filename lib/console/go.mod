@@ -6,12 +6,12 @@ require (
 	blockade v0.0.0
 	board v0.0.0
 	jangolova v0.0.0
-	providerplugin v0.0.0
 )
 
 require (
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/kr/text v0.2.0 // indirect
+	github.com/webong/ext/pkg/plugin v0.5.1
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
@@ -20,5 +20,3 @@ replace blockade => ../blockade
 replace board => ../board
 
 replace jangolova => ../jangolova
-
-replace providerplugin => ../plugin

@@ -10,16 +10,20 @@ import (
 	"time"
 
 	"board"
-	"providerplugin"
+	"github.com/webong/ext/pkg/plugin/host"
+	"github.com/webong/ext/pkg/plugin/store"
 )
 
 type Provider struct {
-	Installed    providerplugin.Installed
+	Installed    store.Installed
 	MethodPrefix string
 }
 
 const ContractName = "board.provider"
 const ContractVersion = "v1alpha1"
+
+// Operations lists every method a Board device provider package serves.
+var Operations = []string{"list", "open", "invoke", "stream.open", "stream.read", "stream.close", "close"}
 
 func (p Provider) method(name string) string {
 	prefix := p.MethodPrefix
@@ -34,20 +38,20 @@ func (p Provider) method(name string) string {
 const Kind = ContractName
 
 // Providers selects Board executables from a shared installation inventory.
-func Providers(installed []providerplugin.Installed) []board.Provider {
+func Providers(installed []store.Installed) []board.Provider {
 	var providers []board.Provider
 	for _, item := range installed {
-		if item.Manifest.Supports(ContractName, ContractVersion) {
+		if item.Supports(ContractName, ContractVersion) {
 			providers = append(providers, Provider{Installed: item})
 		}
 	}
 	return providers
 }
 
-func (p Provider) ID() string { return p.Installed.Manifest.Name }
+func (p Provider) ID() string { return p.Installed.Name() }
 
 func (p Provider) List(ctx context.Context) ([]board.Device, error) {
-	proc, err := providerplugin.Open(ctx, p.Installed)
+	proc, err := host.Open(ctx, p.Installed, host.Options{})
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +64,7 @@ func (p Provider) List(ctx context.Context) ([]board.Device, error) {
 }
 
 func (p Provider) Open(ctx context.Context, deviceID string, grant board.Grant) (board.Session, error) {
-	proc, err := providerplugin.Open(ctx, p.Installed)
+	proc, err := host.Open(ctx, p.Installed, host.Options{})
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +76,7 @@ func (p Provider) Open(ctx context.Context, deviceID string, grant board.Grant) 
 }
 
 type session struct {
-	proc         *providerplugin.Process
+	proc         *host.Process
 	methodPrefix string
 	mu           sync.Mutex
 	closed       bool
