@@ -75,9 +75,9 @@ The Windows wrapper uses [NAudio's WASAPI interfaces](https://github.com/naudio/
 3. Native receiver Opus FEC decoding/retransmission, if required: the current
    receiver reorders packets and inserts silence; outbound encoding enables FEC
    for compatible browser receivers. The mobile bridge currently uses PCMU.
-4. Broader input operations such as drag/held buttons and platform-specific
-   app-owned mobile input. Desktop move, atomic click and scroll are implemented
-   with separate grants; mobile global input is not exposed.
+4. Live validation of desktop held-button/drag cleanup and platform-specific
+   app-owned mobile input. Desktop move, click, scroll and session-owned holds
+   are implemented with separate grants; mobile global input is not exposed.
 
 The Board module, operator and macOS native helper build. The Windows helper
 build and self-contained publish succeeded. Mobile Swift type-checking and Kotlin

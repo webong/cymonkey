@@ -8,6 +8,7 @@ import (
 	pion "github.com/pion/webrtc/v4"
 	"github.com/pion/webrtc/v4/pkg/media"
 	"io"
+	"sync"
 	"time"
 )
 
@@ -140,8 +141,69 @@ func (s *samples) ReadSample(ctx context.Context) (media.Sample, error) {
 
 func inputCapability(cap board.Capability) bool {
 	switch cap {
-	case board.KeyboardPress, board.KeyboardType, board.PointerMove, board.PointerClick, board.PointerScroll:
+	case board.KeyboardPress, board.KeyboardType, board.PointerMove, board.PointerClick, board.PointerScroll, board.PointerDown, board.PointerUp, board.PointerRelease:
 		return true
 	}
 	return false
+}
+
+// BoardInputSession retains one input connection for the peer lifetime. Opening
+// is lazy so view-only peers do not occupy the pointer. No grants are widened.
+func BoardInputSession(r *board.Registry, t Target, caps []board.Capability) func(context.Context, []board.Capability) (func(context.Context, board.Action) error, func() error, error) {
+	return func(life context.Context, granted []board.Capability) (func(context.Context, board.Action) error, func() error, error) {
+		var mu sync.Mutex
+		var connection *board.Connection
+		closed := false
+		allowed := []board.Capability{}
+		for _, cap := range caps {
+			for _, grant := range granted {
+				if cap == grant {
+					allowed = append(allowed, cap)
+					break
+				}
+			}
+		}
+		has := map[board.Capability]bool{}
+		for _, cap := range allowed {
+			has[cap] = true
+		}
+		if has[board.PointerDown] && (!has[board.PointerMove] || !has[board.PointerUp] || !has[board.PointerRelease]) {
+			return nil, nil, errors.New("held input requires pointer.move, pointer.up and pointer.release grants")
+		}
+		closeInput := func() error {
+			mu.Lock()
+			defer mu.Unlock()
+			closed = true
+			if connection != nil {
+				return connection.Close(context.Background())
+			}
+			return nil
+		}
+		invoke := func(ctx context.Context, a board.Action) error {
+			mu.Lock()
+			defer mu.Unlock()
+			if closed || life.Err() != nil {
+				return board.ErrClosed
+			}
+			found := false
+			for _, cap := range allowed {
+				if a.Capability == cap {
+					found = true
+				}
+			}
+			if !found {
+				return board.ErrNotGranted
+			}
+			if connection == nil {
+				var err error
+				connection, err = r.Open(ctx, board.OpenRequest{ProviderID: t.ProviderID, DeviceID: t.DeviceID, Grant: board.Grant{Capabilities: allowed}})
+				if err != nil {
+					return err
+				}
+			}
+			_, err := connection.Invoke(ctx, a)
+			return err
+		}
+		return invoke, closeInput, nil
+	}
 }

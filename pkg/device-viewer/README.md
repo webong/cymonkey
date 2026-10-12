@@ -36,7 +36,9 @@ expired session requires new host authorization and a new viewer instance.
 `press` also supports the modifier mappings documented in the platform guide. There
 are no held keys and no global event listeners that forward typing from other
 fields. Pointer click/scroll controls require the explicit pointer option and
-separate grants; dragging is not implemented. Microphone upload negotiates Opus
+separate grants. Drag mode additionally requires `pointer.down`, `pointer.up`,
+`pointer.release` and `pointer.move`; it releases on lost pointer capture, blur,
+hidden document and disconnect. Microphone upload negotiates Opus
 or PCMU according to the target peer. Use Play when mobile autoplay blocks audio.
 
 See [native adapter integration](../../docs/device-platforms.md) for target
@@ -47,3 +49,10 @@ a relay-only policy. Show connection evidence reports selected route types and
 media counters without candidate addresses, credentials or SDP. An empty selected
 route does not establish connectivity. See the reference-host acceptance procedure
 in `examples/device-hosts/README.md`.
+
+Held pointer sessions own one native button at a time. `down(x,y,button)`,
+`move(x,y)`, `up(x,y,button)` and `releasePointer()` support explicit SDK clients.
+The viewer refreshes a held position each second; the helper releases and exits
+if no input arrives for five seconds. Pointer-enabled sessions must be recreated
+after a hold timeout or transport disconnect. Up/release are idempotent when no
+button is held. Atomic click/scroll are rejected during a hold.

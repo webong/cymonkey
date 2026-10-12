@@ -10,6 +10,10 @@ export class DeviceViewer extends EventTarget {
     this.configuration = {iceServers, iceTransportPolicy: relayOnly ? 'relay' : 'all'};
     this.abort = new AbortController(); this.pending = []; this.serial = Promise.resolve();
     this.closed = false; this.started = false;
+    this.releaseOnBlur = () => this.releasePointer();
+    this.releaseOnHidden = () => { if (document.hidden) this.releasePointer(); };
+    window.addEventListener('blur', this.releaseOnBlur);
+    document.addEventListener('visibilitychange', this.releaseOnHidden);
   }
   async action(capability, input = {}) {
     const response = await fetch(this.url, {method:'POST', credentials:'omit', cache:'no-store',
@@ -81,7 +85,23 @@ export class DeviceViewer extends EventTarget {
     } catch(error) { if(!this.closed) this.fail(error); }
   }
   // Atomic keystrokes never hold keys remotely after focus loss/disconnection.
-  move(x,y) { this.sendInput("pointer.move",{x,y}); }
+  move(x,y) { this.sendInput("pointer.move",{x,y}); if(this.heldPointer) this.heldPointer={...this.heldPointer,x,y}; }
+  down(x,y,button="left") {
+    if(this.heldPointer) throw new Error('Release the held pointer first');
+    this.sendInput('pointer.down',{x,y,button}); this.heldPointer={x,y,button};
+    this.holdTimer=setInterval(()=>{const hold=this.heldPointer;if(hold)try{this.move(hold.x,hold.y);}catch(error){this.fail(error);}},1000);
+  }
+  up(x,y,button="left") {
+    if(!this.heldPointer) return;
+    if(this.heldPointer.button!==button) throw new Error('Held pointer button mismatch');
+    try{this.sendInput('pointer.up',{x,y,button});}catch(error){this.fail(error);throw error;}
+    finally{clearInterval(this.holdTimer);this.heldPointer=null;}
+  }
+  releasePointer() {
+    if(!this.heldPointer) return;
+    clearInterval(this.holdTimer);this.heldPointer=null;
+    try{this.sendInput('pointer.release',{});}catch(error){if(!this.closed)this.fail(error);}
+  }
   click(x,y,button="left") { this.sendInput("pointer.click",{x,y,button}); }
   scroll(x,y,deltaX,deltaY) { this.sendInput("pointer.scroll",{x,y,deltaX,deltaY}); }
   type(text) { this.sendInput('keyboard.type',{text}); }
@@ -118,6 +138,9 @@ export class DeviceViewer extends EventTarget {
   fail(error) { this.state(error.message); this.close(); }
   close() {
     if(this.closed) return; this.closed=true;
+    this.releasePointer(); clearInterval(this.holdTimer);
+    window.removeEventListener('blur',this.releaseOnBlur);
+    document.removeEventListener('visibilitychange',this.releaseOnHidden);
     // Best-effort remote teardown; host session expiration is the hard bound.
     fetch(this.url,{method:'POST',credentials:'omit',headers:{Authorization:`Bearer ${this.token}`,'Content-Type':'application/json'},body:JSON.stringify({capability:'webrtc.signal',input:{type:'bye'}}),keepalive:true}).catch(()=>{});
     this.abort.abort(); this.microphone?.getTracks().forEach(t=>t.stop()); this.pc?.close();

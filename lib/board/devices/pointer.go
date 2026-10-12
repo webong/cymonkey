@@ -3,17 +3,20 @@ package devices
 import (
 	"board"
 	"board/device"
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"math"
 	"os/exec"
 	"path/filepath"
+	"sync"
 	"time"
 )
 
-// NativePointer binds atomic pointer operations to one host-approved display.
-// No held buttons survive a failed request or disconnected session.
+// NativePointer binds pointer operations to one approved display. A single
+// session owns this provider at a time; its helper releases holds on EOF or idle.
 func NativePointer(id, name, helper, source string) (*device.Provider, error) {
 	if id == "" || !filepath.IsAbs(helper) || source == "" {
 		return nil, errors.New("pointer needs an ID, absolute helper and approved display")
@@ -21,14 +24,69 @@ func NativePointer(id, name, helper, source string) (*device.Provider, error) {
 	if _, err := exec.LookPath(helper); err != nil {
 		return nil, err
 	}
+	var owner sync.Mutex
 	caps := []board.CapabilityDescriptor{}
-	for _, cap := range []board.Capability{board.PointerMove, board.PointerClick, board.PointerScroll} {
+	for _, cap := range []board.Capability{board.PointerMove, board.PointerClick, board.PointerScroll, board.PointerDown, board.PointerUp, board.PointerRelease} {
+		if cap == board.PointerRelease {
+			caps = append(caps, device.Descriptor(cap, device.EmptySchema, false))
+			continue
+		}
 		caps = append(caps, device.Descriptor(cap, `{"type":"object","properties":{"x":{"type":"number","minimum":0,"maximum":1},"y":{"type":"number","minimum":0,"maximum":1},"button":{"enum":["left","right","middle"]},"deltaX":{"type":"integer","minimum":-100,"maximum":100},"deltaY":{"type":"integer","minimum":-100,"maximum":100}},"required":["x","y"],"additionalProperties":false}`, false))
 	}
-	return &device.Provider{ProviderID: id, Device: board.Device{ID: "pointer", Kind: "pointer", Name: name, Capabilities: caps}, Bind: func(context.Context, board.Grant) (device.Binding, error) {
+	return &device.Provider{ProviderID: id, Device: board.Device{ID: "pointer", Kind: "pointer", Name: name, Capabilities: caps}, Bind: func(life context.Context, grant board.Grant) (device.Binding, error) {
+		allowed := map[board.Capability]bool{}
+		for _, cap := range grant.Capabilities {
+			allowed[cap] = true
+		}
+		if allowed[board.PointerDown] && (!allowed[board.PointerUp] || !allowed[board.PointerRelease] || !allowed[board.PointerMove]) {
+			return device.Binding{}, errors.New("held input requires pointer.move, pointer.up and pointer.release grants")
+		}
+		if !owner.TryLock() {
+			return device.Binding{}, errors.New("pointer already owned by another session")
+		}
+		var mu sync.Mutex
+		var process *pointerProcess
+		closed := false
+		closeSession := func(context.Context) error {
+			mu.Lock()
+			defer mu.Unlock()
+			if closed {
+				return nil
+			}
+			closed = true
+			defer owner.Unlock()
+			if process != nil {
+				return process.Close()
+			}
+			return nil
+		}
+
 		ops := map[board.Capability]device.Operation{}
-		for _, cap := range []board.Capability{board.PointerMove, board.PointerClick, board.PointerScroll} {
-			ops[cap] = device.Operation{Invoke: func(ctx context.Context, a board.Action) (board.Result, error) {
+		for _, cap := range []board.Capability{board.PointerMove, board.PointerClick, board.PointerScroll, board.PointerDown, board.PointerUp, board.PointerRelease} {
+			ops[cap] = device.Operation{Invoke: func(ctx context.Context, a board.Action) (result board.Result, invokeErr error) {
+				mu.Lock()
+				defer mu.Unlock()
+				defer func() {
+					if invokeErr != nil && process != nil {
+						invokeErr = errors.Join(invokeErr, process.Close())
+					}
+				}()
+				if closed || life.Err() != nil {
+					return board.Result{}, board.ErrClosed
+				}
+				if cap == board.PointerRelease {
+					if err := device.Empty(a.Input); err != nil {
+						return board.Result{}, err
+					}
+					if process != nil {
+						call, cancel := context.WithTimeout(ctx, 3*time.Second)
+						defer cancel()
+						if err := process.invoke(call, []byte(`{"operation":"pointer.release","x":0,"y":0,"button":"","deltaX":0,"deltaY":0}`)); err != nil {
+							return board.Result{}, err
+						}
+					}
+					return device.Result(map[string]bool{"submitted": true})
+				}
 				var in struct {
 					X      *float64 `json:"x"`
 					Y      *float64 `json:"y"`
@@ -43,7 +101,7 @@ func NativePointer(id, name, helper, source string) (*device.Provider, error) {
 					return board.Result{}, errors.New("invalid pointer coordinates or delta")
 				}
 				switch cap {
-				case board.PointerClick:
+				case board.PointerClick, board.PointerDown, board.PointerUp:
 					if in.Button != "left" && in.Button != "right" && in.Button != "middle" {
 						return board.Result{}, errors.New("explicit pointer button required")
 					}
@@ -59,15 +117,97 @@ func NativePointer(id, name, helper, source string) (*device.Provider, error) {
 						return board.Result{}, errors.New("scroll cannot click")
 					}
 				}
-				raw, _ := json.Marshal(map[string]any{"operation": cap, "x": *in.X, "y": *in.Y, "button": in.Button, "deltaX": in.DeltaX, "deltaY": in.DeltaY})
-				life, cancel := context.WithTimeout(ctx, 3*time.Second)
+				raw, err := json.Marshal(map[string]any{"operation": cap, "x": *in.X, "y": *in.Y, "button": in.Button, "deltaX": in.DeltaX, "deltaY": in.DeltaY})
+				if err != nil {
+					return board.Result{}, err
+				}
+				call, cancel := context.WithTimeout(ctx, 3*time.Second)
 				defer cancel()
-				if _, err := (commandRunner{}).Run(life, helper, "pointer", source, string(raw)); err != nil {
+				if process == nil && cap == board.PointerDown {
+					process, err = startPointerProcess(helper, source)
+					if err != nil {
+						return board.Result{}, err
+					}
+				}
+				if process != nil {
+					err = process.invoke(call, raw)
+				} else if cap != board.PointerUp {
+					_, err = (commandRunner{}).Run(call, helper, "pointer", source, string(raw))
+				}
+				if err != nil {
 					return board.Result{}, err
 				}
 				return device.Result(map[string]bool{"submitted": true})
 			}}
 		}
-		return device.Binding{Operations: ops}, nil
+		context.AfterFunc(life, func() { _ = closeSession(context.Background()) })
+		return device.Binding{Operations: ops, Close: closeSession}, nil
 	}}, nil
+}
+
+// The helper owns the native button state. EOF, malformed input and a five-second
+// held-input idle timeout release it even when the parent exits unexpectedly.
+type pointerProcess struct {
+	cmd     *exec.Cmd
+	input   io.WriteCloser
+	output  io.ReadCloser
+	reader  *bufio.Reader
+	done    chan struct{}
+	once    sync.Once
+	err     error
+	waitErr error
+}
+
+func startPointerProcess(helper, source string) (*pointerProcess, error) {
+	cmd := exec.Command(helper, "pointer-session", source)
+	input, err := cmd.StdinPipe()
+	if err != nil {
+		return nil, err
+	}
+	output, err := cmd.StdoutPipe()
+	if err != nil {
+		input.Close()
+		return nil, err
+	}
+	if err = cmd.Start(); err != nil {
+		input.Close()
+		output.Close()
+		return nil, err
+	}
+	p := &pointerProcess{cmd: cmd, input: input, output: output, reader: bufio.NewReaderSize(output, 128), done: make(chan struct{})}
+	go func() { p.waitErr = cmd.Wait(); close(p.done) }()
+	return p, nil
+}
+func (p *pointerProcess) invoke(ctx context.Context, raw []byte) error {
+	if err := ctx.Err(); err != nil {
+		_ = p.Close()
+		return err
+	}
+	stop := context.AfterFunc(ctx, func() { _ = p.Close() })
+	defer stop()
+	if _, err := p.input.Write(append(raw, '\n')); err != nil {
+		_ = p.Close()
+		return err
+	}
+	line, err := p.reader.ReadSlice('\n')
+	if err != nil || (string(line) != "ok\n" && string(line) != "ok\r\n") {
+		_ = p.Close()
+		return errors.New("pointer helper stopped or rejected input")
+	}
+	return ctx.Err()
+}
+func (p *pointerProcess) Close() error {
+	p.once.Do(func() {
+		_ = p.input.Close() // EOF asks helper to release its owned button before exiting.
+		select {
+		case <-p.done:
+		case <-time.After(2 * time.Second):
+			p.err = errors.New("pointer helper did not complete release before shutdown")
+			_ = p.cmd.Process.Kill()
+			<-p.done
+		}
+		p.err = errors.Join(p.err, p.waitErr)
+		_ = p.output.Close()
+	})
+	return p.err
 }

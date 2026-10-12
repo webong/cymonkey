@@ -230,7 +230,7 @@ func (c Config) Providers() ([]board.Provider, error) {
 				return nil, errors.New("pointer target requires explicit pointerCapabilities")
 			}
 			for _, cap := range w.PointerCapabilities {
-				if cap != board.PointerMove && cap != board.PointerClick && cap != board.PointerScroll {
+				if cap != board.PointerMove && cap != board.PointerClick && cap != board.PointerScroll && cap != board.PointerDown && cap != board.PointerUp && cap != board.PointerRelease {
 					return nil, errors.New("invalid pointer capability")
 				}
 				if err := check(w.Pointer, cap); err != nil {
@@ -238,16 +238,23 @@ func (c Config) Providers() ([]board.Provider, error) {
 				}
 			}
 			keyboard := o.Input
-			pointer := rtc.BoardInput(registry, *w.Pointer)
+			factory := rtc.BoardInputSession(registry, *w.Pointer, w.PointerCapabilities)
 			o.InputCapabilities = append(append([]board.Capability{}, o.InputCapabilities...), w.PointerCapabilities...)
-			o.Input = func(ctx context.Context, a board.Action) error {
-				if a.Capability == board.PointerMove || a.Capability == board.PointerClick || a.Capability == board.PointerScroll {
-					return pointer(ctx, a)
+			o.OpenInput = func(life context.Context, granted []board.Capability) (func(context.Context, board.Action) error, func() error, error) {
+				pointer, closePointer, err := factory(life, granted)
+				if err != nil {
+					return nil, nil, err
 				}
-				if keyboard == nil {
-					return board.ErrNotGranted
-				}
-				return keyboard(ctx, a)
+				return func(ctx context.Context, a board.Action) error {
+					switch a.Capability {
+					case board.PointerMove, board.PointerClick, board.PointerScroll, board.PointerDown, board.PointerUp, board.PointerRelease:
+						return pointer(ctx, a)
+					}
+					if keyboard == nil {
+						return board.ErrNotGranted
+					}
+					return keyboard(ctx, a)
+				}, closePointer, nil
 			}
 		} else if len(w.PointerCapabilities) > 0 {
 			return nil, errors.New("pointerCapabilities requires a pointer target")

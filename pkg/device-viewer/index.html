@@ -7,6 +7,7 @@
 <label>Viewer credential <input id="credential" type="password" required autocomplete="off"></label>
 <label><input id="keyboard" type="checkbox"> Request keyboard control</label>
 <label><input id="pointer" type="checkbox"> Request pointer control (click and scroll)</label>
+<label><input id="drag" type="checkbox"> Enable dragging (requires down/up/release/move grants)</label>
 <label><input id="microphone" type="checkbox"> Share this microphone with the target</label>
 <details><summary>Network validation</summary><label>ICE servers JSON (short-lived credentials) <textarea id="ice" autocomplete="off" placeholder='[{"urls":"turn:host:3478","username":"…","credential":"…"}]'></textarea></label><label><input id="relay" type="checkbox"> Require TURN relay</label></details>
 <button>Connect</button></form>

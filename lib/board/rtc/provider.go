@@ -38,6 +38,7 @@ type Options struct {
 	Playback                 *Playback
 	InputCapabilities        []board.Capability
 	Input                    func(context.Context, board.Action) error
+	OpenInput                func(context.Context, []board.Capability) (func(context.Context, board.Action) error, func() error, error)
 }
 
 // Signal is scoped to the already-authorized Board session. SDP and candidates
@@ -83,8 +84,11 @@ func New(o Options) (*device.Provider, error) {
 		caps = append(caps, device.Descriptor(board.AudioPlayback, device.EmptySchema, false))
 	}
 	for _, cap := range o.InputCapabilities {
-		if o.Input == nil || !inputCapability(cap) {
+		if (o.Input == nil && o.OpenInput == nil) || !inputCapability(cap) {
 			return nil, errors.New("WebRTC input requires a bound input handler")
+		}
+		if cap == board.PointerDown && o.OpenInput == nil {
+			return nil, errors.New("held pointer input requires a session input factory")
 		}
 		caps = append(caps, device.Descriptor(cap, `{"type":"object"}`, false))
 	}
@@ -173,6 +177,7 @@ type peer struct {
 	playbackMu   sync.Mutex
 	playing      bool
 	inputChannel bool
+	closeInput   func() error
 }
 
 func openPeer(parent context.Context, o Options, allowed map[board.Capability]bool) (*peer, error) {
@@ -187,6 +192,23 @@ func openPeer(parent context.Context, o Options, allowed map[board.Capability]bo
 		return nil, err
 	}
 	p := &peer{pc: pc, o: o, allowed: allowed, ctx: ctx, cancel: cancel, inputs: make(chan board.Action, 32), events: make(chan board.Event, 64)}
+	if o.OpenInput != nil {
+		granted := []board.Capability{}
+		for cap, yes := range allowed {
+			if yes && inputCapability(cap) {
+				granted = append(granted, cap)
+			}
+		}
+		handler, closeInput, err := o.OpenInput(ctx, granted)
+		if err != nil {
+			cancel()
+			_ = pc.Close()
+			return nil, err
+		}
+		o.Input = handler
+		p.o.Input = handler
+		p.closeInput = closeInput
+	}
 	pc.OnICECandidate(func(c *pion.ICECandidate) {
 		if c != nil {
 			v := c.ToJSON()
@@ -202,7 +224,7 @@ func openPeer(parent context.Context, o Options, allowed map[board.Capability]bo
 				}
 			})
 		}
-		if state == pion.PeerConnectionStateFailed {
+		if state == pion.PeerConnectionStateFailed || (state == pion.PeerConnectionStateDisconnected && p.allowed[board.PointerDown]) {
 			go p.close()
 		}
 	})
@@ -259,7 +281,14 @@ func openPeer(parent context.Context, o Options, allowed map[board.Capability]bo
 		}
 		p.inputChannel = true
 		p.mu.Unlock()
-		d.OnClose(func() { p.mu.Lock(); p.inputChannel = false; p.mu.Unlock() })
+		d.OnClose(func() {
+			p.mu.Lock()
+			p.inputChannel = false
+			p.mu.Unlock()
+			if p.allowed[board.PointerDown] {
+				go p.close()
+			}
+		})
 		d.OnMessage(func(m pion.DataChannelMessage) {
 			if len(m.Data) > 64<<10 {
 				p.emit("input.denied")
@@ -292,6 +321,10 @@ func openPeer(parent context.Context, o Options, allowed map[board.Capability]bo
 			case a := <-p.inputs:
 				if err := p.input(ctx, a); err != nil {
 					p.emit("input.failed")
+					if p.allowed[board.PointerDown] {
+						go p.close()
+						return
+					}
 				} else {
 					p.emit("input.submitted")
 				}
@@ -412,7 +445,10 @@ func (p *peer) close() error {
 		p.pending = nil
 		p.mu.Unlock()
 		p.cancel()
-		err = p.pc.Close()
+		if p.closeInput != nil {
+			err = p.closeInput()
+		}
+		err = errors.Join(err, p.pc.Close())
 		p.emit("transport.closed")
 	})
 	return err

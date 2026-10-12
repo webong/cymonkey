@@ -276,7 +276,8 @@ remains pending until these checks pass on the corresponding OS.
   keys, modifiers, key release, and focus-loss behavior. Document unsupported
   shortcuts instead of silently substituting text input.
 - [x] Add separately granted desktop pointer move, atomic click and scroll.
-- [ ] Add held-button/drag support if required and validate input on live desktops.
+- [x] Add session-owned held-button/drag support with helper idle/EOF release.
+- [ ] Validate dragging and release cleanup on live Mac/Windows desktops.
 
 Acceptance: a viewer can attach to an explicitly approved target, display live
 media, request only authorized input/audio, and immediately lose access when the

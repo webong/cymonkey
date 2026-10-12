@@ -107,11 +107,13 @@ Mobile target bridge peers currently use PCMU audio.
 For desktop pointer control, register a `pointer` device with an absolute helper
 path and fixed `source` (a macOS display ID or Windows `primary`). Bind it to a
 WebRTC peer's `pointer` target and explicitly list `pointerCapabilities` from
-`pointer.move`, `pointer.click`, `pointer.scroll`. The public device ID is
+`pointer.move`, `pointer.click`, `pointer.scroll`, `pointer.down`, `pointer.up`,
+`pointer.release`. The public device ID is
 `pointer`. Keep the pointer's approved display consistent with the video source.
 Positions are normalized x/y in [0,1], clicks have an explicit left/right/middle
-button, and scroll deltas are bounded to ±100 lines. No persistent button-down
-or drag operation is exposed. macOS requires Accessibility permission; Windows
+button, and scroll deltas are bounded to ±100 lines. Held-button sessions require move/down/up/release grants together. A down action
+selects one explicit button, moves drag it, and up releases it. `pointer.release`
+takes `{}` and releases the session-owned button at its current position. macOS requires Accessibility permission; Windows
 input stays within the caller's interactive desktop privilege.
 
 ## Evidence still required
@@ -129,3 +131,44 @@ to exercise the reusable libraries before product adoption. They include local
 signing configuration, consent/lifecycle examples and a pending acceptance record.
 Signing identities, approved hardware and TURN access must be supplied by the
 validation operator. Product-specific integration remains with the consuming app.
+
+## Desktop drag lifetime
+
+Board retains one pointer connection per WebRTC peer, opens it lazily on first
+input, and releases it on session close, expiry or revocation. Each pointer
+provider permits one owner session at a time. Configure one provider per physical
+pointer; creating duplicate providers for the same OS desktop does not create
+independent pointers. Concurrent input from a person or another process can still
+interact with the same OS pointer.
+
+The `pointer-session` native helper tracks one held button. EOF, invalid input,
+failed commands and a five-second idle deadline release it. Browser clients send
+position updates once per second while holding, and release on blur, visibility
+loss, pointer cancellation or lost capture. The deadline is a fallback when the
+producer disappears; it is not proof of immediate network-loss detection. A
+WebRTC peer with the down grant closes on transport disconnection or input-channel
+closure; reconnect using a fresh session. Native permission loss, OS failure or
+forced termination of the helper itself can prevent OS event delivery.
+
+Custom RTC integrations use `Options.OpenInput` for a session-owned handler and
+cleanup; `BoardInputSession` supplies this for Board connections. The old
+per-action `BoardInput` path is suitable only for atomic input. Upgrade the native
+helper alongside Board to enable the new process protocol.
+
+Live acceptance still requires dragging a harmless test window on Mac and Windows,
+then releasing normally, outside the viewer, on blur, on expiry/revoke, on network
+loss and on parent exit. Confirm that another session cannot inject while the
+first owns the provider. No new live input checks have been performed here.
+
+Example pointer grant/configuration capability set:
+
+```json
+["pointer.move", "pointer.down", "pointer.up", "pointer.release"]
+```
+
+On one authorized connection, invoke `pointer.down` with
+`{"x":0.2,"y":0.3,"button":"left"}`, then `pointer.move` with
+`{"x":0.6,"y":0.5}`, then `pointer.up` with
+`{"x":0.6,"y":0.5,"button":"left"}`. Never open a separate connection for
+those actions. Add click/scroll grants only when those independent actions are
+needed; attempting either while a button is held ends the native helper session.
