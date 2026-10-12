@@ -3,8 +3,18 @@
 For all Cymonkey commands, see the [complete `cymy` CLI guide](cymy-cli.md).
 
 `cymy` is the Cymonkey CLI. It manages
-extensions supplied by you; it does not create or own their source. Jangolova
-performs the browser-specific installation steps.
+extensions supplied by you; it does not create or own their source. Trusted
+ext browser adapters perform the browser-specific steps, so install and trust
+the adapter for your browser first:
+
+```sh
+cymy adapters install --source /path/to/ext/adapters/chrome
+cymy adapters trust chrome
+```
+
+`--browser` is the adapter name (`chrome`, `edge`, `firefox`, `safari`, ...).
+Session-only `--headless` is no longer a flag; the adapter decides how a
+session loads.
 
 ## 1. Build the CLI
 

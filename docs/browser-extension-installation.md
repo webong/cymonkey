@@ -4,10 +4,30 @@ For step-by-step terminal commands, see [Install browser extensions with `cymy`]
 
 Cymonkey manages browser extensions supplied by users and other tools, just as
 it manages userscripts. It does not author or modify their source, or bundle
-them into a Cymonkey-owned browser extension. Jangolova owns browser-specific inspection,
-packaging, staging, and installation adapters in
-`lib/jangolova/browserextension`; Cymonkey exposes their semantic workflow.
-The caller retains ownership of the submitted extension and its source.
+them into a Cymonkey-owned browser extension. Browser-specific inspection,
+packaging, signing, staging, and installation belong to trusted
+[ext browser adapters](https://github.com/webong/ext/blob/main/docs/browser-management.md)
+(`chrome`, `edge`, `firefox`, `safari`, and others). Cymonkey discovers an
+installed, trusted adapter and runs ext's browser management protocol against
+it; no browser logic lives in Cymonkey. The caller retains ownership of the
+submitted extension and its source.
+
+## Prerequisite: install and trust a browser adapter
+
+Adapters live in ext's shared adapter directory (override it with
+`CYMONKEY_ADAPTER_HOME`). Installing an adapter never lets it run; you trust it
+explicitly after reviewing it:
+
+```sh
+cymy adapters install --source /path/to/ext/adapters/chrome
+cymy adapters trust chrome
+cymy adapters list
+```
+
+An adapter you already trusted with ext's `ctx` is trusted here too, because
+the trust record is shared. `--browser` names an adapter (`chrome`, `edge`,
+`firefox`, `safari`). Discovery and every action skip or refuse untrusted
+adapters.
 
 ## Build an extension manager with Cymonkey
 

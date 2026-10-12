@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -9,8 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"cymonkey/src/internal/browsermanage"
 	"cymonkey/src/internal/engineprovider"
-	"jangolova/browserextension"
+	"github.com/webong/ext/res/web/contract"
 )
 
 // browserSessionRequest is the Cymonkey-specific shortcut for the generic
@@ -30,8 +32,8 @@ type browserSessionRequest struct {
 	UserscriptsTarget    string                        `json:"userscriptsTarget,omitempty"`
 }
 
-func (request browserSessionRequest) connectRequest() (engineprovider.ConnectRequest, string, error) {
-	selected, err := request.selectedTarget()
+func (request browserSessionRequest) connectRequest(ctx context.Context) (engineprovider.ConnectRequest, string, error) {
+	selected, err := request.selectedTarget(ctx)
 	if err != nil {
 		return engineprovider.ConnectRequest{}, "", err
 	}
@@ -43,7 +45,7 @@ func (request browserSessionRequest) connectRequest() (engineprovider.ConnectReq
 		if selected.Browser == "" {
 			return engineprovider.ConnectRequest{}, "", errors.New("select a browser target or provide an endpoint")
 		}
-		protocol, address, err = browserextension.ActiveEndpoint(selected)
+		protocol, address, err = sessionEndpoint(ctx, selected)
 		if err != nil {
 			return engineprovider.ConnectRequest{}, "", err
 		}
@@ -88,32 +90,34 @@ func (request browserSessionRequest) connectRequest() (engineprovider.ConnectReq
 	}, userscriptsTarget, nil
 }
 
-func (request browserSessionRequest) selectedTarget() (browserextension.BrowserTarget, error) {
+func (request browserSessionRequest) selectedTarget(ctx context.Context) (browserTarget, error) {
 	if request.TargetID != "" {
 		if request.Browser != "" || request.BrowserBin != "" || request.Profile != "" || request.ProfileDirectory != "" {
-			return browserextension.BrowserTarget{}, errors.New("targetId cannot be combined with explicit browser or profile paths")
+			return browserTarget{}, errors.New("targetId cannot be combined with explicit browser or profile paths")
 		}
-		return browserextension.ResolveTarget(request.TargetID)
+		return findBrowserTarget(ctx, request.TargetID)
 	}
 	if request.Browser != "" || request.BrowserBin != "" || request.Profile != "" || request.ProfileDirectory != "" {
 		if request.Browser == "" {
-			return browserextension.BrowserTarget{}, errors.New("browser is required with explicit browser paths")
+			return browserTarget{}, errors.New("browser is required with explicit browser paths")
 		}
 		if request.Profile != "" && !filepath.IsAbs(request.Profile) {
-			return browserextension.BrowserTarget{}, errors.New("profile must be an absolute path")
+			return browserTarget{}, errors.New("profile must be an absolute path")
 		}
-		return browserextension.BrowserTarget{Browser: request.Browser, ExecutablePath: request.BrowserBin, ProfilePath: request.Profile, ProfileDirectory: request.ProfileDirectory}, nil
+		explicit := browserTarget{Adapter: request.Browser}
+		explicit.Browser, explicit.ExecutablePath, explicit.ProfilePath, explicit.ProfileDirectory = request.Browser, request.BrowserBin, request.Profile, request.ProfileDirectory
+		return explicit, nil
 	}
 	if request.Endpoint != "" {
-		return browserextension.BrowserTarget{}, nil
+		return browserTarget{}, nil
 	}
-	targets, err := browserextension.DiscoverTargets()
+	targets, err := discoverBrowserTargets(ctx)
 	if err != nil {
-		return browserextension.BrowserTarget{}, err
+		return browserTarget{}, err
 	}
-	var active []browserextension.BrowserTarget
+	var active []browserTarget
 	for _, target := range targets {
-		if _, _, err := browserextension.ActiveEndpoint(target); err == nil {
+		if _, _, err := sessionEndpoint(ctx, target); err == nil {
 			active = append(active, target)
 		}
 	}
@@ -121,9 +125,45 @@ func (request browserSessionRequest) selectedTarget() (browserextension.BrowserT
 		return active[0], nil
 	}
 	if len(active) > 1 {
-		return browserextension.BrowserTarget{}, errors.New("multiple browser profiles have active debugging endpoints; select targetId")
+		return browserTarget{}, errors.New("multiple browser profiles have active debugging endpoints; select targetId")
 	}
-	return browserextension.BrowserTarget{}, errors.New("no active browser debugging endpoint was found; select targetId and supply endpoint")
+	return browserTarget{}, errors.New("no active browser debugging endpoint was found; select targetId and supply endpoint")
+}
+
+// sessionEndpoint asks the browser's adapter for the debugging endpoint of a
+// profile through session.targets. It reports the first page target's
+// protocol and endpoint, so a profile with no open page has none to report.
+func sessionEndpoint(ctx context.Context, target browserTarget) (string, string, error) {
+	if target.Adapter == "" {
+		return "", "", errors.New("the selected browser has no adapter")
+	}
+	selector := target.ProfilePath
+	if selector == "" {
+		selector = target.Profile
+	}
+	endpoint, err := browserHost().Endpoint(target.Adapter + ":" + selector)
+	if err != nil {
+		return "", "", err
+	}
+	response, err := browserHost().Do(ctx, endpoint, "session", "targets", map[string]any{}, nil)
+	if err != nil {
+		return "", "", err
+	}
+	var pages []contract.SessionTarget
+	if err := browsermanage.Result(response, &pages); err != nil {
+		return "", "", err
+	}
+	for _, page := range pages {
+		switch page.Protocol {
+		case "cdp", "bidi":
+			protocol := page.Protocol
+			if protocol == "bidi" {
+				protocol = "webdriver-bidi"
+			}
+			return protocol, page.Endpoint, nil
+		}
+	}
+	return "", "", errors.New("the browser reports no debuggable page; open a page or supply an endpoint")
 }
 
 func splitBrowserEndpoint(value string) (string, string, error) {

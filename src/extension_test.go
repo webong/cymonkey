@@ -2,312 +2,181 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
-	"os"
-	"path/filepath"
-	"runtime"
+	"strings"
 	"testing"
 )
 
-func TestExtensionStoreCLIAndStructuredRemoval(t *testing.T) {
-	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
-		t.Skip("test uses a temporary Unix external extensions path")
-	}
-	id := "abcdefghijklmnopabcdefghijklmnop"
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	directory := filepath.Join(home, ".config", "microsoft-edge", "External Extensions")
-	if runtime.GOOS == "darwin" {
-		directory = filepath.Join(home, "Library", "Application Support", "Microsoft Edge", "External Extensions")
-	}
-	var output bytes.Buffer
-	if err := extensionCommand([]string{"install-store", "--browser", "edge", "--store", "chrome", "--id", id, "--external-dir", directory}, &output); err != nil {
+var chromeOperations = []string{
+	"extension.targets", "extension.capabilities", "extension.prepare", "extension.package", "extension.sign",
+	"extension.stage", "extension.install", "extension.activate", "extension.store_install", "extension.store_remove",
+	"extension.policy", "session.targets",
+}
+
+func TestExtensionStoreRequestsGoToTheNamedAdapter(t *testing.T) {
+	chrome := installFakeAdapter(t, "chrome", chromeOperations, map[string]string{
+		"extension.store_install": managementResponse("extension", "store_install", "requested", `{"status":"requested","browser":"chrome"}`),
+		"extension.store_remove":  managementResponse("extension", "store_remove", "requested", `{"status":"requested"}`),
+	}, nil)
+	var out bytes.Buffer
+	if err := extensionCommand([]string{"install-store", "--browser", "chrome", "--id", "abcdefghijklmnopabcdefghijklmnop", "--store", "chrome"}, &out); err != nil {
 		t.Fatal(err)
 	}
-	var result struct {
-		Status string `json:"status"`
+	if !strings.Contains(out.String(), `"requested"`) {
+		t.Fatalf("install-store output = %s", out.String())
 	}
-	if err := json.Unmarshal(output.Bytes(), &result); err != nil {
+	seen := chrome.seen("extension.store_install")
+	for _, want := range []string{`"id":"abcdefghijklmnopabcdefghijklmnop"`, `"store":"chrome"`, `"kind":"extension"`, `"action":"store_install"`} {
+		if !strings.Contains(seen, want) {
+			t.Fatalf("adapter request %s lacks %s", seen, want)
+		}
+	}
+	// Store requests choose a browser installation, never a profile.
+	err := extensionCommand([]string{"remove-store", "--browser", "chrome", "--profile", t.TempDir(), "--id", "x"}, &out)
+	if err == nil || !strings.Contains(err.Error(), "installation") {
+		t.Fatalf("store request with a profile error = %v", err)
+	}
+	if err := extensionCommand([]string{"remove-store", "--browser", "chrome", "--id", "abcdefghijklmnopabcdefghijklmnop"}, &out); err != nil {
 		t.Fatal(err)
 	}
-	if result.Status != "requested" && result.Status != "awaiting-browser-confirmation" {
-		t.Fatalf("unexpected request state: %+v", result)
-	}
-	input, err := json.Marshal(map[string]any{"target": map[string]string{"browser": "edge"}, "store": "chrome", "id": id, "externalDirectory": directory})
-	if err != nil {
-		t.Fatal(err)
-	}
-	removed, err := extensionAction("extension.remove-store", input)
-	if err != nil {
-		t.Fatal(err)
-	}
-	removedJSON, err := json.Marshal(removed)
-	if err != nil || !bytes.Contains(removedJSON, []byte(`"request-removed"`)) {
-		t.Fatalf("unexpected removal result: %s (%v)", removedJSON, err)
-	}
-	if _, err := os.Stat(filepath.Join(directory, id+".json")); !os.IsNotExist(err) {
-		t.Fatalf("external request remains: %v", err)
+	if !strings.Contains(chrome.seen("extension.store_remove"), `"action":"store_remove"`) {
+		t.Fatal("remove-store did not reach the adapter")
 	}
 }
 
-func TestExtensionCLIInspectAndInstallHandoff(t *testing.T) {
-	source := filepath.Join(t.TempDir(), "extension")
-	if err := os.Mkdir(source, 0755); err != nil {
+func TestExtensionPolicyMapsModeToThePolicyAction(t *testing.T) {
+	chrome := installFakeAdapter(t, "chrome", chromeOperations, map[string]string{
+		"extension.policy": managementResponse("extension", "policy", "applied", `{"status":"applied"}`),
+	}, nil)
+	var out bytes.Buffer
+	if err := extensionCommand([]string{"policy", "--browser", "chrome", "--id", "abc", "--mode", "force"}, &out); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(source, "manifest.json"), []byte(`{"manifest_version":3,"name":"Test Extension","version":"1.0"}`), 0644); err != nil {
-		t.Fatal(err)
+	if !strings.Contains(chrome.seen("extension.policy"), `"policyAction":"force"`) {
+		t.Fatalf("policy request = %s", chrome.seen("extension.policy"))
 	}
-	var output bytes.Buffer
-	if err := run([]string{"extension", "prepare", "--source", source}, &output, &bytes.Buffer{}); err != nil {
-		t.Fatal(err)
-	}
-	var inspected struct {
-		Name     string `json:"name"`
-		Revision string `json:"revision"`
-	}
-	if err := json.Unmarshal(output.Bytes(), &inspected); err != nil {
-		t.Fatal(err)
-	}
-	if inspected.Name != "Test Extension" || inspected.Revision == "" {
-		t.Fatalf("unexpected inspection: %+v", inspected)
-	}
-	output.Reset()
-	destination := filepath.Join(t.TempDir(), "staged")
-	if err := run([]string{"extension", "stage", "--browser", "chrome", "--source", source, "--revision", inspected.Revision, "--destination", destination}, &output, &bytes.Buffer{}); err != nil {
-		t.Fatal(err)
-	}
-	var result struct {
-		Status string `json:"status"`
-		Source string `json:"source"`
-	}
-	if err := json.Unmarshal(output.Bytes(), &result); err != nil {
-		t.Fatal(err)
-	}
-	if result.Status != "awaiting-browser-action" || result.Source != destination {
-		t.Fatalf("unexpected install result: %+v", result)
-	}
-	if err := run([]string{"extension", "stage", "--browser", "chrome", "--source", source, "--revision", "sha256:wrong", "--destination", filepath.Join(t.TempDir(), "rejected")}, &bytes.Buffer{}, &bytes.Buffer{}); err == nil {
-		t.Fatal("accepted a revision that differs from the inspected source")
+	if err := extensionCommand([]string{"policy", "--browser", "chrome", "--id", "abc", "--mode", "force", "--external-dir", "/x"}, &out); err == nil {
+		t.Fatal("policy accepted an external extensions directory")
 	}
 }
 
-func TestExtensionSigningCLIAndStructuredAction(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("shell signer fixture")
-	}
-	source := filepath.Join(t.TempDir(), "extension")
-	if err := os.Mkdir(source, 0755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(source, "manifest.json"), []byte(`{"manifest_version":3,"name":"Signing Test","version":"1.0"}`), 0644); err != nil {
-		t.Fatal(err)
-	}
-	prepared, err := inspectExtensionSource(source)
-	if err != nil {
-		t.Fatal(err)
-	}
-	browser := filepath.Join(t.TempDir(), "chrome")
-	script := `#!/bin/sh
-set -eu
-for arg in "$@"; do
-  case "$arg" in --pack-extension=*) extension="${arg#*=}";; esac
-done
-printf 'Cr24fixture' > "${extension}.crx"
-printf 'private key' > "${extension}.pem"
-`
-	if err := os.WriteFile(browser, []byte(script), 0755); err != nil {
-		t.Fatal(err)
-	}
-	output := filepath.Join(t.TempDir(), "signed.crx")
-	var response bytes.Buffer
-	if err := run([]string{"extension", "sign", "--browser", "chrome", "--browser-bin", browser,
-		"--source", source, "--revision", prepared.Revision, "--output", output}, &response, &bytes.Buffer{}); err != nil {
-		t.Fatal(err)
-	}
-	var signed struct {
-		Status           string `json:"status"`
-		ArtifactRevision string `json:"artifactRevision"`
-		KeyPath          string `json:"keyPath"`
-	}
-	if err := json.Unmarshal(response.Bytes(), &signed); err != nil {
-		t.Fatal(err)
-	}
-	if signed.Status != "signed" || signed.ArtifactRevision == "" || signed.KeyPath == "" {
-		t.Fatalf("unexpected signing output: %+v", signed)
-	}
-	request, err := json.Marshal(map[string]any{"source": source, "revision": prepared.Revision,
-		"output": filepath.Join(t.TempDir(), "second.crx"), "keyPath": signed.KeyPath,
-		"target": map[string]string{"browser": "chrome", "executablePath": browser}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	result, err := extensionAction("extension.sign", request)
-	if err != nil {
-		t.Fatal(err)
-	}
-	encoded, err := json.Marshal(result)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Contains(encoded, []byte(`"status":"signed"`)) {
-		t.Fatalf("structured signing did not return an artifact: %s", encoded)
-	}
-}
-
-func TestExtensionActionForOtherLocalTools(t *testing.T) {
-	source := filepath.Join(t.TempDir(), "extension")
-	if err := os.Mkdir(source, 0755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(source, "manifest.json"), []byte(`{"manifest_version":3,"name":"External Tool Extension","version":"1.0"}`), 0644); err != nil {
-		t.Fatal(err)
-	}
-	prepareInput, err := json.Marshal(map[string]string{"source": source})
-	if err != nil {
-		t.Fatal(err)
-	}
-	var output bytes.Buffer
-	if err := run([]string{"extension", "act", "--name", "extension.prepare", "--input", string(prepareInput)}, &output, &bytes.Buffer{}); err != nil {
-		t.Fatal(err)
-	}
-	var prepared struct {
-		Revision string `json:"revision"`
-	}
-	if err := json.Unmarshal(output.Bytes(), &prepared); err != nil {
-		t.Fatal(err)
-	}
-	if prepared.Revision == "" {
-		t.Fatal("prepare omitted revision")
-	}
-	installInput, err := json.Marshal(map[string]any{"source": source, "revision": prepared.Revision, "destination": filepath.Join(t.TempDir(), "staged"), "target": map[string]string{"browser": "chrome"}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	output.Reset()
-	if err := run([]string{"extension", "act", "--name", "extension.stage", "--input", string(installInput)}, &output, &bytes.Buffer{}); err != nil {
-		t.Fatal(err)
-	}
-	var installed struct {
-		Status string `json:"status"`
-	}
-	if err := json.Unmarshal(output.Bytes(), &installed); err != nil {
-		t.Fatal(err)
-	}
-	if installed.Status != "awaiting-browser-action" {
-		t.Fatalf("incorrect install state: %+v", installed)
-	}
-	if err := run([]string{"extension", "act", "--name", "extension.install", "--input", `{"source":"/somewhere","target":{"browser":"chrome"}}`}, &bytes.Buffer{}, &bytes.Buffer{}); err == nil {
-		t.Fatal("accepted tool install without a reviewed revision")
-	}
-	installRequest, err := json.Marshal(map[string]any{
-		"source": source, "revision": prepared.Revision,
-		"destination": filepath.Join(t.TempDir(), "native-staged"),
-		"target": map[string]string{
-			"browser": "chrome", "executablePath": filepath.Join(t.TempDir(), "missing-browser"),
-			"userDataDir": filepath.Join(t.TempDir(), "user-data"), "profileDirectory": "Default",
-		},
+func TestExtensionInstallStreamsProgressThenTheResult(t *testing.T) {
+	chrome := installFakeAdapter(t, "chrome", chromeOperations, map[string]string{
+		"extension.install": managementResponse("extension", "install", "awaiting-browser-action", `{"status":"awaiting-browser-action","nextAction":"Load unpacked"}`),
+	}, map[string]string{
+		"extension.install": "browser management progress: {\"status\":\"staged\"}\n",
 	})
+	var out bytes.Buffer
+	err := extensionCommand([]string{"install", "--browser", "chrome", "--profile-directory", "Default", "--source", "/ext", "--revision", "sha256:abc"}, &out)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := run([]string{"extension", "act", "--name", "extension.install", "--input", string(installRequest)}, &bytes.Buffer{}, &bytes.Buffer{}); err == nil || !os.IsNotExist(err) {
-		t.Fatalf("structured install did not reach the selected browser: %v", err)
+	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
+	if len(lines) != 2 || lines[0] != `{"status":"staged"}` || !strings.Contains(lines[1], "awaiting-browser-action") {
+		t.Fatalf("install output = %q", out.String())
 	}
-	firefoxRequest, err := json.Marshal(map[string]any{
-		"source": filepath.Join(t.TempDir(), "signed.xpi"), "revision": prepared.Revision,
-		"target": map[string]string{"browser": "firefox", "executablePath": filepath.Join(t.TempDir(), "missing-firefox"), "profilePath": filepath.Join(t.TempDir(), "firefox-profile")},
-	})
-	if err != nil {
-		t.Fatal(err)
+	if chrome.profile("extension.install") != "Default" {
+		t.Fatalf("adapter profile = %q", chrome.profile("extension.install"))
 	}
-	if err := run([]string{"extension", "act", "--name", "extension.install", "--input", string(firefoxRequest)}, &bytes.Buffer{}, &bytes.Buffer{}); err == nil {
-		t.Fatal("Firefox install accepted a nonexistent XPI")
-	}
-	if err := run([]string{"extension", "act", "--name", "extension.install", "--input", `{"source":"/somewhere","revision":"sha256:example","target":{"browser":"safari"}}`}, &bytes.Buffer{}, &bytes.Buffer{}); err == nil {
-		t.Fatal("accepted an unsupported browser through the long-running action")
-	}
-	capability, err := extensionAction("extension.capabilities", []byte(`{"target":{"browser":"safari"}}`))
-	if err != nil {
-		t.Fatal(err)
-	}
-	encoded, err := json.Marshal(capability)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Contains(encoded, []byte(`"installDriver":"signed-containing-app"`)) || !bytes.Contains(encoded, []byte(`"requiresBrowserAction":true`)) {
-		t.Fatalf("incorrect Safari target capability: %s", encoded)
-	}
-	capability, err = extensionAction("extension.capabilities", []byte(`{"target":{"browser":"chrome"}}`))
-	if err != nil {
-		t.Fatal(err)
-	}
-	encoded, err = json.Marshal(capability)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Contains(encoded, []byte(`"requiresBrowserAction":true`)) {
-		t.Fatalf("native installation action was not disclosed: %s", encoded)
+	if strings.Contains(out.String(), `"installed"`) {
+		t.Fatal("a handoff was reported as installed")
 	}
 }
 
-func TestExplicitAndDiscoveredTargetSelection(t *testing.T) {
-	selected, err := resolveCLITarget("", "firefox", "/browser/firefox", "/profiles/personal", "")
-	if err != nil || selected.Browser != "firefox" || selected.ProfilePath != "/profiles/personal" {
-		t.Fatalf("explicit Firefox target was lost: %+v, %v", selected, err)
-	}
-	if _, err := resolveCLITarget("not-a-target", "firefox", "", "", ""); err == nil {
-		t.Fatal("accepted both target ID and explicit browser")
-	}
-	if _, err := resolveCLITarget("not-a-target", "", "", "", ""); err == nil {
-		t.Fatal("accepted a stale target ID")
-	}
-	if _, err := parseExtensionActionInput([]byte(`{"target":{"id":"one","browser":"firefox"}}`)); err == nil {
-		t.Fatal("accepted conflicting structured target")
-	}
-	var output bytes.Buffer
-	if err := run([]string{"browser", "targets"}, &output, &bytes.Buffer{}); err != nil {
+func TestExtensionSigningPassesTheExecutableAndKey(t *testing.T) {
+	chrome := installFakeAdapter(t, "chrome", chromeOperations, map[string]string{
+		"extension.sign": managementResponse("extension", "sign", "signed", `{"id":"abc","keyPath":"/k.pem"}`),
+	}, nil)
+	var out bytes.Buffer
+	err := extensionCommand([]string{"sign", "--browser", "chrome", "--browser-bin", "/Applications/Chrome", "--source", "/ext", "--output", "/out.crx", "--revision", "sha256:abc", "--key", "/k.pem"}, &out)
+	if err != nil {
 		t.Fatal(err)
 	}
-	var targets []struct {
-		ID string `json:"id"`
-	}
-	if err := json.Unmarshal(output.Bytes(), &targets); err != nil {
-		t.Fatalf("browser targets did not return JSON: %v", err)
+	seen := chrome.seen("extension.sign")
+	for _, want := range []string{`"executable":"/Applications/Chrome"`, `"keyPath":"/k.pem"`, `"output":"/out.crx"`, `"revision":"sha256:abc"`} {
+		if !strings.Contains(seen, want) {
+			t.Fatalf("sign request %s lacks %s", seen, want)
+		}
 	}
 }
 
-func TestDefaultChromeProfileUsesManualInstallHandoff(t *testing.T) {
-	if runtime.GOOS != "darwin" {
-		t.Skip("macOS Chrome default profile")
-	}
-	home, err := os.UserHomeDir()
-	if err != nil {
+func TestSafariPackagingUsesTheSafariAdapterWithoutANamedBrowser(t *testing.T) {
+	chrome := installFakeAdapter(t, "chrome", chromeOperations, nil, nil)
+	safari := installFakeAdapter(t, "safari", []string{"extension.convert", "extension.sign"}, map[string]string{
+		"extension.convert": managementResponse("extension", "convert", "prepared", `{"project":"/p"}`),
+		"extension.sign":    managementResponse("extension", "sign", "signed", `{"app":"/a.app"}`),
+	}, nil)
+	var out bytes.Buffer
+	if err := extensionCommand([]string{"package-safari", "--source", "/ext", "--output", "/p", "--revision", "sha256:abc", "--bundle-id", "com.example.x", "--app-name", "X"}, &out); err != nil {
 		t.Fatal(err)
 	}
-	source := filepath.Join(t.TempDir(), "extension")
-	if err := os.Mkdir(source, 0755); err != nil {
+	if !strings.Contains(safari.seen("extension.convert"), `"bundleId":"com.example.x"`) {
+		t.Fatalf("convert request = %s", safari.seen("extension.convert"))
+	}
+	if err := extensionCommand([]string{"build-safari", "--project", "/p/X.xcodeproj", "--scheme", "X", "--output", "/o", "--team-id", "TEAM"}, &out); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(source, "manifest.json"), []byte(`{"manifest_version":3,"name":"Test","version":"1.0"}`), 0644); err != nil {
+	if !strings.Contains(safari.seen("extension.sign"), `"teamId":"TEAM"`) {
+		t.Fatalf("build request = %s", safari.seen("extension.sign"))
+	}
+	_ = chrome
+}
+
+func TestPrepareNeedsABrowserWhenSeveralAdaptersDeclareIt(t *testing.T) {
+	installFakeAdapter(t, "chrome", chromeOperations, map[string]string{"extension.prepare": managementResponse("extension", "prepare", "prepared", `{"revision":"r"}`)}, nil)
+	installFakeAdapter(t, "edge", chromeOperations, map[string]string{"extension.prepare": managementResponse("extension", "prepare", "prepared", `{"revision":"r"}`)}, nil)
+	var out bytes.Buffer
+	err := extensionCommand([]string{"prepare", "--source", "/ext"}, &out)
+	if err == nil || !strings.Contains(err.Error(), "--browser") {
+		t.Fatalf("ambiguous prepare error = %v", err)
+	}
+	if err := extensionCommand([]string{"prepare", "--browser", "edge", "--source", "/ext"}, &out); err != nil {
 		t.Fatal(err)
 	}
-	prepared, err := inspectExtensionSource(source)
-	if err != nil {
+}
+
+func TestTargetsAreDiscoveredAcrossTrustedAdaptersAndSelectedByID(t *testing.T) {
+	chrome := installFakeAdapter(t, "chrome", chromeOperations, map[string]string{
+		"extension.targets":      managementResponse("extension", "targets", "ready", `[{"id":"chrome:aaa","browser":"chrome","name":"Chrome","profile":"Default","executablePath":"/c","profilePath":"/p","installMode":"native"}]`),
+		"extension.capabilities": managementResponse("extension", "capabilities", "ready", `{"browser":"chrome"}`),
+	}, nil)
+	installFakeAdapter(t, "firefox", []string{"extension.targets"}, map[string]string{
+		"extension.targets": managementResponse("extension", "targets", "ready", `[{"id":"firefox:bbb","browser":"firefox","name":"Firefox","profile":"dev","executablePath":"/f","installMode":"native"}]`),
+	}, nil)
+	var out bytes.Buffer
+	if err := browserCommand([]string{"targets"}, &out); err != nil {
 		t.Fatal(err)
 	}
-	target := filepath.Join(home, "Library", "Application Support", "Google", "Chrome")
-	var output bytes.Buffer
-	err = run([]string{"extension", "install", "--browser", "chrome", "--profile", target, "--source", source,
-		"--revision", prepared.Revision, "--destination", filepath.Join(t.TempDir(), "staged")}, &output, &bytes.Buffer{})
-	if err != nil {
+	if !strings.Contains(out.String(), "chrome:aaa") || !strings.Contains(out.String(), "firefox:bbb") || !strings.Contains(out.String(), `"adapter":"firefox"`) {
+		t.Fatalf("targets = %s", out.String())
+	}
+	out.Reset()
+	if err := extensionCommand([]string{"capabilities", "--target", "chrome:aaa"}, &out); err != nil {
 		t.Fatal(err)
 	}
-	var result struct{ Status, Profile string }
-	if err := json.Unmarshal(output.Bytes(), &result); err != nil {
+	if !strings.Contains(chrome.seen("extension.capabilities"), `"targetId":"chrome:aaa"`) || chrome.profile("extension.capabilities") != "Default" {
+		t.Fatalf("capabilities request = %s profile %q", chrome.seen("extension.capabilities"), chrome.profile("extension.capabilities"))
+	}
+	if err := extensionCommand([]string{"capabilities", "--target", "chrome:aaa", "--browser", "chrome"}, &out); err == nil {
+		t.Fatal("a target ID was combined with a browser")
+	}
+	if err := extensionCommand([]string{"capabilities", "--target", "missing:zzz"}, &out); err == nil {
+		t.Fatal("an unknown target resolved")
+	}
+}
+
+func TestUntrustedAdaptersNeverRunAndAreSkippedInDiscovery(t *testing.T) {
+	adapter := installFakeAdapter(t, "chrome", chromeOperations, map[string]string{
+		"extension.targets": managementResponse("extension", "targets", "ready", `[]`),
+	}, nil)
+	if err := browserHost().Store().RemoveTrust("chrome"); err != nil {
 		t.Fatal(err)
 	}
-	if result.Status != "awaiting-browser-action" || result.Profile != filepath.Join(target, "Default") {
-		t.Fatalf("incorrect manual Chrome handoff: %+v", result)
+	var out bytes.Buffer
+	if err := browserCommand([]string{"targets"}, &out); err != nil || strings.TrimSpace(out.String()) != "[]" {
+		t.Fatalf("targets with only an untrusted adapter = %q %v", out.String(), err)
 	}
+	if err := extensionCommand([]string{"prepare", "--browser", "chrome", "--source", "/ext"}, &out); err == nil {
+		t.Fatal("an untrusted adapter ran")
+	}
+	_ = adapter
 }

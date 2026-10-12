@@ -91,6 +91,7 @@ func TestOperatorKeepsBrowserSessionCallableBehindAuthentication(t *testing.T) {
 }
 
 func TestOperatorExposesUserscriptAndExtensionActions(t *testing.T) {
+	installFakeAdapter(t, "firefox", []string{"extension.capabilities"}, map[string]string{"extension.capabilities": managementResponse("extension", "capabilities", "ready", `{"browser":"firefox"}`)}, nil)
 	server, err := newOperatorServer(orchestrator.NewRegistry(), "secret", t.TempDir(), "")
 	if err != nil {
 		t.Fatal(err)
@@ -147,6 +148,7 @@ func TestOperatorObservesItsOwnBrowserSession(t *testing.T) {
 }
 
 func TestOperatorCLIUsesThePersistentAPI(t *testing.T) {
+	installFakeAdapter(t, "firefox", []string{"extension.capabilities"}, map[string]string{"extension.capabilities": managementResponse("extension", "capabilities", "ready", `{"browser":"firefox"}`)}, nil)
 	registry := orchestrator.NewRegistry()
 	if err := registry.RegisterEngine("fixture", operatorTestAdapter{}); err != nil {
 		t.Fatal(err)

@@ -36,13 +36,9 @@ The module namespace is `jangolova`; public imports use paths such as
 Jangolova libraries run inside or beside the target runtime and translate
 semantic requests into safe, native operations.
 
-The `browserextension` package discovers local browser targets and owns browser-native extension inspection,
-deterministic ZIP packaging, staging, and guided installation. Its Chrome,
-Chromium, and Edge adapter reports `installed` only after the browser's native
-Load unpacked action survives a restart. It also provides Firefox signed-XPI
-BiDi installation and Safari caller-owned app packaging and launch. Safari
-enablement remains a native browser action. The calling host owns policy,
-approval, and lifecycle semantics for these adapters.
+Browser-native extension management (inspection, packaging, signing, staging,
+and installation) is not a Jangolova concern. Trusted ext browser adapters own it,
+and the calling host runs them and owns policy, approval, and lifecycle semantics.
 
 - **Browser and desktop** — document, window, display, and application actions.
 - **Three.js** — registered scene, camera, material, and object operations.

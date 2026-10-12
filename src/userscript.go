@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -15,7 +16,6 @@ import (
 
 	"cymonkey/src/internal/provider"
 	"cymonkey/src/internal/userscripts"
-	"jangolova/browserextension"
 )
 
 type repeatFlag []string
@@ -260,11 +260,11 @@ func resolveUserscriptTarget(explicit, endpoint string) (string, error) {
 		digest := sha256.Sum256([]byte(endpoint))
 		return "endpoint:" + hex.EncodeToString(digest[:12]), nil
 	}
-	targets, err := browserextension.DiscoverTargets()
+	targets, err := discoverBrowserTargets(context.Background())
 	if err != nil {
 		return "", err
 	}
-	compatible := make([]browserextension.BrowserTarget, 0, len(targets))
+	compatible := make([]browserTarget, 0, len(targets))
 	for _, target := range targets {
 		if target.Browser != "safari" {
 			compatible = append(compatible, target)

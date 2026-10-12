@@ -27,7 +27,7 @@ func main() {
 
 func run(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("cymy requires a command: validate, run, observe, modules, browser, extension, userscript, bookmarklet, display, content, device, operator, or plugins")
+		return errors.New("cymy requires a command: validate, run, observe, modules, browser, extension, userscript, bookmarklet, display, content, device, operator, plugins, or adapters")
 	}
 	switch args[0] {
 	case "validate":
@@ -58,6 +58,8 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return consoleCommand(args[1:], stdout, stderr)
 	case "plugins":
 		return pluginsCommand(args[1:], stdout, stderr)
+	case "adapters":
+		return adaptersCommand(args[1:], stdout, stderr)
 	case "native-bridge-fixture":
 		nativebridge.Run()
 		return nil

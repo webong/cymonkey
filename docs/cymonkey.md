@@ -40,8 +40,8 @@ extension, or destroy its profile.
 
 An integrating extension is optional. Cymonkey attaches through the supplied
 CDP, BiDi, or Safari MCP endpoint. Cymonkey can separately inspect, prepare,
-and guide installation of caller-owned extensions with the
-`browserextension` host library.
+and guide installation of caller-owned extensions by running trusted ext
+browser adapters.
 
 ## Architecture
 
@@ -242,8 +242,8 @@ as a library contract.
 `pkg/browser-helper` contains composable browser APIs, extension management,
 and userscript validation and registration helpers.
 An integrating extension chooses its own framework, manifest, package assets,
-permissions, and installation flow. Cymonkey's host-side
-`browserextension` package can inspect, prepare, and guide installation of
+permissions, and installation flow. Cymonkey's host side runs trusted
+ext browser adapters to inspect, prepare, and guide installation of
 caller-owned extensions.
 
 ## Connection examples

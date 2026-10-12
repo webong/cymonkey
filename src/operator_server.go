@@ -20,7 +20,6 @@ import (
 	"cymonkey/src/internal/orchestrator"
 	"cymonkey/src/internal/userscripts"
 	"cymonkey/src/observation"
-	"jangolova/browserextension"
 )
 
 type operatorServer struct {
@@ -131,7 +130,7 @@ func (server *operatorServer) handleTargets(w http.ResponseWriter, r *http.Reque
 		operatorError(w, http.StatusMethodNotAllowed, "method_not_allowed", "GET is required")
 		return
 	}
-	targets, err := browserextension.DiscoverTargets()
+	targets, err := discoverBrowserTargets(r.Context())
 	if err != nil {
 		operatorError(w, http.StatusInternalServerError, "discovery_failed", err.Error())
 		return
@@ -149,7 +148,7 @@ func (server *operatorServer) handleBrowserSession(w http.ResponseWriter, r *htt
 		operatorError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	connection, userscriptsTarget, err := request.connectRequest()
+	connection, userscriptsTarget, err := request.connectRequest(r.Context())
 	if err != nil {
 		operatorError(w, http.StatusUnprocessableEntity, "browser_connection_unavailable", err.Error())
 		return
@@ -191,42 +190,28 @@ func (server *operatorServer) handleExtension(w http.ResponseWriter, r *http.Req
 	if len(request.Input) == 0 {
 		request.Input = []byte("{}")
 	}
+	input, err := parseExtensionActionInput(request.Input)
+	if err != nil {
+		operatorError(w, http.StatusUnprocessableEntity, "invalid_extension", err.Error())
+		return
+	}
 	if request.Name == "extension.install" || request.Name == "extension.run" {
-		input, err := parseExtensionActionInput(request.Input)
-		if err != nil {
-			operatorError(w, http.StatusUnprocessableEntity, "invalid_extension", err.Error())
-			return
-		}
-		target, err := resolveActionTarget(input)
-		if err != nil {
-			operatorError(w, http.StatusUnprocessableEntity, "invalid_target", err.Error())
-			return
-		}
 		if input.Source == "" || input.Revision == "" {
 			operatorError(w, http.StatusUnprocessableEntity, "invalid_extension", "source and prepared revision are required")
 			return
 		}
-		description, err := inspectExtensionSource(input.Source)
-		if err != nil || description.Revision != input.Revision {
-			operatorError(w, http.StatusUnprocessableEntity, "invalid_extension", "extension source does not match the prepared revision")
-			return
-		}
 		w.Header().Set("Content-Type", "application/x-ndjson")
-		var runErr error
-		if request.Name == "extension.run" {
-			target.Headless = input.Headless == nil || *input.Headless
-			runErr = browserextension.RunWithDevTools(r.Context(), target, input.Source, input.Destination, input.Revision, func(result browserextension.InstallResult) error {
-				return json.NewEncoder(flushResponseWriter{w}).Encode(result)
-			})
-		} else {
-			runErr = installNativeExtension(r.Context(), target, input.Source, input.Destination, input.Revision, flushResponseWriter{w})
+		stream := json.NewEncoder(flushResponseWriter{w})
+		result, runErr := extensionActionContext(r.Context(), request.Name, input, func(raw json.RawMessage) error { return stream.Encode(raw) })
+		if runErr == nil {
+			runErr = stream.Encode(result)
 		}
 		if runErr != nil {
 			_ = json.NewEncoder(w).Encode(engineprovider.ErrorResponse{Code: "extension_operation_failed", Message: runErr.Error()})
 		}
 		return
 	}
-	value, err := extensionActionContext(r.Context(), request.Name, request.Input)
+	value, err := extensionActionContext(r.Context(), request.Name, input, nil)
 	if err != nil {
 		operatorError(w, http.StatusUnprocessableEntity, "extension_action_failed", err.Error())
 		return
