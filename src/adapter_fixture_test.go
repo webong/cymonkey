@@ -14,6 +14,7 @@ import (
 const fakeAdapterScript = `#!/bin/sh
 # usage: share PROFILE -- management KIND ACTION
 dir=$(dirname "$0"); log="$FAKE_ADAPTER_LOG"; profile="$2"; kind="$5"; action="$6"
+if [ "$4" = cookie ]; then kind=cookie; action="$5"; fi
 cat > "$log/$kind.$action.seen"
 printf '%s' "$profile" > "$log/$kind.$action.profile"
 [ -f "$dir/$kind.$action.err" ] && cat "$dir/$kind.$action.err" >&2
@@ -51,8 +52,8 @@ func installFakeAdapter(t *testing.T, name string, operations []string, response
 	manifest := strings.Join([]string{
 		`api_version = "2.0"`, `name = "` + name + `"`, `display_name = "` + name + `"`, `runtime = "browser"`, `surfaces = "web"`,
 		`executable = "ctx-fake"`, `description = "test adapter"`, `capabilities = "list,validate,open,doctor,share"`,
-		`selector_key = "browser"`, `share_spaces = "browser"`, `browser_share = "cookie.list"`,
-		`browser_management = "` + strings.Join(operations, ",") + `"`,
+		`selector_key = "browser"`, `share_spaces = "browser"`,
+		`browser_management = "` + strings.Join(operations, ",") + `"`, `browser_share = "cookie.query,cookie.normalize"`,
 	}, "\n") + "\n"
 	write := func(file, content string, mode os.FileMode) {
 		if err := os.WriteFile(filepath.Join(source, file), []byte(content), mode); err != nil {

@@ -3,6 +3,7 @@ package browsermanage
 import (
 	"context"
 	"encoding/json"
+	"github.com/webong/ext/res/web/contract"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -162,5 +163,59 @@ func TestAdaptersListsOnlyDeclaredOperations(t *testing.T) {
 	}
 	if _, err := host.Endpoint(""); err == nil {
 		t.Fatal("an empty selection resolved")
+	}
+}
+
+const cookieAdapter = `#!/bin/sh
+# usage: share PROFILE -- cookie OPERATION
+cat > "$FAKE_ADAPTER_LOG/request.json"
+case "$5" in
+  query) printf '{"cookies":[{"name":"session","value":"synthetic-secret","domain":"example.com","path":"/","expiry":0,"secure":true,"http_only":true}],"store_id":"0"}\n' ;;
+  normalize) echo 'could not read the store: synthetic-secret' >&2; exit 2 ;;
+esac
+`
+
+func TestCookieQueryRunsAShareOperationAndNeverLeaksValuesInErrors(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the fake adapter is a POSIX script")
+	}
+	t.Setenv("FAKE_ADAPTER_LOG", t.TempDir())
+	source := t.TempDir()
+	manifest := strings.Replace(fakeManifest, `browser_share = "cookie.list"`, `browser_share = "cookie.query,cookie.normalize"`, 1)
+	if err := os.WriteFile(filepath.Join(source, "adapter.toml"), []byte(manifest), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(source, "ctx-fake"), []byte(cookieAdapter), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	host := New(t.TempDir())
+	installed, err := host.Store().Install(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := host.Store().Trust(installed); err != nil {
+		t.Fatal(err)
+	}
+	endpoint, err := host.Endpoint("fakebrowser:Default")
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := host.Cookie(context.Background(), endpoint, "query", contract.CookieRequest{Site: "https://example.com/", Names: []string{"session"}})
+	if err != nil || len(result.Cookies) != 1 || result.Cookies[0].Value != "synthetic-secret" || result.StoreID != "0" {
+		t.Fatalf("query = %#v %v", result, err)
+	}
+	sent, err := os.ReadFile(filepath.Join(os.Getenv("FAKE_ADAPTER_LOG"), "request.json"))
+	if err != nil || !strings.Contains(string(sent), `"version":2`) || !strings.Contains(string(sent), `"site":"https://example.com/"`) {
+		t.Fatalf("adapter request = %s %v", sent, err)
+	}
+	if _, err := host.Cookie(context.Background(), endpoint, "export", contract.CookieRequest{}); err == nil {
+		t.Fatal("an unsupported cookie operation ran")
+	}
+	_, err = host.Cookie(context.Background(), endpoint, "normalize", contract.CookieRequest{StoreID: "0"})
+	if err == nil {
+		t.Fatal("a failing adapter reported success")
+	}
+	if strings.Contains(err.Error(), "synthetic-secret") {
+		t.Fatalf("a cookie failure echoed adapter diagnostics: %v", err)
 	}
 }

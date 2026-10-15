@@ -91,50 +91,16 @@ func (h *Host) Do(ctx context.Context, endpoint Endpoint, kind, action string, i
 	if endpoint.Adapter == nil || !endpoint.Adapter.HasBrowserManagement(operation) {
 		return contract.Response{}, fmt.Errorf("browser adapter does not support management operation %s", operation)
 	}
-	if err := h.store.AssertTrusted(endpoint.Adapter); err != nil {
-		name := endpoint.Adapter.Manifest.Name
-		return contract.Response{}, fmt.Errorf("browser adapter %s is not trusted or has changed; review it, then run: cymy adapters trust %s", name, name)
-	}
 	encoded, err := json.Marshal(request)
 	if err != nil {
 		return contract.Response{}, err
 	}
-	command, err := endpoint.Adapter.CommandContext(ctx, adapter.Invocation{
-		Operation: shareOperation, Selection: endpoint.Profile, Arguments: []string{"management", kind, action},
-	})
+	output, err := h.run(ctx, endpoint, []string{"management", kind, action}, encoded, maxResponseBytes, false, progress)
 	if err != nil {
 		return contract.Response{}, err
 	}
-	command.Stdin = bytes.NewReader(encoded)
-	stdout := &limitedBuffer{limit: maxResponseBytes}
-	command.Stdout = stdout
-	stderrReader, stderrWriter := io.Pipe()
-	command.Stderr = stderrWriter
-	diagnostics := &limitedBuffer{limit: maxStderrBytes}
-	done := make(chan error, 1)
-	go func() { done <- scanProgress(stderrReader, diagnostics, progress) }()
-	if err := command.Start(); err != nil {
-		_ = stderrWriter.Close()
-		<-done
-		return contract.Response{}, err
-	}
-	runErr := command.Wait()
-	_ = stderrWriter.Close()
-	progressErr := <-done
-	if runErr != nil {
-		if ctx.Err() != nil {
-			return contract.Response{}, ctx.Err()
-		}
-		return contract.Response{}, adapterError(endpoint.Adapter.Manifest.Name, runErr, diagnostics.String())
-	}
-	if progressErr != nil {
-		return contract.Response{}, progressErr
-	}
-	if stdout.truncated {
-		return contract.Response{}, errors.New("browser adapter response exceeds its size limit")
-	}
 	var response contract.Response
-	decoder := json.NewDecoder(bytes.NewReader(stdout.Bytes()))
+	decoder := json.NewDecoder(bytes.NewReader(output))
 	if err := decoder.Decode(&response); err != nil {
 		return contract.Response{}, fmt.Errorf("browser adapter returned an invalid management response: %w", err)
 	}
@@ -146,6 +112,56 @@ func (h *Host) Do(ctx context.Context, endpoint Endpoint, kind, action string, i
 		return contract.Response{}, err
 	}
 	return response, nil
+}
+
+// run starts a trusted adapter's share operation with arguments after "--",
+// feeds it input on stdin, and returns what it wrote to stdout. A failure
+// reports the adapter's diagnostic text, unless quiet is set for an operation
+// that handles secrets, and never the request or the output.
+func (h *Host) run(ctx context.Context, endpoint Endpoint, arguments []string, input []byte, limit int, quiet bool, progress Progress) ([]byte, error) {
+	if err := h.store.AssertTrusted(endpoint.Adapter); err != nil {
+		name := endpoint.Adapter.Manifest.Name
+		return nil, fmt.Errorf("browser adapter %s is not trusted or has changed; review it, then run: cymy adapters trust %s", name, name)
+	}
+	command, err := endpoint.Adapter.CommandContext(ctx, adapter.Invocation{
+		Operation: shareOperation, Selection: endpoint.Profile, Arguments: arguments,
+	})
+	if err != nil {
+		return nil, err
+	}
+	command.Stdin = bytes.NewReader(input)
+	stdout := &limitedBuffer{limit: limit}
+	command.Stdout = stdout
+	stderrReader, stderrWriter := io.Pipe()
+	command.Stderr = stderrWriter
+	diagnostics := &limitedBuffer{limit: maxStderrBytes}
+	done := make(chan error, 1)
+	go func() { done <- scanProgress(stderrReader, diagnostics, progress) }()
+	if err := command.Start(); err != nil {
+		_ = stderrWriter.Close()
+		<-done
+		return nil, err
+	}
+	runErr := command.Wait()
+	_ = stderrWriter.Close()
+	progressErr := <-done
+	if runErr != nil {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		if quiet {
+			// Diagnostics from an operation that handles secrets could echo them.
+			return nil, fmt.Errorf("browser adapter %s failed: %w (its diagnostics are not shown)", endpoint.Adapter.Manifest.Name, runErr)
+		}
+		return nil, adapterError(endpoint.Adapter.Manifest.Name, runErr, diagnostics.String())
+	}
+	if progressErr != nil {
+		return nil, progressErr
+	}
+	if stdout.truncated {
+		return nil, errors.New("browser adapter response exceeds its size limit")
+	}
+	return stdout.Bytes(), nil
 }
 
 // Result decodes a response's result into out. A nil out ignores it.
