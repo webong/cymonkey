@@ -92,32 +92,12 @@ bounded payload to a caller-supplied delivery callback. It never falls back to
 `document.cookie`. See [browser cookie export](../../docs/browser-cookie-export.md)
 for the API, popup integration, scope rules, and consumer handoff boundary.
 
-For a Node.js 22+ host, import `@cymonkey/browser-helper/node`. Its
-`discoverLocalCookieSources` lists Chrome, Edge, Firefox, and Safari cookie
-sources without reading values; hosts may add custom roots. Then
-`createLocalCookieReader` uses a selected source and a caller-supplied
-authorization callback. The host can pass an
-absolute profile path, a profile name, or `ALL_PROFILES` for Chromium and
-Firefox. Safari can take an explicit cookie-file path. The Node entry point
-also exports `toCookieHeader` for callers that explicitly need an HTTP header.
-The extension-safe root entry point does not import Node APIs.
-
-```ts
-import {createLocalCookieReader, discoverLocalCookieSources}
-  from '@cymonkey/browser-helper/node';
-
-const sources = discoverLocalCookieSources();
-const selected = chooseSource(sources);
-const reader = createLocalCookieReader({authorize: (request) =>
-  approvedCookieScope(request)});
-const result = await reader.querySource(selected, {
-  url: 'https://example.com/', names: ['session'],
-});
-```
-
-The host must select and approve the source and scope before handling returned
-values. Local database readers return best-effort portable cookie fields; use
-the extension API exporter when native store or partition provenance is needed.
+Reading a browser's own cookie stores from a local host belongs to ext's browser
+adapters, not to this library. Run `cymy cookies query` (or `normalize`) from
+Cymonkey, which asks the selected trusted adapter to read the store and returns
+the cookies. The adapter owns profile discovery, store formats and decrypting
+values. The extension API exporter above is the right route when native store or
+partition provenance is needed.
 
 ## Host and page integrations
 

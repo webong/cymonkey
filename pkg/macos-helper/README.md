@@ -65,35 +65,9 @@ executable does not inject into arbitrary apps or Safari.
 
 ## Native browser cookies
 
-Import the standalone `MacOSBrowserCookies` product to discover local Safari,
-Chromium, and Firefox cookie stores and read an explicitly selected store for
-exact domains and optional cookie names:
-
-```swift
-import MacOSBrowserCookies
-
-let reader = MacOSBrowserCookieReader()
-let stores = reader.discover(browsers: [.safari, .chrome, .firefox])
-let selected = stores[0] // Select through the host's own UI and approval flow.
-let cookies = try reader.read(
-    from: selected, domains: ["example.com"], names: ["session"])
-```
-
-Discovery returns source metadata only. `read` returns values, rechecks that
-the selected store still exists, and suppresses interactive Keychain prompts
-by default. A host can pass `allowKeychainUI: true` after a user action.
-For a custom profile, call `select(browser:cookieFile:)` with an absolute path
-to its `Cookies`, `cookies.sqlite`, or `Cookies.binarycookies` file, then pass
-the returned store to `read`.
-Safari access may require Full Disk Access. The returned records include
-host-only/domain scope, expiry, Secure, and HttpOnly; the underlying reader
-does not expose partition, container, or SameSite metadata, so callers must
-not infer those fields or replay the records across browser contexts without
-additional validation. The host owns approval and delivery; this library
-does not store or transmit cookie values.
-
-The source reader uses an attributed [SweetCookieKit snapshot](ThirdParty/SweetCookieKit.md)
-as a separate Swift target so this package remains buildable with Swift 6.0.
+Reading Safari, Chromium and Firefox cookie stores is done by ext's browser
+adapters through `cymy cookies`, not by this package. The earlier
+`MacOSBrowserCookies` product and its SweetCookieKit snapshot are removed.
 
 ## Build and test
 

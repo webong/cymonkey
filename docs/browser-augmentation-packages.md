@@ -6,8 +6,8 @@ their assets in its own build, declares browser permissions, and owns its UI.
 
 | Library | Role |
 | --- | --- |
-| [`@cymonkey/browser-helper`](../pkg/browser-helper/README.md) | Scoped browser API operations, extension management, userscript validation and registration, reviewed catalog, approvals, policy/audit gate, tab and engine routing, mounting, page runtime and bridge, sandbox handshake, cookie export, Node-side local cookie reads, and optional control/media integrations. |
-| [`pkg/macos-helper`](../pkg/macos-helper/README.md) | Swift native helper, userscript catalog, managed-runtime controller, macOS browser cookie reader, and `WKUserScript` installation for an app-owned web view. |
+| [`@cymonkey/browser-helper`](../pkg/browser-helper/README.md) | Scoped browser API operations, extension management, userscript validation and registration, reviewed catalog, approvals, policy/audit gate, tab and engine routing, mounting, page runtime and bridge, sandbox handshake, extension cookie export, and optional control/media integrations. |
+| [`pkg/macos-helper`](../pkg/macos-helper/README.md) | Swift native helper, userscript catalog, managed-runtime controller, and `WKUserScript` installation for an app-owned web view. |
 | [`pkg/ios-helper`](../pkg/ios-helper/README.md) | Swift binding for a caller-owned `WKWebView`, approved scripts, and authorized cookie reads. |
 | [`pkg/android-helper`](../pkg/android-helper/README.md) | Kotlin binding for a caller-owned Android `WebView`, with a host-approved userscript manager, persistent store option, URL matching, navigation injection, and authorized cookie reads. |
 | [`pkg/windows-helper`](../pkg/windows-helper/README.md) | Go desktop helper plus a .NET WebView2 library for approved document scripts and unpacked extension management in an app-owned profile. |

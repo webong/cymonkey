@@ -121,21 +121,24 @@ APIs, and incomplete native cookie records fail without delivery.
 
 ## Local host readers
 
-`@cymonkey/browser-helper/node` now exposes metadata-only
-`discoverLocalCookieSources` and `createLocalCookieReader` for a Node.js host.
-The caller selects a browser and, for Chromium or Firefox, a profile; an
-injected authorization callback receives the exact query before the reader
-touches a local cookie store. The reader returns cookie values and warnings
-without logging or transmitting them. It uses Sweet Cookie for
-cross-platform local reads and offers `toCookieHeader` when a host explicitly
-needs an HTTP request header.
+Reading cookies from a browser's own stores is done by ext's browser adapters,
+which know each browser's profile layout, store format and value encryption on
+every platform. Cymonkey runs a trusted adapter for you:
 
-On macOS, the separate [`MacOSBrowserCookies`](../pkg/macos-helper/README.md)
-Swift product discovers Safari, Chromium, and Firefox stores and reads an
-explicitly selected store. Its Keychain interaction is disabled by default.
-Both local readers expose fewer browser isolation fields than the privileged
-extension API. The host must inspect each reader's scope limits before using
-its result as an input to another browser session or CTX.
+```sh
+cymy cookies query --browser chrome --profile-directory Default \
+  --site https://example.com/ --name session
+cymy cookies normalize --browser chrome --store-id 0 --input-file ./native-export.json
+```
+
+`query` returns cookie values and per-cookie warnings; `normalize` interprets a
+privileged extension API export for the selected adapter. The result holds live
+cookie values, so it goes to stdout only because you asked for it. Cymonkey does
+not log, store or forward it, and an adapter's diagnostics are not shown in
+errors because they could echo a value. The adapter must be installed and trusted
+first (`cymy adapters`). Earlier releases offered `@cymonkey/browser-helper/node`
+and the macOS `MacOSBrowserCookies` product; both are removed in favor of the
+adapters.
 
 ## CTX handoff
 
