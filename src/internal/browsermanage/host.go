@@ -92,7 +92,8 @@ func (h *Host) Do(ctx context.Context, endpoint Endpoint, kind, action string, i
 		return contract.Response{}, fmt.Errorf("browser adapter does not support management operation %s", operation)
 	}
 	if err := h.store.AssertTrusted(endpoint.Adapter); err != nil {
-		return contract.Response{}, err
+		name := endpoint.Adapter.Manifest.Name
+		return contract.Response{}, fmt.Errorf("browser adapter %s is not trusted or has changed; review it, then run: cymy adapters trust %s", name, name)
 	}
 	encoded, err := json.Marshal(request)
 	if err != nil {

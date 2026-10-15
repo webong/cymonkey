@@ -87,9 +87,17 @@ func extensionCommand(args []string, stdout io.Writer) error {
 // final result to output as JSON lines.
 func runExtensionAction(ctx context.Context, name string, input extensionActionInput, output io.Writer) error {
 	encoder := json.NewEncoder(output)
-	result, err := extensionActionContext(ctx, name, input, func(raw json.RawMessage) error { return encoder.Encode(raw) })
+	var last []byte
+	result, err := extensionActionContext(ctx, name, input, func(raw json.RawMessage) error {
+		last = append(last[:0], raw...)
+		return encoder.Encode(raw)
+	})
 	if err != nil {
 		return err
+	}
+	// An adapter often ends with the same value it last reported as progress.
+	if last != nil && bytes.Equal(bytes.TrimSpace(last), bytes.TrimSpace(result)) {
+		return nil
 	}
 	return encoder.Encode(result)
 }
