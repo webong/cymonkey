@@ -11,7 +11,7 @@ require (
 require (
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/webong/ext/pkg/plugin v0.5.1
+	github.com/webong/ext/pkg/plugin v0.6.0
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 

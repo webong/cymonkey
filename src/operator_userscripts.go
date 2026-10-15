@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"strings"
 
-	"cymonkey/src/internal/userscripts"
+	userscripts "github.com/webong/ext/res/web/userscript"
 )
 
 type userscriptOperatorRequest struct {

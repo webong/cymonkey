@@ -2,5 +2,5 @@ github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aN
 github.com/gorilla/websocket v1.5.3/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/webong/ext/pkg/graph v0.1.0 h1:bM0T6s9EUZlrhnjITeXyS9Wnq/aTTIVlJ5YC2L5+8Mw=
 github.com/webong/ext/pkg/graph v0.1.0/go.mod h1:3ICq+WAgHkT/gxHft7YtdAYmS5T07OxHlPc58WGnArA=
-github.com/webong/ext/pkg/plugin v0.5.1 h1:E1Xcdq/mCbd7f/ScIoCFO6oA15lgif/1x4wMqma/l5g=
-github.com/webong/ext/pkg/plugin v0.5.1/go.mod h1:4HjMr9xajSrI6DroQ7+3jntxmrZF1M5UPwhlMliljDE=
+github.com/webong/ext/pkg/plugin v0.6.0 h1:SrAR+x+qNBJ5vDse+cAOA6gCvNh2rTtMOFpCi7hgDUw=
+github.com/webong/ext/pkg/plugin v0.6.0/go.mod h1:4HjMr9xajSrI6DroQ7+3jntxmrZF1M5UPwhlMliljDE=

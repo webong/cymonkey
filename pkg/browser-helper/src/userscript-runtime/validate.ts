@@ -27,7 +27,7 @@ export function validateManifest(value: UserScriptManifest, options: {allowMainW
 }
 
 export function validateMatchPattern(value: string) {
-  if (value === '<all_urls>') return;
+  // ext.userscript/v1alpha1 rejects <all_urls> on purpose: a blanket match is the unsafe default.
   const match = /^(\*|https?|file):\/\/([^/]+|\*)\/(.*)$/.exec(value);
   if (!match) throw new Error(`invalid userscript match pattern ${JSON.stringify(value)}`);
   if (match[1] === 'file' && match[2] !== '*') throw new Error('file userscript match host must be *');

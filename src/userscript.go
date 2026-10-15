@@ -14,8 +14,9 @@ import (
 	"regexp"
 	"strings"
 
+	"cymonkey/src/internal/paths"
 	"cymonkey/src/internal/provider"
-	"cymonkey/src/internal/userscripts"
+	userscripts "github.com/webong/ext/res/web/userscript"
 )
 
 type repeatFlag []string
@@ -37,7 +38,7 @@ func userscriptCommand(args []string, stdout io.Writer) error {
 		_, err := fmt.Fprintln(stdout, "Usage: cymy userscript <prepare|install|update|list|describe|enable|disable|uninstall> [flags]\n\nInstall accepts --source, infers userscript metadata and a unique local browser target, and optionally connects with --endpoint PROTOCOL=URL. Use --target to select a profile explicitly. Prepare returns an optional review revision.")
 		return err
 	}
-	defaultStore, err := userscripts.DefaultDirectory()
+	defaultStore, err := paths.UserscriptDirectory()
 	if err != nil {
 		return err
 	}

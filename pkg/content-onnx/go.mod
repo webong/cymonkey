@@ -4,7 +4,7 @@ go 1.26.5
 
 require (
 	blockade v0.0.0
-	github.com/webong/ext/pkg/plugin v0.5.1
+	github.com/webong/ext/pkg/plugin v0.6.0
 	github.com/yalue/onnxruntime_go v1.35.0
 )
 

@@ -16,8 +16,8 @@ import (
 	"cymonkey/src/contracts"
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
-	"cymonkey/src/internal/userscripts"
 	"cymonkey/src/observation"
+	userscripts "github.com/webong/ext/res/web/userscript"
 )
 
 type operatorTestAdapter struct{}

@@ -17,8 +17,9 @@ import (
 	"cymonkey/src/internal/engineprovider"
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
+	"cymonkey/src/internal/paths"
 	"cymonkey/src/internal/targetconn"
-	"cymonkey/src/internal/userscripts"
+	userscripts "github.com/webong/ext/res/web/userscript"
 )
 
 func enginesCommand(args []string, registryFactory RegistryFactory) error {
@@ -71,7 +72,7 @@ func connectEngine(args []string, stdout io.Writer, registryFactory RegistryFact
 	optionsText := flags.String("options", "{}", "adapter-specific options as a JSON object")
 	disconnectTimeout := flags.Duration("disconnect-timeout", 15*time.Second, "maximum disconnect duration")
 	userscriptTarget := flags.String("userscripts-target", "", "stable browser/profile ID whose approved userscripts should be replayed")
-	defaultUserscriptStore, err := userscripts.DefaultDirectory()
+	defaultUserscriptStore, err := paths.UserscriptDirectory()
 	if err != nil {
 		return err
 	}

@@ -8,7 +8,7 @@ import (
 	"reflect"
 
 	"cymonkey/src/internal/orchestrator"
-	"cymonkey/src/internal/userscripts"
+	userscripts "github.com/webong/ext/res/web/userscript"
 )
 
 const userscriptAugmentationID = "cymonkey-managed-userscripts"

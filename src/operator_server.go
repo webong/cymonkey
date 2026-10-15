@@ -18,8 +18,8 @@ import (
 	"board"
 	"cymonkey/src/internal/engineprovider"
 	"cymonkey/src/internal/orchestrator"
-	"cymonkey/src/internal/userscripts"
 	"cymonkey/src/observation"
+	userscripts "github.com/webong/ext/res/web/userscript"
 )
 
 type operatorServer struct {

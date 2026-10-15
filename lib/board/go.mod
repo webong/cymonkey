@@ -5,7 +5,7 @@ go 1.26.5
 require (
 	github.com/pion/rtp v1.10.5
 	github.com/pion/webrtc/v4 v4.2.22
-	github.com/webong/ext/pkg/plugin v0.5.1
+	github.com/webong/ext/pkg/plugin v0.6.0
 	golang.org/x/sys v0.46.0
 )
 

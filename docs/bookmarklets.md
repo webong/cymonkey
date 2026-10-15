@@ -1,7 +1,7 @@
 # Browser bookmarklets
 
-Jangolova's `jangolova/bookmarklet` library prepares small, user-activated page
-augmentations. Cymonkey exposes it through `cymy bookmarklet`. A saved bookmarklet
+ext's `res/web/bookmarklet` library (`github.com/webong/ext/res/web/bookmarklet`)
+prepares small, user-activated page augmentations. Cymonkey exposes it through `cymy bookmarklet`. A saved bookmarklet
 runs in the current page when clicked; it needs neither an extension nor a
 running Cymonkey process.
 
@@ -74,7 +74,7 @@ and [managed userscripts](userscripts.md) for persistent workflows.
 ## Verification
 
 ```sh
-go test ./lib/jangolova/bookmarklet ./src
+go test ./src
 npm run test:browser-helper
 go build -o .cache/cymy-augmentation ./src
 CYMONKEY_CYMY_BIN="$PWD/.cache/cymy-augmentation" \

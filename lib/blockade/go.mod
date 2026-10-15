@@ -3,7 +3,7 @@ module blockade
 go 1.26.5
 
 require (
-	github.com/webong/ext/pkg/plugin v0.5.1
+	github.com/webong/ext/pkg/plugin v0.6.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

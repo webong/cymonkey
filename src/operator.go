@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"cymonkey/src/internal/engineprovider"
-	"cymonkey/src/internal/userscripts"
+	"cymonkey/src/internal/paths"
 )
 
 const defaultOperatorURL = "http://127.0.0.1:7395"
@@ -56,7 +56,7 @@ func serveOperator(args []string, stdout, stderr io.Writer) error {
 	contentTokenEnvironment := flags.String("content-token-env", "", "environment variable containing the content service bearer token")
 	var services repeatFlag
 	flags.Var(&services, "service", "service binding as CONTRACT=URL")
-	store, err := userscripts.DefaultDirectory()
+	store, err := paths.UserscriptDirectory()
 	if err != nil {
 		return err
 	}
