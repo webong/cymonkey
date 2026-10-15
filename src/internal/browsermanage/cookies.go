@@ -9,10 +9,6 @@ import (
 	"github.com/webong/ext/res/web/contract"
 )
 
-// maxCookieResultBytes bounds one cookie result. It matches the limit ext's
-// adapters apply, which a released contract package does not export yet.
-const maxCookieResultBytes = 32<<20 + 4096
-
 // Cookie runs a cookie operation ("query" or "normalize") on a trusted browser
 // adapter that declares it, through ext's browser share protocol. The adapter
 // owns every browser-specific detail: profile discovery, store formats and
@@ -33,7 +29,7 @@ func (h *Host) Cookie(ctx context.Context, endpoint Endpoint, operation string, 
 	if len(encoded) > 8<<20 {
 		return contract.CookieQueryResult{}, errors.New("cookie request exceeds 8 MiB")
 	}
-	output, err := h.run(ctx, endpoint, []string{"cookie", operation}, encoded, maxCookieResultBytes, true, nil)
+	output, err := h.run(ctx, endpoint, []string{"cookie", operation}, encoded, contract.MaxCookieQueryResultBytes+4096, true, nil)
 	if err != nil {
 		return contract.CookieQueryResult{}, err
 	}

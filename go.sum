@@ -46,8 +46,8 @@ github.com/webong/ext/pkg/graph v0.1.0 h1:bM0T6s9EUZlrhnjITeXyS9Wnq/aTTIVlJ5YC2L
 github.com/webong/ext/pkg/graph v0.1.0/go.mod h1:3ICq+WAgHkT/gxHft7YtdAYmS5T07OxHlPc58WGnArA=
 github.com/webong/ext/pkg/plugin v0.6.0 h1:SrAR+x+qNBJ5vDse+cAOA6gCvNh2rTtMOFpCi7hgDUw=
 github.com/webong/ext/pkg/plugin v0.6.0/go.mod h1:4HjMr9xajSrI6DroQ7+3jntxmrZF1M5UPwhlMliljDE=
-github.com/webong/ext/res/web v0.4.0 h1:gu9vj/SpZA9G8JDPb7u/7NQuxWo/katgglsIc93YTmM=
-github.com/webong/ext/res/web v0.4.0/go.mod h1:DoAk6ydqtqqC21xr+XbngXzx2Br5J6DRXvACQx7DC5I=
+github.com/webong/ext/res/web v0.5.0 h1:FCD4435Xi4M4g8d66rBNoBEE1wuHgGGvXhI3kpL2WYk=
+github.com/webong/ext/res/web v0.5.0/go.mod h1:DoAk6ydqtqqC21xr+XbngXzx2Br5J6DRXvACQx7DC5I=
 github.com/wlynxg/anet v0.0.5 h1:J3VJGi1gvo0JwZ/P1/Yc/8p63SoW98B5dHkYDmpgvvU=
 github.com/wlynxg/anet v0.0.5/go.mod h1:eay5PRQr7fIVAMbTbchTnO9gG65Hg/uYGdc7mguHxoA=
 go.yaml.in/yaml/v3 v3.0.5 h1:N6y/pJk8buWs9NY5ERU2HSMfm+IuD/OtfdAnq6kESPw=
