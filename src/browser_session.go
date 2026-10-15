@@ -131,8 +131,11 @@ func (request browserSessionRequest) selectedTarget(ctx context.Context) (browse
 }
 
 // sessionEndpoint asks the browser's adapter for the debugging endpoint of a
-// profile through session.targets. It reports the first page target's
-// protocol and endpoint, so a profile with no open page has none to report.
+// profile. An adapter that declares session.endpoint reports it directly, with
+// no open page needed. Otherwise the first page target from session.targets
+// supplies it. The endpoint is a capability: a loopback WebSocket URL whose path
+// is the only credential. It is returned to the caller for connecting and is
+// never logged, persisted, or put in an error.
 func sessionEndpoint(ctx context.Context, target browserTarget) (string, string, error) {
 	if target.Adapter == "" {
 		return "", "", errors.New("the selected browser has no adapter")
@@ -141,11 +144,26 @@ func sessionEndpoint(ctx context.Context, target browserTarget) (string, string,
 	if selector == "" {
 		selector = target.Profile
 	}
-	endpoint, err := browserHost().Endpoint(target.Adapter + ":" + selector)
+	host := browserHost()
+	endpoint, err := host.Endpoint(target.Adapter + ":" + selector)
 	if err != nil {
 		return "", "", err
 	}
-	response, err := browserHost().Do(ctx, endpoint, "session", "targets", map[string]any{}, nil)
+	if endpoint.Adapter.HasBrowserManagement("session.endpoint") {
+		response, err := host.Do(ctx, endpoint, "session", "endpoint", map[string]any{}, nil)
+		if err != nil {
+			return "", "", err
+		}
+		var found contract.EndpointResult
+		if err := browsermanage.Result(response, &found); err != nil {
+			return "", "", errors.New("the adapter returned an unreadable endpoint")
+		}
+		if err := contract.ValidateEndpoint(found); err != nil {
+			return "", "", err
+		}
+		return browserEndpointProtocol(found.Protocol), found.Endpoint, nil
+	}
+	response, err := host.Do(ctx, endpoint, "session", "targets", map[string]any{}, nil)
 	if err != nil {
 		return "", "", err
 	}
@@ -156,14 +174,19 @@ func sessionEndpoint(ctx context.Context, target browserTarget) (string, string,
 	for _, page := range pages {
 		switch page.Protocol {
 		case "cdp", "bidi":
-			protocol := page.Protocol
-			if protocol == "bidi" {
-				protocol = "webdriver-bidi"
-			}
-			return protocol, page.Endpoint, nil
+			return browserEndpointProtocol(page.Protocol), page.Endpoint, nil
 		}
 	}
 	return "", "", errors.New("the browser reports no debuggable page; open a page or supply an endpoint")
+}
+
+// browserEndpointProtocol maps ext's protocol names onto the names the engine
+// connection contract uses.
+func browserEndpointProtocol(protocol string) string {
+	if protocol == "bidi" {
+		return "webdriver-bidi"
+	}
+	return protocol
 }
 
 func splitBrowserEndpoint(value string) (string, string, error) {
