@@ -13,6 +13,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
+	"time"
 
 	"board"
 	boardconfig "board/config"
@@ -41,16 +43,51 @@ var pluginOperations = map[string][]string{
 	devicePluginContract:  boardplugin.Operations,
 }
 
+// pluginListTTL bounds how long a verified plugin list is reused. ext's store
+// verifies every installed package's content whenever it lists them, which
+// costs seconds for a large vendored tree. One command lists the plugins for
+// display, device and content setup within moments of each other, so a short
+// reuse window avoids repeating that work without hiding a change for long.
+// Launching a plugin still re-verifies it.
+const pluginListTTL = 10 * time.Second
+
+var pluginList struct {
+	sync.Mutex
+	root    string
+	loaded  time.Time
+	plugins []store.Installed
+}
+
 func installedPlugins() ([]store.Installed, error) {
 	root, err := defaultPluginRoot()
 	if err != nil {
 		return nil, err
 	}
+	pluginList.Lock()
+	defer pluginList.Unlock()
+	if pluginList.plugins != nil && pluginList.root == root && time.Since(pluginList.loaded) < pluginListTTL {
+		return append([]store.Installed(nil), pluginList.plugins...), nil
+	}
 	packages, err := store.New(root, store.Limits{})
 	if err != nil {
 		return nil, err
 	}
-	return packages.List()
+	listed, err := packages.List()
+	if err != nil {
+		return nil, err
+	}
+	if listed == nil {
+		listed = []store.Installed{}
+	}
+	pluginList.root, pluginList.loaded, pluginList.plugins = root, time.Now(), listed
+	return append([]store.Installed(nil), listed...), nil
+}
+
+// forgetInstalledPlugins drops the reused list after a change to the store.
+func forgetInstalledPlugins() {
+	pluginList.Lock()
+	pluginList.plugins = nil
+	pluginList.Unlock()
 }
 
 // pluginContract declares a Cymonkey contract with the operations its
@@ -270,6 +307,7 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 			return err
 		}
 		item, err := packages.Install(source)
+		forgetInstalledPlugins()
 		if err != nil {
 			return err
 		}
@@ -289,6 +327,7 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 			return err
 		}
 		item, err := packages.Upgrade(source)
+		forgetInstalledPlugins()
 		if err != nil {
 			return err
 		}
@@ -310,6 +349,7 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 		if len(args) != 2 {
 			return errors.New("plugins remove requires one name")
 		}
+		forgetInstalledPlugins()
 		if err := packages.Remove(args[1]); err != nil {
 			return err
 		}

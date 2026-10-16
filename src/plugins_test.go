@@ -333,3 +333,52 @@ func TestSourcePackageManifestInstallsEveryListedFile(t *testing.T) {
 		t.Fatal("--command and --root were accepted together")
 	}
 }
+
+func writeTestPackage(t *testing.T, name string) string {
+	t.Helper()
+	source := t.TempDir()
+	executable := filepath.Join(source, "provider")
+	if err := os.WriteFile(executable, []byte("#!/bin/sh\n# "+name+"\n"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	manifest, err := packagekit.ExecutableManifest(name, "1.0.0", []plugin.Contract{pluginContract(contentPluginContract)}, executable)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.WriteManifest(source, manifest); err != nil {
+		t.Fatal(err)
+	}
+	return source
+}
+
+func TestInstalledPluginsReusesTheVerifiedListUntilTheStoreChanges(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "installed")
+	t.Setenv("CYMONKEY_PLUGIN_DIR", root)
+	forgetInstalledPlugins()
+	if err := pluginsCommand([]string{"install", "--manifest", writeTestPackage(t, "first")}, io.Discard, io.Discard); err != nil {
+		t.Fatal(err)
+	}
+	listed, err := installedPlugins()
+	if err != nil || len(listed) != 1 {
+		t.Fatalf("first list = %d %v", len(listed), err)
+	}
+	// A package added behind Cymonkey's back is not seen until the reuse window ends.
+	other, err := store.New(root, store.Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := other.Install(writeTestPackage(t, "second")); err != nil {
+		t.Fatal(err)
+	}
+	if reused, _ := installedPlugins(); len(reused) != 1 {
+		t.Fatalf("the verified list was not reused: %d packages", len(reused))
+	}
+	// Changing the store through Cymonkey drops the reused list at once.
+	if err := pluginsCommand([]string{"install", "--manifest", writeTestPackage(t, "third")}, io.Discard, io.Discard); err != nil {
+		t.Fatal(err)
+	}
+	if fresh, _ := installedPlugins(); len(fresh) != 3 {
+		t.Fatalf("the list was stale after an install: %d packages", len(fresh))
+	}
+	forgetInstalledPlugins()
+}
