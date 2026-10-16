@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"blockade"
-	"github.com/webong/ext/pkg/plugin"
+	plugin "github.com/webong/ext/pkg/plugin-go/contract"
 )
 
 func TestModelInspectionRejectsWrongArtifactWithoutStarting(t *testing.T) {

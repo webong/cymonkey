@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/webong/ext/pkg/plugin/jsonschema"
+	"github.com/webong/ext/pkg/plugin-go/contract/validate/jsonschema"
 )
 
 // Generation is independent of observation/interpretation. Providers produce

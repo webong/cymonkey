@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/webong/ext/pkg/plugin/jsonschema"
+	"github.com/webong/ext/pkg/plugin-go/contract/validate/jsonschema"
 )
 
 type VerificationState string

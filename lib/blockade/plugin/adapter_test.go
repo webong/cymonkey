@@ -16,9 +16,9 @@ import (
 	"time"
 
 	"blockade"
-	"github.com/webong/ext/pkg/plugin"
-	"github.com/webong/ext/pkg/plugin/packagekit"
-	"github.com/webong/ext/pkg/plugin/store"
+	plugin "github.com/webong/ext/pkg/plugin-go/contract"
+	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
+	packagekit "github.com/webong/ext/pkg/plugin-go/contract/package"
 )
 
 func TestNormalizeProcessErrorPreservesBlockadeFailureKind(t *testing.T) {

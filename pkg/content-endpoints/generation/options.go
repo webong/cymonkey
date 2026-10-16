@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"blockade"
-	"github.com/webong/ext/pkg/plugin/jsonschema"
+	"github.com/webong/ext/pkg/plugin-go/contract/validate/jsonschema"
 )
 
 // Native options use the selected API dialect's names. Only documented fields

@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/webong/ext/pkg/plugin/jsonline"
-	"github.com/webong/ext/pkg/plugin/packagekit"
-	"github.com/webong/ext/pkg/plugin/store"
+	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
+	packagekit "github.com/webong/ext/pkg/plugin-go/contract/package"
+	"github.com/webong/ext/pkg/plugin-go/contract/transport/jsonline"
 )
 
 type answer struct {

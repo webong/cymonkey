@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/webong/ext/pkg/plugin/host"
-	"github.com/webong/ext/pkg/plugin/store"
+	"github.com/webong/ext/pkg/plugin-go/contract/host"
+	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
 	"jangolova/sdk"
 )
 

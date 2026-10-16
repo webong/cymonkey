@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"blockade"
-	"github.com/webong/ext/pkg/plugin"
-	"github.com/webong/ext/pkg/plugin/jsonline"
-	"github.com/webong/ext/pkg/plugin/packagekit"
+	plugin "github.com/webong/ext/pkg/plugin-go/contract"
+	packagekit "github.com/webong/ext/pkg/plugin-go/contract/package"
+	"github.com/webong/ext/pkg/plugin-go/contract/transport/jsonline"
 	"wirebridge"
 )
 

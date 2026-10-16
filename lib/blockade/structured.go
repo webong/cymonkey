@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/webong/ext/pkg/plugin/jsonschema"
+	"github.com/webong/ext/pkg/plugin-go/contract/validate/jsonschema"
 )
 
 // StructuredEvent exposes unmodified text deltas and complete schema-valid

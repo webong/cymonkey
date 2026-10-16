@@ -15,7 +15,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/webong/ext/pkg/plugin/adapter"
+	"github.com/webong/ext/pkg/plugin-go/contract/host/adapter"
 	"github.com/webong/ext/res/web/contract"
 )
 
