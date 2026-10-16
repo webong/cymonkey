@@ -51,7 +51,7 @@ func Providers(installed []store.Installed) []board.Provider {
 func (p Provider) ID() string { return p.Installed.Name() }
 
 func (p Provider) List(ctx context.Context) ([]board.Device, error) {
-	proc, err := host.Open(ctx, p.Installed, host.Options{})
+	proc, err := host.Open(ctx, p.Installed, host.Options{Authorize: listPolicy()})
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (p Provider) List(ctx context.Context) ([]board.Device, error) {
 }
 
 func (p Provider) Open(ctx context.Context, deviceID string, grant board.Grant) (board.Session, error) {
-	proc, err := host.Open(ctx, p.Installed, host.Options{})
+	proc, err := host.Open(ctx, p.Installed, host.Options{Authorize: sessionPolicy(grant)})
 	if err != nil {
 		return nil, err
 	}

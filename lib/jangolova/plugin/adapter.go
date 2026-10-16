@@ -54,7 +54,7 @@ func Adapters(installed []store.Installed) []NamedAdapter {
 }
 
 func (a Adapter) InspectEngine(ctx context.Context) sdk.EngineInspection {
-	proc, err := host.Open(ctx, a.Installed, host.Options{})
+	proc, err := host.Open(ctx, a.Installed, host.Options{Authorize: probePolicy()})
 	if err != nil {
 		return sdk.EngineInspection{Available: false, Message: err.Error()}
 	}
@@ -86,7 +86,7 @@ type wireTarget struct {
 }
 
 func (a Adapter) Connect(ctx context.Context, spec sdk.EngineSpec, target sdk.EngineTarget) (sdk.EngineInstance, error) {
-	proc, err := host.Open(ctx, a.Installed, host.Options{})
+	proc, err := host.Open(ctx, a.Installed, host.Options{Authorize: sessionPolicy()})
 	if err != nil {
 		return nil, err
 	}

@@ -120,7 +120,7 @@ func RegisterWithProtocol(registry *blockade.ProviderAdapterRegistry, installed 
 			workers = 1
 		}
 		for range workers {
-			proc, err := launch.open(ctx, protocol)
+			proc, err := launch.open(ctx, protocol, workerPolicy())
 			if err != nil {
 				_ = pool.Close()
 				return nil, err
@@ -165,7 +165,7 @@ func RegisterWithProtocol(registry *blockade.ProviderAdapterRegistry, installed 
 		}
 	}
 	inspect := func(ctx context.Context, runtime blockade.ProviderAdapterRuntime, model blockade.InstalledModel) error {
-		proc, err := launch.open(ctx, protocol)
+		proc, err := launch.open(ctx, protocol, inspectPolicy())
 		if err != nil {
 			return err
 		}
@@ -235,9 +235,9 @@ func newLaunchPlan(installed store.Installed, protocol Protocol) (launchPlan, er
 	return plan, nil
 }
 
-func (p launchPlan) open(ctx context.Context, protocol Protocol) (*host.Process, error) {
+func (p launchPlan) open(ctx context.Context, protocol Protocol, authorize func(context.Context, plugin.Request) error) (*host.Process, error) {
 	if p.descriptor == nil {
-		return host.Open(ctx, p.installed, host.Options{})
+		return host.Open(ctx, p.installed, host.Options{Authorize: authorize})
 	}
 	root := protocol.RuntimeRoot
 	if root == "" {
@@ -255,7 +255,7 @@ func (p launchPlan) open(ctx context.Context, protocol Protocol) (*host.Process,
 	if err != nil {
 		return nil, err
 	}
-	return host.Open(ctx, p.installed, host.Options{Launch: &process.Command{
+	return host.Open(ctx, p.installed, host.Options{Authorize: authorize, Launch: &process.Command{
 		Path: runtime.ExecutablePath(),
 		Args: []string{"-B", entrypoint},
 		Env: []string{
