@@ -1,4 +1,4 @@
 github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=
 github.com/gorilla/websocket v1.5.3/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
-github.com/webong/ext/pkg/plugin-go/contract v0.2.0 h1:sdey5B+DyY/D71v+Jw1tKx4oSzDaQXNxAhAliDmqvtk=
-github.com/webong/ext/pkg/plugin-go/contract v0.2.0/go.mod h1:YajPTz7utaUNrcn856mnFegEHuk8l70pK2krbVFSZoc=
+github.com/webong/ext/pkg/plugin-go/contract v0.2.1 h1:kl/7bOcWf/2wBjKEUQdIilnt8fldQ6J+Y6TBEd/tnrQ=
+github.com/webong/ext/pkg/plugin-go/contract v0.2.1/go.mod h1:YajPTz7utaUNrcn856mnFegEHuk8l70pK2krbVFSZoc=
