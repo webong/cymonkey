@@ -10,29 +10,51 @@ Python source, and dependencies.
 
 ## Package
 
-Install a complete `python@3.12.8` distribution into Cymonkey first. Its
-`runtime.json` lists every runtime file and digest; Cymonkey copies and verifies
-the distribution rather than using `python3` from `PATH`.
+Install a complete Python distribution into Cymonkey first. Its `runtime.json`
+lists every runtime file and digest; Cymonkey copies and verifies the
+distribution rather than using `python3` from `PATH`. `content.json` names the
+exact `python` version, so set it to the version you install.
+
+Cymonkey's runtime tool refuses symbolic links, and a stock standalone Python
+build contains some, so make a dereferenced copy first. This was verified with
+`uv python install 3.12` (CPython 3.12.13, macOS arm64):
 
 ```sh
+cp -RL /path/to/uv/python/cpython-3.12.13-macos-aarch64-none /path/to/python-tree
 cymy content runtime manifest --source /path/to/python-tree \
-  --name python --version 3.12.8 --executable bin/python3 \
+  --name python --version 3.12.13 --executable bin/python3 \
   --output /path/to/python-tree/runtime.json
+cymy content runtime install --manifest /path/to/python-tree/runtime.json
 ```
 
 Vendor this provider's pinned packages with that runtime so compiled wheels
-match its platform and Python version:
+match its platform and Python version. `requirements.txt` pins NumPy 1.26.4 on
+macOS because Ultralytics 8.3.63 requires `numpy<2` there, and pins torch 2.5.1
+and torchvision 0.20.1, which this Ultralytics release loads checkpoints with.
+The result is about 660 MB in roughly 19,700 files:
 
 ```sh
-/path/to/python3 -m pip install \
+uv pip install --python /path/to/python-tree/bin/python3 \
   --target pkg/content-ultralytics/python/vendor \
   -r pkg/content-ultralytics/python/requirements.txt
 cymy plugins manifest --type content --name local-ultralytics --version 1.0.0 \
   --root pkg/content-ultralytics --file content.json --dir python \
   --stage /tmp/local-ultralytics-package
-cymy content runtime install --manifest /path/to/python/runtime.json
 cymy plugins install --manifest /tmp/local-ultralytics-package
 ```
+
+Then install the YOLO and SAM weights as one model and run detection:
+
+```sh
+cymy content model install --manifest model.json --config content.yaml
+cymy content observe --config content.yaml --image bus.jpg --inference local-ultralytics
+```
+
+Measured on an Apple Silicon Mac with that tree: staging 9 s, installing 13 s,
+verifying the installed package 3 s, installing the models 23 s, and a cold
+`observe` on the standard bus image about 20 s, which returned the bus and four
+people with segmentation masks. Ultralytics also pulls in `opencv-python`
+alongside the pinned headless build.
 
 `cymy plugins manifest` lists `content.json` as a file artifact and `python` as a
 single tree artifact (one entry covered by a directory digest, skipping
