@@ -189,7 +189,7 @@ single `cymy` binary, its generic contracts, admission policy and adapters.
 modules, the content and generation kits, the content providers, and the platform helpers and
 products. The host never imports a guest; it reaches them through the ext
 plugin system (`github.com/webong/ext/pkg/plugin-go/contract`). Until the cut is
-complete, `src/guest_imports_test.go` fails on any new import of a `pkg/` Go
+complete, `src/internal/boundary/guest_imports_test.go` fails on any new import of a `pkg/` Go
 module and lists the ones that remain. `tests/` is the conformance and fixture
 surface. Jangolova, Board, Console and the kits are separate Go modules
 (`jangolova`, `board`, `console`, `contentkit`, `generationkit`) joined through `go.work` and
