@@ -15,8 +15,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-
-	"blockade"
 )
 
 // CommandEngine owns Cymonkey's content commands and delegates inference,
@@ -398,7 +396,7 @@ func interpretCommand(args []string, stdout io.Writer, registry *contentkit.Prov
 		return err
 	}
 	defer started.Close()
-	result, err := (blockade.Client{Engine: started}).Interpret(context.Background(), request)
+	result, err := (contentkit.Client{Engine: started}).Interpret(context.Background(), request)
 	if err != nil {
 		return err
 	}
@@ -478,7 +476,7 @@ func observeCommand(args []string, stdout io.Writer, registry *contentkit.Provid
 	if err != nil {
 		return err
 	}
-	result, err := (blockade.Client{Engine: started}).Observe(context.Background(), contentkit.ObserveRequest{Image: image, Prompt: *prompt})
+	result, err := (contentkit.Client{Engine: started}).Observe(context.Background(), contentkit.ObserveRequest{Image: image, Prompt: *prompt})
 	if err != nil {
 		return err
 	}
@@ -522,7 +520,7 @@ func serveCommand(args []string, stderr io.Writer, registry *contentkit.Provider
 		return err
 	}
 	defer engine.Close()
-	service, err := blockade.NewHTTPServer(engine, selected.ID)
+	service, err := contentkit.NewHTTPServer(engine, selected.ID)
 	if err != nil {
 		return err
 	}
@@ -535,7 +533,7 @@ func serveCommand(args []string, stderr io.Writer, registry *contentkit.Provider
 		if !ok || strings.TrimSpace(token) == "" {
 			return fmt.Errorf("content bearer token environment variable %q is not set", name)
 		}
-		handler = blockade.RequireBearerToken(handler, token)
+		handler = contentkit.RequireBearerToken(handler, token)
 	}
 	if (*tlsCertificate == "") != (*tlsKey == "") {
 		return fmt.Errorf("%s serve requires --tls-cert and --tls-key together", invocation)

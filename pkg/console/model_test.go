@@ -6,18 +6,18 @@ import (
 	"errors"
 	"testing"
 
-	"blockade"
+	"generationkit"
 )
 
 type proposingModel struct {
 	count   int
-	request blockade.GenerationRequest
+	request generationkit.GenerationRequest
 }
 
-func (m *proposingModel) Generate(_ context.Context, request blockade.GenerationRequest) (blockade.GenerationResponse, error) {
+func (m *proposingModel) Generate(_ context.Context, request generationkit.GenerationRequest) (generationkit.GenerationResponse, error) {
 	m.count++
 	m.request = request
-	return blockade.GenerationResponse{Model: request.Model, Message: blockade.Message{Role: "assistant", ToolCalls: []blockade.ToolCall{{ID: "chosen", Name: "lookup", Arguments: json.RawMessage(`{"key":"a"}`)}}}}, nil
+	return generationkit.GenerationResponse{Model: request.Model, Message: generationkit.Message{Role: "assistant", ToolCalls: []generationkit.ToolCall{{ID: "chosen", Name: "lookup", Arguments: json.RawMessage(`{"key":"a"}`)}}}}, nil
 }
 
 func TestModelCompositionRequiresExplicitToolExecutionAndContinuation(t *testing.T) {
@@ -34,8 +34,8 @@ func TestModelCompositionRequiresExplicitToolExecutionAndContinuation(t *testing
 	}
 	model := &proposingModel{}
 	composition := ModelTools{Model: model, Tools: &registry}
-	messages := []blockade.Message{blockade.TextMessage("user", "find a")}
-	response, err := composition.Generate(context.Background(), blockade.GenerationRequest{Model: "host-choice", Messages: messages})
+	messages := []generationkit.Message{generationkit.TextMessage("user", "find a")}
+	response, err := composition.Generate(context.Background(), generationkit.GenerationRequest{Model: "host-choice", Messages: messages})
 	if err != nil {
 		t.Fatal(err)
 	}

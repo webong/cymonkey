@@ -7,14 +7,14 @@ import (
 	"errors"
 	"net/http"
 
-	"blockade"
+	"generationkit"
 )
 
 // Embed supports explicit OpenAI-compatible, Cohere and Voyage API roots.
 // Batch vectors are restored to input order and validated before returning.
-func (c *Client) Embed(ctx context.Context, r blockade.EmbeddingRequest) (blockade.EmbeddingResponse, error) {
-	if err := blockade.ValidateEmbeddingRequest(r); err != nil {
-		return blockade.EmbeddingResponse{}, err
+func (c *Client) Embed(ctx context.Context, r generationkit.EmbeddingRequest) (generationkit.EmbeddingResponse, error) {
+	if err := generationkit.ValidateEmbeddingRequest(r); err != nil {
+		return generationkit.EmbeddingResponse{}, err
 	}
 	payload := map[string]any{"model": r.Model}
 	path := "/embeddings"
@@ -31,7 +31,7 @@ func (c *Client) Embed(ctx context.Context, r blockade.EmbeddingRequest) (blocka
 		}
 	case Cohere:
 		if len(r.Tokens) > 0 || r.Dimensions > 0 || c.config.EmbeddingInputType == "" {
-			return blockade.EmbeddingResponse{}, unsupported("Cohere embeddings need text and explicitly configured input type; dimensions are unsupported")
+			return generationkit.EmbeddingResponse{}, unsupported("Cohere embeddings need text and explicitly configured input type; dimensions are unsupported")
 		}
 		path = "/embed"
 		payload["texts"] = r.Texts
@@ -40,7 +40,7 @@ func (c *Client) Embed(ctx context.Context, r blockade.EmbeddingRequest) (blocka
 		payload["truncate"] = "NONE"
 	case Voyage:
 		if len(r.Tokens) > 0 {
-			return blockade.EmbeddingResponse{}, unsupported("Voyage token input")
+			return generationkit.EmbeddingResponse{}, unsupported("Voyage token input")
 		}
 		payload["input"] = r.Texts
 		payload["truncation"] = false
@@ -51,20 +51,20 @@ func (c *Client) Embed(ctx context.Context, r blockade.EmbeddingRequest) (blocka
 			payload["input_type"] = c.config.EmbeddingInputType
 		}
 	default:
-		return blockade.EmbeddingResponse{}, unsupported("embeddings for this protocol")
+		return generationkit.EmbeddingResponse{}, unsupported("embeddings for this protocol")
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
-		return blockade.EmbeddingResponse{}, err
+		return generationkit.EmbeddingResponse{}, err
 	}
 	response, err := c.do(ctx, http.MethodPost, path, "application/json", bytes.NewReader(body), false)
 	if err != nil {
-		return blockade.EmbeddingResponse{}, err
+		return generationkit.EmbeddingResponse{}, err
 	}
 	defer response.Body.Close()
 	data, err := readBounded(response.Body, c.config.MaxResponseBytes)
 	if err != nil {
-		return blockade.EmbeddingResponse{}, err
+		return generationkit.EmbeddingResponse{}, err
 	}
 	var wire struct {
 		Model string `json:"model"`
@@ -86,9 +86,9 @@ func (c *Client) Embed(ctx context.Context, r blockade.EmbeddingRequest) (blocka
 		} `json:"meta"`
 	}
 	if err := json.Unmarshal(data, &wire); err != nil {
-		return blockade.EmbeddingResponse{}, err
+		return generationkit.EmbeddingResponse{}, err
 	}
-	result := blockade.EmbeddingResponse{Model: r.Model, Usage: blockade.TokenUsage{Input: wire.Usage.Input, Total: wire.Usage.Total}}
+	result := generationkit.EmbeddingResponse{Model: r.Model, Usage: generationkit.TokenUsage{Input: wire.Usage.Input, Total: wire.Usage.Total}}
 	if wire.Model != "" {
 		result.Model = wire.Model
 	}
@@ -112,5 +112,5 @@ func (c *Client) Embed(ctx context.Context, r blockade.EmbeddingRequest) (blocka
 			result.Vectors[entry.Index] = entry.Embedding
 		}
 	}
-	return result, blockade.ValidateEmbeddingResponse(result, r)
+	return result, generationkit.ValidateEmbeddingResponse(result, r)
 }

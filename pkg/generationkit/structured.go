@@ -1,4 +1,4 @@
-package blockade
+package generationkit
 
 import (
 	"contentkit"

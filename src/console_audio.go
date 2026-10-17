@@ -10,14 +10,14 @@ import (
 	"os"
 	"path/filepath"
 
-	"blockade"
 	"console/bindings"
+	"generationkit"
 )
 
 // The CLI host, rather than Console, chooses an existing artifact directory.
 // OpenRoot confines mutations to that directory, including symlink traversal.
 func consoleAudioConsumer(root *os.Root, directory, format string, ceiling int64) bindings.SpeechConsumer {
-	return func(ctx context.Context, stream blockade.SpeechStream) (json.RawMessage, error) {
+	return func(ctx context.Context, stream generationkit.SpeechStream) (json.RawMessage, error) {
 		extensions := map[string]string{"mp3": "mp3", "opus": "ogg", "aac": "aac", "flac": "flac", "wav": "wav", "pcm": "pcm"}
 		extension, ok := extensions[format]
 		if !ok {

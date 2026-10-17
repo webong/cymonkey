@@ -2,7 +2,7 @@ go 1.26.5
 
 use (
 	.
-	./pkg/blockade
+	./pkg/generationkit
 	./pkg/board
 	./pkg/contentkit
 	./pkg/console

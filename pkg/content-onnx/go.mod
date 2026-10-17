@@ -4,7 +4,6 @@ go 1.26.5
 
 require (
 	contentkit v0.0.0
-	blockade v0.0.0
 	github.com/yalue/onnxruntime_go v1.35.0
 )
 
@@ -14,6 +13,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace blockade => ../blockade
 
 replace contentkit => ../contentkit

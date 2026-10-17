@@ -6,8 +6,8 @@ import (
 	"errors"
 	"time"
 
-	"blockade"
 	"console"
+	"generationkit"
 	"jangolova/ui"
 )
 
@@ -83,20 +83,20 @@ type EmbeddingInput struct {
 	Dimensions int      `json:"dimensions,omitempty"`
 }
 
-func Embed(definition console.Definition, provider blockade.Embedder, model string) (console.Tool, error) {
+func Embed(definition console.Definition, provider generationkit.Embedder, model string) (console.Tool, error) {
 	if provider == nil || model == "" {
 		return console.Tool{}, errors.New("embedding needs a provider and fixed model")
 	}
-	return console.NewJSONTool(definition, func(ctx context.Context, input EmbeddingInput) (blockade.EmbeddingResponse, error) {
-		r := blockade.EmbeddingRequest{Model: model, Texts: input.Texts, Tokens: input.Tokens, Dimensions: input.Dimensions}
-		if err := blockade.ValidateEmbeddingRequest(r); err != nil {
-			return blockade.EmbeddingResponse{}, err
+	return console.NewJSONTool(definition, func(ctx context.Context, input EmbeddingInput) (generationkit.EmbeddingResponse, error) {
+		r := generationkit.EmbeddingRequest{Model: model, Texts: input.Texts, Tokens: input.Tokens, Dimensions: input.Dimensions}
+		if err := generationkit.ValidateEmbeddingRequest(r); err != nil {
+			return generationkit.EmbeddingResponse{}, err
 		}
 		result, err := provider.Embed(ctx, r)
 		if err != nil {
 			return result, err
 		}
-		return result, blockade.ValidateEmbeddingResponse(result, r)
+		return result, generationkit.ValidateEmbeddingResponse(result, r)
 	})
 }
 

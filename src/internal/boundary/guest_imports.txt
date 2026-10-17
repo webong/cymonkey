@@ -1,6 +1,4 @@
-src/console_audio.go blockade
 src/console_audio.go console/bindings
-src/console_command.go blockade
 src/console_command.go board/capture
 src/console_command.go console
 src/console_command.go console/bindings
@@ -9,8 +7,6 @@ src/console_command.go console/mcp
 src/console_command.go cymonkey-content-plugin-endpoints/generation
 src/console_command.go jangolova/contract
 src/console_command.go jangolova/ui
-src/contentcli/command.go blockade
-src/contentcli/endpoint.go blockade
 src/device_command.go board
 src/devicebridge/device.go board
 src/devicecli/command.go board

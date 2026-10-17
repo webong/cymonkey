@@ -9,11 +9,11 @@ import (
 	"net/url"
 	"strings"
 
-	"blockade"
+	"generationkit"
 )
 
-func (c *Client) encode(request blockade.GenerationRequest, stream bool) ([]byte, string, error) {
-	if err := blockade.ValidateGenerationRequest(request); err != nil {
+func (c *Client) encode(request generationkit.GenerationRequest, stream bool) ([]byte, string, error) {
+	if err := generationkit.ValidateGenerationRequest(request); err != nil {
 		return nil, "", err
 	}
 	var payload map[string]any
@@ -61,7 +61,7 @@ func (c *Client) encode(request blockade.GenerationRequest, stream bool) ([]byte
 func unsupported(feature string) error {
 	return fmt.Errorf("%w: %s", contentkit.ErrGenerationUnsupported, feature)
 }
-func plainText(message blockade.Message) (string, error) {
+func plainText(message generationkit.Message) (string, error) {
 	var text strings.Builder
 	for _, part := range message.Parts {
 		if part.Kind != "text" {
@@ -71,7 +71,7 @@ func plainText(message blockade.Message) (string, error) {
 	}
 	return text.String(), nil
 }
-func openAIRequest(request blockade.GenerationRequest) (map[string]any, error) {
+func openAIRequest(request generationkit.GenerationRequest) (map[string]any, error) {
 	messages := make([]any, 0, len(request.Messages))
 	for _, message := range request.Messages {
 		wire := map[string]any{"role": message.Role}
@@ -162,7 +162,7 @@ func openAIRequest(request blockade.GenerationRequest) (map[string]any, error) {
 	return payload, nil
 }
 
-func anthropicRequest(request blockade.GenerationRequest) (map[string]any, error) {
+func anthropicRequest(request generationkit.GenerationRequest) (map[string]any, error) {
 	messages := []any{}
 	system := []any{}
 	for _, message := range request.Messages {
@@ -261,7 +261,7 @@ func anthropicRequest(request blockade.GenerationRequest) (map[string]any, error
 	return payload, nil
 }
 
-func geminiRequest(request blockade.GenerationRequest) (map[string]any, error) {
+func geminiRequest(request generationkit.GenerationRequest) (map[string]any, error) {
 	contents := []any{}
 	system := []any{}
 	for _, message := range request.Messages {
@@ -461,12 +461,12 @@ type geminiResponse struct {
 	Error json.RawMessage `json:"error"`
 }
 
-func (c *Client) decode(data []byte, model string) (blockade.GenerationResponse, error) {
+func (c *Client) decode(data []byte, model string) (generationkit.GenerationResponse, error) {
 	return c.decodeOffset(data, model, 0)
 }
 
-func (c *Client) decodeOffset(data []byte, model string, callOffset int) (blockade.GenerationResponse, error) {
-	r := blockade.GenerationResponse{Model: model, Message: blockade.Message{Role: "assistant"}}
+func (c *Client) decodeOffset(data []byte, model string, callOffset int) (generationkit.GenerationResponse, error) {
+	r := generationkit.GenerationResponse{Model: model, Message: generationkit.Message{Role: "assistant"}}
 	switch c.config.Protocol {
 	case Responses:
 		return decodeResponses(data, model)
@@ -484,25 +484,25 @@ func (c *Client) decodeOffset(data []byte, model string, callOffset int) (blocka
 		}
 		m := wire.Choices[0].Message
 		if m.Content != "" {
-			r.Message.Parts = append(r.Message.Parts, blockade.MessagePart{Kind: "text", Text: m.Content})
+			r.Message.Parts = append(r.Message.Parts, generationkit.MessagePart{Kind: "text", Text: m.Content})
 		}
 		if m.Reasoning != "" {
-			r.Message.Parts = append(r.Message.Parts, blockade.MessagePart{Kind: "reasoning", Text: m.Reasoning})
+			r.Message.Parts = append(r.Message.Parts, generationkit.MessagePart{Kind: "reasoning", Text: m.Reasoning})
 		}
 		if m.Refusal != "" {
-			r.Message.Parts = append(r.Message.Parts, blockade.MessagePart{Kind: "refusal", Text: m.Refusal})
+			r.Message.Parts = append(r.Message.Parts, generationkit.MessagePart{Kind: "refusal", Text: m.Refusal})
 			r.StopReason = "refusal"
 		}
 		for _, call := range m.ToolCalls {
 			if call.Type != "function" {
 				return r, unsupported("non-function tool call")
 			}
-			r.Message.ToolCalls = append(r.Message.ToolCalls, blockade.ToolCall{ID: call.ID, Name: call.Function.Name, Arguments: json.RawMessage(call.Function.Arguments)})
+			r.Message.ToolCalls = append(r.Message.ToolCalls, generationkit.ToolCall{ID: call.ID, Name: call.Function.Name, Arguments: json.RawMessage(call.Function.Arguments)})
 		}
 		if r.StopReason == "" {
 			r.StopReason = wire.Choices[0].FinishReason
 		}
-		r.Usage = blockade.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output, Total: wire.Usage.Total, CachedInput: wire.Usage.InputDetails.Cached, Reasoning: wire.Usage.OutputDetails.Reasoning}
+		r.Usage = generationkit.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output, Total: wire.Usage.Total, CachedInput: wire.Usage.InputDetails.Cached, Reasoning: wire.Usage.OutputDetails.Reasoning}
 	case Anthropic:
 		var wire anthropicResponse
 		if err := json.Unmarshal(data, &wire); err != nil {
@@ -515,7 +515,7 @@ func (c *Client) decodeOffset(data []byte, model string, callOffset int) (blocka
 		for _, block := range wire.Content {
 			switch block.Type {
 			case "text":
-				r.Message.Parts = append(r.Message.Parts, blockade.MessagePart{Kind: "text", Text: block.Text})
+				r.Message.Parts = append(r.Message.Parts, generationkit.MessagePart{Kind: "text", Text: block.Text})
 			case "thinking", "redacted_thinking":
 				part, err := thinkingPart(block)
 				if err != nil {
@@ -523,13 +523,13 @@ func (c *Client) decodeOffset(data []byte, model string, callOffset int) (blocka
 				}
 				r.Message.Parts = append(r.Message.Parts, part)
 			case "tool_use":
-				r.Message.ToolCalls = append(r.Message.ToolCalls, blockade.ToolCall{ID: block.ID, Name: block.Name, Arguments: block.Input})
+				r.Message.ToolCalls = append(r.Message.ToolCalls, generationkit.ToolCall{ID: block.ID, Name: block.Name, Arguments: block.Input})
 			default:
 				return r, unsupported("Anthropic response block " + block.Type)
 			}
 		}
 		r.StopReason = normalizeStop(wire.StopReason)
-		r.Usage = blockade.TokenUsage{Input: wire.Usage.Input + wire.Usage.Cached + wire.Usage.CacheWrite, Output: wire.Usage.Output, Total: wire.Usage.Input + wire.Usage.Cached + wire.Usage.CacheWrite + wire.Usage.Output, CachedInput: wire.Usage.Cached}
+		r.Usage = generationkit.TokenUsage{Input: wire.Usage.Input + wire.Usage.Cached + wire.Usage.CacheWrite, Output: wire.Usage.Output, Total: wire.Usage.Input + wire.Usage.Cached + wire.Usage.CacheWrite + wire.Usage.Output, CachedInput: wire.Usage.Cached}
 	case Gemini:
 		var wire geminiResponse
 		if err := json.Unmarshal(data, &wire); err != nil {
@@ -542,7 +542,7 @@ func (c *Client) decodeOffset(data []byte, model string, callOffset int) (blocka
 		if wire.Model != "" {
 			r.Model = wire.Model
 		}
-		r.Usage = blockade.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output + wire.Usage.Reasoning, Total: wire.Usage.Total, CachedInput: wire.Usage.Cached, Reasoning: wire.Usage.Reasoning}
+		r.Usage = generationkit.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output + wire.Usage.Reasoning, Total: wire.Usage.Total, CachedInput: wire.Usage.Cached, Reasoning: wire.Usage.Reasoning}
 		if len(wire.Candidates) == 0 {
 			return r, nil
 		}
@@ -564,19 +564,19 @@ func (c *Client) decodeOffset(data []byte, model string, callOffset int) (blocka
 				if len(args) == 0 {
 					args = json.RawMessage(`{}`)
 				}
-				r.Message.ToolCalls = append(r.Message.ToolCalls, blockade.ToolCall{ID: id, Name: call.Name, Arguments: args, ProviderData: signature})
+				r.Message.ToolCalls = append(r.Message.ToolCalls, generationkit.ToolCall{ID: id, Name: call.Name, Arguments: args, ProviderData: signature})
 			} else if part.Text != "" {
 				kind := "text"
 				if part.Thought {
 					kind = "reasoning"
 				}
-				r.Message.Parts = append(r.Message.Parts, blockade.MessagePart{Kind: kind, Text: part.Text, ProviderData: signature})
+				r.Message.Parts = append(r.Message.Parts, generationkit.MessagePart{Kind: kind, Text: part.Text, ProviderData: signature})
 			} else if len(signature) > 0 {
-				r.Message.Parts = append(r.Message.Parts, blockade.MessagePart{Kind: "context", ProviderData: signature})
+				r.Message.Parts = append(r.Message.Parts, generationkit.MessagePart{Kind: "context", ProviderData: signature})
 			}
 		}
 		r.StopReason = normalizeStop(wire.Candidates[0].FinishReason)
-		r.Usage = blockade.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output + wire.Usage.Reasoning, Total: wire.Usage.Total, CachedInput: wire.Usage.Cached, Reasoning: wire.Usage.Reasoning}
+		r.Usage = generationkit.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output + wire.Usage.Reasoning, Total: wire.Usage.Total, CachedInput: wire.Usage.Cached, Reasoning: wire.Usage.Reasoning}
 	}
 	return r, nil
 }
@@ -597,14 +597,14 @@ func normalizeStop(reason string) string {
 	}
 }
 
-func thinkingPart(block anthropicBlock) (blockade.MessagePart, error) {
+func thinkingPart(block anthropicBlock) (generationkit.MessagePart, error) {
 	var raw []byte
 	var err error
 	kind := "context"
 	text := ""
 	if block.Type == "thinking" {
 		if block.Signature == "" {
-			return blockade.MessagePart{}, errors.New("thinking block is missing its replay signature")
+			return generationkit.MessagePart{}, errors.New("thinking block is missing its replay signature")
 		}
 		kind = "reasoning"
 		text = block.Thinking
@@ -612,5 +612,5 @@ func thinkingPart(block anthropicBlock) (blockade.MessagePart, error) {
 	} else {
 		raw, err = json.Marshal(map[string]string{"type": "redacted_thinking", "data": block.Data})
 	}
-	return blockade.MessagePart{Kind: kind, Text: text, ProviderData: raw}, err
+	return generationkit.MessagePart{Kind: kind, Text: text, ProviderData: raw}, err
 }

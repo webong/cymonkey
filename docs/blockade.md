@@ -16,4 +16,4 @@ adapter processes. Responses are converted back before they cross the public
 boundary.
 
 Developers embedding Blockade directly can use its native contracts without
-depending on Cymonkey. See the [Blockade library README](../pkg/blockade/README.md).
+depending on Cymonkey. See the [content kit README](../pkg/contentkit/README.md).

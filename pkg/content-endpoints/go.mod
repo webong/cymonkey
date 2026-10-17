@@ -4,7 +4,7 @@ go 1.26.5
 
 require (
 	contentkit v0.0.0
-	blockade v0.0.0
+	generationkit v0.0.0
 	github.com/gorilla/websocket v1.5.3
 )
 
@@ -14,6 +14,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace blockade => ../blockade
+replace generationkit => ../generationkit
 
 replace contentkit => ../contentkit

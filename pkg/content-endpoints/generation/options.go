@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"blockade"
+	"generationkit"
 	"github.com/webong/ext/pkg/plugin-go/contract/validate/jsonschema"
 )
 
 // Native options use the selected API dialect's names. Only documented fields
 // are accepted; options cannot replace model, messages, tools or endpoint data.
-func applyOptions(protocol Protocol, r blockade.GenerationRequest, payload map[string]any) error {
+func applyOptions(protocol Protocol, r generationkit.GenerationRequest, payload map[string]any) error {
 	if len(r.Options) == 0 {
 		return nil
 	}

@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"blockade"
+	"generationkit"
 )
 
 type Protocol string
@@ -169,29 +169,29 @@ func readBounded(reader io.Reader, limit int64) ([]byte, error) {
 	return data, nil
 }
 
-func (c *Client) Generate(ctx context.Context, request blockade.GenerationRequest) (blockade.GenerationResponse, error) {
+func (c *Client) Generate(ctx context.Context, request generationkit.GenerationRequest) (generationkit.GenerationResponse, error) {
 	body, path, err := c.encode(request, false)
 	if err != nil {
-		return blockade.GenerationResponse{}, err
+		return generationkit.GenerationResponse{}, err
 	}
 	resp, err := c.do(ctx, http.MethodPost, path, "application/json", bytes.NewReader(body), false)
 	if err != nil {
-		return blockade.GenerationResponse{}, err
+		return generationkit.GenerationResponse{}, err
 	}
 	defer resp.Body.Close()
 	data, err := readBounded(resp.Body, c.config.MaxResponseBytes)
 	if err != nil {
-		return blockade.GenerationResponse{}, err
+		return generationkit.GenerationResponse{}, err
 	}
 	result, err := c.decode(data, request.Model)
 	if err != nil {
 		if errors.Is(err, contentkit.ErrGenerationUnsupported) {
-			return blockade.GenerationResponse{}, err
+			return generationkit.GenerationResponse{}, err
 		}
-		return blockade.GenerationResponse{}, &contentkit.ModelError{Kind: contentkit.ErrorInvalidResponse, Operation: "generate", Cause: err}
+		return generationkit.GenerationResponse{}, &contentkit.ModelError{Kind: contentkit.ErrorInvalidResponse, Operation: "generate", Cause: err}
 	}
-	if err := blockade.ValidateGenerationResult(result, request); err != nil {
-		return blockade.GenerationResponse{}, &contentkit.ModelError{Kind: contentkit.ErrorInvalidResponse, Operation: "generate", Cause: err}
+	if err := generationkit.ValidateGenerationResult(result, request); err != nil {
+		return generationkit.GenerationResponse{}, &contentkit.ModelError{Kind: contentkit.ErrorInvalidResponse, Operation: "generate", Cause: err}
 	}
 	return result, nil
 }

@@ -10,10 +10,10 @@ import (
 	"mime"
 	"net/http"
 
-	"blockade"
+	"generationkit"
 )
 
-func responsesRequest(request blockade.GenerationRequest) (map[string]any, error) {
+func responsesRequest(request generationkit.GenerationRequest) (map[string]any, error) {
 	input := []any{}
 	for _, message := range request.Messages {
 		if message.Role == "tool" {
@@ -99,7 +99,7 @@ func responsesRequest(request blockade.GenerationRequest) (map[string]any, error
 	return payload, nil
 }
 
-func decodeResponses(data []byte, model string) (blockade.GenerationResponse, error) {
+func decodeResponses(data []byte, model string) (generationkit.GenerationResponse, error) {
 	var wire struct {
 		ID         string `json:"id"`
 		Model      string `json:"model"`
@@ -121,12 +121,12 @@ func decodeResponses(data []byte, model string) (blockade.GenerationResponse, er
 		} `json:"usage"`
 	}
 	if err := json.Unmarshal(data, &wire); err != nil {
-		return blockade.GenerationResponse{}, err
+		return generationkit.GenerationResponse{}, err
 	}
 	if wire.Status != "completed" && wire.Status != "incomplete" {
-		return blockade.GenerationResponse{}, errors.New("Responses request did not complete")
+		return generationkit.GenerationResponse{}, errors.New("Responses request did not complete")
 	}
-	r := blockade.GenerationResponse{ID: wire.ID, Model: model, Message: blockade.Message{Role: "assistant"}, StopReason: "stop", Usage: blockade.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output, Total: wire.Usage.Total, CachedInput: wire.Usage.InputDetails.Cached, Reasoning: wire.Usage.OutputDetails.Reasoning}}
+	r := generationkit.GenerationResponse{ID: wire.ID, Model: model, Message: generationkit.Message{Role: "assistant"}, StopReason: "stop", Usage: generationkit.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output, Total: wire.Usage.Total, CachedInput: wire.Usage.InputDetails.Cached, Reasoning: wire.Usage.OutputDetails.Reasoning}}
 	if wire.Model != "" {
 		r.Model = wire.Model
 	}
@@ -156,21 +156,21 @@ func decodeResponses(data []byte, model string) (blockade.GenerationResponse, er
 		}
 		switch item.Type {
 		case "reasoning":
-			r.Message.Parts = append(r.Message.Parts, blockade.MessagePart{Kind: "context", ProviderData: append(json.RawMessage(nil), raw...)})
+			r.Message.Parts = append(r.Message.Parts, generationkit.MessagePart{Kind: "context", ProviderData: append(json.RawMessage(nil), raw...)})
 		case "message":
 			for _, part := range item.Content {
 				switch part.Type {
 				case "output_text":
-					r.Message.Parts = append(r.Message.Parts, blockade.MessagePart{Kind: "text", Text: part.Text})
+					r.Message.Parts = append(r.Message.Parts, generationkit.MessagePart{Kind: "text", Text: part.Text})
 				case "refusal":
-					r.Message.Parts = append(r.Message.Parts, blockade.MessagePart{Kind: "refusal", Text: part.Refusal})
+					r.Message.Parts = append(r.Message.Parts, generationkit.MessagePart{Kind: "refusal", Text: part.Refusal})
 					r.StopReason = "refusal"
 				default:
 					return r, unsupported("Responses content " + part.Type)
 				}
 			}
 		case "function_call":
-			r.Message.ToolCalls = append(r.Message.ToolCalls, blockade.ToolCall{ID: item.CallID, Name: item.Name, Arguments: json.RawMessage(item.Arguments)})
+			r.Message.ToolCalls = append(r.Message.ToolCalls, generationkit.ToolCall{ID: item.CallID, Name: item.Name, Arguments: json.RawMessage(item.Arguments)})
 			if wire.Status == "completed" {
 				r.StopReason = "tool_calls"
 			}
@@ -181,17 +181,17 @@ func decodeResponses(data []byte, model string) (blockade.GenerationResponse, er
 	return r, nil
 }
 
-func (c *Client) streamResponses(ctx context.Context, request blockade.GenerationRequest, emit func(blockade.GenerationEvent) error) (blockade.GenerationResponse, error) {
+func (c *Client) streamResponses(ctx context.Context, request generationkit.GenerationRequest, emit func(generationkit.GenerationEvent) error) (generationkit.GenerationResponse, error) {
 	body, path, err := c.encode(request, true)
 	if err != nil {
-		return blockade.GenerationResponse{}, err
+		return generationkit.GenerationResponse{}, err
 	}
 	resp, err := c.do(ctx, http.MethodPost, path, "application/json", bytes.NewReader(body), true)
 	if err != nil {
-		return blockade.GenerationResponse{}, err
+		return generationkit.GenerationResponse{}, err
 	}
 	defer resp.Body.Close()
-	var result blockade.GenerationResponse
+	var result generationkit.GenerationResponse
 	complete := false
 	err = readSSE(io.LimitReader(resp.Body, c.config.MaxResponseBytes+1), c.config.MaxResponseBytes, func(data []byte) error {
 		if err := ctx.Err(); err != nil {
@@ -216,17 +216,17 @@ func (c *Client) streamResponses(ctx context.Context, request blockade.Generatio
 		}
 		switch event.Type {
 		case "response.reasoning_summary_text.delta":
-			return emit(blockade.GenerationEvent{Kind: "reasoning.delta", Text: event.Delta})
+			return emit(generationkit.GenerationEvent{Kind: "reasoning.delta", Text: event.Delta})
 		case "response.refusal.delta":
-			return emit(blockade.GenerationEvent{Kind: "refusal.delta", Text: event.Delta})
+			return emit(generationkit.GenerationEvent{Kind: "refusal.delta", Text: event.Delta})
 		case "response.output_text.delta":
-			return emit(blockade.GenerationEvent{Kind: "text.delta", Text: event.Delta})
+			return emit(generationkit.GenerationEvent{Kind: "text.delta", Text: event.Delta})
 		case "response.output_item.added":
 			if event.Item.Type == "function_call" {
-				return emit(blockade.GenerationEvent{Kind: "tool.delta", Index: event.Index, CallID: event.Item.CallID, ToolName: event.Item.Name})
+				return emit(generationkit.GenerationEvent{Kind: "tool.delta", Index: event.Index, CallID: event.Item.CallID, ToolName: event.Item.Name})
 			}
 		case "response.function_call_arguments.delta":
-			return emit(blockade.GenerationEvent{Kind: "tool.delta", Index: event.Index, ArgumentsDelta: event.Delta})
+			return emit(generationkit.GenerationEvent{Kind: "tool.delta", Index: event.Index, ArgumentsDelta: event.Delta})
 		case "response.completed", "response.incomplete":
 			var err error
 			result, err = decodeResponses(event.Response, request.Model)
@@ -240,16 +240,16 @@ func (c *Client) streamResponses(ctx context.Context, request blockade.Generatio
 		return nil
 	})
 	if err != nil {
-		return blockade.GenerationResponse{}, err
+		return generationkit.GenerationResponse{}, err
 	}
 	if !complete {
-		return blockade.GenerationResponse{}, io.ErrUnexpectedEOF
+		return generationkit.GenerationResponse{}, io.ErrUnexpectedEOF
 	}
-	if err := blockade.ValidateGenerationResult(result, request); err != nil {
-		return blockade.GenerationResponse{}, err
+	if err := generationkit.ValidateGenerationResult(result, request); err != nil {
+		return generationkit.GenerationResponse{}, err
 	}
 	if err := emitCompleted(result, emit); err != nil {
-		return blockade.GenerationResponse{}, err
+		return generationkit.GenerationResponse{}, err
 	}
 	return result, nil
 }

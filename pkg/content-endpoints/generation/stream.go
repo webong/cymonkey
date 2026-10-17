@@ -11,47 +11,47 @@ import (
 	"sort"
 	"strings"
 
-	"blockade"
+	"generationkit"
 )
 
 // Stream performs one request with synchronous lifecycle, delta, usage and
 // completed-call events. Callback failures stop delivery and abort transport.
-func (c *Client) Stream(ctx context.Context, request blockade.GenerationRequest, emit func(blockade.GenerationEvent) error) (blockade.GenerationResponse, error) {
+func (c *Client) Stream(ctx context.Context, request generationkit.GenerationRequest, emit func(generationkit.GenerationEvent) error) (generationkit.GenerationResponse, error) {
 	if emit == nil {
-		return blockade.GenerationResponse{}, errors.New("stream callback is required")
+		return generationkit.GenerationResponse{}, errors.New("stream callback is required")
 	}
 	if err := ctx.Err(); err != nil {
-		return blockade.GenerationResponse{}, err
+		return generationkit.GenerationResponse{}, err
 	}
 	if _, _, err := c.encode(request, true); err != nil {
-		return blockade.GenerationResponse{}, err
+		return generationkit.GenerationResponse{}, err
 	}
-	if err := emit(blockade.GenerationEvent{Kind: "started"}); err != nil {
-		return blockade.GenerationResponse{}, err
+	if err := emit(generationkit.GenerationEvent{Kind: "started"}); err != nil {
+		return generationkit.GenerationResponse{}, err
 	}
 	return c.streamRaw(ctx, request, emit)
 }
 
 // Stream emits deltas without executing tool calls. Truncated streams fail
 // rather than reporting a successful completion with partial tool arguments.
-func (c *Client) streamRaw(ctx context.Context, request blockade.GenerationRequest, emit func(blockade.GenerationEvent) error) (blockade.GenerationResponse, error) {
+func (c *Client) streamRaw(ctx context.Context, request generationkit.GenerationRequest, emit func(generationkit.GenerationEvent) error) (generationkit.GenerationResponse, error) {
 	if emit == nil {
-		return blockade.GenerationResponse{}, errors.New("stream callback is required")
+		return generationkit.GenerationResponse{}, errors.New("stream callback is required")
 	}
 	if c.config.Protocol == Responses {
 		return c.streamResponses(ctx, request, emit)
 	}
 	body, path, err := c.encode(request, true)
 	if err != nil {
-		return blockade.GenerationResponse{}, err
+		return generationkit.GenerationResponse{}, err
 	}
 	resp, err := c.do(ctx, http.MethodPost, path, "application/json", bytes.NewReader(body), true)
 	if err != nil {
-		return blockade.GenerationResponse{}, err
+		return generationkit.GenerationResponse{}, err
 	}
 	defer resp.Body.Close()
-	r := blockade.GenerationResponse{Model: request.Model, Message: blockade.Message{Role: "assistant"}}
-	calls := map[int]*blockade.ToolCall{}
+	r := generationkit.GenerationResponse{Model: request.Model, Message: generationkit.Message{Role: "assistant"}}
+	calls := map[int]*generationkit.ToolCall{}
 	fallback := map[int]json.RawMessage{}
 	terminal := false
 	var text, reasoning, refusal strings.Builder
@@ -89,7 +89,7 @@ func (c *Client) streamRaw(ctx context.Context, request blockade.GenerationReque
 				r.Model = wire.Model
 			}
 			if wire.Usage.Total > 0 {
-				r.Usage = blockade.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output, Total: wire.Usage.Total, CachedInput: wire.Usage.InputDetails.Cached, Reasoning: wire.Usage.OutputDetails.Reasoning}
+				r.Usage = generationkit.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output, Total: wire.Usage.Total, CachedInput: wire.Usage.InputDetails.Cached, Reasoning: wire.Usage.OutputDetails.Reasoning}
 			}
 			for _, choice := range wire.Choices {
 				if choiceFinished {
@@ -105,20 +105,20 @@ func (c *Client) streamRaw(ctx context.Context, request blockade.GenerationReque
 				delta := choice.Delta.Content
 				if choice.Delta.Reasoning != "" {
 					reasoning.WriteString(choice.Delta.Reasoning)
-					if err := emit(blockade.GenerationEvent{Kind: "reasoning.delta", Text: choice.Delta.Reasoning}); err != nil {
+					if err := emit(generationkit.GenerationEvent{Kind: "reasoning.delta", Text: choice.Delta.Reasoning}); err != nil {
 						return err
 					}
 				}
 				if choice.Delta.Refusal != "" {
 					refusal.WriteString(choice.Delta.Refusal)
 					r.StopReason = "refusal"
-					if err := emit(blockade.GenerationEvent{Kind: "refusal.delta", Text: choice.Delta.Refusal}); err != nil {
+					if err := emit(generationkit.GenerationEvent{Kind: "refusal.delta", Text: choice.Delta.Refusal}); err != nil {
 						return err
 					}
 				}
 				if delta != "" {
 					text.WriteString(delta)
-					if err := emit(blockade.GenerationEvent{Kind: "text.delta", Text: delta}); err != nil {
+					if err := emit(generationkit.GenerationEvent{Kind: "text.delta", Text: delta}); err != nil {
 						return err
 					}
 				}
@@ -128,7 +128,7 @@ func (c *Client) streamRaw(ctx context.Context, request blockade.GenerationReque
 					}
 					call := calls[part.Index]
 					if call == nil {
-						call = &blockade.ToolCall{}
+						call = &generationkit.ToolCall{}
 						calls[part.Index] = call
 					}
 					if part.ID != "" {
@@ -139,7 +139,7 @@ func (c *Client) streamRaw(ctx context.Context, request blockade.GenerationReque
 					}
 					call.Name += part.Function.Name
 					call.Arguments = append(call.Arguments, part.Function.Arguments...)
-					if err := emit(blockade.GenerationEvent{Kind: "tool.delta", Index: part.Index, CallID: call.ID, ToolName: part.Function.Name, ArgumentsDelta: part.Function.Arguments}); err != nil {
+					if err := emit(generationkit.GenerationEvent{Kind: "tool.delta", Index: part.Index, CallID: call.ID, ToolName: part.Function.Name, ArgumentsDelta: part.Function.Arguments}); err != nil {
 						return err
 					}
 				}
@@ -190,23 +190,23 @@ func (c *Client) streamRaw(ctx context.Context, request blockade.GenerationReque
 				blocks[event.Index] = event.Block.Type
 				switch event.Block.Type {
 				case "tool_use":
-					calls[event.Index] = &blockade.ToolCall{ID: event.Block.ID, Name: event.Block.Name}
+					calls[event.Index] = &generationkit.ToolCall{ID: event.Block.ID, Name: event.Block.Name}
 					fallback[event.Index] = event.Block.Input
-					if err := emit(blockade.GenerationEvent{Kind: "tool.delta", Index: event.Index, CallID: event.Block.ID, ToolName: event.Block.Name}); err != nil {
+					if err := emit(generationkit.GenerationEvent{Kind: "tool.delta", Index: event.Index, CallID: event.Block.ID, ToolName: event.Block.Name}); err != nil {
 						return err
 					}
 				case "thinking", "redacted_thinking":
 					block := event.Block
 					thinking[event.Index] = &block
 					if block.Thinking != "" {
-						if err := emit(blockade.GenerationEvent{Kind: "reasoning.delta", Index: event.Index, Text: block.Thinking}); err != nil {
+						if err := emit(generationkit.GenerationEvent{Kind: "reasoning.delta", Index: event.Index, Text: block.Thinking}); err != nil {
 							return err
 						}
 					}
 				case "text":
 					if event.Block.Text != "" {
 						text.WriteString(event.Block.Text)
-						if err := emit(blockade.GenerationEvent{Kind: "text.delta", Text: event.Block.Text}); err != nil {
+						if err := emit(generationkit.GenerationEvent{Kind: "text.delta", Text: event.Block.Text}); err != nil {
 							return err
 						}
 					}
@@ -223,7 +223,7 @@ func (c *Client) streamRaw(ctx context.Context, request blockade.GenerationReque
 						return errors.New("text delta in a different block type")
 					}
 					text.WriteString(event.Delta.Text)
-					if err := emit(blockade.GenerationEvent{Kind: "text.delta", Text: event.Delta.Text}); err != nil {
+					if err := emit(generationkit.GenerationEvent{Kind: "text.delta", Text: event.Delta.Text}); err != nil {
 						return err
 					}
 				case "thinking_delta", "signature_delta":
@@ -234,7 +234,7 @@ func (c *Client) streamRaw(ctx context.Context, request blockade.GenerationReque
 					block.Thinking += event.Delta.Thinking
 					block.Signature += event.Delta.Signature
 					if event.Delta.Thinking != "" {
-						return emit(blockade.GenerationEvent{Kind: "reasoning.delta", Index: event.Index, Text: event.Delta.Thinking})
+						return emit(generationkit.GenerationEvent{Kind: "reasoning.delta", Index: event.Index, Text: event.Delta.Thinking})
 					}
 				case "input_json_delta":
 					call := calls[event.Index]
@@ -242,7 +242,7 @@ func (c *Client) streamRaw(ctx context.Context, request blockade.GenerationReque
 						return errors.New("tool delta without tool start")
 					}
 					call.Arguments = append(call.Arguments, event.Delta.JSON...)
-					if err := emit(blockade.GenerationEvent{Kind: "tool.delta", Index: event.Index, CallID: call.ID, ArgumentsDelta: event.Delta.JSON}); err != nil {
+					if err := emit(generationkit.GenerationEvent{Kind: "tool.delta", Index: event.Index, CallID: call.ID, ArgumentsDelta: event.Delta.JSON}); err != nil {
 						return err
 					}
 				default:
@@ -283,12 +283,12 @@ func (c *Client) streamRaw(ctx context.Context, request blockade.GenerationReque
 			for _, part := range chunk.Message.Parts {
 				r.Message.Parts = append(r.Message.Parts, part)
 				if part.Kind == "reasoning" {
-					if err := emit(blockade.GenerationEvent{Kind: "reasoning.delta", Text: part.Text}); err != nil {
+					if err := emit(generationkit.GenerationEvent{Kind: "reasoning.delta", Text: part.Text}); err != nil {
 						return err
 					}
 				}
 				if part.Kind == "text" {
-					if err := emit(blockade.GenerationEvent{Kind: "text.delta", Text: part.Text}); err != nil {
+					if err := emit(generationkit.GenerationEvent{Kind: "text.delta", Text: part.Text}); err != nil {
 						return err
 					}
 				}
@@ -297,7 +297,7 @@ func (c *Client) streamRaw(ctx context.Context, request blockade.GenerationReque
 				index := len(calls)
 				copy := call
 				calls[index] = &copy
-				if err := emit(blockade.GenerationEvent{Kind: "tool.delta", Index: index, CallID: call.ID, ToolName: call.Name, ArgumentsDelta: string(call.Arguments)}); err != nil {
+				if err := emit(generationkit.GenerationEvent{Kind: "tool.delta", Index: index, CallID: call.ID, ToolName: call.Name, ArgumentsDelta: string(call.Arguments)}); err != nil {
 					return err
 				}
 			}
@@ -309,17 +309,17 @@ func (c *Client) streamRaw(ctx context.Context, request blockade.GenerationReque
 		return nil
 	})
 	if err != nil {
-		return blockade.GenerationResponse{}, err
+		return generationkit.GenerationResponse{}, err
 	}
 	if !terminal {
-		return blockade.GenerationResponse{}, io.ErrUnexpectedEOF
+		return generationkit.GenerationResponse{}, io.ErrUnexpectedEOF
 	}
 	if reasoning.Len() > 0 {
-		r.Message.Parts = append(r.Message.Parts, blockade.MessagePart{Kind: "reasoning", Text: reasoning.String()})
+		r.Message.Parts = append(r.Message.Parts, generationkit.MessagePart{Kind: "reasoning", Text: reasoning.String()})
 	}
 	if refusal.Len() > 0 {
 		r.StopReason = "refusal"
-		r.Message.Parts = append(r.Message.Parts, blockade.MessagePart{Kind: "refusal", Text: refusal.String()})
+		r.Message.Parts = append(r.Message.Parts, generationkit.MessagePart{Kind: "refusal", Text: refusal.String()})
 	}
 	thinkingIndexes := make([]int, 0, len(thinking))
 	for index := range thinking {
@@ -329,12 +329,12 @@ func (c *Client) streamRaw(ctx context.Context, request blockade.GenerationReque
 	for _, index := range thinkingIndexes {
 		part, err := thinkingPart(*thinking[index])
 		if err != nil {
-			return blockade.GenerationResponse{}, err
+			return generationkit.GenerationResponse{}, err
 		}
 		r.Message.Parts = append(r.Message.Parts, part)
 	}
 	if text.Len() > 0 {
-		r.Message.Parts = append(r.Message.Parts, blockade.MessagePart{Kind: "text", Text: text.String()})
+		r.Message.Parts = append(r.Message.Parts, generationkit.MessagePart{Kind: "text", Text: text.String()})
 	}
 	indexes := make([]int, 0, len(calls))
 	for index := range calls {
@@ -348,23 +348,23 @@ func (c *Client) streamRaw(ctx context.Context, request blockade.GenerationReque
 		}
 		r.Message.ToolCalls = append(r.Message.ToolCalls, *call)
 	}
-	if err := blockade.ValidateGenerationResult(r, request); err != nil {
-		return blockade.GenerationResponse{}, err
+	if err := generationkit.ValidateGenerationResult(r, request); err != nil {
+		return generationkit.GenerationResponse{}, err
 	}
 	if err := emitCompleted(r, emit); err != nil {
-		return blockade.GenerationResponse{}, err
+		return generationkit.GenerationResponse{}, err
 	}
 	return r, nil
 }
 
 // The callback owns its completion snapshot; mutations cannot change the
 // validated response returned from Stream.
-func emitCompleted(response blockade.GenerationResponse, emit func(blockade.GenerationEvent) error) error {
+func emitCompleted(response generationkit.GenerationResponse, emit func(generationkit.GenerationEvent) error) error {
 	data, err := json.Marshal(response)
 	if err != nil {
 		return err
 	}
-	var snapshot blockade.GenerationResponse
+	var snapshot generationkit.GenerationResponse
 	if err := json.Unmarshal(data, &snapshot); err != nil {
 		return err
 	}
@@ -372,15 +372,15 @@ func emitCompleted(response blockade.GenerationResponse, emit func(blockade.Gene
 		copied := call
 		copied.Arguments = append(json.RawMessage(nil), call.Arguments...)
 		copied.ProviderData = append(json.RawMessage(nil), call.ProviderData...)
-		if err := emit(blockade.GenerationEvent{Kind: "tool.completed", Index: index, CallID: call.ID, ToolName: call.Name, Call: &copied}); err != nil {
+		if err := emit(generationkit.GenerationEvent{Kind: "tool.completed", Index: index, CallID: call.ID, ToolName: call.Name, Call: &copied}); err != nil {
 			return err
 		}
 	}
 	usage := response.Usage
-	if err := emit(blockade.GenerationEvent{Kind: "usage", Usage: &usage}); err != nil {
+	if err := emit(generationkit.GenerationEvent{Kind: "usage", Usage: &usage}); err != nil {
 		return err
 	}
-	return emit(blockade.GenerationEvent{Kind: "completed", Response: &snapshot})
+	return emit(generationkit.GenerationEvent{Kind: "completed", Response: &snapshot})
 }
 
 // readSSE handles comments, multi-line data, and final events without a trailing

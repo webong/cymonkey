@@ -1,4 +1,4 @@
-module blockade
+module generationkit
 
 go 1.26.5
 

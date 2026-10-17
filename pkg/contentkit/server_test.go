@@ -1,7 +1,6 @@
-package blockade
+package contentkit
 
 import (
-	"contentkit"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -13,13 +12,13 @@ import (
 
 type serverEngineFixture struct{}
 
-func (serverEngineFixture) Observe(_ context.Context, request contentkit.ObserveRequest) (contentkit.ObserveResponse, error) {
-	return contentkit.ObserveResponse{
-		APIVersion: contentkit.APIVersion,
+func (serverEngineFixture) Observe(_ context.Context, request ObserveRequest) (ObserveResponse, error) {
+	return ObserveResponse{
+		APIVersion: APIVersion,
 		RequestID:  request.RequestID,
-		Observations: []contentkit.Observation{{
+		Observations: []Observation{{
 			Kind: "object", Label: "fixture", Confidence: 0.9,
-			Region: contentkit.Region{X: 1, Y: 2, Width: 3, Height: 4},
+			Region: Region{X: 1, Y: 2, Width: 3, Height: 4},
 		}},
 	}, nil
 }
@@ -38,11 +37,11 @@ func TestHTTPServerRoutesObservation(t *testing.T) {
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
 	}
-	var response contentkit.ObserveResponse
+	var response ObserveResponse
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 		t.Fatal(err)
 	}
-	if err := contentkit.ValidateObserveResponse(response); err != nil {
+	if err := ValidateObserveResponse(response); err != nil {
 		t.Fatal(err)
 	}
 	if response.RequestID != "request-1" || response.Observations[0].Label != "fixture" {

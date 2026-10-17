@@ -19,13 +19,13 @@ import (
 	"syscall"
 	"time"
 
-	"blockade"
 	"board/capture"
 	"console"
 	"console/bindings"
 	"console/httpapi"
 	"console/mcp"
 	endpointmodels "cymonkey-content-plugin-endpoints/generation"
+	"generationkit"
 	"jangolova/contract"
 	"jangolova/ui"
 )
@@ -87,16 +87,16 @@ type configuredGenerator struct {
 	options json.RawMessage
 }
 
-func (m configuredGenerator) Generate(ctx context.Context, r blockade.GenerationRequest) (blockade.GenerationResponse, error) {
+func (m configuredGenerator) Generate(ctx context.Context, r generationkit.GenerationRequest) (generationkit.GenerationResponse, error) {
 	if len(r.Options) > 0 {
-		return blockade.GenerationResponse{}, errors.New("native options are fixed by the host binding")
+		return generationkit.GenerationResponse{}, errors.New("native options are fixed by the host binding")
 	}
 	r.Options = append(json.RawMessage(nil), m.options...)
 	return m.client.Generate(ctx, r)
 }
-func (m configuredGenerator) Stream(ctx context.Context, r blockade.GenerationRequest, emit func(blockade.GenerationEvent) error) (blockade.GenerationResponse, error) {
+func (m configuredGenerator) Stream(ctx context.Context, r generationkit.GenerationRequest, emit func(generationkit.GenerationEvent) error) (generationkit.GenerationResponse, error) {
 	if len(r.Options) > 0 {
-		return blockade.GenerationResponse{}, errors.New("native options are fixed by the host binding")
+		return generationkit.GenerationResponse{}, errors.New("native options are fixed by the host binding")
 	}
 	r.Options = append(json.RawMessage(nil), m.options...)
 	return m.client.Stream(ctx, r, emit)
@@ -104,7 +104,7 @@ func (m configuredGenerator) Stream(ctx context.Context, r blockade.GenerationRe
 
 type consoleHost struct {
 	tools         console.Registry
-	models        blockade.ModelCatalog
+	models        generationkit.ModelCatalog
 	attachments   []*mcp.HTTPTransport
 	artifactRoots []*os.Root
 	config        consoleConfiguration
@@ -163,7 +163,7 @@ func loadConsole(ctx context.Context, path string) (host *consoleHost, err error
 		}
 		clients[model.ID] = client
 		selected[model.ID] = model
-		if e = h.models.Register(blockade.ModelInfo{ID: model.ID, Provider: model.Provider, Model: model.Model, Capabilities: model.Capabilities}, configuredGenerator{client: client, options: model.Options}); e != nil {
+		if e = h.models.Register(generationkit.ModelInfo{ID: model.ID, Provider: model.Provider, Model: model.Model, Capabilities: model.Capabilities}, configuredGenerator{client: client, options: model.Options}); e != nil {
 			return nil, e
 		}
 	}
@@ -510,13 +510,13 @@ func consoleCommand(args []string, stdout, stderr io.Writer) (err error) {
 		}
 		return json.NewEncoder(stdout).Encode(result)
 	}
-	var request blockade.GenerationRequest
+	var request generationkit.GenerationRequest
 	if err = consoleDecode(reader, &request); err != nil {
 		return err
 	}
 	model := console.ModelTools{Model: &host.models, Tools: &host.tools}
 	if command == "stream" {
-		_, err = model.Stream(ctx, request, func(event blockade.GenerationEvent) error { return json.NewEncoder(stdout).Encode(event) })
+		_, err = model.Stream(ctx, request, func(event generationkit.GenerationEvent) error { return json.NewEncoder(stdout).Encode(event) })
 		return err
 	}
 	result, err := model.Generate(ctx, request)

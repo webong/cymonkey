@@ -2,7 +2,7 @@
 
 The content kit is the host role for the `content.provider` contract. A process
 that wants to run content providers embeds it: the host (`src`) can, and so can
-a guest that hosts other plugins, such as the content service in `pkg/blockade`.
+a guest that hosts other plugins, such as a content service guest.
 
 It holds:
 
@@ -18,4 +18,4 @@ It holds:
 It contains no inference engine, HTTP service, or product behaviour. Providers
 (`pkg/content-onnx`, `pkg/content-webllm`, `pkg/content-endpoints`,
 `pkg/content-ultralytics`) build against it as guests; the HTTP service, client
-and generation APIs live in `pkg/blockade`.
+and the generation contracts live in `pkg/generationkit`.

@@ -4,7 +4,7 @@ go 1.26.5
 
 require (
 	contentkit v0.0.0
-	blockade v0.0.0
+	generationkit v0.0.0
 	board v0.0.0
 	console v0.0.0
 	cymonkey-content-plugin-endpoints v0.0.0
@@ -13,7 +13,7 @@ require (
 	jangolova v0.0.0
 )
 
-replace blockade => ./pkg/blockade
+replace generationkit => ./pkg/generationkit
 
 replace console => ./pkg/console
 

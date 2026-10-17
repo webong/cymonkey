@@ -9,15 +9,15 @@ import (
 	"io"
 	"net/http"
 
-	"blockade"
 	"console"
+	"generationkit"
 )
 
 const APIVersion = "cymonkey.console/v1alpha1"
 
 type Server struct {
 	Tools  *console.Registry
-	Models *blockade.ModelCatalog
+	Models *generationkit.ModelCatalog
 }
 
 func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -59,8 +59,8 @@ func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			failure(w, 405, "method_not_allowed")
 			return
 		}
-		var request blockade.GenerationRequest
-		if decode(w, r, &request) != nil || blockade.ValidateGenerationRequest(request) != nil || len(request.Tools) > 0 {
+		var request generationkit.GenerationRequest
+		if decode(w, r, &request) != nil || generationkit.ValidateGenerationRequest(request) != nil || len(request.Tools) > 0 {
 			failure(w, 400, "invalid_request")
 			return
 		}
@@ -79,7 +79,7 @@ func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.Header().Set("Content-Type", "application/x-ndjson")
-		_, err := models.Stream(r.Context(), request, func(event blockade.GenerationEvent) error {
+		_, err := models.Stream(r.Context(), request, func(event generationkit.GenerationEvent) error {
 			if err := json.NewEncoder(w).Encode(event); err != nil {
 				return err
 			}

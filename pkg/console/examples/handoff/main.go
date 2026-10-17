@@ -12,8 +12,8 @@ import (
 	"os/signal"
 	"strings"
 
-	"blockade"
 	"console"
+	"generationkit"
 )
 
 type lookupInput struct {
@@ -26,12 +26,12 @@ type lookupOutput struct {
 }
 
 type report struct {
-	Definitions     []console.Definition `json:"definitions"`
-	Proposals       []console.Call       `json:"proposals,omitempty"`
-	Result          *console.Result      `json:"result,omitempty"`
-	Transcript      []blockade.Message   `json:"transcript,omitempty"`
-	ModelRequests   int                  `json:"modelRequests"`
-	ToolInvocations int                  `json:"toolInvocations"`
+	Definitions     []console.Definition    `json:"definitions"`
+	Proposals       []console.Call          `json:"proposals,omitempty"`
+	Result          *console.Result         `json:"result,omitempty"`
+	Transcript      []generationkit.Message `json:"transcript,omitempty"`
+	ModelRequests   int                     `json:"modelRequests"`
+	ToolInvocations int                     `json:"toolInvocations"`
 }
 
 func main() {
@@ -101,15 +101,15 @@ func run(ctx context.Context, action, key string) error {
 
 	// This is application-owned example data, not a built-in model catalog.
 	generator := &scriptedGenerator{arguments: arguments}
-	var models blockade.ModelCatalog
-	if err := models.Register(blockade.ModelInfo{
+	var models generationkit.ModelCatalog
+	if err := models.Register(generationkit.ModelInfo{
 		ID: "example-binding", Provider: "local-example", Model: "scripted",
 	}, generator); err != nil {
 		return err
 	}
 	composition := console.ModelTools{Model: &models, Tools: &tools}
-	messages := []blockade.Message{blockade.TextMessage("user", "Look up the note for "+key)}
-	response, err := composition.Generate(ctx, blockade.GenerationRequest{
+	messages := []generationkit.Message{generationkit.TextMessage("user", "Look up the note for "+key)}
+	response, err := composition.Generate(ctx, generationkit.GenerationRequest{
 		Model: "example-binding", Messages: messages,
 	})
 	if err != nil {
@@ -156,20 +156,20 @@ func printReport(output report) error {
 
 // scriptedGenerator supplies a deterministic proposal so the handoff can be
 // explored without credentials, network calls, or a paid model. An embedding
-// application replaces this value with its configured blockade.Generator.
+// application replaces this value with its configured generationkit.Generator.
 type scriptedGenerator struct {
 	arguments json.RawMessage
 	requests  int
 }
 
-func (g *scriptedGenerator) Generate(ctx context.Context, request blockade.GenerationRequest) (blockade.GenerationResponse, error) {
+func (g *scriptedGenerator) Generate(ctx context.Context, request generationkit.GenerationRequest) (generationkit.GenerationResponse, error) {
 	if err := ctx.Err(); err != nil {
-		return blockade.GenerationResponse{}, err
+		return generationkit.GenerationResponse{}, err
 	}
 	g.requests++
-	return blockade.GenerationResponse{
+	return generationkit.GenerationResponse{
 		Model: request.Model, StopReason: "tool_calls",
-		Message: blockade.Message{Role: "assistant", ToolCalls: []blockade.ToolCall{{
+		Message: generationkit.Message{Role: "assistant", ToolCalls: []generationkit.ToolCall{{
 			ID: "example-call", Name: "lookup_note", Arguments: append(json.RawMessage(nil), g.arguments...),
 		}}},
 	}, nil

@@ -15,8 +15,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-
-	"blockade"
 )
 
 var openAIEndpointProfiles = []string{"openai", "vllm", "sglang", "ollama", "llama.cpp", "lm-studio", "custom"}
@@ -285,7 +283,7 @@ func endpointTestCommand(args []string, stdout io.Writer, registry *contentkit.P
 		result["detail"] = health.Detail
 	}
 	if text := strings.TrimSpace(*liveText); text != "" {
-		response, callErr := (blockade.Client{Engine: engine}).Interpret(context.Background(), contentkit.InterpretRequest{
+		response, callErr := (contentkit.Client{Engine: engine}).Interpret(context.Background(), contentkit.InterpretRequest{
 			APIVersion: contentkit.ContentAPIVersion,
 			Parts:      []contentkit.ContentPart{{Kind: "text", Text: text}},
 			Prompt:     "Return a concise finding confirming this endpoint is reachable.",

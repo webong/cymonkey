@@ -1,7 +1,6 @@
-package blockade
+package contentkit
 
 import (
-	"contentkit"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -15,38 +14,38 @@ import (
 
 // fakeProvider is a minimal content provider for exercising the HTTP service.
 type fakeProvider struct {
-	observe func(context.Context, contentkit.ProviderAdapterObserveRequest) (contentkit.ProviderAdapterObserveResponse, error)
+	observe func(context.Context, ProviderAdapterObserveRequest) (ProviderAdapterObserveResponse, error)
 	ready   bool
 	detail  string
 }
 
-func (p *fakeProvider) Observe(ctx context.Context, request contentkit.ProviderAdapterObserveRequest) (contentkit.ProviderAdapterObserveResponse, error) {
+func (p *fakeProvider) Observe(ctx context.Context, request ProviderAdapterObserveRequest) (ProviderAdapterObserveResponse, error) {
 	return p.observe(ctx, request)
 }
 
-func (p *fakeProvider) Capabilities(context.Context) (contentkit.ProviderAdapterCapabilities, error) {
-	return contentkit.ProviderAdapterCapabilities{
-		APIVersion:   contentkit.ProviderAdapterAPIVersion,
-		Capabilities: []string{contentkit.CapabilityObjectDetect, contentkit.CapabilityImageObserve},
+func (p *fakeProvider) Capabilities(context.Context) (ProviderAdapterCapabilities, error) {
+	return ProviderAdapterCapabilities{
+		APIVersion:   ProviderAdapterAPIVersion,
+		Capabilities: []string{CapabilityObjectDetect, CapabilityImageObserve},
 	}, nil
 }
 
-func (p *fakeProvider) Health(context.Context) (contentkit.ProviderAdapterHealth, error) {
-	return contentkit.ProviderAdapterHealth{APIVersion: contentkit.ProviderAdapterAPIVersion, Ready: p.ready, Detail: p.detail}, nil
+func (p *fakeProvider) Health(context.Context) (ProviderAdapterHealth, error) {
+	return ProviderAdapterHealth{APIVersion: ProviderAdapterAPIVersion, Ready: p.ready, Detail: p.detail}, nil
 }
 
 func (p *fakeProvider) Close() error { return nil }
 
-func startProvider(t *testing.T, config contentkit.ProviderAdapterConfig, provider *fakeProvider) contentkit.Engine {
+func startProvider(t *testing.T, config ProviderAdapterConfig, provider *fakeProvider) Engine {
 	t.Helper()
-	registry := contentkit.NewProviderAdapterRegistry()
-	factory := func(context.Context, contentkit.ProviderAdapterRuntime) (contentkit.ProviderAdapter, error) {
+	registry := NewProviderAdapterRegistry()
+	factory := func(context.Context, ProviderAdapterRuntime) (ProviderAdapter, error) {
 		return provider, nil
 	}
 	if err := registry.Register(config.Provider, factory); err != nil {
 		t.Fatal(err)
 	}
-	engine, err := contentkit.StartConfiguredProviderAdapter(context.Background(), config, registry, contentkit.EnvironmentSecretResolver{})
+	engine, err := StartConfiguredProviderAdapter(context.Background(), config, registry, EnvironmentSecretResolver{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,12 +54,12 @@ func startProvider(t *testing.T, config contentkit.ProviderAdapterConfig, provid
 
 func TestProviderAdapterHTTPReportsCapabilitiesHealthAndTypedError(t *testing.T) {
 	adapter := &fakeProvider{ready: true}
-	adapter.observe = func(context.Context, contentkit.ProviderAdapterObserveRequest) (contentkit.ProviderAdapterObserveResponse, error) {
-		err := contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorRateLimit, errors.New("quota"))
+	adapter.observe = func(context.Context, ProviderAdapterObserveRequest) (ProviderAdapterObserveResponse, error) {
+		err := NewProviderAdapterError(ProviderAdapterErrorRateLimit, errors.New("quota"))
 		err.RetryAfter = 1500 * time.Millisecond
-		return contentkit.ProviderAdapterObserveResponse{}, err
+		return ProviderAdapterObserveResponse{}, err
 	}
-	engine := startProvider(t, contentkit.ProviderAdapterConfig{ID: "fixture", Provider: "fixture"}, adapter)
+	engine := startProvider(t, ProviderAdapterConfig{ID: "fixture", Provider: "fixture"}, adapter)
 	defer engine.Close()
 	server, err := NewHTTPServer(engine, "fixture")
 	if err != nil {
@@ -89,7 +88,7 @@ func TestProviderAdapterHTTPReportsCapabilitiesHealthAndTypedError(t *testing.T)
 	if err := json.Unmarshal(recorder.Body.Bytes(), &body); err != nil {
 		t.Fatal(err)
 	}
-	if body["kind"] != string(contentkit.ProviderAdapterErrorRateLimit) {
+	if body["kind"] != string(ProviderAdapterErrorRateLimit) {
 		t.Fatalf("body = %#v", body)
 	}
 }
@@ -98,7 +97,7 @@ func TestProviderAdapterHTTPHealthNotReady(t *testing.T) {
 	adapter := &fakeProvider{ready: true}
 	adapter.ready = false
 	adapter.detail = "provider unavailable"
-	engine := startProvider(t, contentkit.ProviderAdapterConfig{ID: "fixture", Provider: "fixture"}, adapter)
+	engine := startProvider(t, ProviderAdapterConfig{ID: "fixture", Provider: "fixture"}, adapter)
 	defer engine.Close()
 	server, err := NewHTTPServer(engine, "fixture")
 	if err != nil {

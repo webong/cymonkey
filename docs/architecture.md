@@ -185,14 +185,14 @@ calls. The cooperative Unity bridge implements the same vocabulary.
 
 The repository has one host and many guests. `src/` is the host: the
 single `cymy` binary, its generic contracts, admission policy and adapters.
-`pkg/` holds everything the host runs or builds on: the Jangolova, Blockade,
-Board and Console modules, the content providers, and the platform helpers and
+`pkg/` holds everything the host runs or builds on: the Jangolova, Board and Console
+modules, the content and generation kits, the content providers, and the platform helpers and
 products. The host never imports a guest; it reaches them through the ext
 plugin system (`github.com/webong/ext/pkg/plugin-go/contract`). Until the cut is
 complete, `src/guest_imports_test.go` fails on any new import of a `pkg/` Go
 module and lists the ones that remain. `tests/` is the conformance and fixture
-surface. Jangolova, Blockade, Board and Console are separate Go modules
-(`jangolova`, `blockade`, `board`, `console`) joined through `go.work` and
+surface. Jangolova, Board, Console and the kits are separate Go modules
+(`jangolova`, `board`, `console`, `contentkit`, `generationkit`) joined through `go.work` and
 local replacements while the host still imports them.
 Each library's plugin adapter selects the native executable contracts it understands;
 ext checks package structure and integrity without enumerating libraries. Cymonkey owns the command handlers, shared plugin directory, and
@@ -205,7 +205,7 @@ host validates and supervises these endpoints without library-specific fields.
 
 Console is the standalone composition library for callable tools. It publishes
 definitions, makes one explicitly requested model turn, and dispatches a
-selected call implemented by Jangolova, Blockade, Board, MCP, or application
+selected call implemented by Jangolova, the content kit, Board, MCP, or application
 code. The caller owns approvals, tool selection, transcripts, and subsequent
 turns. Console has no autonomous agent loop.
 
@@ -223,7 +223,8 @@ src/contentcli/                Cymonkey content command handlers
 src/devicecli/                 Cymonkey device command handlers
 src/internal/provider/         provider and MCP implementation
 src/fixtures/native-bridge/    native bridge fixture implementation
-pkg/blockade/                  standalone Blockade inference library
+pkg/contentkit/                content provider host role and contracts
+pkg/generationkit/             generation, embedding and speech contracts
 pkg/console/                   standalone tool composition library
 src/adapters/browserautomation/ Playwright CDP and Puppeteer CDP/BiDi attachment
 src/adapters/webdriverclassic/  existing W3C WebDriver session attachment
@@ -243,7 +244,8 @@ src/internal/core/              core registry/composition/conformance code
 src/internal/host/              Cymonkey host configuration and process supervisor
 pkg/jangolova/                  standalone Jangolova library and host boundary
 pkg/jangolova/host/             Jangolova host service injection contract
-pkg/blockade/                   standalone Blockade inference library
+pkg/contentkit/                 content provider host role and contracts
+pkg/generationkit/              generation, embedding and speech contracts
 pkg/contentkit/protocol/          content contract schemas and fixtures
 src/internal/targetconn/        caller-owned target connection helpers
 pkg/jangolova/contract/         public runtime wire contract
