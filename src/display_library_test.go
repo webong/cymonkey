@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"board/display/sdk"
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
+	"jangolova/displaykit/sdk"
 )
 
 func TestTargetBoundaryPreservesHostRotationAndIsolatesMetadata(t *testing.T) {

@@ -12,8 +12,8 @@ import (
 	"os"
 	"strings"
 
-	"board/display/contract"
-	"board/display/sdk"
+	"jangolova/displaykit/contract"
+	"jangolova/displaykit/sdk"
 )
 
 // Activation is an explicit host decision about one reviewed artifact. Mount

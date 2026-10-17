@@ -3,7 +3,7 @@ package display
 import (
 	"encoding/json"
 
-	contract "board/display/contract"
+	contract "jangolova/displaykit/contract"
 )
 
 const ProtocolVersion = contract.ProtocolVersion

@@ -9,9 +9,9 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"board/display/sdk"
 	"jangolova/displaykit/bridge"
 	"jangolova/displaykit/nodeworker"
+	"jangolova/displaykit/sdk"
 )
 
 // errNeedsHost reports a service that depends on the host's policy or

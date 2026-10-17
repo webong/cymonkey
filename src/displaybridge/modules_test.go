@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	jangolovaregistry "board/display/registry"
 	"cymonkey/src/contracts"
+	jangolovaregistry "jangolova/displaykit/registry"
 )
 
 func TestRegistryConversionUsesCymonkeyContract(t *testing.T) {

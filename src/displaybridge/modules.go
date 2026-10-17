@@ -7,8 +7,8 @@ import (
 	"errors"
 	"strings"
 
-	jangolovaregistry "board/display/registry"
 	"cymonkey/src/contracts"
+	jangolovaregistry "jangolova/displaykit/registry"
 )
 
 func DiscoverModules(ctx context.Context, endpoint string) (contracts.DisplayModuleRegistry, error) {

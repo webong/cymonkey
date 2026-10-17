@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	contract "board/display/contract"
-	"board/display/sdk"
+	contract "jangolova/displaykit/contract"
+	"jangolova/displaykit/sdk"
 )
 
 func TestAdapterDefaultsToNoInstallCDPAndDisconnects(t *testing.T) {

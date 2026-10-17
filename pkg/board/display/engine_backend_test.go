@@ -10,7 +10,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"board/display/sdk"
+	"jangolova/displaykit/sdk"
 )
 
 var upgrader = websocket.Upgrader{

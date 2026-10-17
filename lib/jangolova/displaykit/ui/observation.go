@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"time"
 
-	"board/display/contract"
-	"board/display/sdk"
+	"jangolova/displaykit/contract"
+	"jangolova/displaykit/sdk"
 )
 
 type TargetRef struct {

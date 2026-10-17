@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
-	contract "board/display/contract"
-	"board/display/sdk"
+	contract "jangolova/displaykit/contract"
+	"jangolova/displaykit/sdk"
 )
 
 // Backend is the runtime-specific boundary below Jangolova's public semantic

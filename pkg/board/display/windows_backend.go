@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	contract "board/display/contract"
-	"board/display/sdk"
+	contract "jangolova/displaykit/contract"
+	"jangolova/displaykit/sdk"
 )
 
 // windowsCooperativeBackend intentionally shares the authenticated helper

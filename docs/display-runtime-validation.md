@@ -3,7 +3,7 @@
 ## Implemented boundary
 
 The integration at `pkg/board/display` now uses the public wire contract in
-`pkg/board/display/contract` and public host/module types in `pkg/board/display/sdk`.
+`lib/jangolova/displaykit/contract` and public host/module types in `lib/jangolova/displaykit/sdk`.
 Its production dependency graph contains no private Cymonkey packages.
 The old private wire files were moved to the public contract package; the wire
 identifier remains `cymonkey/v1alpha1` for compatibility.

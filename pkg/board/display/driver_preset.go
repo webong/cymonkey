@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"board/display/sdk"
+	"jangolova/displaykit/sdk"
 )
 
 // DriverPreset selects a Jangolova automation backend with one

@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"board/display"
-	"board/display/sdk"
 	"jangolova/displaykit"
+	"jangolova/displaykit/sdk"
 	"jangolova/displaykit/serve"
 )
 

@@ -12,15 +12,15 @@ import (
 	"sync"
 	"time"
 
-	displayhost "board/display/host"
-	displaysdk "board/display/sdk"
 	"cymonkey/src/adapters/safarimcp"
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
 	"cymonkey/src/internal/targetconn"
 	"github.com/gorilla/websocket"
 	"jangolova/displaykit/bridge"
+	displayhost "jangolova/displaykit/host"
 	"jangolova/displaykit/nodeworker"
+	displaysdk "jangolova/displaykit/sdk"
 )
 
 type materialView struct {

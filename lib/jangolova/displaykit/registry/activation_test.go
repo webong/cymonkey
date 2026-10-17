@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"board/display/sdk"
+	"jangolova/displaykit/sdk"
 )
 
 type activatedFixture struct {

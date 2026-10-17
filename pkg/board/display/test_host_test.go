@@ -15,8 +15,8 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"board/display/host"
-	"board/display/sdk"
+	"jangolova/displaykit/host"
+	"jangolova/displaykit/sdk"
 )
 
 func testHost() sdk.Host {

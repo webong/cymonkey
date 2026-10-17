@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	contract "board/display/contract"
-	"board/display/sdk"
+	contract "jangolova/displaykit/contract"
+	"jangolova/displaykit/sdk"
 )
 
 type macOSCooperativeBackend struct{}

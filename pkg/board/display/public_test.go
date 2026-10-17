@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	displayengine "board/display"
-	"board/display/contract"
-	"board/display/sdk"
+	"jangolova/displaykit/contract"
+	"jangolova/displaykit/sdk"
 )
 
 // This backend deliberately uses only public signatures. A Lens Studio or
@@ -44,7 +44,7 @@ func TestContributedBackendUsesOnlyPublicContract(t *testing.T) {
 	}
 }
 func TestPublicIntegrationHasNoPrivateDependencies(t *testing.T) {
-	out, err := exec.Command("go", "list", "-deps", "board/display", "board/display/registry").CombinedOutput()
+	out, err := exec.Command("go", "list", "-deps", "board/display", "jangolova/displaykit/registry").CombinedOutput()
 	if err != nil {
 		t.Fatalf("dependency graph: %v: %s", err, out)
 	}

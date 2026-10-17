@@ -20,13 +20,13 @@ import (
 	"time"
 
 	"board/capture"
-	"board/display/contract"
-	"board/display/ui"
 	"console"
 	"console/bindings"
 	"console/httpapi"
 	"console/mcp"
 	endpointmodels "cymonkey-content-plugin-endpoints/generation"
+	"jangolova/displaykit/contract"
+	"jangolova/displaykit/ui"
 	"jangolova/generationkit"
 )
 

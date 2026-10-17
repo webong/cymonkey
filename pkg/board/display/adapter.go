@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"board/display/sdk"
+	"jangolova/displaykit/sdk"
 )
 
 // Adapter attaches Jangolova to caller-owned targets. The host supplies

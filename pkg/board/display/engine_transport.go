@@ -13,7 +13,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"board/display/sdk"
+	"jangolova/displaykit/sdk"
 )
 
 const engineMaxMessageBytes = 4 * 1024 * 1024

@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	contract "board/display/contract"
+	contract "jangolova/displaykit/contract"
 )
 
 // MacOSPrimitive is one capability reported by a caller-owned macOS helper.

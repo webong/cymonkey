@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	contract "board/display/contract"
+	contract "jangolova/displaykit/contract"
 )
 
 func normalizeOptions(value *Options) error {

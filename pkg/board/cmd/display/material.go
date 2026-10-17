@@ -3,8 +3,8 @@ package main
 import (
 	"sync"
 
-	"board/display/sdk"
 	"jangolova/displaykit"
+	"jangolova/displaykit/sdk"
 )
 
 // material is the engine's view of one endpoint's prepared connection

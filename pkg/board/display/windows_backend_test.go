@@ -9,8 +9,8 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	contract "board/display/contract"
-	"board/display/sdk"
+	contract "jangolova/displaykit/contract"
+	"jangolova/displaykit/sdk"
 )
 
 func TestWindowsCooperativeBackendNegotiatesOwnerHelper(t *testing.T) {

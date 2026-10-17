@@ -247,14 +247,14 @@ lib/jangolova/devicekit/host/              provider registration and grant selec
 src/internal/core/              core registry/composition/conformance code
 src/internal/host/              Cymonkey host configuration and process supervisor
 pkg/board/display/                  standalone Jangolova library and host boundary
-pkg/board/display/host/             Jangolova host service injection contract
+lib/jangolova/displaykit/host/             Jangolova host service injection contract
 lib/jangolova/contentkit/                 content provider host role and contracts
 lib/jangolova/generationkit/              generation, embedding and speech contracts
 lib/jangolova/contentkit/protocol/          content contract schemas and fixtures
 src/internal/targetconn/        caller-owned target connection helpers
-pkg/board/display/contract/         public runtime wire contract
-pkg/board/display/sdk/              public types and host-injection interfaces
-pkg/board/display/registry/         reviewed module discovery and activation
+lib/jangolova/displaykit/contract/         public runtime wire contract
+lib/jangolova/displaykit/sdk/              public types and host-injection interfaces
+lib/jangolova/displaykit/registry/         reviewed module discovery and activation
 src/protocol/cymonkey/          canonical versioned Cymonkey schemas
 src/protocol/browser-extension/ schema, recorded exchanges, and generated binding source
 tests/cymonkey-core-conformance.mjs  portable Cymonkey contract checks
