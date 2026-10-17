@@ -1,13 +1,13 @@
 package devices
 
 import (
-	"devicekit"
-	"devicekit/device"
 	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
 	"io"
+	"kit/devicekit"
+	"kit/devicekit/device"
 	"math"
 	"os/exec"
 	"path/filepath"

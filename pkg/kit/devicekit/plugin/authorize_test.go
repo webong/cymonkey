@@ -6,8 +6,8 @@ import (
 	"errors"
 	"testing"
 
-	"devicekit"
 	extplugin "github.com/webong/ext/pkg/plugin-go/contract"
+	"kit/devicekit"
 )
 
 func request(operation string, payload any) extplugin.Request {

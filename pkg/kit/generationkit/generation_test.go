@@ -1,10 +1,10 @@
 package generationkit
 
 import (
-	"contentkit"
 	"context"
 	"encoding/json"
 	"errors"
+	"kit/contentkit"
 	"testing"
 )
 

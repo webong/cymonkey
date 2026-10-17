@@ -4,7 +4,6 @@
 package webllmruntime
 
 import (
-	"contentkit"
 	"context"
 	"crypto/rand"
 	_ "embed"
@@ -13,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"kit/contentkit"
 	"net"
 	"net/http"
 	"net/url"

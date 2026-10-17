@@ -1,11 +1,11 @@
 package generationkit
 
 import (
-	"contentkit"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"kit/contentkit"
 	"math"
 	"mime"
 	"net/url"

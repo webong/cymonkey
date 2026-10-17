@@ -3,9 +3,6 @@ module console
 go 1.26.5
 
 require (
-	devicekit v0.0.0
-	contentkit v0.0.0
-	generationkit v0.0.0
 	board v0.0.0
 	jangolova v0.0.0
 )
@@ -18,12 +15,10 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace generationkit => ../generationkit
-
 replace board => ../board
 
 replace jangolova => ../jangolova
 
-replace contentkit => ../contentkit
+require kit v0.0.0
 
-replace devicekit => ../devicekit
+replace kit => ../kit

@@ -3,14 +3,14 @@
 package httpapi
 
 import (
-	"contentkit"
 	"encoding/json"
 	"errors"
 	"io"
+	"kit/contentkit"
 	"net/http"
 
 	"console"
-	"generationkit"
+	"kit/generationkit"
 )
 
 const APIVersion = "cymonkey.console/v1alpha1"

@@ -1,13 +1,13 @@
 package console
 
 import (
-	"contentkit"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"kit/contentkit"
 
-	"generationkit"
+	"kit/generationkit"
 )
 
 // ModelTools composes a caller-selected model with an explicitly registered

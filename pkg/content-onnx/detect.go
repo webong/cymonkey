@@ -1,10 +1,10 @@
 package main
 
 import (
-	"contentkit"
 	"image"
 	"image/color"
 	"image/draw"
+	"kit/contentkit"
 	"math"
 	"sort"
 	"strconv"

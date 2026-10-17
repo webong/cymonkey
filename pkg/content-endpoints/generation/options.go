@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"generationkit"
 	"github.com/webong/ext/pkg/plugin-go/contract/validate/jsonschema"
+	"kit/generationkit"
 )
 
 // Native options use the selected API dialect's names. Only documented fields

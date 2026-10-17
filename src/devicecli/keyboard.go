@@ -9,9 +9,9 @@ import (
 	"io"
 	"strings"
 
-	"devicekit"
-	devicehost "devicekit/host"
 	"board/macoskeyboard"
+	"kit/devicekit"
+	devicehost "kit/devicekit/host"
 )
 
 const keyboardProviderID = "macos-keyboard"

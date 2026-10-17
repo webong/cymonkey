@@ -10,7 +10,7 @@ import (
 	"mime"
 	"net/http"
 
-	"generationkit"
+	"kit/generationkit"
 )
 
 func responsesRequest(request generationkit.GenerationRequest) (map[string]any, error) {

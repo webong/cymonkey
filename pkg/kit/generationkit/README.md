@@ -8,4 +8,4 @@ client or provider switch; hosts register bindings and optional packages such as
 
 It is a kit: contracts and registration with no engine behind them, so the host
 and guests can both import it. Content observation and interpretation live in
-`pkg/contentkit`.
+`pkg/kit/contentkit`.

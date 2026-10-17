@@ -6,7 +6,7 @@ import (
 	"errors"
 	"testing"
 
-	"generationkit"
+	"kit/generationkit"
 )
 
 type proposingModel struct {

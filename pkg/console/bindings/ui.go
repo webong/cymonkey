@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"console"
-	"generationkit"
 	"jangolova/ui"
+	"kit/generationkit"
 )
 
 // Observe binds a surface to a read-only observer. Tool input selects a query,

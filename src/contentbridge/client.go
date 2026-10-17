@@ -2,13 +2,13 @@ package contentbridge
 
 import (
 	"bytes"
-	"contentkit"
 	"context"
 	"cymonkey/src/contracts"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"kit/contentkit"
 	"net/http"
 	"strings"
 	"time"

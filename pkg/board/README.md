@@ -3,7 +3,7 @@
 Board holds the device implementations used by Cymonkey, covering physical and
 virtual devices in local and remote environments. The contract for discovering
 devices, opening a host-approved session and invoking bounded capabilities, with
-its grant gate, lives in the device kit (`pkg/devicekit`). A Board provider
+its grant gate, lives in the device kit (`pkg/kit/devicekit`). A Board provider
 binds that contract to a particular operating system, device class, or
 transport.
 

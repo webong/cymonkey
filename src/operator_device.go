@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"devicekit"
 	"cymonkey/src/contracts"
 	"cymonkey/src/devicebridge"
+	"kit/devicekit"
 )
 
 const operatorDeviceStreamLimit = 16 << 20

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"devicekit"
+	"kit/devicekit"
 )
 
 // testProviderPrefix mirrors the CLI's provider naming so the tests exercise

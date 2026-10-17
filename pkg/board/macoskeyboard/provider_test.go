@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"devicekit"
+	"kit/devicekit"
 )
 
 type fakeNative struct {

@@ -1,10 +1,10 @@
 package devices
 
 import (
-	"devicekit"
 	"context"
 	"errors"
 	"io"
+	"kit/devicekit"
 	"os"
 	"path/filepath"
 	"testing"

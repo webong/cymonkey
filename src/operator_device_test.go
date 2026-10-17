@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"devicekit"
 	"cymonkey/src/internal/orchestrator"
+	"kit/devicekit"
 )
 
 type operatorDeviceFixture struct{}

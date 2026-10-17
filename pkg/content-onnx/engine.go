@@ -2,12 +2,12 @@ package main
 
 import (
 	"bytes"
-	"contentkit"
 	"context"
 	"fmt"
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
+	"kit/contentkit"
 	"path/filepath"
 	"strings"
 	"sync"

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"devicekit"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
@@ -9,6 +8,7 @@ import (
 	"errors"
 	"github.com/gorilla/websocket"
 	"io"
+	"kit/devicekit"
 	"net/http"
 	"strconv"
 	"strings"

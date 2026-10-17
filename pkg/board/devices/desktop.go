@@ -1,14 +1,14 @@
 package devices
 
 import (
-	"devicekit"
-	"devicekit/device"
 	"board/displayaction"
 	"board/displayprobe"
 	"board/permissionprobe"
 	"context"
 	"errors"
 	"io"
+	"kit/devicekit"
+	"kit/devicekit/device"
 	"os"
 	"os/exec"
 	"path/filepath"

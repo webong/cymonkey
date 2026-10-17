@@ -1,10 +1,10 @@
 package devices
 
 import (
-	"devicekit"
 	"board/displayaction"
 	"context"
 	"errors"
+	"kit/devicekit"
 	"os"
 	"path/filepath"
 	"strings"

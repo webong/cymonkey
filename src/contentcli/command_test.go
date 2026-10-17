@@ -2,12 +2,12 @@ package contentcli
 
 import (
 	"bytes"
-	"contentkit"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"io"
+	"kit/contentkit"
 	"os"
 	"path/filepath"
 	"strings"

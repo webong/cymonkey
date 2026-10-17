@@ -3,8 +3,6 @@ module cymonkey-content-plugin-endpoints
 go 1.26.5
 
 require (
-	contentkit v0.0.0
-	generationkit v0.0.0
 	github.com/gorilla/websocket v1.5.3
 )
 
@@ -14,6 +12,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace generationkit => ../generationkit
+require kit v0.0.0
 
-replace contentkit => ../contentkit
+replace kit => ../kit

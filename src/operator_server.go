@@ -15,11 +15,11 @@ import (
 	"strings"
 	"sync"
 
-	"devicekit"
 	"cymonkey/src/internal/engineprovider"
 	"cymonkey/src/internal/orchestrator"
 	"cymonkey/src/observation"
 	userscripts "github.com/webong/ext/res/web/userscript"
+	"kit/devicekit"
 )
 
 type operatorServer struct {

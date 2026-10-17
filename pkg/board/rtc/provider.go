@@ -2,14 +2,14 @@
 package rtc
 
 import (
-	"devicekit"
-	"devicekit/device"
 	"context"
 	"encoding/json"
 	"errors"
 	pion "github.com/pion/webrtc/v4"
 	"github.com/pion/webrtc/v4/pkg/media"
 	"io"
+	"kit/devicekit"
+	"kit/devicekit/device"
 	"strings"
 	"sync"
 	"time"

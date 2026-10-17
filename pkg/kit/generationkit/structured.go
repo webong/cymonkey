@@ -1,10 +1,10 @@
 package generationkit
 
 import (
-	"contentkit"
 	"context"
 	"encoding/json"
 	"fmt"
+	"kit/contentkit"
 	"strings"
 
 	"github.com/webong/ext/pkg/plugin-go/contract/validate/jsonschema"

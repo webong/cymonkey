@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"console"
-	"generationkit"
+	"kit/generationkit"
 )
 
 // GenerationInput contains the inputs a caller may choose for a bound model

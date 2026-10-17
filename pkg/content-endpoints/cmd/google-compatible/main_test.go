@@ -1,9 +1,9 @@
 package main
 
 import (
-	"contentkit"
 	"context"
 	"encoding/json"
+	"kit/contentkit"
 	"net/http"
 	"net/http/httptest"
 	"testing"

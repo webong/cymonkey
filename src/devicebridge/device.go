@@ -3,8 +3,8 @@
 package devicebridge
 
 import (
-	"devicekit"
 	"cymonkey/src/contracts"
+	"kit/devicekit"
 )
 
 func ToLibraryOpen(request contracts.DeviceOpenRequest) devicekit.OpenRequest {

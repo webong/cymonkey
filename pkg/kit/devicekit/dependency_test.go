@@ -15,7 +15,7 @@ func TestDeviceKitDoesNotDependOnCymonkey(t *testing.T) {
 		t.Fatalf("dependency graph: %v: %s", err, out)
 	}
 	for _, dependency := range strings.Fields(string(out)) {
-		for _, prefix := range []string{"cymonkey", "jangolova", "contentkit", "generationkit", "board", "github.com/xallet/xallet"} {
+		for _, prefix := range []string{"cymonkey", "jangolova", "kit/contentkit", "kit/generationkit", "board", "github.com/xallet/xallet"} {
 			if dependency == prefix || strings.HasPrefix(dependency, prefix+"/") {
 				t.Errorf("device kit depends on a host or sibling library: %s", dependency)
 			}

@@ -3,11 +3,11 @@
 package main
 
 import (
-	"contentkit"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"kit/contentkit"
 	"os"
 	"path/filepath"
 	"slices"

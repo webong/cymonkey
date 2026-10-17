@@ -2,12 +2,12 @@
 package device
 
 import (
-	"devicekit"
 	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"io"
+	"kit/devicekit"
 	"sort"
 	"sync"
 	"time"

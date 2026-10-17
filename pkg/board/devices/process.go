@@ -1,12 +1,12 @@
 package devices
 
 import (
-	"devicekit"
 	"board/displayaction"
 	"bytes"
 	"context"
 	"errors"
 	"io"
+	"kit/devicekit"
 	"os"
 	"os/exec"
 	"sync"

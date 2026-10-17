@@ -2,12 +2,12 @@ package endpoint
 
 import (
 	"bytes"
-	"contentkit"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"kit/contentkit"
 	"net/http"
 	"strconv"
 	"strings"

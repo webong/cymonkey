@@ -1,12 +1,12 @@
 package devices
 
 import (
-	"devicekit"
-	"devicekit/device"
 	"board/networkprobe"
 	"context"
 	"errors"
 	"io"
+	"kit/devicekit"
+	"kit/devicekit/device"
 	"net"
 	"time"
 )

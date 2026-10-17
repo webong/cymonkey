@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"contentkit"
 	"cymonkey/src/contentbridge"
 	contentcli "cymonkey/src/contentcli"
 	"cymonkey/src/contracts"
@@ -11,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"kit/contentkit"
 	"os"
 	"path/filepath"
 	"strings"

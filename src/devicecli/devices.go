@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"devicekit"
-	devicehost "devicekit/host"
+	"kit/devicekit"
+	devicehost "kit/devicekit/host"
 )
 
 // Board drives are mounted by the host, not found by Board. Naming a root on

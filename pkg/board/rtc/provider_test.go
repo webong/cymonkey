@@ -1,7 +1,6 @@
 package rtc
 
 import (
-	"devicekit"
 	"bytes"
 	"context"
 	"encoding/base64"
@@ -10,6 +9,7 @@ import (
 	pion "github.com/pion/webrtc/v4"
 	"github.com/pion/webrtc/v4/pkg/media"
 	"io"
+	"kit/devicekit"
 	"sync"
 	"testing"
 	"time"

@@ -1,14 +1,14 @@
 package main
 
 import (
-	"contentkit"
-	contentplugin "contentkit/plugin"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"io/fs"
+	"kit/contentkit"
+	contentplugin "kit/contentkit/plugin"
 	"os"
 	"path/filepath"
 	"sort"
@@ -16,11 +16,11 @@ import (
 	"sync"
 	"time"
 
-	"devicekit"
 	boardconfig "board/config"
-	deviceplugin "devicekit/plugin"
 	"cymonkey/src/internal/displayplugin"
 	"cymonkey/src/internal/orchestrator"
+	"kit/devicekit"
+	deviceplugin "kit/devicekit/plugin"
 
 	plugin "github.com/webong/ext/pkg/plugin-go/contract"
 	"github.com/webong/ext/pkg/plugin-go/contract/host/store"

@@ -1,8 +1,8 @@
 package webllmruntime
 
 import (
-	"contentkit"
 	"context"
+	"kit/contentkit"
 	"os"
 	"strings"
 	"testing"

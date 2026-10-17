@@ -1,7 +1,6 @@
 package main
 
 import (
-	"devicekit"
 	"board/devices"
 	"board/volumearchive"
 	"bytes"
@@ -9,6 +8,7 @@ import (
 	"cymonkey/src/internal/orchestrator"
 	"encoding/json"
 	"github.com/gorilla/websocket"
+	"kit/devicekit"
 	"net/http"
 	"net/http/httptest"
 	"os"

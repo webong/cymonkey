@@ -2,11 +2,11 @@ package main
 
 import (
 	"bytes"
-	"contentkit"
 	"context"
 	"encoding/json"
 	"errors"
 	"io"
+	"kit/contentkit"
 	"net/http"
 	"os"
 	"os/exec"
@@ -15,13 +15,13 @@ import (
 	"strings"
 	"testing"
 
-	"devicekit"
 	"cymonkey/src/internal/bridge"
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
 	plugin "github.com/webong/ext/pkg/plugin-go/contract"
 	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
 	packagekit "github.com/webong/ext/pkg/plugin-go/contract/package"
+	"kit/devicekit"
 )
 
 func TestExecutablePluginsAcrossLibraries(t *testing.T) {

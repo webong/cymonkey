@@ -2,10 +2,8 @@ go 1.26.5
 
 use (
 	.
-	./pkg/generationkit
 	./pkg/board
-	./pkg/contentkit
-	./pkg/devicekit
+	./pkg/kit
 	./pkg/console
 	./pkg/jangolova
 	./pkg/content-endpoints

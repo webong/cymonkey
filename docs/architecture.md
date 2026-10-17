@@ -186,13 +186,14 @@ calls. The cooperative Unity bridge implements the same vocabulary.
 The repository has one host and many guests. `src/` is the host: the
 single `cymy` binary, its generic contracts, admission policy and adapters.
 `pkg/` holds everything the host runs or builds on: the Jangolova, Board and Console
-modules, the content, device and generation kits, the content providers, and the platform helpers and
+modules, the shared `kit` module (content, device and generation
+contracts and host roles), the content providers, and the platform helpers and
 products. The host never imports a guest; it reaches them through the ext
 plugin system (`github.com/webong/ext/pkg/plugin-go/contract`). Until the cut is
 complete, `src/internal/boundary/guest_imports_test.go` fails on any new import of a `pkg/` Go
 module and lists the ones that remain. `tests/` is the conformance and fixture
-surface. Jangolova, Board, Console and the kits are separate Go modules
-(`jangolova`, `board`, `console`, `contentkit`, `devicekit`, `generationkit`) joined through `go.work` and
+surface. Jangolova, Board, Console and `kit` are separate Go modules
+(`jangolova`, `board`, `console`, `kit`) joined through `go.work` and
 local replacements while the host still imports them.
 Each library's plugin adapter selects the native executable contracts it understands;
 ext checks package structure and integrity without enumerating libraries. Cymonkey owns the command handlers, shared plugin directory, and
@@ -223,8 +224,9 @@ src/contentcli/                Cymonkey content command handlers
 src/devicecli/                 Cymonkey device command handlers
 src/internal/provider/         provider and MCP implementation
 src/fixtures/native-bridge/    native bridge fixture implementation
-pkg/contentkit/                content provider host role and contracts
-pkg/generationkit/             generation, embedding and speech contracts
+pkg/kit/                       shared contracts and host roles (one module)
+pkg/kit/contentkit/            content provider host role and contracts
+pkg/kit/generationkit/             generation, embedding and speech contracts
 pkg/console/                   standalone tool composition library
 src/adapters/browserautomation/ Playwright CDP and Puppeteer CDP/BiDi attachment
 src/adapters/webdriverclassic/  existing W3C WebDriver session attachment
@@ -239,14 +241,14 @@ src/observation/                Jangolova capture and Blockade inference workflo
 pkg/board/                      standalone Board device library
 pkg/board/drive.go              read-only mounted-drive provider
 pkg/board/macoskeyboard/         explicit-PID macOS keyboard provider
-pkg/devicekit/host/              provider registration and grant selection
+pkg/kit/devicekit/host/              provider registration and grant selection
 src/internal/core/              core registry/composition/conformance code
 src/internal/host/              Cymonkey host configuration and process supervisor
 pkg/jangolova/                  standalone Jangolova library and host boundary
 pkg/jangolova/host/             Jangolova host service injection contract
-pkg/contentkit/                 content provider host role and contracts
-pkg/generationkit/              generation, embedding and speech contracts
-pkg/contentkit/protocol/          content contract schemas and fixtures
+pkg/kit/contentkit/                 content provider host role and contracts
+pkg/kit/generationkit/              generation, embedding and speech contracts
+pkg/kit/contentkit/protocol/          content contract schemas and fixtures
 src/internal/targetconn/        caller-owned target connection helpers
 pkg/jangolova/contract/         public runtime wire contract
 pkg/jangolova/sdk/              public types and host-injection interfaces

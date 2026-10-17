@@ -1,13 +1,13 @@
 package contentcli
 
 import (
-	"contentkit"
 	"context"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
+	"kit/contentkit"
 	"math"
 	"net/url"
 	"os"

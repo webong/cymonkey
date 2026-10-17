@@ -1,11 +1,11 @@
 package main
 
 import (
-	"devicekit"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
+	"kit/devicekit"
 	"net/http"
 	"strings"
 	"time"

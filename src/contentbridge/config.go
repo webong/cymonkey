@@ -2,11 +2,11 @@ package contentbridge
 
 import (
 	"bytes"
-	"contentkit"
 	"cymonkey/src/contracts"
 	"errors"
 	"fmt"
 	"io"
+	"kit/contentkit"
 	"os"
 	"path/filepath"
 	"strings"

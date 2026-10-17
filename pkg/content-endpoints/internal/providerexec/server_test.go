@@ -1,8 +1,8 @@
 package providerexec
 
 import (
-	"contentkit"
 	"errors"
+	"kit/contentkit"
 	"testing"
 	"time"
 )

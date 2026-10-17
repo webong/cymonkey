@@ -1,13 +1,13 @@
 package devices
 
 import (
-	"devicekit"
-	"devicekit/device"
 	"board/filesystemprobe"
 	"board/volumearchive"
 	"context"
 	"errors"
 	"io"
+	"kit/devicekit"
+	"kit/devicekit/device"
 	"os"
 	"path/filepath"
 	"sync"

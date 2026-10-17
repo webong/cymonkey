@@ -1,10 +1,10 @@
 package endpoint
 
 import (
-	"contentkit"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"kit/contentkit"
 	"strings"
 )
 

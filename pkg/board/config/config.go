@@ -2,7 +2,6 @@
 package config
 
 import (
-	"devicekit"
 	"board/devices"
 	"board/rtc"
 	"bytes"
@@ -12,6 +11,7 @@ import (
 	"fmt"
 	pion "github.com/pion/webrtc/v4"
 	"io"
+	"kit/devicekit"
 	"time"
 )
 
@@ -74,17 +74,17 @@ type Endpoint struct {
 	Address string `json:"address"`
 }
 type WebRTC struct {
-	Pointer             *rtc.Target        `json:"pointer,omitempty"`
+	Pointer             *rtc.Target            `json:"pointer,omitempty"`
 	PointerCapabilities []devicekit.Capability `json:"pointerCapabilities,omitempty"`
-	AudioCodec          string             `json:"audioCodec,omitempty"`
-	TTLSeconds          int                `json:"ttlSeconds,omitempty"`
-	ICEServers          []pion.ICEServer   `json:"iceServers,omitempty"`
-	RelayOnly           bool               `json:"relayOnly,omitempty"`
-	Video               *rtc.Target        `json:"video,omitempty"`
-	Audio               *rtc.Target        `json:"audio,omitempty"`
-	Microphone          *rtc.Target        `json:"microphone,omitempty"`
-	Playback            *rtc.Target        `json:"playback,omitempty"`
-	Input               *rtc.Target        `json:"input,omitempty"`
+	AudioCodec          string                 `json:"audioCodec,omitempty"`
+	TTLSeconds          int                    `json:"ttlSeconds,omitempty"`
+	ICEServers          []pion.ICEServer       `json:"iceServers,omitempty"`
+	RelayOnly           bool                   `json:"relayOnly,omitempty"`
+	Video               *rtc.Target            `json:"video,omitempty"`
+	Audio               *rtc.Target            `json:"audio,omitempty"`
+	Microphone          *rtc.Target            `json:"microphone,omitempty"`
+	Playback            *rtc.Target            `json:"playback,omitempty"`
+	Input               *rtc.Target            `json:"input,omitempty"`
 	InputCapabilities   []devicekit.Capability `json:"inputCapabilities,omitempty"`
 }
 

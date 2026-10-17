@@ -1,13 +1,13 @@
 package devices
 
 import (
-	"devicekit"
 	"board/audio"
-	"devicekit/device"
 	"context"
 	"encoding/json"
 	"errors"
 	"io"
+	"kit/devicekit"
+	"kit/devicekit/device"
 	"os/exec"
 	"path/filepath"
 	"regexp"

@@ -7,7 +7,7 @@ import (
 	"errors"
 	"net/http"
 
-	"generationkit"
+	"kit/generationkit"
 )
 
 // Embed supports explicit OpenAI-compatible, Cohere and Voyage API roots.

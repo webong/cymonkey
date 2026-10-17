@@ -8,9 +8,9 @@ import (
 	"os"
 	"strings"
 
-	"devicekit"
 	"cymonkey/src/devicebridge"
 	devicecli "cymonkey/src/devicecli"
+	"kit/devicekit"
 )
 
 // runDevice is Cymonkey's adapter from the public device command to the

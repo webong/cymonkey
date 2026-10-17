@@ -1,10 +1,10 @@
 package generationkit
 
 import (
-	"contentkit"
 	"context"
 	"errors"
 	"fmt"
+	"kit/contentkit"
 	"math"
 	"strings"
 	"sync"

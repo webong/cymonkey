@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"generationkit"
 	"github.com/gorilla/websocket"
+	"kit/generationkit"
 )
 
 type Config struct {

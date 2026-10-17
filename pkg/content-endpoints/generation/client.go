@@ -4,11 +4,11 @@ package generation
 
 import (
 	"bytes"
-	"contentkit"
 	"context"
 	"errors"
 	"fmt"
 	"io"
+	"kit/contentkit"
 	"net/http"
 	"net/url"
 	"os"
@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"generationkit"
+	"kit/generationkit"
 )
 
 type Protocol string

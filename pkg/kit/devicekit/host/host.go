@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"devicekit"
+	"kit/devicekit"
 )
 
 // ErrNotAuthorized reports that no host-approved device served a request. A

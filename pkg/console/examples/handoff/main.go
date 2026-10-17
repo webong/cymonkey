@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"console"
-	"generationkit"
+	"kit/generationkit"
 )
 
 type lookupInput struct {

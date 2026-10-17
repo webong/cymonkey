@@ -3,15 +3,15 @@
 package bindings
 
 import (
-	"contentkit"
 	"context"
 	"encoding/json"
 	"errors"
+	"kit/contentkit"
 
-	"devicekit"
 	"console"
 	"jangolova/contract"
 	"jangolova/sdk"
+	"kit/devicekit"
 )
 
 // Display binds one semantic action on a caller-owned Jangolova connection.

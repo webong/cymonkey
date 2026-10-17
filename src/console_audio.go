@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 
 	"console/bindings"
-	"generationkit"
+	"kit/generationkit"
 )
 
 // The CLI host, rather than Console, chooses an existing artifact directory.

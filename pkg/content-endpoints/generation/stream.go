@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"generationkit"
+	"kit/generationkit"
 )
 
 // Stream performs one request with synchronous lifecycle, delta, usage and

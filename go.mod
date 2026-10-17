@@ -3,9 +3,6 @@ module cymonkey
 go 1.26.5
 
 require (
-	devicekit v0.0.0
-	contentkit v0.0.0
-	generationkit v0.0.0
 	board v0.0.0
 	console v0.0.0
 	cymonkey-content-plugin-endpoints v0.0.0
@@ -13,8 +10,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 	jangolova v0.0.0
 )
-
-replace generationkit => ./pkg/generationkit
 
 replace console => ./pkg/console
 
@@ -51,6 +46,6 @@ require (
 	golang.org/x/time v0.14.0 // indirect
 )
 
-replace contentkit => ./pkg/contentkit
+require kit v0.0.0
 
-replace devicekit => ./pkg/devicekit
+replace kit => ./pkg/kit

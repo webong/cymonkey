@@ -9,7 +9,7 @@ import (
 	"io"
 	"strings"
 
-	"devicekit"
+	"kit/devicekit"
 )
 
 func providerCommand(command string, args []string, output io.Writer, providers []devicekit.Provider) error {

@@ -2,9 +2,9 @@ package webllmruntime
 
 import (
 	"bytes"
-	"contentkit"
 	"context"
 	"encoding/json"
+	"kit/contentkit"
 	"net/http"
 	"net/http/httptest"
 	"strings"

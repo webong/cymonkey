@@ -15,10 +15,10 @@ import (
 	"testing"
 	"time"
 
-	"contentkit"
 	plugin "github.com/webong/ext/pkg/plugin-go/contract"
 	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
 	packagekit "github.com/webong/ext/pkg/plugin-go/contract/package"
+	"kit/contentkit"
 )
 
 func TestNormalizeProcessErrorPreservesBlockadeFailureKind(t *testing.T) {

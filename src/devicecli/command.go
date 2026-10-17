@@ -7,7 +7,7 @@ import (
 	"io"
 	"strings"
 
-	"devicekit"
+	"kit/devicekit"
 )
 
 type CommandEngine struct {

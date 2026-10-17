@@ -3,7 +3,6 @@ module board
 go 1.26.5
 
 require (
-	devicekit v0.0.0
 	github.com/pion/rtp v1.10.5
 	github.com/pion/webrtc/v4 v4.2.22
 	golang.org/x/sys v0.46.0
@@ -32,4 +31,6 @@ require (
 	golang.org/x/time v0.14.0 // indirect
 )
 
-replace devicekit => ../devicekit
+require kit v0.0.0
+
+replace kit => ../kit

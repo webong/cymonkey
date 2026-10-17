@@ -1,9 +1,9 @@
 package endpoint
 
 import (
-	"contentkit"
 	"errors"
 	"fmt"
+	"kit/contentkit"
 	"math"
 	"net/url"
 	"slices"

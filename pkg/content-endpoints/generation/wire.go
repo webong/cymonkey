@@ -1,15 +1,15 @@
 package generation
 
 import (
-	"contentkit"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"kit/contentkit"
 	"net/url"
 	"strings"
 
-	"generationkit"
+	"kit/generationkit"
 )
 
 func (c *Client) encode(request generationkit.GenerationRequest, stream bool) ([]byte, string, error) {

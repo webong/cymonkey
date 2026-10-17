@@ -1,7 +1,6 @@
 package main
 
 import (
-	"devicekit"
 	"board/rtc"
 	"bytes"
 	"crypto/rand"
@@ -9,6 +8,7 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"image/jpeg"
+	"kit/devicekit"
 	"net/http"
 	"os/exec"
 	"strings"

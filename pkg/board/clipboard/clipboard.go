@@ -8,8 +8,8 @@ import (
 	"errors"
 	"fmt"
 
-	"devicekit"
-	"devicekit/device"
+	"kit/devicekit"
+	"kit/devicekit/device"
 )
 
 const (

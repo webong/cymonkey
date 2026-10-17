@@ -1,9 +1,9 @@
 package endpoint
 
 import (
-	"contentkit"
 	"context"
 	"errors"
+	"kit/contentkit"
 	"net/http"
 	"net/http/httptest"
 	"slices"

@@ -3,8 +3,8 @@
 package contentbridge
 
 import (
-	"contentkit"
 	"cymonkey/src/contracts"
+	"kit/contentkit"
 )
 
 func ToLibraryRequest(request contracts.ContentRequest) contentkit.InterpretRequest {

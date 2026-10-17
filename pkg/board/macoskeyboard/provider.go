@@ -15,7 +15,7 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
-	"devicekit"
+	"kit/devicekit"
 )
 
 var (

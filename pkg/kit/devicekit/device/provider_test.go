@@ -1,11 +1,11 @@
 package device_test
 
 import (
-	"devicekit"
-	"devicekit/device"
 	"context"
 	"errors"
 	"io"
+	"kit/devicekit"
+	"kit/devicekit/device"
 	"net"
 	"testing"
 	"time"

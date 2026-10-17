@@ -3,7 +3,6 @@ module cymonkey-content-plugin-onnx
 go 1.26.5
 
 require (
-	contentkit v0.0.0
 	github.com/yalue/onnxruntime_go v1.35.0
 )
 
@@ -13,5 +12,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
+require kit v0.0.0
 
-replace contentkit => ../contentkit
+replace kit => ../kit
