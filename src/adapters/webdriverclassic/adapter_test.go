@@ -9,9 +9,9 @@ import (
 	"sync"
 	"testing"
 
-	"cymonkey/src/internal/bridge"
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
+	"jangolova/displaykit/bridge"
 )
 
 func TestAdapterUsesExistingSessionAndNeverDeletesIt(t *testing.T) {

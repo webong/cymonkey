@@ -58,6 +58,26 @@ Current contracts are:
 The original `plugin.json` format and its `kind` field are gone. Rebuild
 manifests with `cymy plugins manifest`.
 
+## Display engine package
+
+Board's display engine can run as an ext package that serves `display.engine`.
+The host resolves credentials, prepares the connection material (headers, TLS
+file paths, the redaction list) and sends it with the target; the engine reaches
+the target and its cooperative helpers itself and reports events back by
+cursor.
+
+```sh
+go build -o display ./pkg/board/cmd/display
+cymy plugins manifest --type display --name display-engine --version 1.0.0 --command ./display
+cymy plugins install --manifest ./plugin.json
+```
+
+Today the package serves the cooperative targets (macOS and Windows helpers,
+which connect back to the engine with the launch variables it returns). Targets
+that need the host's endpoint policy or credential handling, such as browser and
+CDP endpoints, are refused with a clear error until ext offers guest-to-host
+calls, so the in-process engine still serves those.
+
 ## Lifecycle
 
 ```sh

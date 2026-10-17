@@ -18,11 +18,11 @@ import (
 	"sync"
 	"time"
 
-	"cymonkey/src/internal/bridge"
 	"cymonkey/src/internal/manifest"
-	"cymonkey/src/internal/nodeworker"
 	"cymonkey/src/internal/orchestrator"
 	"cymonkey/src/internal/targetconn"
+	"jangolova/displaykit/bridge"
+	"jangolova/displaykit/nodeworker"
 )
 
 const defaultWorkerPath = "scripts/presentation-worker.mjs"

@@ -13,9 +13,9 @@ import (
 	"sync"
 	"time"
 
-	"cymonkey/src/internal/bridge"
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
+	"jangolova/displaykit/bridge"
 )
 
 // Supported protocols for display interaction targets.

@@ -13,8 +13,9 @@ import (
 	"testing"
 )
 
-// Library-specific integration is composed outside src/internal. Private
-// packages must not acquire a direct dependency on a standalone library.
+// Guest-specific integration is composed outside src/internal. Private
+// packages must not acquire a direct dependency on a guest module. The shared
+// jangolova library is the one thing they may depend on.
 func TestLibrariesStayOutsideInternal(t *testing.T) {
 	_, current, _, ok := runtime.Caller(0)
 	if !ok {
@@ -37,7 +38,7 @@ func TestLibrariesStayOutsideInternal(t *testing.T) {
 			if err != nil {
 				return err
 			}
-			for _, library := range []string{"board", "jangolova"} {
+			for _, library := range []string{"board"} {
 				if name == library || strings.HasPrefix(name, library+"/") {
 					t.Errorf("internal package imports %s: %s", library, path)
 				}
@@ -49,7 +50,7 @@ func TestLibrariesStayOutsideInternal(t *testing.T) {
 				return err
 			}
 			lower := bytes.ToLower(contents)
-			for _, library := range []string{"board", "jangolova"} {
+			for _, library := range []string{"board"} {
 				if bytes.Contains(lower, []byte(library)) {
 					t.Errorf("internal package names standalone library %s: %s", library, path)
 				}

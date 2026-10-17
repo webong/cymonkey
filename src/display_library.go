@@ -15,12 +15,12 @@ import (
 	displayhost "board/display/host"
 	displaysdk "board/display/sdk"
 	"cymonkey/src/adapters/safarimcp"
-	"cymonkey/src/internal/bridge"
 	"cymonkey/src/internal/manifest"
-	"cymonkey/src/internal/nodeworker"
 	"cymonkey/src/internal/orchestrator"
 	"cymonkey/src/internal/targetconn"
 	"github.com/gorilla/websocket"
+	"jangolova/displaykit/bridge"
+	"jangolova/displaykit/nodeworker"
 )
 
 type materialView struct {

@@ -14,7 +14,6 @@ import (
 	"strings"
 	"testing"
 
-	"cymonkey/src/internal/bridge"
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
 	plugin "github.com/webong/ext/pkg/plugin-go/contract"
@@ -22,6 +21,7 @@ import (
 	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
 	packagekit "github.com/webong/ext/pkg/plugin-go/contract/package"
 	"jangolova/devicekit"
+	"jangolova/displaykit/bridge"
 )
 
 func TestExecutablePluginsAcrossLibraries(t *testing.T) {

@@ -17,10 +17,10 @@ import (
 	"sync"
 	"time"
 
-	"cymonkey/src/internal/bridge"
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
 	"cymonkey/src/internal/targetconn"
+	"jangolova/displaykit/bridge"
 )
 
 var instanceIDPattern = regexp.MustCompile(`^[a-z][a-z0-9-]{0,62}$`)
