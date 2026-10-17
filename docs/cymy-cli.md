@@ -40,7 +40,9 @@ subcommand-specific help page.
 | `cymy run` | Start and supervise the manifest's components. |
 | `cymy observe` | Capture an authorized display screenshot and send it to the configured content service. |
 | `cymy modules discover`, `pull` | Read a reviewed module registry and retrieve a selected artifact. |
-| `cymy browser targets` | Find local browsers and profiles on the machine running the command. |
+| `cymy adapters list`, `install`, `trust`, `untrust`, `remove` | Install and trust the ext browser adapters that run browser-specific work. Installing never lets an adapter run; trust is a separate step. |
+| `cymy browser targets` | Find local browsers and profiles across the trusted adapters. |
+| `cymy cookies query`, `normalize` | Read or normalize browser cookies through a trusted adapter. The output holds live cookie values. |
 | `cymy operator serve`, `targets`, `connect`, `call`, `disconnect`, `observe`, `interpret`, `userscript`, `extension`, `device` | Keep browser sessions, content, and devices callable through one authenticated local API. |
 | `cymy extension ...` | Inspect, package, stage, activate, or install a caller-supplied browser extension. |
 | `cymy userscript ...` | Store, list, update, enable, disable, or remove extension-free userscripts for a selected browser target. |
@@ -143,7 +145,12 @@ For a persistent browser session that other tools can call, use
 explicit browser/profile paths, uses an existing endpoint when available, and
 keeps the interaction and manager API alive.
 
+Browser work needs an installed, trusted ext browser adapter first. Install and
+trust one with `cymy adapters install --source DIR` and `cymy adapters trust NAME`;
+the [extension CLI guide](cymy-extension-cli.md) has the steps.
+
 ```sh
+cymy adapters list
 cymy browser targets
 cymy extension capabilities --browser firefox
 cymy extension prepare --source /absolute/path/to/signed-extension.xpi

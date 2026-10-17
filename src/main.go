@@ -184,9 +184,11 @@ Commands:
   run                     Start and supervise standalone components
   observe                 Capture a display and interpret its content
   modules                 Discover or retrieve reviewed display modules
+  adapters                Install and trust the ext browser adapters
   browser                 Discover local browser targets
   extension               Manage caller-supplied browser extension packages
   userscript              Store and replay approved extension-free userscripts
+  cookies                 Read or normalize browser cookies through an adapter
   bookmarklet             Import or export user-activated browser bookmarklets
   display                 Connect and serve display interaction engines
   content                 Configure and run content interpretation
