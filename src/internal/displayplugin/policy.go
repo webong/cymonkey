@@ -1,4 +1,4 @@
-package jangolovaplugin
+package displayplugin
 
 import (
 	"context"

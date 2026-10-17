@@ -47,7 +47,5 @@ src/plugins.go blockade/plugin
 src/plugins.go board
 src/plugins.go board/config
 src/plugins.go board/plugin
-src/plugins.go jangolova/plugin
 src/plugins_test.go blockade
 src/plugins_test.go board
-src/plugins_test.go jangolova/sdk

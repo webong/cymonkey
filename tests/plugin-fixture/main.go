@@ -32,15 +32,15 @@ func main() {
 		var response answer
 		switch method {
 		case "display.engine.inspect":
-			response.Result = map[string]any{"Available": true, "Capabilities": []string{"window.screenshot"}}
+			response.Result = map[string]any{"available": true, "capabilities": []string{"window.screenshot"}}
 		case "display.engine.connect":
 			response.Result = map[string]any{"capabilities": []string{"window.screenshot"}}
 		case "display.engine.authorize":
-			response.Result = map[string]any{"Authorized": true}
+			response.Result = map[string]any{"authorized": true}
 		case "display.engine.call":
 			response.Result = map[string]any{"ok": true}
 		case "display.engine.health":
-			response.Result = map[string]any{"Status": "connected"}
+			response.Result = map[string]any{"status": "connected"}
 		case "display.engine.events":
 			response.Result = map[string]any{"cursor": "0", "events": []any{}}
 		case "display.engine.material", "display.engine.disconnect":

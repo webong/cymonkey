@@ -19,8 +19,8 @@ import (
 	"board"
 	boardconfig "board/config"
 	boardplugin "board/plugin"
+	"cymonkey/src/internal/displayplugin"
 	"cymonkey/src/internal/orchestrator"
-	displayplugin "jangolova/plugin"
 
 	plugin "github.com/webong/ext/pkg/plugin-go/contract"
 	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
@@ -139,7 +139,7 @@ func registerDisplayPlugins(registry *orchestrator.Registry) error {
 		if !item.Supports(displayPluginContract, pluginContractVersion) {
 			continue
 		}
-		if err := registry.RegisterEngine(item.Name(), wrapDisplayLibrary(displayplugin.Adapter{Installed: item})); err != nil {
+		if err := registry.RegisterEngine(item.Name(), displayplugin.Adapter{Installed: item}); err != nil {
 			return err
 		}
 	}

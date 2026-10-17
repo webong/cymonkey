@@ -16,12 +16,12 @@ import (
 
 	"blockade"
 	"board"
+	"cymonkey/src/internal/bridge"
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
 	plugin "github.com/webong/ext/pkg/plugin-go/contract"
 	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
 	packagekit "github.com/webong/ext/pkg/plugin-go/contract/package"
-	"jangolova/sdk"
 )
 
 func TestExecutablePluginsAcrossLibraries(t *testing.T) {
@@ -93,9 +93,22 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	raw, err := instance.(sdk.Caller).Call(context.Background(), "describe", json.RawMessage(`{}`))
+	raw, err := instance.(bridge.Caller).Call(context.Background(), "describe", json.RawMessage(`{}`))
 	if err != nil || !bytes.Contains(raw, []byte(`"ok":true`)) {
 		t.Fatalf("display plugin call: %s %v", raw, err)
+	}
+	if capabilities := instance.(orchestrator.EngineCapabilityProvider).EngineCapabilities(); len(capabilities) != 1 || capabilities[0] != "window.screenshot" {
+		t.Fatalf("display plugin capabilities = %v", capabilities)
+	}
+	if health := instance.(orchestrator.EngineHealthProvider).EngineHealth(context.Background()); health.Status != orchestrator.EngineHealthHealthy {
+		t.Fatalf("display plugin health = %+v", health)
+	}
+	decision, err := instance.Authorize(context.Background(), orchestrator.AuthorizeRequest{TargetID: "target", Action: "capture"})
+	if err != nil || !decision.Authorized {
+		t.Fatalf("display plugin authorize = %+v, %v", decision, err)
+	}
+	if inspection := engine.(orchestrator.EngineInspector).InspectEngine(context.Background()); !inspection.Available || len(inspection.Capabilities) != 1 {
+		t.Fatalf("display plugin inspection = %+v", inspection)
 	}
 	if err := instance.Disconnect(context.Background()); err != nil {
 		t.Fatal(err)

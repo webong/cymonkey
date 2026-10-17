@@ -123,16 +123,19 @@ ext checks every call against the reviewed descriptor, and Cymonkey adds a
 policy for the role of each process it opens. A policy admits operations only in
 the order the protocol defines:
 
-| Library | Process role | Admitted |
+| Owner | Process role | Admitted |
 | --- | --- | --- |
 | Blockade | worker | `start` once, first; then `observe`, `interpret`, `capabilities`, `health`, `close` |
 | Blockade | model inspection | `model.inspect` only |
 | Board | device list | `list` only |
 | Board | device session | `open` once, first; then `invoke`, `stream.open`, `stream.read`, `stream.close`, `close`. `invoke` and `stream.open` must name a capability the grant allows and, if they name a resource, one the grant covers. |
-| Jangolova | probe | `inspect` only |
-| Jangolova | engine session | `connect` once, first; then `call`, `authorize`, `health`, `events`, `material`, `disconnect` |
+| Host (`src/internal/displayplugin`) | display probe | `inspect` only |
+| Host (`src/internal/displayplugin`) | display engine session | `connect` once, first; then `call`, `authorize`, `health`, `events`, `material`, `disconnect` |
 
-These policies are defense in depth inside the plugin process. They do not
+The display policy and adapter live in the host, which is the direction for
+every contract: the host owns admission, and the packages only serve calls. The
+Blockade and Board policies still sit in their packages until those adapters
+move into the host too. These policies are defense in depth inside the plugin process. They do not
 replace the host's own approvals.
 
 Content is verified when a package is listed and again when it is launched.
