@@ -175,27 +175,33 @@ func RegisterWithProtocol(registry *blockade.ProviderAdapterRegistry, installed 
 	return registry.RegisterWithModelInspector(installed.Name(), factory, inspect)
 }
 
-// packagePath returns the verified location of a package-relative path. The
-// path may name an artifact, or a file inside a tree artifact such as a
-// vendored "python" directory.
+// packagePath returns the verified location of a package-relative file that is
+// itself an artifact, hashing just that artifact.
 func packagePath(installed store.Installed, relative string) (string, error) {
-	if path, err := installed.ArtifactPath(relative); err == nil {
-		return path, nil
-	}
+	return installed.ArtifactPath(relative)
+}
+
+// packageFile returns the location of a package-relative file, which may be an
+// artifact or a file inside a tree artifact such as a vendored "python"
+// directory. It reads only the manifest and the file's metadata, so resolving a
+// path inside a multi-gigabyte tree does not re-hash the tree. The caller must
+// not run or trust the file before host.Open has verified the whole package,
+// which it does before it starts anything.
+func packageFile(installed store.Installed, relative string) (string, error) {
 	clean := path.Clean(relative)
 	if clean != relative || clean == "." || path.IsAbs(clean) || strings.HasPrefix(clean, "../") {
 		return "", fmt.Errorf("package path %q must be a clean relative path", relative)
 	}
 	for _, artifact := range installed.Manifest.Artifacts {
-		if artifact.Kind != packagekit.ArtifactTree || !strings.HasPrefix(clean, artifact.Path+"/") {
+		covered := artifact.Path == clean
+		if artifact.Kind == packagekit.ArtifactTree {
+			covered = strings.HasPrefix(clean, artifact.Path+"/")
+		}
+		if !covered {
 			continue
 		}
-		root, err := installed.ArtifactPath(artifact.Name)
-		if err != nil {
-			return "", err
-		}
-		target := filepath.Join(root, filepath.FromSlash(strings.TrimPrefix(clean, artifact.Path+"/")))
-		info, err := os.Stat(target)
+		target := filepath.Join(installed.Directory, filepath.FromSlash(clean))
+		info, err := os.Lstat(target)
 		if err != nil {
 			return "", err
 		}
@@ -217,9 +223,8 @@ func newLaunchPlan(installed store.Installed, protocol Protocol) (launchPlan, er
 	if installed.IsExecutable() {
 		return plan, nil
 	}
-	if err := installed.Verify(); err != nil {
-		return launchPlan{}, err
-	}
+	// The package is verified in full when it is listed and again by host.Open
+	// before anything starts, so registration does not hash it a third time.
 	descriptorPath, err := packagePath(installed, protocol.DescriptorFile)
 	if err != nil {
 		return launchPlan{}, fmt.Errorf("source plugin descriptor: %w", err)
@@ -228,7 +233,7 @@ func newLaunchPlan(installed store.Installed, protocol Protocol) (launchPlan, er
 	if err != nil {
 		return launchPlan{}, err
 	}
-	if _, err := packagePath(installed, descriptor.Entrypoint); err != nil {
+	if _, err := packageFile(installed, descriptor.Entrypoint); err != nil {
 		return launchPlan{}, fmt.Errorf("source plugin entrypoint: %w", err)
 	}
 	plan.descriptor = &descriptor
@@ -251,7 +256,7 @@ func (p launchPlan) open(ctx context.Context, protocol Protocol, authorize func(
 	if err != nil {
 		return nil, fmt.Errorf("resolve Blockade runtime %s@%s: %w", p.descriptor.Runtime.Name, p.descriptor.Runtime.Version, err)
 	}
-	entrypoint, err := packagePath(p.installed, p.descriptor.Entrypoint)
+	entrypoint, err := packageFile(p.installed, p.descriptor.Entrypoint)
 	if err != nil {
 		return nil, err
 	}
