@@ -138,14 +138,15 @@ Blockade and Board policies still sit in their packages until those adapters
 move into the host too. These policies are defense in depth inside the plugin process. They do not
 replace the host's own approvals.
 
-Content is verified when a package is listed and again when it is launched.
-Verification hashes every artifact, and a tree artifact (a vendored dependency
-directory) is hashed in full, so a package with a very large tree takes seconds
-to list or launch: a synthetic 625 MB, 20,000-file tree took about 6 seconds to
-verify, against about 15 ms to launch a small executable. Cymonkey reuses a
-verified list for 10 seconds and drops it after an install, upgrade or remove it
-performs itself; a package added by another process appears when the window
-ends. Keep worker processes running instead of reopening them.
+Listing reads each package's manifest only, so discovery costs the same for a
+small executable and a package with a huge vendored tree. Content is verified
+when a plugin is opened: ext hashes every artifact, and a tree artifact in
+full, before it starts the process. That costs seconds for a very large tree (a
+synthetic 625 MB, 20,000-file tree took about 6 seconds, against about 15 ms for
+a small executable), so keep worker processes running instead of reopening them.
+`cymy plugins list` also reports the packages it could not read under
+`unreadable`; a package whose content changed after install is listed and fails
+when it is opened.
 
 Trust is "installed means trusted". Verification proves the files match the
 manifest, not who published them, so install only packages you have reviewed.

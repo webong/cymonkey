@@ -15,8 +15,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
-	"time"
 
 	"cymonkey/src/internal/displayplugin"
 	"cymonkey/src/internal/orchestrator"
@@ -43,51 +41,28 @@ var pluginOperations = map[string][]string{
 	devicePluginContract:  deviceplugin.Operations,
 }
 
-// pluginListTTL bounds how long a verified plugin list is reused. ext's store
-// verifies every installed package's content whenever it lists them, which
-// costs seconds for a large vendored tree. One command lists the plugins for
-// display, device and content setup within moments of each other, so a short
-// reuse window avoids repeating that work without hiding a change for long.
-// Launching a plugin still re-verifies it.
-const pluginListTTL = 10 * time.Second
-
-var pluginList struct {
-	sync.Mutex
-	root    string
-	loaded  time.Time
-	plugins []store.Installed
-}
-
+// installedPlugins lists the installed packages from their manifests alone.
+// Listing does not hash package content, so a large vendored tree costs
+// nothing here; a package that cannot be read is left out of discovery and is
+// reported by `plugins list`. Nothing is launched from this list unverified:
+// opening a plugin re-verifies its content first.
 func installedPlugins() ([]store.Installed, error) {
 	root, err := defaultPluginRoot()
 	if err != nil {
 		return nil, err
 	}
-	pluginList.Lock()
-	defer pluginList.Unlock()
-	if pluginList.plugins != nil && pluginList.root == root && time.Since(pluginList.loaded) < pluginListTTL {
-		return append([]store.Installed(nil), pluginList.plugins...), nil
-	}
 	packages, err := store.New(root, store.Limits{})
 	if err != nil {
 		return nil, err
 	}
-	listed, err := packages.List()
+	listed, _, err := packages.ListUnverified()
 	if err != nil {
 		return nil, err
 	}
 	if listed == nil {
 		listed = []store.Installed{}
 	}
-	pluginList.root, pluginList.loaded, pluginList.plugins = root, time.Now(), listed
-	return append([]store.Installed(nil), listed...), nil
-}
-
-// forgetInstalledPlugins drops the reused list after a change to the store.
-func forgetInstalledPlugins() {
-	pluginList.Lock()
-	pluginList.plugins = nil
-	pluginList.Unlock()
+	return listed, nil
 }
 
 // pluginContract declares a Cymonkey contract with the operations its
@@ -342,7 +317,6 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 			return err
 		}
 		item, err := packages.Install(source)
-		forgetInstalledPlugins()
 		if err != nil {
 			return err
 		}
@@ -362,7 +336,6 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 			return err
 		}
 		item, err := packages.Upgrade(source)
-		forgetInstalledPlugins()
 		if err != nil {
 			return err
 		}
@@ -371,7 +344,7 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 		if len(args) != 1 {
 			return errors.New("plugins list accepts no arguments")
 		}
-		items, err := packages.List()
+		items, problems, err := packages.ListUnverified()
 		if err != nil {
 			return err
 		}
@@ -379,12 +352,15 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 		for _, item := range items {
 			manifests = append(manifests, item.Manifest)
 		}
-		return json.NewEncoder(stdout).Encode(map[string]any{"plugins": manifests})
+		unreadable := make([]map[string]string, 0, len(problems))
+		for _, problem := range problems {
+			unreadable = append(unreadable, map[string]string{"id": problem.ID, "error": problem.Err.Error()})
+		}
+		return json.NewEncoder(stdout).Encode(map[string]any{"plugins": manifests, "unreadable": unreadable})
 	case "remove":
 		if len(args) != 2 {
 			return errors.New("plugins remove requires one name")
 		}
-		forgetInstalledPlugins()
 		if err := packages.Remove(args[1]); err != nil {
 			return err
 		}

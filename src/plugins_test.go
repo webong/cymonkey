@@ -21,6 +21,7 @@ import (
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
 	plugin "github.com/webong/ext/pkg/plugin-go/contract"
+	"github.com/webong/ext/pkg/plugin-go/contract/host"
 	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
 	packagekit "github.com/webong/ext/pkg/plugin-go/contract/package"
 	"jangolova/devicekit"
@@ -366,18 +367,13 @@ func writeTestPackage(t *testing.T, name string) string {
 	return source
 }
 
-func TestInstalledPluginsReusesTheVerifiedListUntilTheStoreChanges(t *testing.T) {
+func TestInstalledPluginsListsManifestsWithoutVerifyingContent(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "installed")
 	t.Setenv("CYMONKEY_PLUGIN_DIR", root)
-	forgetInstalledPlugins()
 	if err := pluginsCommand([]string{"install", "--manifest", writeTestPackage(t, "first")}, io.Discard, io.Discard); err != nil {
 		t.Fatal(err)
 	}
-	listed, err := installedPlugins()
-	if err != nil || len(listed) != 1 {
-		t.Fatalf("first list = %d %v", len(listed), err)
-	}
-	// A package added behind Cymonkey's back is not seen until the reuse window ends.
+	// A package added by another process is seen at once: nothing is cached.
 	other, err := store.New(root, store.Limits{})
 	if err != nil {
 		t.Fatal(err)
@@ -385,17 +381,35 @@ func TestInstalledPluginsReusesTheVerifiedListUntilTheStoreChanges(t *testing.T)
 	if _, err := other.Install(writeTestPackage(t, "second")); err != nil {
 		t.Fatal(err)
 	}
-	if reused, _ := installedPlugins(); len(reused) != 1 {
-		t.Fatalf("the verified list was not reused: %d packages", len(reused))
+	listed, err := installedPlugins()
+	if err != nil || len(listed) != 2 {
+		t.Fatalf("list = %d %v", len(listed), err)
 	}
-	// Changing the store through Cymonkey drops the reused list at once.
-	if err := pluginsCommand([]string{"install", "--manifest", writeTestPackage(t, "third")}, io.Discard, io.Discard); err != nil {
+	// Content that no longer matches the manifest does not stop discovery, and
+	// is caught when the plugin is opened.
+	installed := filepath.Join(root, "first", "provider")
+	if err := os.Chmod(installed, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if fresh, _ := installedPlugins(); len(fresh) != 3 {
-		t.Fatalf("the list was stale after an install: %d packages", len(fresh))
+	if err := os.WriteFile(installed, []byte("#!/bin/sh\n# changed\n"), 0o700); err != nil {
+		t.Fatal(err)
 	}
-	forgetInstalledPlugins()
+	if listed, err = installedPlugins(); err != nil || len(listed) != 2 {
+		t.Fatalf("tampered content stopped discovery: %d %v", len(listed), err)
+	}
+	var first store.Installed
+	for _, item := range listed {
+		if item.Name() == "first" {
+			first = item
+		}
+	}
+	if _, err := host.Open(context.Background(), first, host.Options{}); err == nil {
+		t.Fatal("a plugin whose content changed was opened")
+	}
+	var out bytes.Buffer
+	if err := pluginsCommand([]string{"list"}, &out, io.Discard); err != nil || !bytes.Contains(out.Bytes(), []byte(`"unreadable"`)) {
+		t.Fatalf("plugins list = %s %v", out.String(), err)
+	}
 }
 
 func TestStandaloneBoardProviderServesTheInventoryAndKeyboard(t *testing.T) {
