@@ -117,6 +117,36 @@ The transport preserves the code, and a failure leaves the process usable. The
 Cymonkey domain adapter validates the code and maps the response into the
 public API.
 
+## Admission and verification
+
+ext checks every call against the reviewed descriptor, and Cymonkey adds a
+policy for the role of each process it opens. A policy admits operations only in
+the order the protocol defines:
+
+| Library | Process role | Admitted |
+| --- | --- | --- |
+| Blockade | worker | `start` once, first; then `observe`, `interpret`, `capabilities`, `health`, `close` |
+| Blockade | model inspection | `model.inspect` only |
+| Board | device list | `list` only |
+| Board | device session | `open` once, first; then `invoke`, `stream.open`, `stream.read`, `stream.close`, `close`. `invoke` and `stream.open` must name a capability the grant allows and, if they name a resource, one the grant covers. |
+| Jangolova | probe | `inspect` only |
+| Jangolova | engine session | `connect` once, first; then `call`, `authorize`, `health`, `events`, `material`, `disconnect` |
+
+These policies are defense in depth inside the plugin process. They do not
+replace the host's own approvals.
+
+Content is verified when a package is listed and again when it is launched.
+Verification hashes every artifact, and a tree artifact (a vendored dependency
+directory) is hashed in full, so a package with a very large tree takes seconds
+to list or launch: a synthetic 625 MB, 20,000-file tree took about 6 seconds to
+verify, against about 15 ms to launch a small executable. Cymonkey reuses a
+verified list for 10 seconds and drops it after an install, upgrade or remove it
+performs itself; a package added by another process appears when the window
+ends. Keep worker processes running instead of reopening them.
+
+Trust is "installed means trusted". Verification proves the files match the
+manifest, not who published them, so install only packages you have reviewed.
+
 ## Extension boundary
 
 A Cymonkey plugin implements one of the public contracts above and works
