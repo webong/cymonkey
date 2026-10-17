@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	extplugin "github.com/webong/ext/pkg/plugin-go/contract"
-	"kit/devicekit"
+	"jangolova/devicekit"
 )
 
 func request(operation string, payload any) extplugin.Request {

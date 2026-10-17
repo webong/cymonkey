@@ -7,7 +7,7 @@ import (
 	"io"
 	"strings"
 
-	"kit/devicekit"
+	"jangolova/devicekit"
 )
 
 type CommandEngine struct {

@@ -3,7 +3,7 @@ package endpoint
 import (
 	"context"
 	"errors"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"net/http"
 	"net/http/httptest"
 	"slices"

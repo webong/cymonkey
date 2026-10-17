@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"strings"
 
 	"github.com/webong/ext/pkg/plugin-go/contract/validate/jsonschema"

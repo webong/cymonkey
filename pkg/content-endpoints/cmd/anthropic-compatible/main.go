@@ -7,7 +7,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"net/http"
 	"os"
 	"strings"

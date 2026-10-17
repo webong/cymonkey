@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"console"
-	"kit/generationkit"
+	"jangolova/generationkit"
 )
 
 // GenerationInput contains the inputs a caller may choose for a bound model

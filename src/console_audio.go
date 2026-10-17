@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 
 	"console/bindings"
-	"kit/generationkit"
+	"jangolova/generationkit"
 )
 
 // The CLI host, rather than Console, chooses an existing artifact directory.

@@ -32,6 +32,6 @@ require (
 	golang.org/x/time v0.14.0 // indirect
 )
 
-require kit v0.0.0
+require jangolova v0.0.0
 
-replace kit => ../kit
+replace jangolova => ../../lib/jangolova

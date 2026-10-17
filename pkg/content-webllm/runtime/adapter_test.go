@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"net/http"
 	"net/http/httptest"
 	"strings"

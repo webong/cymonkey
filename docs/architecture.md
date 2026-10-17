@@ -183,18 +183,20 @@ Every callable interaction engine uses the common bridge methods:
 The authenticated, provider-neutral `cymonkey.display/v1alpha1` HTTP API transports those
 calls. The cooperative Unity bridge implements the same vocabulary.
 
-The repository has one host and many guests. `src/` is the host: the
-single `cymy` binary, its generic contracts, admission policy and adapters.
-`pkg/` holds everything the host runs or builds on: the Jangolova, Board and Console
-modules, the shared `kit` module (content, device and generation
-contracts and host roles), the content providers, and the platform helpers and
-products. The host never imports a guest; it reaches them through the ext
-plugin system (`github.com/webong/ext/pkg/plugin-go/contract`). Until the cut is
-complete, `src/internal/boundary/guest_imports_test.go` fails on any new import of a `pkg/` Go
-module and lists the ones that remain. `tests/` is the conformance and fixture
-surface. Jangolova, Board, Console and `kit` are separate Go modules
-(`jangolova`, `board`, `console`, `kit`) joined through `go.work` and
-local replacements while the host still imports them.
+The repository has one host and many guests. `src/` is the host: the single
+`cymy` binary, its generic contracts, admission policy and adapters.
+`lib/jangolova` is the shared library that the host and every guest depend on:
+the content, device and generation contracts and their host roles, with no
+engine behind them. `pkg/` holds the guests: `board` (devices and the display
+engine), `console`, the content providers and the platform products, and
+`lib/` also holds the non-Go helper products. The host never imports a guest;
+it reaches them through the ext plugin system
+(`github.com/webong/ext/pkg/plugin-go/contract`). Until the cut is complete,
+`src/internal/boundary/guest_imports_test.go` fails on any new import of a
+guest Go module and lists the ones that remain. `tests/` is the conformance and
+fixture surface. `board`, `console` and `jangolova` are separate Go modules
+joined through `go.work` and local replacements while the host still imports
+guests.
 Each library's plugin adapter selects the native executable contracts it understands;
 ext checks package structure and integrity without enumerating libraries. Cymonkey owns the command handlers, shared plugin directory, and
 public `cymonkey.*` wire contracts. Its composition adapters translate to the
@@ -224,9 +226,9 @@ src/contentcli/                Cymonkey content command handlers
 src/devicecli/                 Cymonkey device command handlers
 src/internal/provider/         provider and MCP implementation
 src/fixtures/native-bridge/    native bridge fixture implementation
-pkg/kit/                       shared contracts and host roles (one module)
-pkg/kit/contentkit/            content provider host role and contracts
-pkg/kit/generationkit/             generation, embedding and speech contracts
+lib/jangolova/                       shared contracts and host roles (one module)
+lib/jangolova/contentkit/            content provider host role and contracts
+lib/jangolova/generationkit/             generation, embedding and speech contracts
 pkg/console/                   standalone tool composition library
 src/adapters/browserautomation/ Playwright CDP and Puppeteer CDP/BiDi attachment
 src/adapters/webdriverclassic/  existing W3C WebDriver session attachment
@@ -241,14 +243,14 @@ src/observation/                Jangolova capture and Blockade inference workflo
 pkg/board/                      standalone Board device library
 pkg/board/drive.go              read-only mounted-drive provider
 pkg/board/macoskeyboard/         explicit-PID macOS keyboard provider
-pkg/kit/devicekit/host/              provider registration and grant selection
+lib/jangolova/devicekit/host/              provider registration and grant selection
 src/internal/core/              core registry/composition/conformance code
 src/internal/host/              Cymonkey host configuration and process supervisor
 pkg/board/display/                  standalone Jangolova library and host boundary
 pkg/board/display/host/             Jangolova host service injection contract
-pkg/kit/contentkit/                 content provider host role and contracts
-pkg/kit/generationkit/              generation, embedding and speech contracts
-pkg/kit/contentkit/protocol/          content contract schemas and fixtures
+lib/jangolova/contentkit/                 content provider host role and contracts
+lib/jangolova/generationkit/              generation, embedding and speech contracts
+lib/jangolova/contentkit/protocol/          content contract schemas and fixtures
 src/internal/targetconn/        caller-owned target connection helpers
 pkg/board/display/contract/         public runtime wire contract
 pkg/board/display/sdk/              public types and host-injection interfaces

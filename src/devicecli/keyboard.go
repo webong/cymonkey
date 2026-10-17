@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"board/macoskeyboard"
-	"kit/devicekit"
-	devicehost "kit/devicekit/host"
+	"jangolova/devicekit"
+	devicehost "jangolova/devicekit/host"
 )
 
 const keyboardProviderID = "macos-keyboard"

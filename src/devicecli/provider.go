@@ -9,7 +9,7 @@ import (
 	"io"
 	"strings"
 
-	"kit/devicekit"
+	"jangolova/devicekit"
 )
 
 func providerCommand(command string, args []string, output io.Writer, providers []devicekit.Provider) error {

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"math"
 	"mime"
 	"net/url"

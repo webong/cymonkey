@@ -8,7 +8,7 @@ import (
 	"cymonkey/src/internal/orchestrator"
 	"encoding/json"
 	"github.com/gorilla/websocket"
-	"kit/devicekit"
+	"jangolova/devicekit"
 	"net/http"
 	"net/http/httptest"
 	"os"

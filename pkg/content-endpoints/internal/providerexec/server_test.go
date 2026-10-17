@@ -2,7 +2,7 @@ package providerexec
 
 import (
 	"errors"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"testing"
 	"time"
 )

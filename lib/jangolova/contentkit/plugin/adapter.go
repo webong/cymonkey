@@ -19,7 +19,7 @@ import (
 	"github.com/webong/ext/pkg/plugin-go/contract/host/process"
 	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
 	packagekit "github.com/webong/ext/pkg/plugin-go/contract/package"
-	"kit/contentkit"
+	"jangolova/contentkit"
 )
 
 const ContractName = "content.provider"

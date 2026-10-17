@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"cymonkey/src/internal/orchestrator"
-	"kit/devicekit"
+	"jangolova/devicekit"
 )
 
 type operatorDeviceFixture struct{}

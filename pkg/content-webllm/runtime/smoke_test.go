@@ -2,7 +2,7 @@ package webllmruntime
 
 import (
 	"context"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"os"
 	"strings"
 	"testing"

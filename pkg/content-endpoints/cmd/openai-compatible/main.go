@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"net/http"
 	"os"
 	"strings"

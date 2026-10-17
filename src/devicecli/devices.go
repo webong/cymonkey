@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"kit/devicekit"
-	devicehost "kit/devicekit/host"
+	"jangolova/devicekit"
+	devicehost "jangolova/devicekit/host"
 )
 
 // Board drives are mounted by the host, not found by Board. Naming a root on

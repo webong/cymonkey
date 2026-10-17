@@ -3,7 +3,7 @@ go 1.26.5
 use (
 	.
 	./pkg/board
-	./pkg/kit
+	./lib/jangolova
 	./pkg/console
 	./pkg/content-endpoints
 	./pkg/content-onnx

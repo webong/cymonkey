@@ -6,7 +6,7 @@ import (
 	"errors"
 	"testing"
 
-	"kit/generationkit"
+	"jangolova/generationkit"
 )
 
 type proposingModel struct {

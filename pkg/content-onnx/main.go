@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"os"
 	"path/filepath"
 	"slices"

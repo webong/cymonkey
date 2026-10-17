@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"kit/devicekit"
+	"jangolova/devicekit"
 	"sort"
 	"sync"
 	"time"

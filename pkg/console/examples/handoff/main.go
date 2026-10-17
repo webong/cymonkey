@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"console"
-	"kit/generationkit"
+	"jangolova/generationkit"
 )
 
 type lookupInput struct {

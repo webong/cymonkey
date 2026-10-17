@@ -10,7 +10,7 @@ import (
 	"mime"
 	"net/http"
 
-	"kit/generationkit"
+	"jangolova/generationkit"
 )
 
 func responsesRequest(request generationkit.GenerationRequest) (map[string]any, error) {

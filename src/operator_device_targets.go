@@ -8,7 +8,7 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"image/jpeg"
-	"kit/devicekit"
+	"jangolova/devicekit"
 	"net/http"
 	"os/exec"
 	"strings"

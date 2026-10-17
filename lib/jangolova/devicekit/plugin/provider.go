@@ -11,7 +11,7 @@ import (
 
 	"github.com/webong/ext/pkg/plugin-go/contract/host"
 	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
-	"kit/devicekit"
+	"jangolova/devicekit"
 )
 
 type Provider struct {

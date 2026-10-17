@@ -10,7 +10,7 @@ import (
 
 	"cymonkey/src/devicebridge"
 	devicecli "cymonkey/src/devicecli"
-	"kit/devicekit"
+	"jangolova/devicekit"
 )
 
 // runDevice is Cymonkey's adapter from the public device command to the

@@ -4,7 +4,7 @@ package contentbridge
 
 import (
 	"cymonkey/src/contracts"
-	"kit/contentkit"
+	"jangolova/contentkit"
 )
 
 func ToLibraryRequest(request contracts.ContentRequest) contentkit.InterpretRequest {

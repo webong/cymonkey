@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
-	"kit/devicekit"
+	"jangolova/devicekit"
 	"net/http"
 	"strings"
 	"time"

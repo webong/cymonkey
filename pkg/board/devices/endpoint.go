@@ -5,8 +5,8 @@ import (
 	"context"
 	"errors"
 	"io"
-	"kit/devicekit"
-	"kit/devicekit/device"
+	"jangolova/devicekit"
+	"jangolova/devicekit/device"
 	"net"
 	"time"
 )

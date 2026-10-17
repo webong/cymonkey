@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"net/textproto"
 
-	"kit/generationkit"
+	"jangolova/generationkit"
 )
 
 func (c *Client) Transcribe(ctx context.Context, request generationkit.TranscriptionRequest) (generationkit.TranscriptionResponse, error) {

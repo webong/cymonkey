@@ -6,7 +6,7 @@ import (
 	"context"
 	"errors"
 	"io"
-	"kit/devicekit"
+	"jangolova/devicekit"
 	"os"
 	"os/exec"
 	"sync"

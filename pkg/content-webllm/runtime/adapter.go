@@ -12,7 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"net"
 	"net/http"
 	"net/url"

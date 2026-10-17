@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"kit/generationkit"
+	"jangolova/generationkit"
 )
 
 type Config struct {

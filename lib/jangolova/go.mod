@@ -1,4 +1,4 @@
-module kit
+module jangolova
 
 go 1.26.5
 

@@ -24,7 +24,7 @@ const guestImportsFile = "guest_imports.txt"
 // hostKits are modules under pkg that hold contracts and the host role for one
 // domain (registries, launch, admission) with no engine or product behind
 // them. A host may embed a kit, and so may a guest that hosts other plugins.
-var hostKits = map[string]bool{"kit": true}
+var hostKits = map[string]bool{"jangolova": true}
 
 func TestHostImportsOnlyListedGuests(t *testing.T) {
 	_, current, _, ok := runtime.Caller(0)

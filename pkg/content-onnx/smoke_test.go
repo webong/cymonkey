@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"os"
 	"path/filepath"
 	"runtime"

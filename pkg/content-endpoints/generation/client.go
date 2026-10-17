@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"net/http"
 	"net/url"
 	"os"
@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"kit/generationkit"
+	"jangolova/generationkit"
 )
 
 type Protocol string

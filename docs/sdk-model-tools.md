@@ -45,7 +45,7 @@ with a scripted local generator. No remote model or device is needed.
 
 ## Embedding surfaces
 
-- [`pkg/kit/generationkit`](../pkg/kit/generationkit/README.md): neutral generation contracts and model bindings.
+- [`lib/jangolova/generationkit`](../lib/jangolova/generationkit/README.md): neutral generation contracts and model bindings.
 - [`pkg/console`](../pkg/console/README.md): tool composition, SDK bindings, MCP.
 - [`pkg/board`](../pkg/board/README.md): existing device providers and audio channels.
 - [`pkg/board/display`](../pkg/board/display/README.md): existing semantic interaction SDK.

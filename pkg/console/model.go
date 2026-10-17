@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"kit/contentkit"
+	"jangolova/contentkit"
 
-	"kit/generationkit"
+	"jangolova/generationkit"
 )
 
 // ModelTools composes a caller-selected model with an explicitly registered

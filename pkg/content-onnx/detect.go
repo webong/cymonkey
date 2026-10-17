@@ -4,7 +4,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"math"
 	"sort"
 	"strconv"

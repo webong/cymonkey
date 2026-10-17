@@ -7,7 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"io"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"os"
 	"path/filepath"
 	"strings"

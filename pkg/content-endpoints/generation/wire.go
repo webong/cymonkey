@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"net/url"
 	"strings"
 
-	"kit/generationkit"
+	"jangolova/generationkit"
 )
 
 func (c *Client) encode(request generationkit.GenerationRequest, stream bool) ([]byte, string, error) {

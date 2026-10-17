@@ -15,7 +15,7 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
-	"kit/devicekit"
+	"jangolova/devicekit"
 )
 
 var (

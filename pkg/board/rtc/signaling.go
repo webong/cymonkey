@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	pion "github.com/pion/webrtc/v4"
-	"kit/devicekit"
+	"jangolova/devicekit"
 	"strings"
 	"time"
 )

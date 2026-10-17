@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"testing"
 )
 

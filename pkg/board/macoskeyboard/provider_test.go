@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"kit/devicekit"
+	"jangolova/devicekit"
 )
 
 type fakeNative struct {

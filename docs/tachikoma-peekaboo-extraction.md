@@ -14,7 +14,7 @@ model or desktop acceptance. Full upstream feature parity is not claimed.
 
 | Location | Responsibility |
 | --- | --- |
-| `pkg/kit/generationkit` | Neutral messages, generation, streaming, embeddings, speech, validation and explicit model registration |
+| `lib/jangolova/generationkit` | Neutral messages, generation, streaming, embeddings, speech, validation and explicit model registration |
 | `pkg/console` | Schema-checked tools, selected invocation, one model turn, transcript continuation, bindings and HTTP/MCP presentation |
 | `pkg/board/display/ui` | Portable UI observations, target identity, action receipts, predicates and bounded read-only waits |
 | `pkg/board/capture` | Finite image processing, native capture bridge, frame sampling, manifests and caller-supplied video decoding |

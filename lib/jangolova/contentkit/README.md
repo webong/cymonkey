@@ -18,4 +18,4 @@ It holds:
 It contains no inference engine, HTTP service, or product behaviour. Providers
 (`pkg/content-onnx`, `pkg/content-webllm`, `pkg/content-endpoints`,
 `pkg/content-ultralytics`) build against it as guests; the HTTP service, client
-and the generation contracts live in `pkg/kit/generationkit`.
+and the generation contracts live in `lib/jangolova/generationkit`.

@@ -3,7 +3,7 @@ package endpoint
 import (
 	"errors"
 	"fmt"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"math"
 	"net/url"
 	"slices"

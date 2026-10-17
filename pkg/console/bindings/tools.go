@@ -6,12 +6,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"kit/contentkit"
+	"jangolova/contentkit"
 
 	"board/display/contract"
 	"board/display/sdk"
 	"console"
-	"kit/devicekit"
+	"jangolova/devicekit"
 )
 
 // Display binds one semantic action on a caller-owned Jangolova connection.

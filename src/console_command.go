@@ -27,7 +27,7 @@ import (
 	"console/httpapi"
 	"console/mcp"
 	endpointmodels "cymonkey-content-plugin-endpoints/generation"
-	"kit/generationkit"
+	"jangolova/generationkit"
 )
 
 // Configuration belongs to the operator. SDKs never discover credentials,

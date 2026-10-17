@@ -7,7 +7,7 @@ import (
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"path/filepath"
 	"strings"
 	"sync"

@@ -8,7 +8,7 @@ import (
 	"errors"
 	"github.com/gorilla/websocket"
 	"io"
-	"kit/devicekit"
+	"jangolova/devicekit"
 	"net/http"
 	"strconv"
 	"strings"

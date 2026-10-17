@@ -6,11 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"net/http"
 
 	"console"
-	"kit/generationkit"
+	"jangolova/generationkit"
 )
 
 const APIVersion = "cymonkey.console/v1alpha1"

@@ -16,4 +16,4 @@ adapter processes. Responses are converted back before they cross the public
 boundary.
 
 Developers embedding Blockade directly can use its native contracts without
-depending on Cymonkey. See the [content kit README](../pkg/kit/contentkit/README.md).
+depending on Cymonkey. See the [content kit README](../lib/jangolova/contentkit/README.md).

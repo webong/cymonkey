@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"net/http"
 	"os"
 	"os/exec"
@@ -21,7 +21,7 @@ import (
 	plugin "github.com/webong/ext/pkg/plugin-go/contract"
 	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
 	packagekit "github.com/webong/ext/pkg/plugin-go/contract/package"
-	"kit/devicekit"
+	"jangolova/devicekit"
 )
 
 func TestExecutablePluginsAcrossLibraries(t *testing.T) {

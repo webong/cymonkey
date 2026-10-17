@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"strings"
 
 	plugin "github.com/webong/ext/pkg/plugin-go/contract"

@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	extplugin "github.com/webong/ext/pkg/plugin-go/contract"
-	"kit/devicekit"
+	"jangolova/devicekit"
 )
 
 // sequence is an admission policy for one plugin process. ext asks it before

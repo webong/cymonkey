@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"net/http"
 	"strconv"
 	"strings"

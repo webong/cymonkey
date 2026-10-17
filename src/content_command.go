@@ -10,7 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"os"
 	"path/filepath"
 	"strings"

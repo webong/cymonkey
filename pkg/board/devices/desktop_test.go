@@ -4,7 +4,7 @@ import (
 	"board/displayaction"
 	"context"
 	"errors"
-	"kit/devicekit"
+	"jangolova/devicekit"
 	"os"
 	"path/filepath"
 	"strings"

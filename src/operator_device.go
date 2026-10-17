@@ -12,7 +12,7 @@ import (
 
 	"cymonkey/src/contracts"
 	"cymonkey/src/devicebridge"
-	"kit/devicekit"
+	"jangolova/devicekit"
 )
 
 const operatorDeviceStreamLimit = 16 << 20

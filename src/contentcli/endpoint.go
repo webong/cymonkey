@@ -7,7 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"math"
 	"net/url"
 	"os"

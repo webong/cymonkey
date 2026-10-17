@@ -4,7 +4,7 @@ package devicebridge
 
 import (
 	"cymonkey/src/contracts"
-	"kit/devicekit"
+	"jangolova/devicekit"
 )
 
 func ToLibraryOpen(request contracts.DeviceOpenRequest) devicekit.OpenRequest {

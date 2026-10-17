@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"kit/contentkit"
+	"jangolova/contentkit"
 	"net/http"
 	"strings"
 	"time"

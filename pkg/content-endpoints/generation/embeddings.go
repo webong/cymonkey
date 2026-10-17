@@ -7,7 +7,7 @@ import (
 	"errors"
 	"net/http"
 
-	"kit/generationkit"
+	"jangolova/generationkit"
 )
 
 // Embed supports explicit OpenAI-compatible, Cohere and Voyage API roots.

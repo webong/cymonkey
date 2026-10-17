@@ -19,7 +19,7 @@ import (
 	"cymonkey/src/internal/orchestrator"
 	"cymonkey/src/observation"
 	userscripts "github.com/webong/ext/res/web/userscript"
-	"kit/devicekit"
+	"jangolova/devicekit"
 )
 
 type operatorServer struct {
