@@ -1,4 +1,4 @@
-package jangolova
+package display
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	contract "jangolova/contract"
-	"jangolova/sdk"
+	contract "board/display/contract"
+	"board/display/sdk"
 )
 
 func TestWindowsCooperativeBackendNegotiatesOwnerHelper(t *testing.T) {

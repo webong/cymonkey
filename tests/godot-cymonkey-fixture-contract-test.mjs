@@ -10,7 +10,7 @@ const scene = await readFile(new URL("godot-cymonkey-fixture/fixture.tscn", impo
 const scenePlan = JSON.parse(await readFile(new URL("godot-cymonkey-fixture/house.scene-plan.json", import.meta.url), "utf8"));
 const project = await readFile(new URL("godot-cymonkey-fixture/project.godot", import.meta.url), "utf8");
 const container = await readFile(new URL("../scripts/deploy/godot-cymonkey/Containerfile", import.meta.url), "utf8");
-const goProtocol = await readFile(new URL("../pkg/jangolova/contract/protocol.go", import.meta.url), "utf8");
+const goProtocol = await readFile(new URL("../pkg/board/display/contract/protocol.go", import.meta.url), "utf8");
 
 assert.match(protocol, /cymonkey\/v1alpha1/);
 assert.equal(protocol.match(/VERSION := "([^"]+)"/)?.[1], goProtocol.match(/ProtocolVersion\s+= "([^"]+)"/)?.[1]);

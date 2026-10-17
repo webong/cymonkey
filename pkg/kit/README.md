@@ -11,7 +11,7 @@ plugins whether that process is the host or a guest that hosts others.
 | `kit/devicekit` | `device.provider` | device contract, `Registry` grant gate, `host`, provider builder `device`, `plugin/` ext adapter |
 | `kit/generationkit` | generation | messages, streaming, structured output, embeddings, speech, transcription, model catalog |
 
-Implementations live elsewhere (`pkg/board`, `pkg/content-*`, `pkg/jangolova`)
+Implementations live elsewhere (`pkg/board`, `pkg/content-*`, `pkg/board/display`)
 and build against `kit`. The module may depend on ext and on small libraries,
 never on the host or on a guest; the dependency tests in each package enforce
 that.

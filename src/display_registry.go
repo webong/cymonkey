@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 
+	displaylib "board/display"
 	"cymonkey/src/adapters/displayinteraction"
 	"cymonkey/src/adapters/safarimcp"
 	"cymonkey/src/adapters/webdriverclassic"
 	"cymonkey/src/adapters/webpresentation"
 	"cymonkey/src/internal/orchestrator"
-	displaylib "jangolova"
 )
 
 func engineRegistry() (*orchestrator.Registry, error) {

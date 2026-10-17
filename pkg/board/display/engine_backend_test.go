@@ -1,4 +1,4 @@
-package jangolova
+package display
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"jangolova/sdk"
+	"board/display/sdk"
 )
 
 var upgrader = websocket.Upgrader{

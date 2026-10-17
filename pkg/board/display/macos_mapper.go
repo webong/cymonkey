@@ -1,4 +1,4 @@
-package jangolova
+package display
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	contract "jangolova/contract"
+	contract "board/display/contract"
 )
 
 // MacOSPrimitive is one capability reported by a caller-owned macOS helper.

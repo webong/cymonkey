@@ -62,7 +62,7 @@ test("v1alpha1 defines runtime-agnostic viewer, render, and player domains", asy
 
 test("transport mappings expose semantics without raw protocol passthrough", async () => {
   const worker = await source("scripts/cymonkey-worker.mjs");
-  const safari = await source("pkg/jangolova/safari_backend.go");
+  const safari = await source("pkg/board/display/safari_backend.go");
   for (const capability of ["augmentation.install", "script.execute", "script.register", "document.query", "document.observe", "document.patch", "network.observe", "storage.get"]) {
     assert.match(worker, new RegExp(capability.replaceAll(".", "\\.")), `worker missing ${capability}`);
   }

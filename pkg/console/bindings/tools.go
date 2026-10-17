@@ -8,9 +8,9 @@ import (
 	"errors"
 	"kit/contentkit"
 
+	"board/display/contract"
+	"board/display/sdk"
 	"console"
-	"jangolova/contract"
-	"jangolova/sdk"
 	"kit/devicekit"
 )
 

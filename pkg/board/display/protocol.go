@@ -1,9 +1,9 @@
-package jangolova
+package display
 
 import (
 	"encoding/json"
 
-	contract "jangolova/contract"
+	contract "board/display/contract"
 )
 
 const ProtocolVersion = contract.ProtocolVersion

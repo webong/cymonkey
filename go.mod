@@ -8,7 +8,6 @@ require (
 	cymonkey-content-plugin-endpoints v0.0.0
 	github.com/gorilla/websocket v1.5.3
 	gopkg.in/yaml.v3 v3.0.1
-	jangolova v0.0.0
 )
 
 replace console => ./pkg/console
@@ -16,8 +15,6 @@ replace console => ./pkg/console
 replace cymonkey-content-plugin-endpoints => ./pkg/content-endpoints
 
 replace board => ./pkg/board
-
-replace jangolova => ./pkg/jangolova
 
 require (
 	github.com/google/uuid v1.6.0 // indirect

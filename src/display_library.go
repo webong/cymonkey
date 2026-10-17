@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	displayhost "board/display/host"
+	displaysdk "board/display/sdk"
 	"cymonkey/src/adapters/safarimcp"
 	"cymonkey/src/internal/bridge"
 	"cymonkey/src/internal/manifest"
@@ -19,8 +21,6 @@ import (
 	"cymonkey/src/internal/orchestrator"
 	"cymonkey/src/internal/targetconn"
 	"github.com/gorilla/websocket"
-	displayhost "jangolova/host"
-	displaysdk "jangolova/sdk"
 )
 
 type materialView struct {

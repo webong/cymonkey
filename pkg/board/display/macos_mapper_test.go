@@ -1,4 +1,4 @@
-package jangolova
+package display
 
 import (
 	"encoding/json"

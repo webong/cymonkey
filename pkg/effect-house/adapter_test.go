@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	jangolova "jangolova"
-	contract "jangolova/contract"
-	"jangolova/sdk"
+	displayengine "board/display"
+	contract "board/display/contract"
+	"board/display/sdk"
 )
 
 const originalScript = `@component()
@@ -47,7 +47,7 @@ func TestEffectHouseProjectBridgeUsesExplicitScriptsAndHashCheckedRollback(t *te
 		return nil
 	}}
 	options := json.RawMessage(`{"allowWrite":true,"registeredScripts":[{"id":"tap-counter","path":"scripts/TapCounter.ts","writable":true},{"id":"read-only","path":"scripts/ReadOnly.ts"}]}`)
-	engine, err := (Backend{}).Connect(context.Background(), sdk.EngineSpec{Options: options, RequiredCapabilities: []string{ActionScriptReplace}}, sdk.EngineTarget{TargetID: "effect-project", Kind: Runtime, Endpoints: []sdk.TargetEndpoint{{Protocol: Protocol, URL: root}}}, jangolova.Options{Host: host})
+	engine, err := (Backend{}).Connect(context.Background(), sdk.EngineSpec{Options: options, RequiredCapabilities: []string{ActionScriptReplace}}, sdk.EngineTarget{TargetID: "effect-project", Kind: Runtime, Endpoints: []sdk.TargetEndpoint{{Protocol: Protocol, URL: root}}}, displayengine.Options{Host: host})
 	if err != nil {
 		t.Fatalf("Connect() error = %v", err)
 	}
@@ -155,7 +155,7 @@ func TestEffectHouseBridgeRejectsEscapingOrUnregisteredPaths(t *testing.T) {
 		t.Skipf("symlinks unavailable: %v", err)
 	}
 	options := json.RawMessage(`{"registeredScripts":[{"id":"outside","path":"Outside.ts"}]}`)
-	_, err := (Backend{}).Connect(context.Background(), sdk.EngineSpec{Options: options}, sdk.EngineTarget{Kind: Runtime, Endpoints: []sdk.TargetEndpoint{{Protocol: Protocol, URL: root}}}, jangolova.Options{Host: sdk.Host{ValidateEndpoint: func(sdk.TargetEndpoint) error { return nil }}})
+	_, err := (Backend{}).Connect(context.Background(), sdk.EngineSpec{Options: options}, sdk.EngineTarget{Kind: Runtime, Endpoints: []sdk.TargetEndpoint{{Protocol: Protocol, URL: root}}}, displayengine.Options{Host: sdk.Host{ValidateEndpoint: func(sdk.TargetEndpoint) error { return nil }}})
 	if err == nil || !strings.Contains(err.Error(), "escapes project root") {
 		t.Fatalf("symlink escape error = %v", err)
 	}

@@ -1,5 +1,5 @@
 // Package jangolova implements Jangolova's caller-owned target integrations.
-package jangolova
+package display
 
 import (
 	"bytes"
@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"jangolova/sdk"
+	"board/display/sdk"
 )
 
 // Adapter attaches Jangolova to caller-owned targets. The host supplies

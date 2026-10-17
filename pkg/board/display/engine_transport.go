@@ -1,4 +1,4 @@
-package jangolova
+package display
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"jangolova/sdk"
+	"board/display/sdk"
 )
 
 const engineMaxMessageBytes = 4 * 1024 * 1024

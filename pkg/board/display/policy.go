@@ -1,4 +1,4 @@
-package jangolova
+package display
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	contract "jangolova/contract"
+	contract "board/display/contract"
 )
 
 func normalizeOptions(value *Options) error {

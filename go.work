@@ -5,7 +5,6 @@ use (
 	./pkg/board
 	./pkg/kit
 	./pkg/console
-	./pkg/jangolova
 	./pkg/content-endpoints
 	./pkg/content-onnx
 	./pkg/content-webllm

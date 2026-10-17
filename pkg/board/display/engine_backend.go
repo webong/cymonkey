@@ -1,4 +1,4 @@
-package jangolova
+package display
 
 import (
 	"context"
@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"jangolova/contract"
-	"jangolova/sdk"
+	"board/display/contract"
+	"board/display/sdk"
 )
 
 type enginePresentationBackend struct{}

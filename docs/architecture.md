@@ -244,15 +244,15 @@ pkg/board/macoskeyboard/         explicit-PID macOS keyboard provider
 pkg/kit/devicekit/host/              provider registration and grant selection
 src/internal/core/              core registry/composition/conformance code
 src/internal/host/              Cymonkey host configuration and process supervisor
-pkg/jangolova/                  standalone Jangolova library and host boundary
-pkg/jangolova/host/             Jangolova host service injection contract
+pkg/board/display/                  standalone Jangolova library and host boundary
+pkg/board/display/host/             Jangolova host service injection contract
 pkg/kit/contentkit/                 content provider host role and contracts
 pkg/kit/generationkit/              generation, embedding and speech contracts
 pkg/kit/contentkit/protocol/          content contract schemas and fixtures
 src/internal/targetconn/        caller-owned target connection helpers
-pkg/jangolova/contract/         public runtime wire contract
-pkg/jangolova/sdk/              public types and host-injection interfaces
-pkg/jangolova/registry/         reviewed module discovery and activation
+pkg/board/display/contract/         public runtime wire contract
+pkg/board/display/sdk/              public types and host-injection interfaces
+pkg/board/display/registry/         reviewed module discovery and activation
 src/protocol/cymonkey/          canonical versioned Cymonkey schemas
 src/protocol/browser-extension/ schema, recorded exchanges, and generated binding source
 tests/cymonkey-core-conformance.mjs  portable Cymonkey contract checks

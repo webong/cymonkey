@@ -1,4 +1,4 @@
-package jangolova
+package display
 
 import (
 	"context"
@@ -15,8 +15,8 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"jangolova/host"
-	"jangolova/sdk"
+	"board/display/host"
+	"board/display/sdk"
 )
 
 func testHost() sdk.Host {
@@ -25,7 +25,7 @@ func testHost() sdk.Host {
 			if kind != "browser" {
 				return "", errors.New("test worker kind is unsupported")
 			}
-			return filepath.Abs("../../tests/cymonkey-worker-fixture.mjs")
+			return filepath.Abs("../../../tests/cymonkey-worker-fixture.mjs")
 		},
 		ValidateEndpoint: func(endpoint sdk.TargetEndpoint) error {
 			parsed, err := url.Parse(endpoint.URL)

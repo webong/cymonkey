@@ -6,8 +6,8 @@ import (
 	"errors"
 	"time"
 
+	"board/display/ui"
 	"console"
-	"jangolova/ui"
 	"kit/generationkit"
 )
 

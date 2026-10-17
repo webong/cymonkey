@@ -9,9 +9,9 @@ import (
 	"sync"
 	"testing"
 
-	jangolova "jangolova"
-	contract "jangolova/contract"
-	"jangolova/sdk"
+	displayengine "board/display"
+	contract "board/display/contract"
+	"board/display/sdk"
 )
 
 type staticConnection struct{ headers map[string]string }
@@ -147,7 +147,7 @@ func TestLensStudioBackendUsesBoundedToolAliasesAndRollback(t *testing.T) {
 		Protocol: Protocol, URL: fixture.server.URL, Connection: staticConnection{headers: map[string]string{"X-Lens-Studio-Target": "attached"}},
 	}}}
 	options := json.RawMessage(`{"bearerTokenEnv":"LENS_STUDIO_FIXTURE_TOKEN","allowedSceneObjectIds":["root-object"],"allowedPropertyPaths":["localTransform.position"]}`)
-	engine, err := (Backend{}).Connect(context.Background(), sdk.EngineSpec{Options: options, RequiredCapabilities: []string{ActionSceneList}}, target, jangolova.Options{Host: host})
+	engine, err := (Backend{}).Connect(context.Background(), sdk.EngineSpec{Options: options, RequiredCapabilities: []string{ActionSceneList}}, target, displayengine.Options{Host: host})
 	if err != nil {
 		t.Fatalf("Connect() error = %v", err)
 	}
@@ -262,7 +262,7 @@ func TestLensStudioConnectFailsWithoutPropertyTool(t *testing.T) {
 		_ = json.NewEncoder(writer).Encode(map[string]any{"jsonrpc": "2.0", "id": json.RawMessage(message.ID), "result": result})
 	}))
 	defer server.Close()
-	_, err := (Backend{}).Connect(context.Background(), sdk.EngineSpec{}, sdk.EngineTarget{Kind: Runtime, Endpoints: []sdk.TargetEndpoint{{Protocol: Protocol, URL: server.URL}}}, jangolova.Options{Host: sdk.Host{ValidateEndpoint: func(sdk.TargetEndpoint) error { return nil }}})
+	_, err := (Backend{}).Connect(context.Background(), sdk.EngineSpec{}, sdk.EngineTarget{Kind: Runtime, Endpoints: []sdk.TargetEndpoint{{Protocol: Protocol, URL: server.URL}}}, displayengine.Options{Host: sdk.Host{ValidateEndpoint: func(sdk.TargetEndpoint) error { return nil }}})
 	if err == nil || !strings.Contains(err.Error(), "scene-property tool") {
 		t.Fatalf("Connect() error = %v", err)
 	}

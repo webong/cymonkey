@@ -1,4 +1,4 @@
-package jangolova_test
+package display_test
 
 import (
 	"context"
@@ -7,16 +7,16 @@ import (
 	"strings"
 	"testing"
 
-	jangolova "jangolova"
-	"jangolova/contract"
-	"jangolova/sdk"
+	displayengine "board/display"
+	"board/display/contract"
+	"board/display/sdk"
 )
 
 // This backend deliberately uses only public signatures. A Lens Studio or
 // other contributor module can implement the same interface out of tree.
 type contributedBackend struct{ calls *int }
 
-func (contributedBackend) Name() jangolova.BackendName { return "contributed-mcp" }
+func (contributedBackend) Name() displayengine.BackendName { return "contributed-mcp" }
 func (contributedBackend) Domains() []contract.Domain {
 	return []contract.Domain{contract.DomainRender}
 }
@@ -24,7 +24,7 @@ func (contributedBackend) Compatible(t sdk.EngineTarget) bool {
 	_, ok := t.Endpoint("mcp-streamable-http")
 	return t.Kind == "contributed-editor" && ok
 }
-func (b contributedBackend) Connect(_ context.Context, _ sdk.EngineSpec, _ sdk.EngineTarget, _ jangolova.Options) (sdk.EngineInstance, error) {
+func (b contributedBackend) Connect(_ context.Context, _ sdk.EngineSpec, _ sdk.EngineTarget, _ displayengine.Options) (sdk.EngineInstance, error) {
 	*b.calls++
 	return publicSession{}, nil
 }
@@ -37,14 +37,14 @@ func (publicSession) Authorize(context.Context, sdk.AuthorizeRequest) (sdk.Autho
 }
 func TestContributedBackendUsesOnlyPublicContract(t *testing.T) {
 	calls := 0
-	a := jangolova.Adapter{Backends: []jangolova.Backend{contributedBackend{&calls}}}
+	a := displayengine.Adapter{Backends: []displayengine.Backend{contributedBackend{&calls}}}
 	_, err := a.Connect(context.Background(), sdk.EngineSpec{Options: json.RawMessage(`{"domain":"render","driver":"contributed-mcp"}`)}, sdk.EngineTarget{Kind: "contributed-editor", Endpoints: []sdk.TargetEndpoint{{Protocol: "mcp-streamable-http", URL: "http://127.0.0.1:1"}}})
 	if err != nil || calls != 1 {
 		t.Fatalf("connect: %v, calls: %d", err, calls)
 	}
 }
 func TestPublicIntegrationHasNoPrivateDependencies(t *testing.T) {
-	out, err := exec.Command("go", "list", "-deps", "jangolova", "jangolova/registry").CombinedOutput()
+	out, err := exec.Command("go", "list", "-deps", "board/display", "board/display/registry").CombinedOutput()
 	if err != nil {
 		t.Fatalf("dependency graph: %v: %s", err, out)
 	}

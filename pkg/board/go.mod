@@ -3,6 +3,7 @@ module board
 go 1.26.5
 
 require (
+	github.com/gorilla/websocket v1.5.3
 	github.com/pion/rtp v1.10.5
 	github.com/pion/webrtc/v4 v4.2.22
 	golang.org/x/sys v0.46.0

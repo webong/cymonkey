@@ -21,9 +21,9 @@ import (
 	"sync"
 	"time"
 
-	jangolova "jangolova"
-	contract "jangolova/contract"
-	"jangolova/sdk"
+	displayengine "board/display"
+	contract "board/display/contract"
+	"board/display/sdk"
 )
 
 const (
@@ -97,7 +97,7 @@ type scriptCandidateInput struct {
 }
 
 var (
-	_ jangolova.Backend            = Backend{}
+	_ displayengine.Backend        = Backend{}
 	_ sdk.EngineInstance           = (*instance)(nil)
 	_ sdk.EngineHealthProvider     = (*instance)(nil)
 	_ sdk.EngineCapabilityProvider = (*instance)(nil)
@@ -105,8 +105,8 @@ var (
 	_ sdk.Caller                   = (*instance)(nil)
 )
 
-func (Backend) Name() jangolova.BackendName {
-	return jangolova.BackendName("effect-house-project-files")
+func (Backend) Name() displayengine.BackendName {
+	return displayengine.BackendName("effect-house-project-files")
 }
 func (Backend) Domains() []contract.Domain { return []contract.Domain{contract.DomainRender} }
 
@@ -118,7 +118,7 @@ func (Backend) Compatible(target sdk.EngineTarget) bool {
 	return ok
 }
 
-func (Backend) Connect(ctx context.Context, spec sdk.EngineSpec, target sdk.EngineTarget, config jangolova.Options) (sdk.EngineInstance, error) {
+func (Backend) Connect(ctx context.Context, spec sdk.EngineSpec, target sdk.EngineTarget, config displayengine.Options) (sdk.EngineInstance, error) {
 	if !(Backend{}).Compatible(target) {
 		return nil, fmt.Errorf("Effect House requires target.kind %q with a caller-owned %s endpoint", Runtime, Protocol)
 	}

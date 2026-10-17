@@ -1,4 +1,4 @@
-package jangolova
+package display
 
 import (
 	"context"
@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
-	contract "jangolova/contract"
-	"jangolova/sdk"
+	contract "board/display/contract"
+	"board/display/sdk"
 )
 
 func TestAdapterDefaultsToNoInstallCDPAndDisconnects(t *testing.T) {
-	worker, err := filepath.Abs("../../tests/cymonkey-worker-fixture.mjs")
+	worker, err := filepath.Abs("../../../tests/cymonkey-worker-fixture.mjs")
 	if err != nil {
 		t.Fatal(err)
 	}

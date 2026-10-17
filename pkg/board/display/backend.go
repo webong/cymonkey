@@ -1,11 +1,11 @@
-package jangolova
+package display
 
 import (
 	"context"
 	"encoding/json"
 
-	contract "jangolova/contract"
-	"jangolova/sdk"
+	contract "board/display/contract"
+	"board/display/sdk"
 )
 
 // Backend is the runtime-specific boundary below Jangolova's public semantic

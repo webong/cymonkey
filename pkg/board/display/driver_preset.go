@@ -1,4 +1,4 @@
-package jangolova
+package display
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"jangolova/sdk"
+	"board/display/sdk"
 )
 
 // DriverPreset selects a Jangolova automation backend with one

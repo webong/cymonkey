@@ -22,9 +22,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	jangolova "jangolova"
-	contract "jangolova/contract"
-	"jangolova/sdk"
+	displayengine "board/display"
+	contract "board/display/contract"
+	"board/display/sdk"
 )
 
 const (
@@ -83,7 +83,7 @@ type rpcEnvelope struct {
 }
 
 // Backend is a reviewed external Jangolova module. The host explicitly mounts
-// it through jangolova.Adapter.Backends; this package never self-registers.
+// it through displayengine.Adapter.Backends; this package never self-registers.
 type Backend struct{}
 
 type instance struct {
@@ -109,7 +109,7 @@ type instance struct {
 }
 
 var (
-	_ jangolova.Backend            = Backend{}
+	_ displayengine.Backend        = Backend{}
 	_ sdk.EngineInstance           = (*instance)(nil)
 	_ sdk.EngineHealthProvider     = (*instance)(nil)
 	_ sdk.EngineCapabilityProvider = (*instance)(nil)
@@ -124,7 +124,7 @@ type sdkEvent struct {
 	Data       json.RawMessage `json:"data,omitempty"`
 }
 
-func (Backend) Name() jangolova.BackendName { return jangolova.BackendName("lens-studio-mcp") }
+func (Backend) Name() displayengine.BackendName { return displayengine.BackendName("lens-studio-mcp") }
 
 func (Backend) Domains() []contract.Domain { return []contract.Domain{contract.DomainViewer} }
 
@@ -136,7 +136,7 @@ func (Backend) Compatible(target sdk.EngineTarget) bool {
 	return ok
 }
 
-func (Backend) Connect(ctx context.Context, spec sdk.EngineSpec, target sdk.EngineTarget, config jangolova.Options) (sdk.EngineInstance, error) {
+func (Backend) Connect(ctx context.Context, spec sdk.EngineSpec, target sdk.EngineTarget, config displayengine.Options) (sdk.EngineInstance, error) {
 	if !(Backend{}).Compatible(target) {
 		return nil, fmt.Errorf("Lens Studio requires target.kind %q with a caller-owned %s endpoint", Runtime, Protocol)
 	}

@@ -1,4 +1,4 @@
-package jangolova
+package display
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	contract "jangolova/contract"
-	"jangolova/sdk"
+	contract "board/display/contract"
+	"board/display/sdk"
 )
 
 type macOSCooperativeBackend struct{}

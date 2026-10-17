@@ -21,9 +21,9 @@ import (
 	"strings"
 	"time"
 
-	jangolova "jangolova"
-	"jangolova/registry"
-	"jangolova/sdk"
+	displayengine "board/display"
+	"board/display/registry"
+	"board/display/sdk"
 	"github.com/gorilla/websocket"
 )
 
@@ -63,7 +63,7 @@ func run() error {
 	}
 	sum := sha256.Sum256(code)
 	digest := hex.EncodeToString(sum[:])
-	module := registry.Module{ID: "render/blender", Version: "0.1.0", Runtime: "blender", ProtocolVersion: jangolova.ProtocolVersion, Status: "available", Platforms: []string{"linux-amd64"}, Actions: []string{"resource.describe", "object.transform.set", "render.frame"}}
+	module := registry.Module{ID: "render/blender", Version: "0.1.0", Runtime: "blender", ProtocolVersion: displayengine.ProtocolVersion, Status: "available", Platforms: []string{"linux-amd64"}, Actions: []string{"resource.describe", "object.transform.set", "render.frame"}}
 	var index registry.Registry
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/index.json" {
@@ -177,7 +177,7 @@ func run() error {
 			var last error
 			for attempts := 0; attempts < 100; attempts++ {
 				attempt, done := context.WithTimeout(ctx, 2*time.Second)
-				i, err := (jangolova.Adapter{Host: host}).Connect(attempt, sdk.EngineSpec{RequiredCapabilities: m.Actions}, sdk.EngineTarget{Kind: "blender", Endpoints: []sdk.TargetEndpoint{{Protocol: "websocket", URL: endpoint}}})
+				i, err := (displayengine.Adapter{Host: host}).Connect(attempt, sdk.EngineSpec{RequiredCapabilities: m.Actions}, sdk.EngineTarget{Kind: "blender", Endpoints: []sdk.TargetEndpoint{{Protocol: "websocket", URL: endpoint}}})
 				done()
 				if err == nil {
 					return i, nil
@@ -211,7 +211,7 @@ func run() error {
 		}
 		return connection, err
 	}
-	unauthorized, rejected := (jangolova.Adapter{Host: badHost}).Connect(ctx, sdk.EngineSpec{}, sdk.EngineTarget{Kind: "blender", Endpoints: []sdk.TargetEndpoint{{Protocol: "websocket", URL: endpoint}}})
+	unauthorized, rejected := (displayengine.Adapter{Host: badHost}).Connect(ctx, sdk.EngineSpec{}, sdk.EngineTarget{Kind: "blender", Endpoints: []sdk.TargetEndpoint{{Protocol: "websocket", URL: endpoint}}})
 	if rejected == nil {
 		_ = unauthorized.Disconnect(ctx)
 		return errors.New("runtime accepted an invalid authentication token")
@@ -277,7 +277,7 @@ func run() error {
 	if err != nil || strings.TrimSpace(string(state)) != "true" {
 		return errors.New("detaching stopped the caller-owned Blender runtime")
 	}
-	again, err := (jangolova.Adapter{Host: host}).Connect(ctx, sdk.EngineSpec{}, sdk.EngineTarget{Kind: "blender", Endpoints: []sdk.TargetEndpoint{{Protocol: "websocket", URL: endpoint}}})
+	again, err := (displayengine.Adapter{Host: host}).Connect(ctx, sdk.EngineSpec{}, sdk.EngineTarget{Kind: "blender", Endpoints: []sdk.TargetEndpoint{{Protocol: "websocket", URL: endpoint}}})
 	if err != nil {
 		return err
 	}

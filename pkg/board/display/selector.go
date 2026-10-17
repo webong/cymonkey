@@ -1,4 +1,4 @@
-package jangolova
+package display
 
 import (
 	"strings"
@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 
-	contract "jangolova/contract"
-	"jangolova/sdk"
+	contract "board/display/contract"
+	"board/display/sdk"
 )
 
 type processBackend struct {

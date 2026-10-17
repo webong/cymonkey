@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"jangolova/sdk"
+	"board/display/sdk"
 )
 
 const defaultCommandTimeout = 5 * time.Second
