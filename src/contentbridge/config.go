@@ -2,11 +2,11 @@ package contentbridge
 
 import (
 	"bytes"
+	"console/contentengine"
 	"cymonkey/src/contracts"
 	"errors"
 	"fmt"
 	"io"
-	"jangolova/contentkit"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,24 +16,24 @@ import (
 
 const maxConfigBytes = 1 << 20
 
-func ToLibraryConfig(config contracts.ContentConfig) contentkit.Config {
-	adapters := make([]contentkit.ProviderAdapterConfig, len(config.Adapters))
+func ToLibraryConfig(config contracts.ContentConfig) contentengine.Config {
+	adapters := make([]contentengine.ProviderAdapterConfig, len(config.Adapters))
 	for index, adapter := range config.Adapters {
-		secrets := make(map[string]contentkit.SecretReference, len(adapter.Secrets))
+		secrets := make(map[string]contentengine.SecretReference, len(adapter.Secrets))
 		for name, reference := range adapter.Secrets {
-			secrets[name] = contentkit.SecretReference{Env: reference.Env}
+			secrets[name] = contentengine.SecretReference{Env: reference.Env}
 		}
-		adapters[index] = contentkit.ProviderAdapterConfig{
+		adapters[index] = contentengine.ProviderAdapterConfig{
 			ID: adapter.ID, Provider: adapter.Plugin, Model: adapter.Model,
 			ModelRoot: adapter.ModelRoot, Workers: adapter.Workers,
 			Timeout: adapter.Timeout, MaxPayloadBytes: adapter.MaxPayloadBytes,
 			Settings: cloneStrings(adapter.Settings), Secrets: secrets,
 		}
 	}
-	return contentkit.Config{APIVersion: contentkit.ConfigAPIVersion, Providers: adapters}
+	return contentengine.Config{APIVersion: contentengine.ConfigAPIVersion, Providers: adapters}
 }
 
-func FromLibraryConfig(config contentkit.Config) contracts.ContentConfig {
+func FromLibraryConfig(config contentengine.Config) contracts.ContentConfig {
 	adapters := make([]contracts.ContentAdapterConfig, len(config.Providers))
 	for index, adapter := range config.Providers {
 		secrets := make(map[string]contracts.SecretReference, len(adapter.Secrets))

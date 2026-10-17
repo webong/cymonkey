@@ -1,9 +1,10 @@
-package contentkit
+package contentengine
 
 import (
 	"bytes"
 	"errors"
 	"fmt"
+	"jangolova/contentkit"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -172,7 +173,7 @@ func (c ProviderAdapterConfig) validate() error {
 	if strings.TrimSpace(c.ID) == "" {
 		return errors.New("Blockade provider adapter id is required")
 	}
-	if !modelNamePattern.MatchString(canonicalProviderName(c.Provider)) {
+	if !contentkit.ModelNamePattern.MatchString(canonicalProviderName(c.Provider)) {
 		return fmt.Errorf("Blockade provider %q requires a valid provider name", c.ID)
 	}
 	if c.Model != "" {

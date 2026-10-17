@@ -1,6 +1,7 @@
 package contentkitplugin
 
 import (
+	"console/contentengine"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -39,7 +40,7 @@ func TestNormalizeProcessErrorPreservesBlockadeFailureKind(t *testing.T) {
 // A standalone Blockade application can register its own provider packages
 // without importing or running Cymonkey.
 func TestRegisterInstalledSelectsOnlyBlockadeProviders(t *testing.T) {
-	registry := contentkit.NewProviderAdapterRegistry()
+	registry := contentengine.NewProviderAdapterRegistry()
 	installed := []store.Installed{
 		testInstalled(t, "vision", ContractName, Operations),
 		testInstalled(t, "camera", "device.provider", []string{"list"}),
@@ -109,16 +110,16 @@ func TestSourceProviderUsesBlockadeManagedRuntimeAndWorkerPool(t *testing.T) {
 		t.Fatal(err)
 	}
 	runtimeDigest := sha256.Sum256(launcher)
-	runtimeManifest := contentkit.RuntimeManifest{
-		APIVersion: contentkit.RuntimeManifestAPIVersion,
+	runtimeManifest := contentengine.RuntimeManifest{
+		APIVersion: contentengine.RuntimeManifestAPIVersion,
 		Name:       "python",
 		Version:    "3.12.8",
 		Platform:   runtime.GOOS + "-" + runtime.GOARCH,
 		Executable: "bin/python3",
-		Files:      []contentkit.RuntimeFile{{Path: "bin/python3", SHA256: hex.EncodeToString(runtimeDigest[:]), Executable: true}},
+		Files:      []contentengine.RuntimeFile{{Path: "bin/python3", SHA256: hex.EncodeToString(runtimeDigest[:]), Executable: true}},
 	}
 	writeJSON(t, filepath.Join(runtimeSource, "runtime.json"), runtimeManifest)
-	if _, err := contentkit.InstallRuntime(runtimeRoot, filepath.Join(runtimeSource, "runtime.json")); err != nil {
+	if _, err := contentengine.InstallRuntime(runtimeRoot, filepath.Join(runtimeSource, "runtime.json")); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("BLOCKADE_RUNTIME_DIR", runtimeRoot)
@@ -171,11 +172,11 @@ for line in sys.stdin:
 	if err != nil {
 		t.Fatal(err)
 	}
-	registry := contentkit.NewProviderAdapterRegistry()
+	registry := contentengine.NewProviderAdapterRegistry()
 	if err := Register(registry, installed); err != nil {
 		t.Fatal(err)
 	}
-	engine, err := contentkit.StartConfiguredProviderAdapter(context.Background(), contentkit.ProviderAdapterConfig{ID: "source", Provider: "source-vision", Workers: 2}, registry, nil)
+	engine, err := contentengine.StartConfiguredProviderAdapter(context.Background(), contentengine.ProviderAdapterConfig{ID: "source", Provider: "source-vision", Workers: 2}, registry, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

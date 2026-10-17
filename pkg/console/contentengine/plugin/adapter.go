@@ -3,6 +3,7 @@
 package contentkitplugin
 
 import (
+	"console/contentengine"
 	"context"
 	"errors"
 	"fmt"
@@ -49,7 +50,7 @@ func nativeProtocol() Protocol {
 		ObservationRequestAPI: contentkit.APIVersion, ObservationAPIVersion: contentkit.APIVersion,
 		ContentAPIVersion: contentkit.ContentAPIVersion,
 		ModelAPIVersion:   contentkit.ModelManifestAPIVersion, ManifestEnvironment: "PLUGIN_MANIFEST",
-		DescriptorFile: "content.json", DescriptorAPIVersion: contentkit.ProviderPackageAPIVersion,
+		DescriptorFile: "content.json", DescriptorAPIVersion: contentengine.ProviderPackageAPIVersion,
 	}
 }
 
@@ -92,7 +93,7 @@ func (p Protocol) method(name string) string { return p.MethodPrefix + "." + nam
 const Kind = ContractName
 
 // RegisterInstalled selects Blockade adapters from a shared installation inventory.
-func RegisterInstalled(registry *contentkit.ProviderAdapterRegistry, installed []store.Installed) error {
+func RegisterInstalled(registry *contentengine.ProviderAdapterRegistry, installed []store.Installed) error {
 	for _, item := range installed {
 		if item.Supports(ContractName, ContractVersion) {
 			if err := Register(registry, item); err != nil {
@@ -103,19 +104,19 @@ func RegisterInstalled(registry *contentkit.ProviderAdapterRegistry, installed [
 	return nil
 }
 
-func Register(registry *contentkit.ProviderAdapterRegistry, installed store.Installed) error {
+func Register(registry *contentengine.ProviderAdapterRegistry, installed store.Installed) error {
 	return RegisterWithProtocol(registry, installed, nativeProtocol())
 }
 
 // RegisterWithRuntimeRoot registers a package whose managed runtimes live under
 // root instead of Blockade's default runtime directory.
-func RegisterWithRuntimeRoot(registry *contentkit.ProviderAdapterRegistry, installed store.Installed, root string) error {
+func RegisterWithRuntimeRoot(registry *contentengine.ProviderAdapterRegistry, installed store.Installed, root string) error {
 	protocol := nativeProtocol()
 	protocol.RuntimeRoot = root
 	return RegisterWithProtocol(registry, installed, protocol)
 }
 
-func RegisterWithProtocol(registry *contentkit.ProviderAdapterRegistry, installed store.Installed, protocol Protocol) error {
+func RegisterWithProtocol(registry *contentengine.ProviderAdapterRegistry, installed store.Installed, protocol Protocol) error {
 	protocol = protocol.normalized()
 	launch, err := newLaunchPlan(installed, protocol)
 	if err != nil {
@@ -223,7 +224,7 @@ func packageFile(installed store.Installed, relative string) (string, error) {
 
 type launchPlan struct {
 	installed  store.Installed
-	descriptor *contentkit.ProviderPackage
+	descriptor *contentengine.ProviderPackage
 }
 
 func newLaunchPlan(installed store.Installed, protocol Protocol) (launchPlan, error) {
@@ -237,7 +238,7 @@ func newLaunchPlan(installed store.Installed, protocol Protocol) (launchPlan, er
 	if err != nil {
 		return launchPlan{}, fmt.Errorf("source plugin descriptor: %w", err)
 	}
-	descriptor, err := contentkit.LoadProviderPackageWithAPIVersion(descriptorPath, protocol.DescriptorAPIVersion)
+	descriptor, err := contentengine.LoadProviderPackageWithAPIVersion(descriptorPath, protocol.DescriptorAPIVersion)
 	if err != nil {
 		return launchPlan{}, err
 	}
@@ -255,12 +256,12 @@ func (p launchPlan) open(ctx context.Context, protocol Protocol, authorize func(
 	root := protocol.RuntimeRoot
 	if root == "" {
 		var err error
-		root, err = contentkit.DefaultRuntimeRoot()
+		root, err = contentengine.DefaultRuntimeRoot()
 		if err != nil {
 			return nil, err
 		}
 	}
-	runtime, err := contentkit.ResolveInstalledRuntime(root, p.descriptor.Runtime.Name, p.descriptor.Runtime.Version)
+	runtime, err := contentengine.ResolveInstalledRuntime(root, p.descriptor.Runtime.Name, p.descriptor.Runtime.Version)
 	if err != nil {
 		return nil, fmt.Errorf("resolve Blockade runtime %s@%s: %w", p.descriptor.Runtime.Name, p.descriptor.Runtime.Version, err)
 	}

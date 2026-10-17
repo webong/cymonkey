@@ -1,4 +1,4 @@
-package contentkit
+package contentengine
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"jangolova/contentkit"
 	"os"
 	pathpkg "path"
 	"strings"
@@ -38,7 +39,7 @@ func (p ProviderPackage) ValidateAPIVersion(expected string) error {
 	if p.APIVersion != expected {
 		return fmt.Errorf("provider package apiVersion must be %q", expected)
 	}
-	if p.Runtime.Name != "python" || !modelVersionPattern.MatchString(p.Runtime.Version) {
+	if p.Runtime.Name != "python" || !contentkit.ModelVersionPattern.MatchString(p.Runtime.Version) {
 		return errors.New("provider package requires an exact managed Python runtime version")
 	}
 	if !validProviderPackagePath(p.Entrypoint) || !strings.HasSuffix(strings.ToLower(p.Entrypoint), ".py") {

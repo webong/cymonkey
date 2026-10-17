@@ -1,4 +1,4 @@
-package contentkit
+package contentengine
 
 import (
 	"bytes"
@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"jangolova/contentkit"
 	"net/http"
 	"strconv"
 	"strings"
@@ -37,123 +38,123 @@ func (c Client) client() (*http.Client, error) {
 	return &http.Client{Timeout: 2 * time.Minute}, nil
 }
 
-func (c Client) Observe(ctx context.Context, request ObserveRequest) (ObserveResponse, error) {
+func (c Client) Observe(ctx context.Context, request contentkit.ObserveRequest) (contentkit.ObserveResponse, error) {
 	if c.Engine != nil {
 		return c.Engine.Observe(ctx, request)
 	}
 	hc, err := c.client()
 	if err != nil {
-		return ObserveResponse{}, err
+		return contentkit.ObserveResponse{}, err
 	}
-	request.APIVersion = APIVersion
+	request.APIVersion = contentkit.APIVersion
 	body, err := json.Marshal(request)
 	if err != nil {
-		return ObserveResponse{}, fmt.Errorf("encode Blockade request: %w", err)
+		return contentkit.ObserveResponse{}, fmt.Errorf("encode Blockade request: %w", err)
 	}
 	url := strings.TrimRight(c.BaseURL, "/") + "/v1/observe"
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
-		return ObserveResponse{}, err
+		return contentkit.ObserveResponse{}, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	c.authorize(req)
 	resp, err := hc.Do(req)
 	if err != nil {
-		return ObserveResponse{}, fmt.Errorf("call Blockade: %w", err)
+		return contentkit.ObserveResponse{}, fmt.Errorf("call Blockade: %w", err)
 	}
 	defer resp.Body.Close()
 	data, err := io.ReadAll(io.LimitReader(resp.Body, 16<<20))
 	if err != nil {
-		return ObserveResponse{}, err
+		return contentkit.ObserveResponse{}, err
 	}
 	if resp.StatusCode/100 != 2 {
 		var failure struct {
-			Error string                   `json:"error"`
-			Kind  ProviderAdapterErrorKind `json:"kind"`
+			Error string                              `json:"error"`
+			Kind  contentkit.ProviderAdapterErrorKind `json:"kind"`
 		}
-		if json.Unmarshal(data, &failure) == nil && ValidProviderAdapterErrorKind(failure.Kind) {
-			adapterError := NewProviderAdapterError(failure.Kind, fmt.Errorf("Blockade returned HTTP %d: %s", resp.StatusCode, failure.Error))
+		if json.Unmarshal(data, &failure) == nil && contentkit.ValidProviderAdapterErrorKind(failure.Kind) {
+			adapterError := contentkit.NewProviderAdapterError(failure.Kind, fmt.Errorf("Blockade returned HTTP %d: %s", resp.StatusCode, failure.Error))
 			adapterError.RetryAfter = parseHTTPRetryAfter(resp.Header.Get("Retry-After"))
-			return ObserveResponse{}, adapterError
+			return contentkit.ObserveResponse{}, adapterError
 		}
-		return ObserveResponse{}, fmt.Errorf("Blockade returned HTTP %d", resp.StatusCode)
+		return contentkit.ObserveResponse{}, fmt.Errorf("Blockade returned HTTP %d", resp.StatusCode)
 	}
-	var result ObserveResponse
+	var result contentkit.ObserveResponse
 	if err := json.Unmarshal(data, &result); err != nil {
-		return ObserveResponse{}, fmt.Errorf("decode Blockade response: %w", err)
+		return contentkit.ObserveResponse{}, fmt.Errorf("decode Blockade response: %w", err)
 	}
-	if result.APIVersion != APIVersion {
-		return ObserveResponse{}, fmt.Errorf("unsupported Blockade apiVersion %q", result.APIVersion)
+	if result.APIVersion != contentkit.APIVersion {
+		return contentkit.ObserveResponse{}, fmt.Errorf("unsupported Blockade apiVersion %q", result.APIVersion)
 	}
 	return result, nil
 }
 
-func (c Client) Interpret(ctx context.Context, request InterpretRequest) (InterpretResponse, error) {
+func (c Client) Interpret(ctx context.Context, request contentkit.InterpretRequest) (contentkit.InterpretResponse, error) {
 	if request.APIVersion == "" {
-		request.APIVersion = ContentAPIVersion
+		request.APIVersion = contentkit.ContentAPIVersion
 	}
-	if err := ValidateInterpretRequest(request); err != nil {
-		return InterpretResponse{}, err
+	if err := contentkit.ValidateInterpretRequest(request); err != nil {
+		return contentkit.InterpretResponse{}, err
 	}
 	if c.Engine != nil {
-		engine, ok := c.Engine.(ContentEngine)
+		engine, ok := c.Engine.(contentkit.ContentEngine)
 		if !ok {
-			return InterpretResponse{}, ErrModalityUnsupported
+			return contentkit.InterpretResponse{}, contentkit.ErrModalityUnsupported
 		}
 		result, err := engine.Interpret(ctx, request)
 		if err != nil {
-			return InterpretResponse{}, err
+			return contentkit.InterpretResponse{}, err
 		}
-		if err := ValidateInterpretResponse(result, request); err != nil {
-			return InterpretResponse{}, err
+		if err := contentkit.ValidateInterpretResponse(result, request); err != nil {
+			return contentkit.InterpretResponse{}, err
 		}
 		return result, nil
 	}
 	hc, err := c.client()
 	if err != nil {
-		return InterpretResponse{}, err
+		return contentkit.InterpretResponse{}, err
 	}
 	data, err := json.Marshal(request)
 	if err != nil {
-		return InterpretResponse{}, fmt.Errorf("encode Blockade content request: %w", err)
+		return contentkit.InterpretResponse{}, fmt.Errorf("encode Blockade content request: %w", err)
 	}
 	url := strings.TrimRight(c.BaseURL, "/") + "/v1/interpret"
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(data))
 	if err != nil {
-		return InterpretResponse{}, err
+		return contentkit.InterpretResponse{}, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	c.authorize(req)
 	resp, err := hc.Do(req)
 	if err != nil {
-		return InterpretResponse{}, fmt.Errorf("call Blockade: %w", err)
+		return contentkit.InterpretResponse{}, fmt.Errorf("call Blockade: %w", err)
 	}
 	defer resp.Body.Close()
 	responseData, err := io.ReadAll(io.LimitReader(resp.Body, 16<<20))
 	if err != nil {
-		return InterpretResponse{}, err
+		return contentkit.InterpretResponse{}, err
 	}
 	if resp.StatusCode/100 != 2 {
 		if resp.StatusCode == http.StatusNotImplemented {
-			return InterpretResponse{}, ErrModalityUnsupported
+			return contentkit.InterpretResponse{}, contentkit.ErrModalityUnsupported
 		}
 		var failure struct {
-			Error string                   `json:"error"`
-			Kind  ProviderAdapterErrorKind `json:"kind"`
+			Error string                              `json:"error"`
+			Kind  contentkit.ProviderAdapterErrorKind `json:"kind"`
 		}
-		if json.Unmarshal(responseData, &failure) == nil && ValidProviderAdapterErrorKind(failure.Kind) {
-			adapterError := NewProviderAdapterError(failure.Kind, fmt.Errorf("Blockade returned HTTP %d: %s", resp.StatusCode, failure.Error))
+		if json.Unmarshal(responseData, &failure) == nil && contentkit.ValidProviderAdapterErrorKind(failure.Kind) {
+			adapterError := contentkit.NewProviderAdapterError(failure.Kind, fmt.Errorf("Blockade returned HTTP %d: %s", resp.StatusCode, failure.Error))
 			adapterError.RetryAfter = parseHTTPRetryAfter(resp.Header.Get("Retry-After"))
-			return InterpretResponse{}, adapterError
+			return contentkit.InterpretResponse{}, adapterError
 		}
-		return InterpretResponse{}, fmt.Errorf("Blockade returned HTTP %d", resp.StatusCode)
+		return contentkit.InterpretResponse{}, fmt.Errorf("Blockade returned HTTP %d", resp.StatusCode)
 	}
-	var result InterpretResponse
+	var result contentkit.InterpretResponse
 	if err := json.Unmarshal(responseData, &result); err != nil {
-		return InterpretResponse{}, fmt.Errorf("decode Blockade content response: %w", err)
+		return contentkit.InterpretResponse{}, fmt.Errorf("decode Blockade content response: %w", err)
 	}
-	if err := ValidateInterpretResponse(result, request); err != nil {
-		return InterpretResponse{}, err
+	if err := contentkit.ValidateInterpretResponse(result, request); err != nil {
+		return contentkit.InterpretResponse{}, err
 	}
 	return result, nil
 }
@@ -186,28 +187,28 @@ func (c Client) Health(ctx context.Context) (ServiceHealth, error) {
 	return result, nil
 }
 
-func (c Client) Capabilities(ctx context.Context) (CapabilitiesResponse, error) {
+func (c Client) Capabilities(ctx context.Context) (contentkit.CapabilitiesResponse, error) {
 	if c.Engine != nil {
-		capabilities := []string{CapabilityImageObserve}
+		capabilities := []string{contentkit.CapabilityImageObserve}
 		if reporter, ok := c.Engine.(EngineCapabilities); ok {
 			var err error
 			capabilities, err = reporter.Capabilities(ctx)
 			if err != nil {
-				return CapabilitiesResponse{}, err
+				return contentkit.CapabilitiesResponse{}, err
 			}
 		}
-		return CapabilitiesResponse{APIVersion: APIVersion, Provider: "embedded", Capabilities: capabilities}, nil
+		return contentkit.CapabilitiesResponse{APIVersion: contentkit.APIVersion, Provider: "embedded", Capabilities: capabilities}, nil
 	}
-	var result CapabilitiesResponse
+	var result contentkit.CapabilitiesResponse
 	status, err := c.getJSON(ctx, "/capabilities", &result)
 	if err != nil {
-		return CapabilitiesResponse{}, err
+		return contentkit.CapabilitiesResponse{}, err
 	}
 	if status/100 != 2 {
-		return CapabilitiesResponse{}, fmt.Errorf("Blockade capabilities returned HTTP %d", status)
+		return contentkit.CapabilitiesResponse{}, fmt.Errorf("Blockade capabilities returned HTTP %d", status)
 	}
-	if result.APIVersion != APIVersion {
-		return CapabilitiesResponse{}, fmt.Errorf("unsupported Blockade apiVersion %q", result.APIVersion)
+	if result.APIVersion != contentkit.APIVersion {
+		return contentkit.CapabilitiesResponse{}, fmt.Errorf("unsupported Blockade apiVersion %q", result.APIVersion)
 	}
 	return result, nil
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"console/contentengine"
 	"cymonkey/src/contentbridge"
 	contentcli "cymonkey/src/contentcli"
 	"cymonkey/src/contracts"
@@ -65,7 +66,7 @@ func runContent(args []string, stdout, stderr io.Writer) error {
 		DefaultConfig: defaultConfig,
 		DefaultBind:   envOrDefault("CYMONKEY_CONTENT_BIND", "127.0.0.1:8091"),
 		Registry:      registry,
-		Resolver:      contentkit.EnvironmentSecretResolver{},
+		Resolver:      contentengine.EnvironmentSecretResolver{},
 		Middleware:    contentServiceContract,
 	}
 	if len(publicArgs) > 0 && publicArgs[0] == "serve" {
@@ -218,7 +219,7 @@ func prepareLibraryContentConfig(args []string, publicPath string) ([]string, st
 				libraryConfig.Providers[index].ModelRoot = modelRoot
 			}
 		}
-		if err := contentkit.SaveConfig(temporaryPath, libraryConfig); err != nil {
+		if err := contentengine.SaveConfig(temporaryPath, libraryConfig); err != nil {
 			cleanup()
 			return nil, "", nil, err
 		}
@@ -277,7 +278,7 @@ func validateContentConfig(args []string, path string, stdout io.Writer) error {
 }
 
 func persistContentEndpointMutation(args []string, publicPath, temporaryPath string) error {
-	config, err := contentkit.LoadConfig(temporaryPath)
+	config, err := contentengine.LoadConfig(temporaryPath)
 	if errors.Is(err, os.ErrNotExist) && len(args) >= 2 && args[1] == "remove" {
 		if removeErr := os.Remove(publicPath); removeErr != nil && !errors.Is(removeErr, os.ErrNotExist) {
 			return removeErr
@@ -359,7 +360,7 @@ func publicContentJSON(value any) any {
 		}
 		return result
 	case string:
-		if value == contentkit.ConfigAPIVersion {
+		if value == contentengine.ConfigAPIVersion {
 			return contracts.ContentConfigVersion
 		}
 		return value

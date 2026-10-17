@@ -1,6 +1,7 @@
 package contentcli
 
 import (
+	"console/contentengine"
 	"context"
 	"encoding/json"
 	"errors"
@@ -30,7 +31,7 @@ func DefaultConfigPath() (string, error) {
 	return filepath.Join(directory, "cymonkey", "content.yaml"), nil
 }
 
-func endpointCommand(args []string, stdout io.Writer, registry *contentkit.ProviderAdapterRegistry, resolver contentkit.SecretResolver, invocation, defaultConfig string) error {
+func endpointCommand(args []string, stdout io.Writer, registry *contentengine.ProviderAdapterRegistry, resolver contentengine.SecretResolver, invocation, defaultConfig string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("%s endpoint requires add, list, remove, or test", invocation)
 	}
@@ -109,12 +110,12 @@ func endpointAddCommand(args []string, stdout io.Writer, invocation, defaultConf
 		}
 		settings["temperature"] = value
 	}
-	configured := contentkit.ProviderAdapterConfig{
+	configured := contentengine.ProviderAdapterConfig{
 		ID: strings.TrimSpace(*id), Provider: providerName, Workers: *workers,
 		Timeout: strings.TrimSpace(*timeout), MaxPayloadBytes: *maxPayloadBytes, Settings: settings,
 	}
 	if name := strings.TrimSpace(*apiKeyEnvironment); name != "" {
-		configured.Secrets = map[string]contentkit.SecretReference{"apiKey": {Env: name}}
+		configured.Secrets = map[string]contentengine.SecretReference{"apiKey": {Env: name}}
 	}
 	config, err := loadConfigForEdit(*configPath)
 	if err != nil {
@@ -135,7 +136,7 @@ func endpointAddCommand(args []string, stdout io.Writer, invocation, defaultConf
 	if !replaced {
 		config.Providers = append(config.Providers, configured)
 	}
-	if err := contentkit.SaveConfig(*configPath, config); err != nil {
+	if err := contentengine.SaveConfig(*configPath, config); err != nil {
 		return err
 	}
 	return json.NewEncoder(stdout).Encode(map[string]any{"config": *configPath, "endpoint": configured})
@@ -192,9 +193,9 @@ func endpointListCommand(args []string, stdout io.Writer, invocation, defaultCon
 	if flags.NArg() != 0 {
 		return fmt.Errorf("%s endpoint list accepts flags only", invocation)
 	}
-	config, err := contentkit.LoadConfig(*configPath)
+	config, err := contentengine.LoadConfig(*configPath)
 	if errors.Is(err, os.ErrNotExist) {
-		return json.NewEncoder(stdout).Encode(map[string]any{"config": *configPath, "endpoints": []contentkit.ProviderAdapterConfig{}})
+		return json.NewEncoder(stdout).Encode(map[string]any{"config": *configPath, "endpoints": []contentengine.ProviderAdapterConfig{}})
 	}
 	if err != nil {
 		return err
@@ -213,7 +214,7 @@ func endpointRemoveCommand(args []string, stdout io.Writer, invocation, defaultC
 	if flags.NArg() != 0 || strings.TrimSpace(*id) == "" {
 		return fmt.Errorf("%s endpoint remove requires --id", invocation)
 	}
-	config, err := contentkit.LoadConfig(*configPath)
+	config, err := contentengine.LoadConfig(*configPath)
 	if err != nil {
 		return err
 	}
@@ -232,14 +233,14 @@ func endpointRemoveCommand(args []string, stdout io.Writer, invocation, defaultC
 		if err := os.Remove(*configPath); err != nil {
 			return err
 		}
-	} else if err := contentkit.SaveConfig(*configPath, config); err != nil {
+	} else if err := contentengine.SaveConfig(*configPath, config); err != nil {
 		return err
 	}
 	_, err = fmt.Fprintf(stdout, "removed content endpoint %s\n", strings.TrimSpace(*id))
 	return err
 }
 
-func endpointTestCommand(args []string, stdout io.Writer, registry *contentkit.ProviderAdapterRegistry, resolver contentkit.SecretResolver, invocation, defaultConfig string) error {
+func endpointTestCommand(args []string, stdout io.Writer, registry *contentengine.ProviderAdapterRegistry, resolver contentengine.SecretResolver, invocation, defaultConfig string) error {
 	flags := flag.NewFlagSet(invocation+" endpoint test", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	configPath := flags.String("config", defaultConfig, "content YAML config")
@@ -251,7 +252,7 @@ func endpointTestCommand(args []string, stdout io.Writer, registry *contentkit.P
 	if flags.NArg() != 0 {
 		return fmt.Errorf("%s endpoint test accepts flags only", invocation)
 	}
-	config, err := contentkit.LoadConfig(*configPath)
+	config, err := contentengine.LoadConfig(*configPath)
 	if err != nil {
 		return err
 	}
@@ -259,20 +260,20 @@ func endpointTestCommand(args []string, stdout io.Writer, registry *contentkit.P
 	if err != nil {
 		return err
 	}
-	engine, err := contentkit.StartConfiguredInference(context.Background(), selected, registry, resolver)
+	engine, err := contentengine.StartConfiguredInference(context.Background(), selected, registry, resolver)
 	if err != nil {
 		return err
 	}
 	defer engine.Close()
-	health := contentkit.EngineHealth{Ready: true}
-	if reporter, ok := engine.(contentkit.EngineHealthReporter); ok {
+	health := contentengine.EngineHealth{Ready: true}
+	if reporter, ok := engine.(contentengine.EngineHealthReporter); ok {
 		health, err = reporter.Health(context.Background())
 		if err != nil {
 			return err
 		}
 	}
 	capabilities := []string{contentkit.CapabilityImageObserve}
-	if reporter, ok := engine.(contentkit.EngineCapabilities); ok {
+	if reporter, ok := engine.(contentengine.EngineCapabilities); ok {
 		capabilities, err = reporter.Capabilities(context.Background())
 		if err != nil {
 			return err
@@ -283,7 +284,7 @@ func endpointTestCommand(args []string, stdout io.Writer, registry *contentkit.P
 		result["detail"] = health.Detail
 	}
 	if text := strings.TrimSpace(*liveText); text != "" {
-		response, callErr := (contentkit.Client{Engine: engine}).Interpret(context.Background(), contentkit.InterpretRequest{
+		response, callErr := (contentengine.Client{Engine: engine}).Interpret(context.Background(), contentkit.InterpretRequest{
 			APIVersion: contentkit.ContentAPIVersion,
 			Parts:      []contentkit.ContentPart{{Kind: "text", Text: text}},
 			Prompt:     "Return a concise finding confirming this endpoint is reachable.",
@@ -296,10 +297,10 @@ func endpointTestCommand(args []string, stdout io.Writer, registry *contentkit.P
 	return json.NewEncoder(stdout).Encode(result)
 }
 
-func loadConfigForEdit(path string) (contentkit.Config, error) {
-	config, err := contentkit.LoadConfig(path)
+func loadConfigForEdit(path string) (contentengine.Config, error) {
+	config, err := contentengine.LoadConfig(path)
 	if errors.Is(err, os.ErrNotExist) {
-		return contentkit.Config{APIVersion: contentkit.ConfigAPIVersion}, nil
+		return contentengine.Config{APIVersion: contentengine.ConfigAPIVersion}, nil
 	}
 	return config, err
 }

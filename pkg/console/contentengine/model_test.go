@@ -1,4 +1,4 @@
-package contentkit
+package contentengine
 
 import (
 	"bytes"
@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"jangolova/contentkit"
 	"os"
 	"path/filepath"
 	"testing"
@@ -20,15 +21,15 @@ func writeModelFixture(t *testing.T, provider string) string {
 	if err := os.WriteFile(filepath.Join(dir, "weights.gguf"), artifact, 0600); err != nil {
 		t.Fatal(err)
 	}
-	manifest := ModelManifest{
-		APIVersion: ModelManifestAPIVersion,
+	manifest := contentkit.ModelManifest{
+		APIVersion: contentkit.ModelManifestAPIVersion,
 		Name:       "fixture-model",
 		Version:    "1.0.0",
 		Provider:   provider,
 		Capabilities: []string{
-			CapabilityTextInterpret,
+			contentkit.CapabilityTextInterpret,
 		},
-		Artifacts: []ModelArtifact{{Role: "weights", File: "weights.gguf", SHA256: hex.EncodeToString(digest[:])}},
+		Artifacts: []contentkit.ModelArtifact{{Role: "weights", File: "weights.gguf", SHA256: hex.EncodeToString(digest[:])}},
 	}
 	data, err := json.Marshal(manifest)
 	if err != nil {
@@ -45,7 +46,7 @@ func TestInstallResolveAndListModel(t *testing.T) {
 	manifestPath := writeModelFixture(t, "fixture")
 	root := t.TempDir()
 	inspected := false
-	installed, err := InstallModel(context.Background(), root, manifestPath, func(_ context.Context, model InstalledModel) error {
+	installed, err := InstallModel(context.Background(), root, manifestPath, func(_ context.Context, model contentkit.InstalledModel) error {
 		inspected = true
 		if model.Manifest.Provider != "fixture" || !filepath.IsAbs(model.Directory) {
 			t.Fatalf("staged model = %#v", model)
@@ -80,8 +81,8 @@ func TestInstallResolveAndListModel(t *testing.T) {
 func TestInstallModelRequiresProviderAcceptance(t *testing.T) {
 	manifestPath := writeModelFixture(t, "fixture")
 	root := t.TempDir()
-	if _, err := InstallModel(context.Background(), root, manifestPath, func(context.Context, InstalledModel) error {
-		return ErrModalityUnsupported
+	if _, err := InstallModel(context.Background(), root, manifestPath, func(context.Context, contentkit.InstalledModel) error {
+		return contentkit.ErrModalityUnsupported
 	}); err == nil {
 		t.Fatal("expected provider rejection")
 	}
@@ -94,7 +95,7 @@ func TestInstallModelRequiresProviderAcceptance(t *testing.T) {
 func TestRemoveInstalledModel(t *testing.T) {
 	manifestPath := writeModelFixture(t, "fixture")
 	root := filepath.Join(t.TempDir(), "models")
-	installed, err := InstallModel(context.Background(), root, manifestPath, func(context.Context, InstalledModel) error { return nil })
+	installed, err := InstallModel(context.Background(), root, manifestPath, func(context.Context, contentkit.InstalledModel) error { return nil })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,18 +114,18 @@ func TestLoadModelManifestAcceptsPreviousAPIVersions(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		legacyData := bytes.ReplaceAll(data, []byte(ModelManifestAPIVersion), []byte(legacy))
+		legacyData := bytes.ReplaceAll(data, []byte(contentkit.ModelManifestAPIVersion), []byte(legacy))
 		if err := os.WriteFile(path, legacyData, 0600); err != nil {
 			t.Fatal(err)
 		}
 		manifest, err := LoadModelManifest(path)
-		if err != nil || manifest.APIVersion != ModelManifestAPIVersion {
+		if err != nil || manifest.APIVersion != contentkit.ModelManifestAPIVersion {
 			t.Fatalf("%s: manifest = %+v, err = %v", legacy, manifest, err)
 		}
 	}
 	path := writeModelFixture(t, "fixture")
 	data, _ := os.ReadFile(path)
-	if err := os.WriteFile(path, bytes.ReplaceAll(data, []byte(ModelManifestAPIVersion), []byte("other.model/v1")), 0600); err != nil {
+	if err := os.WriteFile(path, bytes.ReplaceAll(data, []byte(contentkit.ModelManifestAPIVersion), []byte("other.model/v1")), 0600); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := LoadModelManifest(path); err == nil {

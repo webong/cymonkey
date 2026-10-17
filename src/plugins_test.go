@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"console/contentengine"
 	"context"
 	"encoding/json"
 	"errors"
@@ -119,17 +120,17 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := contentkit.InspectConfiguredProviderModel(context.Background(), contentkit.ProviderAdapterConfig{ID: "vision", Provider: "vision-fixture"}, contentkit.InstalledModel{
+	if err := contentengine.InspectConfiguredProviderModel(context.Background(), contentengine.ProviderAdapterConfig{ID: "vision", Provider: "vision-fixture"}, contentkit.InstalledModel{
 		Manifest: contentkit.ModelManifest{
 			APIVersion: contentkit.ModelManifestAPIVersion, Name: "fixture", Version: "1.0.0", Provider: "vision-fixture",
 			Capabilities: []string{contentkit.CapabilityTextInterpret},
 			Artifacts:    []contentkit.ModelArtifact{{Role: "weights", File: "weights.gguf", SHA256: strings.Repeat("0", 64)}},
 		},
 		Directory: t.TempDir(),
-	}, vision, contentkit.EnvironmentSecretResolver{}); err != nil {
+	}, vision, contentengine.EnvironmentSecretResolver{}); err != nil {
 		t.Fatalf("Blockade plugin model inspection before startup: %v", err)
 	}
-	backend, err := contentkit.StartConfiguredProviderAdapter(context.Background(), contentkit.ProviderAdapterConfig{ID: "vision", Provider: "vision-fixture"}, vision, contentkit.EnvironmentSecretResolver{})
+	backend, err := contentengine.StartConfiguredProviderAdapter(context.Background(), contentengine.ProviderAdapterConfig{ID: "vision", Provider: "vision-fixture"}, vision, contentengine.EnvironmentSecretResolver{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -157,7 +158,7 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 	if err := backend.Close(); err != nil {
 		t.Fatal(err)
 	}
-	contentOnly, err := contentkit.StartConfiguredProviderAdapter(context.Background(), contentkit.ProviderAdapterConfig{ID: "content", Provider: "content-fixture"}, vision, contentkit.EnvironmentSecretResolver{})
+	contentOnly, err := contentengine.StartConfiguredProviderAdapter(context.Background(), contentengine.ProviderAdapterConfig{ID: "content", Provider: "content-fixture"}, vision, contentengine.EnvironmentSecretResolver{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -271,7 +272,7 @@ func TestStandaloneOnnxProviderUsesExecutableBoundary(t *testing.T) {
 		Capabilities: []string{contentkit.CapabilityObjectDetect},
 		Artifacts:    []contentkit.ModelArtifact{{Role: "yolo", File: "detector.gguf", SHA256: strings.Repeat("0", 64)}},
 	}, Directory: t.TempDir()}
-	err = contentkit.InspectConfiguredProviderModel(context.Background(), contentkit.ProviderAdapterConfig{ID: "onnx", Provider: "onnx"}, model, registry, nil)
+	err = contentengine.InspectConfiguredProviderModel(context.Background(), contentengine.ProviderAdapterConfig{ID: "onnx", Provider: "onnx"}, model, registry, nil)
 	if kind, ok := contentkit.ProviderAdapterErrorKindOf(err); !ok || kind != contentkit.ProviderAdapterErrorInvalidRequest {
 		t.Fatalf("standalone ONNX provider inspection error = %v, kind = %q", err, kind)
 	}

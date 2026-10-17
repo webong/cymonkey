@@ -1,10 +1,11 @@
-package contentkit
+package contentengine
 
 import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"jangolova/contentkit"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -14,24 +15,24 @@ import (
 
 // fakeProvider is a minimal content provider for exercising the HTTP service.
 type fakeProvider struct {
-	observe func(context.Context, ProviderAdapterObserveRequest) (ProviderAdapterObserveResponse, error)
+	observe func(context.Context, contentkit.ProviderAdapterObserveRequest) (contentkit.ProviderAdapterObserveResponse, error)
 	ready   bool
 	detail  string
 }
 
-func (p *fakeProvider) Observe(ctx context.Context, request ProviderAdapterObserveRequest) (ProviderAdapterObserveResponse, error) {
+func (p *fakeProvider) Observe(ctx context.Context, request contentkit.ProviderAdapterObserveRequest) (contentkit.ProviderAdapterObserveResponse, error) {
 	return p.observe(ctx, request)
 }
 
-func (p *fakeProvider) Capabilities(context.Context) (ProviderAdapterCapabilities, error) {
-	return ProviderAdapterCapabilities{
-		APIVersion:   ProviderAdapterAPIVersion,
-		Capabilities: []string{CapabilityObjectDetect, CapabilityImageObserve},
+func (p *fakeProvider) Capabilities(context.Context) (contentkit.ProviderAdapterCapabilities, error) {
+	return contentkit.ProviderAdapterCapabilities{
+		APIVersion:   contentkit.ProviderAdapterAPIVersion,
+		Capabilities: []string{contentkit.CapabilityObjectDetect, contentkit.CapabilityImageObserve},
 	}, nil
 }
 
-func (p *fakeProvider) Health(context.Context) (ProviderAdapterHealth, error) {
-	return ProviderAdapterHealth{APIVersion: ProviderAdapterAPIVersion, Ready: p.ready, Detail: p.detail}, nil
+func (p *fakeProvider) Health(context.Context) (contentkit.ProviderAdapterHealth, error) {
+	return contentkit.ProviderAdapterHealth{APIVersion: contentkit.ProviderAdapterAPIVersion, Ready: p.ready, Detail: p.detail}, nil
 }
 
 func (p *fakeProvider) Close() error { return nil }
@@ -39,7 +40,7 @@ func (p *fakeProvider) Close() error { return nil }
 func startProvider(t *testing.T, config ProviderAdapterConfig, provider *fakeProvider) Engine {
 	t.Helper()
 	registry := NewProviderAdapterRegistry()
-	factory := func(context.Context, ProviderAdapterRuntime) (ProviderAdapter, error) {
+	factory := func(context.Context, contentkit.ProviderAdapterRuntime) (contentkit.ProviderAdapter, error) {
 		return provider, nil
 	}
 	if err := registry.Register(config.Provider, factory); err != nil {
@@ -54,10 +55,10 @@ func startProvider(t *testing.T, config ProviderAdapterConfig, provider *fakePro
 
 func TestProviderAdapterHTTPReportsCapabilitiesHealthAndTypedError(t *testing.T) {
 	adapter := &fakeProvider{ready: true}
-	adapter.observe = func(context.Context, ProviderAdapterObserveRequest) (ProviderAdapterObserveResponse, error) {
-		err := NewProviderAdapterError(ProviderAdapterErrorRateLimit, errors.New("quota"))
+	adapter.observe = func(context.Context, contentkit.ProviderAdapterObserveRequest) (contentkit.ProviderAdapterObserveResponse, error) {
+		err := contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorRateLimit, errors.New("quota"))
 		err.RetryAfter = 1500 * time.Millisecond
-		return ProviderAdapterObserveResponse{}, err
+		return contentkit.ProviderAdapterObserveResponse{}, err
 	}
 	engine := startProvider(t, ProviderAdapterConfig{ID: "fixture", Provider: "fixture"}, adapter)
 	defer engine.Close()
@@ -88,7 +89,7 @@ func TestProviderAdapterHTTPReportsCapabilitiesHealthAndTypedError(t *testing.T)
 	if err := json.Unmarshal(recorder.Body.Bytes(), &body); err != nil {
 		t.Fatal(err)
 	}
-	if body["kind"] != string(ProviderAdapterErrorRateLimit) {
+	if body["kind"] != string(contentkit.ProviderAdapterErrorRateLimit) {
 		t.Fatalf("body = %#v", body)
 	}
 }

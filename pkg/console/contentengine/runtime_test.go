@@ -1,4 +1,4 @@
-package contentkit
+package contentengine
 
 import (
 	"crypto/sha256"

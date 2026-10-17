@@ -1,12 +1,13 @@
-package contentkit
+package contentengine
 
 import (
 	"context"
+	"jangolova/contentkit"
 )
 
 // Engine is Blockade's runtime boundary for a started inference provider.
 type Engine interface {
-	Observe(context.Context, ObserveRequest) (ObserveResponse, error)
+	Observe(context.Context, contentkit.ObserveRequest) (contentkit.ObserveResponse, error)
 	Close() error
 }
 

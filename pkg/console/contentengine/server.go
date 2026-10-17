@@ -1,10 +1,11 @@
-package contentkit
+package contentengine
 
 import (
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"io"
+	"jangolova/contentkit"
 	"net/http"
 	"strconv"
 	"strings"
@@ -78,7 +79,7 @@ func (s *HTTPServer) capabilities(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
-	capabilities := []string{CapabilityImageObserve}
+	capabilities := []string{contentkit.CapabilityImageObserve}
 	if reporter, ok := s.engine.(EngineCapabilities); ok {
 		var err error
 		capabilities, err = reporter.Capabilities(r.Context())
@@ -87,8 +88,8 @@ func (s *HTTPServer) capabilities(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	writeJSON(w, http.StatusOK, CapabilitiesResponse{
-		APIVersion:   APIVersion,
+	writeJSON(w, http.StatusOK, contentkit.CapabilitiesResponse{
+		APIVersion:   contentkit.APIVersion,
 		Provider:     s.provider,
 		Capabilities: capabilities,
 	})
@@ -99,7 +100,7 @@ func (s *HTTPServer) observe(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
-	var request ObserveRequest
+	var request contentkit.ObserveRequest
 	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<20))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&request); err != nil {
@@ -111,7 +112,7 @@ func (s *HTTPServer) observe(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusBadRequest, "observation request must contain one JSON value")
 		return
 	}
-	if request.APIVersion != "" && request.APIVersion != APIVersion {
+	if request.APIVersion != "" && request.APIVersion != contentkit.APIVersion {
 		writeJSONError(w, http.StatusBadRequest, "unsupported apiVersion")
 		return
 	}
@@ -124,7 +125,7 @@ func (s *HTTPServer) observe(w http.ResponseWriter, r *http.Request) {
 		writeEngineError(w, err, http.StatusBadGateway)
 		return
 	}
-	if err := ValidateObserveResponse(result); err != nil {
+	if err := contentkit.ValidateObserveResponse(result); err != nil {
 		writeJSONError(w, http.StatusBadGateway, "engine returned invalid observation response")
 		return
 	}
@@ -136,7 +137,7 @@ func (s *HTTPServer) interpret(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
-	var request InterpretRequest
+	var request contentkit.InterpretRequest
 	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<20))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&request); err != nil {
@@ -149,15 +150,15 @@ func (s *HTTPServer) interpret(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if request.APIVersion == "" {
-		request.APIVersion = ContentAPIVersion
+		request.APIVersion = contentkit.ContentAPIVersion
 	}
-	if err := ValidateInterpretRequest(request); err != nil {
+	if err := contentkit.ValidateInterpretRequest(request); err != nil {
 		writeJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	engine, ok := s.engine.(ContentEngine)
+	engine, ok := s.engine.(contentkit.ContentEngine)
 	if !ok {
-		writeJSONError(w, http.StatusNotImplemented, ErrModalityUnsupported.Error())
+		writeJSONError(w, http.StatusNotImplemented, contentkit.ErrModalityUnsupported.Error())
 		return
 	}
 	result, err := engine.Interpret(r.Context(), request)
@@ -165,7 +166,7 @@ func (s *HTTPServer) interpret(w http.ResponseWriter, r *http.Request) {
 		writeEngineError(w, err, http.StatusBadGateway)
 		return
 	}
-	if err := ValidateInterpretResponse(result, request); err != nil {
+	if err := contentkit.ValidateInterpretResponse(result, request); err != nil {
 		writeJSONError(w, http.StatusBadGateway, "engine returned invalid interpretation response")
 		return
 	}
@@ -183,31 +184,31 @@ func writeJSONError(w http.ResponseWriter, status int, message string) {
 }
 
 func writeEngineError(w http.ResponseWriter, err error, fallbackStatus int) {
-	if errors.Is(err, ErrModalityUnsupported) {
+	if errors.Is(err, contentkit.ErrModalityUnsupported) {
 		writeJSONError(w, http.StatusNotImplemented, err.Error())
 		return
 	}
-	kind, ok := ProviderAdapterErrorKindOf(err)
+	kind, ok := contentkit.ProviderAdapterErrorKindOf(err)
 	if !ok {
 		writeJSONError(w, fallbackStatus, err.Error())
 		return
 	}
-	var adapterError *ProviderAdapterError
+	var adapterError *contentkit.ProviderAdapterError
 	if errors.As(err, &adapterError) && adapterError.RetryAfter > 0 {
 		seconds := (adapterError.RetryAfter + time.Second - 1) / time.Second
 		w.Header().Set("Retry-After", strconv.FormatInt(int64(seconds), 10))
 	}
 	status := fallbackStatus
 	switch kind {
-	case ProviderAdapterErrorRateLimit:
+	case contentkit.ProviderAdapterErrorRateLimit:
 		status = http.StatusTooManyRequests
-	case ProviderAdapterErrorTimeout:
+	case contentkit.ProviderAdapterErrorTimeout:
 		status = http.StatusGatewayTimeout
-	case ProviderAdapterErrorCanceled:
+	case contentkit.ProviderAdapterErrorCanceled:
 		status = http.StatusRequestTimeout
-	case ProviderAdapterErrorUnavailable:
+	case contentkit.ProviderAdapterErrorUnavailable:
 		status = http.StatusServiceUnavailable
-	case ProviderAdapterErrorInvalidRequest:
+	case contentkit.ProviderAdapterErrorInvalidRequest:
 		status = http.StatusBadRequest
 	}
 	writeJSON(w, status, map[string]string{"error": err.Error(), "kind": string(kind)})

@@ -135,7 +135,7 @@ func ValidateInterpretResponse(response InterpretResponse, request InterpretRequ
 	return nil
 }
 
-func requiredContentCapability(parts []ContentPart) string {
+func RequiredContentCapability(parts []ContentPart) string {
 	seen := map[string]bool{}
 	for _, part := range parts {
 		seen[part.Kind] = true

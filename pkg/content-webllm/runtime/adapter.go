@@ -118,11 +118,6 @@ type Adapter struct {
 	queue        chan *runtimeCall
 }
 
-// Register adds WebLLM to a Blockade provider registry.
-func Register(registry *contentkit.ProviderAdapterRegistry) error {
-	return registry.Register(Kind, New)
-}
-
 // New starts a dedicated browser-local WebLLM runtime.
 func New(ctx context.Context, providerRuntime contentkit.ProviderAdapterRuntime) (contentkit.ProviderAdapter, error) {
 	config, err := parseConfig(providerRuntime.Settings)

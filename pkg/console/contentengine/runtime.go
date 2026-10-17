@@ -1,4 +1,4 @@
-package contentkit
+package contentengine
 
 import (
 	"bytes"
@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"jangolova/contentkit"
 	"os"
 	pathpkg "path"
 	"path/filepath"
@@ -48,7 +49,7 @@ func (m RuntimeManifest) Validate() error {
 	if m.APIVersion != RuntimeManifestAPIVersion {
 		return fmt.Errorf("runtime apiVersion must be %q", RuntimeManifestAPIVersion)
 	}
-	if !modelNamePattern.MatchString(m.Name) || !modelVersionPattern.MatchString(m.Version) {
+	if !contentkit.ModelNamePattern.MatchString(m.Name) || !contentkit.ModelVersionPattern.MatchString(m.Version) {
 		return errors.New("runtime name or version is invalid")
 	}
 	if m.Platform != runtime.GOOS+"-"+runtime.GOARCH {
@@ -66,7 +67,7 @@ func (m RuntimeManifest) Validate() error {
 		if !validRuntimePath(file.Path) || seen[file.Path] {
 			return errors.New("runtime file path or uniqueness is invalid")
 		}
-		if !modelDigestPattern.MatchString(file.SHA256) {
+		if !contentkit.ModelDigestPattern.MatchString(file.SHA256) {
 			return fmt.Errorf("runtime file %q needs a lowercase SHA-256 digest", file.Path)
 		}
 		seen[file.Path] = true
@@ -344,7 +345,7 @@ func verifyRuntime(installed InstalledRuntime) error {
 }
 
 func ResolveInstalledRuntime(root, name, version string) (InstalledRuntime, error) {
-	if !modelNamePattern.MatchString(name) || !modelVersionPattern.MatchString(version) {
+	if !contentkit.ModelNamePattern.MatchString(name) || !contentkit.ModelVersionPattern.MatchString(version) {
 		return InstalledRuntime{}, errors.New("runtime reference must be a valid name and version")
 	}
 	root, err := filepath.Abs(root)
@@ -387,7 +388,7 @@ func ListInstalledRuntimes(root string) ([]InstalledRuntime, error) {
 	}
 	var installed []InstalledRuntime
 	for _, name := range names {
-		if !name.IsDir() || !modelNamePattern.MatchString(name.Name()) {
+		if !name.IsDir() || !contentkit.ModelNamePattern.MatchString(name.Name()) {
 			continue
 		}
 		versions, err := os.ReadDir(filepath.Join(root, name.Name()))
@@ -395,7 +396,7 @@ func ListInstalledRuntimes(root string) ([]InstalledRuntime, error) {
 			return nil, err
 		}
 		for _, version := range versions {
-			if !version.IsDir() || !modelVersionPattern.MatchString(version.Name()) {
+			if !version.IsDir() || !contentkit.ModelVersionPattern.MatchString(version.Name()) {
 				continue
 			}
 			item, err := ResolveInstalledRuntime(root, name.Name(), version.Name())

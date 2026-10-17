@@ -188,3 +188,11 @@ feature mapping and module ownership.
 See [Console configuration](../../docs/console.md) for the `cymy console` host
 and [feature extraction](../../docs/tachikoma-peekaboo-extraction.md) for status
 and platform limitations.
+
+## Content engine
+
+`contentengine` is the content (Blockade) engine: the adapter registry and
+configured engines, model and runtime stores, the HTTP service and client, and
+the `content.provider` plugin adapter with its admission policy. It hosts the
+content providers (`pkg/content-*`) and builds on the shared content contract in
+`lib/jangolova/contentkit`.

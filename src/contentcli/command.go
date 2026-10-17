@@ -1,6 +1,7 @@
 package contentcli
 
 import (
+	"console/contentengine"
 	"context"
 	"encoding/json"
 	"errors"
@@ -23,8 +24,8 @@ type CommandEngine struct {
 	Invocation    string
 	DefaultConfig string
 	DefaultBind   string
-	Registry      *contentkit.ProviderAdapterRegistry
-	Resolver      contentkit.SecretResolver
+	Registry      *contentengine.ProviderAdapterRegistry
+	Resolver      contentengine.SecretResolver
 	Middleware    func(http.Handler) http.Handler
 }
 
@@ -48,12 +49,12 @@ func (engine CommandEngine) Run(args []string, stdout, stderr io.Writer) error {
 	}
 	registry := engine.Registry
 	if registry == nil {
-		registry = contentkit.NewProviderAdapterRegistry()
+		registry = contentengine.NewProviderAdapterRegistry()
 	}
 	return run(args, stdout, stderr, registry, engine.Resolver, invocation, defaultConfig, defaultBind, engine.Middleware)
 }
 
-func run(args []string, stdout, stderr io.Writer, registry *contentkit.ProviderAdapterRegistry, resolver contentkit.SecretResolver, invocation, defaultConfig, defaultBind string, middleware func(http.Handler) http.Handler) error {
+func run(args []string, stdout, stderr io.Writer, registry *contentengine.ProviderAdapterRegistry, resolver contentengine.SecretResolver, invocation, defaultConfig, defaultBind string, middleware func(http.Handler) http.Handler) error {
 	if len(args) == 0 {
 		return fmt.Errorf("%s requires endpoint, model, runtime, validate, observe, interpret, or serve", invocation)
 	}
@@ -112,7 +113,7 @@ func runtimeCommand(args []string, stdout io.Writer, invocation string) error {
 		if flags.NArg() != 0 || strings.TrimSpace(*source) == "" || strings.TrimSpace(*name) == "" || strings.TrimSpace(*version) == "" || strings.TrimSpace(*executable) == "" || strings.TrimSpace(*output) == "" {
 			return fmt.Errorf("%s runtime manifest requires --source, --name, --version, --executable, and --output", invocation)
 		}
-		manifest, err := contentkit.BuildRuntimeManifest(*source, strings.TrimSpace(*name), strings.TrimSpace(*version), strings.TrimSpace(*executable))
+		manifest, err := contentengine.BuildRuntimeManifest(*source, strings.TrimSpace(*name), strings.TrimSpace(*version), strings.TrimSpace(*executable))
 		if err != nil {
 			return err
 		}
@@ -139,12 +140,12 @@ func runtimeCommand(args []string, stdout io.Writer, invocation string) error {
 		root := strings.TrimSpace(*runtimeRoot)
 		var err error
 		if root == "" {
-			root, err = contentkit.DefaultRuntimeRoot()
+			root, err = contentengine.DefaultRuntimeRoot()
 			if err != nil {
 				return err
 			}
 		}
-		installed, err := contentkit.InstallRuntime(root, *manifestPath)
+		installed, err := contentengine.InstallRuntime(root, *manifestPath)
 		if err != nil {
 			return err
 		}
@@ -162,12 +163,12 @@ func runtimeCommand(args []string, stdout io.Writer, invocation string) error {
 		root := strings.TrimSpace(*runtimeRoot)
 		var err error
 		if root == "" {
-			root, err = contentkit.DefaultRuntimeRoot()
+			root, err = contentengine.DefaultRuntimeRoot()
 			if err != nil {
 				return err
 			}
 		}
-		runtimes, err := contentkit.ListInstalledRuntimes(root)
+		runtimes, err := contentengine.ListInstalledRuntimes(root)
 		if err != nil {
 			return err
 		}
@@ -187,12 +188,12 @@ func runtimeCommand(args []string, stdout io.Writer, invocation string) error {
 		root := strings.TrimSpace(*runtimeRoot)
 		var err error
 		if root == "" {
-			root, err = contentkit.DefaultRuntimeRoot()
+			root, err = contentengine.DefaultRuntimeRoot()
 			if err != nil {
 				return err
 			}
 		}
-		if err := contentkit.RemoveInstalledRuntime(root, strings.TrimSpace(*name), strings.TrimSpace(*version)); err != nil {
+		if err := contentengine.RemoveInstalledRuntime(root, strings.TrimSpace(*name), strings.TrimSpace(*version)); err != nil {
 			return err
 		}
 		_, err = fmt.Fprintf(stdout, "removed runtime %s@%s\n", strings.TrimSpace(*name), strings.TrimSpace(*version))
@@ -202,7 +203,7 @@ func runtimeCommand(args []string, stdout io.Writer, invocation string) error {
 	}
 }
 
-func modelCommand(args []string, stdout io.Writer, registry *contentkit.ProviderAdapterRegistry, resolver contentkit.SecretResolver, invocation, defaultConfig string) error {
+func modelCommand(args []string, stdout io.Writer, registry *contentengine.ProviderAdapterRegistry, resolver contentengine.SecretResolver, invocation, defaultConfig string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("%s model requires install, list, or remove", invocation)
 	}
@@ -220,11 +221,11 @@ func modelCommand(args []string, stdout io.Writer, registry *contentkit.Provider
 		if flags.NArg() != 0 || strings.TrimSpace(*manifestPath) == "" {
 			return fmt.Errorf("%s model install requires --manifest", invocation)
 		}
-		manifest, err := contentkit.LoadModelManifest(*manifestPath)
+		manifest, err := contentengine.LoadModelManifest(*manifestPath)
 		if err != nil {
 			return err
 		}
-		config, err := contentkit.LoadConfig(*configPath)
+		config, err := contentengine.LoadConfig(*configPath)
 		if err != nil {
 			return err
 		}
@@ -234,13 +235,13 @@ func modelCommand(args []string, stdout io.Writer, registry *contentkit.Provider
 		}
 		root := strings.TrimSpace(*modelRoot)
 		if root == "" {
-			root, err = contentkit.DefaultModelRoot()
+			root, err = contentengine.DefaultModelRoot()
 			if err != nil {
 				return err
 			}
 		}
-		installed, err := contentkit.InstallModel(context.Background(), root, *manifestPath, func(ctx context.Context, model contentkit.InstalledModel) error {
-			return contentkit.InspectConfiguredProviderModel(ctx, provider, model, registry, resolver)
+		installed, err := contentengine.InstallModel(context.Background(), root, *manifestPath, func(ctx context.Context, model contentkit.InstalledModel) error {
+			return contentengine.InspectConfiguredProviderModel(ctx, provider, model, registry, resolver)
 		})
 		if err != nil {
 			return err
@@ -259,12 +260,12 @@ func modelCommand(args []string, stdout io.Writer, registry *contentkit.Provider
 		root := strings.TrimSpace(*modelRoot)
 		var err error
 		if root == "" {
-			root, err = contentkit.DefaultModelRoot()
+			root, err = contentengine.DefaultModelRoot()
 			if err != nil {
 				return err
 			}
 		}
-		models, err := contentkit.ListInstalledModels(root)
+		models, err := contentengine.ListInstalledModels(root)
 		if err != nil {
 			return err
 		}
@@ -284,12 +285,12 @@ func modelCommand(args []string, stdout io.Writer, registry *contentkit.Provider
 		root := strings.TrimSpace(*modelRoot)
 		var err error
 		if root == "" {
-			root, err = contentkit.DefaultModelRoot()
+			root, err = contentengine.DefaultModelRoot()
 			if err != nil {
 				return err
 			}
 		}
-		if err := contentkit.RemoveInstalledModel(root, strings.TrimSpace(*provider), strings.TrimSpace(*model)); err != nil {
+		if err := contentengine.RemoveInstalledModel(root, strings.TrimSpace(*provider), strings.TrimSpace(*model)); err != nil {
 			return err
 		}
 		_, err = fmt.Fprintf(stdout, "removed model %s/%s\n", strings.TrimSpace(*provider), strings.TrimSpace(*model))
@@ -299,9 +300,9 @@ func modelCommand(args []string, stdout io.Writer, registry *contentkit.Provider
 	}
 }
 
-func selectModelProvider(config contentkit.Config, providerName, id string) (contentkit.ProviderAdapterConfig, error) {
+func selectModelProvider(config contentengine.Config, providerName, id string) (contentengine.ProviderAdapterConfig, error) {
 	id = strings.TrimSpace(id)
-	var matches []contentkit.ProviderAdapterConfig
+	var matches []contentengine.ProviderAdapterConfig
 	for _, provider := range config.Providers {
 		if id != "" && provider.ID != id {
 			continue
@@ -314,15 +315,15 @@ func selectModelProvider(config contentkit.Config, providerName, id string) (con
 		return matches[0], nil
 	}
 	if id != "" {
-		return contentkit.ProviderAdapterConfig{}, fmt.Errorf("provider %q does not use model provider %q", id, providerName)
+		return contentengine.ProviderAdapterConfig{}, fmt.Errorf("provider %q does not use model provider %q", id, providerName)
 	}
 	if len(matches) == 0 {
-		return contentkit.ProviderAdapterConfig{}, fmt.Errorf("config has no provider package named %q", providerName)
+		return contentengine.ProviderAdapterConfig{}, fmt.Errorf("config has no provider package named %q", providerName)
 	}
-	return contentkit.ProviderAdapterConfig{}, fmt.Errorf("config has multiple providers using %q; select one with --provider", providerName)
+	return contentengine.ProviderAdapterConfig{}, fmt.Errorf("config has multiple providers using %q; select one with --provider", providerName)
 }
 
-func interpretCommand(args []string, stdout io.Writer, registry *contentkit.ProviderAdapterRegistry, resolver contentkit.SecretResolver, invocation, defaultConfig string) error {
+func interpretCommand(args []string, stdout io.Writer, registry *contentengine.ProviderAdapterRegistry, resolver contentengine.SecretResolver, invocation, defaultConfig string) error {
 	flags := flag.NewFlagSet(invocation+" interpret", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	configPath := flags.String("config", defaultConfig, "content YAML config")
@@ -383,7 +384,7 @@ func interpretCommand(args []string, stdout io.Writer, registry *contentkit.Prov
 	if err := contentkit.ValidateInterpretRequest(request); err != nil {
 		return err
 	}
-	config, err := contentkit.LoadConfig(*configPath)
+	config, err := contentengine.LoadConfig(*configPath)
 	if err != nil {
 		return err
 	}
@@ -391,12 +392,12 @@ func interpretCommand(args []string, stdout io.Writer, registry *contentkit.Prov
 	if err != nil {
 		return err
 	}
-	started, err := contentkit.StartConfiguredInference(context.Background(), selected, registry, resolver)
+	started, err := contentengine.StartConfiguredInference(context.Background(), selected, registry, resolver)
 	if err != nil {
 		return err
 	}
 	defer started.Close()
-	result, err := (contentkit.Client{Engine: started}).Interpret(context.Background(), request)
+	result, err := (contentengine.Client{Engine: started}).Interpret(context.Background(), request)
 	if err != nil {
 		return err
 	}
@@ -430,7 +431,7 @@ func validateCommand(args []string, stdout io.Writer, invocation, defaultConfig 
 	if flags.NArg() != 0 {
 		return fmt.Errorf("%s validate accepts flags only", invocation)
 	}
-	config, err := contentkit.LoadConfig(*configPath)
+	config, err := contentengine.LoadConfig(*configPath)
 	if err != nil {
 		return err
 	}
@@ -443,7 +444,7 @@ func validateCommand(args []string, stdout io.Writer, invocation, defaultConfig 
 	return err
 }
 
-func observeCommand(args []string, stdout io.Writer, registry *contentkit.ProviderAdapterRegistry, resolver contentkit.SecretResolver, invocation, defaultConfig string) error {
+func observeCommand(args []string, stdout io.Writer, registry *contentengine.ProviderAdapterRegistry, resolver contentengine.SecretResolver, invocation, defaultConfig string) error {
 	flags := flag.NewFlagSet(invocation+" observe", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	configPath := flags.String("config", defaultConfig, "content YAML config")
@@ -459,7 +460,7 @@ func observeCommand(args []string, stdout io.Writer, registry *contentkit.Provid
 	if strings.TrimSpace(*imagePath) == "" {
 		return errors.New("--image is required")
 	}
-	config, err := contentkit.LoadConfig(*configPath)
+	config, err := contentengine.LoadConfig(*configPath)
 	if err != nil {
 		return err
 	}
@@ -467,7 +468,7 @@ func observeCommand(args []string, stdout io.Writer, registry *contentkit.Provid
 	if err != nil {
 		return err
 	}
-	started, err := contentkit.StartConfiguredInference(context.Background(), selected, registry, resolver)
+	started, err := contentengine.StartConfiguredInference(context.Background(), selected, registry, resolver)
 	if err != nil {
 		return err
 	}
@@ -476,14 +477,14 @@ func observeCommand(args []string, stdout io.Writer, registry *contentkit.Provid
 	if err != nil {
 		return err
 	}
-	result, err := (contentkit.Client{Engine: started}).Observe(context.Background(), contentkit.ObserveRequest{Image: image, Prompt: *prompt})
+	result, err := (contentengine.Client{Engine: started}).Observe(context.Background(), contentkit.ObserveRequest{Image: image, Prompt: *prompt})
 	if err != nil {
 		return err
 	}
 	return json.NewEncoder(stdout).Encode(result)
 }
 
-func serveCommand(args []string, stderr io.Writer, registry *contentkit.ProviderAdapterRegistry, resolver contentkit.SecretResolver, invocation, defaultConfig, defaultBind string, middleware func(http.Handler) http.Handler) error {
+func serveCommand(args []string, stderr io.Writer, registry *contentengine.ProviderAdapterRegistry, resolver contentengine.SecretResolver, invocation, defaultConfig, defaultBind string, middleware func(http.Handler) http.Handler) error {
 	flags := flag.NewFlagSet(invocation+" serve", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	configPath := flags.String("config", defaultConfig, "content YAML config")
@@ -505,7 +506,7 @@ func serveCommand(args []string, stderr io.Writer, registry *contentkit.Provider
 	if !loopbackHost(bindHost) && (strings.TrimSpace(*tokenEnvironment) == "" || *tlsCertificate == "" || *tlsKey == "") {
 		return errors.New("non-loopback content service requires --token-env, --tls-cert, and --tls-key")
 	}
-	config, err := contentkit.LoadConfig(*configPath)
+	config, err := contentengine.LoadConfig(*configPath)
 	if err != nil {
 		return err
 	}
@@ -515,12 +516,12 @@ func serveCommand(args []string, stderr io.Writer, registry *contentkit.Provider
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	engine, err := contentkit.StartConfiguredInference(ctx, selected, registry, resolver)
+	engine, err := contentengine.StartConfiguredInference(ctx, selected, registry, resolver)
 	if err != nil {
 		return err
 	}
 	defer engine.Close()
-	service, err := contentkit.NewHTTPServer(engine, selected.ID)
+	service, err := contentengine.NewHTTPServer(engine, selected.ID)
 	if err != nil {
 		return err
 	}
@@ -533,7 +534,7 @@ func serveCommand(args []string, stderr io.Writer, registry *contentkit.Provider
 		if !ok || strings.TrimSpace(token) == "" {
 			return fmt.Errorf("content bearer token environment variable %q is not set", name)
 		}
-		handler = contentkit.RequireBearerToken(handler, token)
+		handler = contentengine.RequireBearerToken(handler, token)
 	}
 	if (*tlsCertificate == "") != (*tlsKey == "") {
 		return fmt.Errorf("%s serve requires --tls-cert and --tls-key together", invocation)
@@ -562,18 +563,18 @@ func serveCommand(args []string, stderr io.Writer, registry *contentkit.Provider
 	return nil
 }
 
-func selectProvider(config contentkit.Config, inferenceID string) (contentkit.ProviderAdapterConfig, error) {
+func selectProvider(config contentengine.Config, inferenceID string) (contentengine.ProviderAdapterConfig, error) {
 	inferenceID = strings.TrimSpace(inferenceID)
 	if inferenceID == "" {
 		selected, ok := config.DefaultProvider()
 		if !ok {
-			return contentkit.ProviderAdapterConfig{}, errors.New("content config has no adapter")
+			return contentengine.ProviderAdapterConfig{}, errors.New("content config has no adapter")
 		}
 		return selected, nil
 	}
 	selected, ok := config.Provider(inferenceID)
 	if !ok {
-		return contentkit.ProviderAdapterConfig{}, fmt.Errorf("content adapter %q is not configured", inferenceID)
+		return contentengine.ProviderAdapterConfig{}, fmt.Errorf("content adapter %q is not configured", inferenceID)
 	}
 	return selected, nil
 }

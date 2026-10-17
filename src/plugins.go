@@ -1,6 +1,8 @@
 package main
 
 import (
+	"console/contentengine"
+	contentplugin "console/contentengine/plugin"
 	"context"
 	"encoding/json"
 	"errors"
@@ -8,8 +10,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"jangolova/contentkit"
-	contentplugin "jangolova/contentkit/plugin"
 	"os"
 	"path/filepath"
 	"sort"
@@ -213,12 +213,12 @@ func keyboardPluginProvider(pid int) (devicekit.Provider, error) {
 	return nil, errors.New("no installed device plugin serves the macOS keyboard; install the board provider (pkg/board/cmd/provider)")
 }
 
-func contentPluginRegistry() (*contentkit.ProviderAdapterRegistry, error) {
+func contentPluginRegistry() (*contentengine.ProviderAdapterRegistry, error) {
 	installed, err := installedPlugins()
 	if err != nil {
 		return nil, err
 	}
-	registry := contentkit.NewProviderAdapterRegistry()
+	registry := contentengine.NewProviderAdapterRegistry()
 	runtimeRoot, err := defaultContentRuntimeRoot()
 	if err != nil {
 		return nil, err

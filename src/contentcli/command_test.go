@@ -2,6 +2,7 @@ package contentcli
 
 import (
 	"bytes"
+	"console/contentengine"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -19,13 +20,13 @@ type cliProviderAdapter struct {
 	inspected *contentkit.InstalledModel
 }
 
-func RunWithProviderAdapters(args []string, stdout, stderr io.Writer, registry *contentkit.ProviderAdapterRegistry, resolver contentkit.SecretResolver) error {
+func RunWithProviderAdapters(args []string, stdout, stderr io.Writer, registry *contentengine.ProviderAdapterRegistry, resolver contentengine.SecretResolver) error {
 	return (CommandEngine{Invocation: "cymy content", Registry: registry, Resolver: resolver}).Run(args, stdout, stderr)
 }
 
 func TestCommandEngineUsesHostInvocation(t *testing.T) {
 	var output bytes.Buffer
-	if err := (CommandEngine{Invocation: "host content", Registry: contentkit.NewProviderAdapterRegistry()}).Run([]string{"help"}, io.Discard, &output); err != nil {
+	if err := (CommandEngine{Invocation: "host content", Registry: contentengine.NewProviderAdapterRegistry()}).Run([]string{"help"}, io.Discard, &output); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(output.String(), "Usage: host content <command>") {
@@ -78,7 +79,7 @@ func TestObserveCommandUsesConfiguredProviderAdapter(t *testing.T) {
 	}
 
 	adapter := &cliProviderAdapter{}
-	registry := contentkit.NewProviderAdapterRegistry()
+	registry := contentengine.NewProviderAdapterRegistry()
 	if err := registry.Register("fixture", func(context.Context, contentkit.ProviderAdapterRuntime) (contentkit.ProviderAdapter, error) {
 		return adapter, nil
 	}); err != nil {
@@ -87,7 +88,7 @@ func TestObserveCommandUsesConfiguredProviderAdapter(t *testing.T) {
 	var stdout bytes.Buffer
 	if err := RunWithProviderAdapters([]string{
 		"observe", "--config", configPath, "--inference", "hosted-fixture", "--image", imagePath, "--prompt", "describe",
-	}, &stdout, &bytes.Buffer{}, registry, contentkit.EnvironmentSecretResolver{}); err != nil {
+	}, &stdout, &bytes.Buffer{}, registry, contentengine.EnvironmentSecretResolver{}); err != nil {
 		t.Fatal(err)
 	}
 	var response contentkit.ObserveResponse
@@ -103,7 +104,7 @@ func TestObserveCommandUsesConfiguredProviderAdapter(t *testing.T) {
 }
 
 func TestSelectProviderByID(t *testing.T) {
-	config := contentkit.Config{APIVersion: contentkit.ConfigAPIVersion, Providers: []contentkit.ProviderAdapterConfig{{ID: "fixture", Provider: "fixture"}}}
+	config := contentengine.Config{APIVersion: contentengine.ConfigAPIVersion, Providers: []contentengine.ProviderAdapterConfig{{ID: "fixture", Provider: "fixture"}}}
 	selected, err := selectProvider(config, "fixture")
 	if err != nil || selected.ID != "fixture" {
 		t.Fatalf("selected = %#v, err = %v", selected, err)
@@ -139,7 +140,7 @@ func TestModelInstallUsesProviderInspectionAndStartsWithInstalledModel(t *testin
 	adapter := &cliProviderAdapter{}
 	var runtime contentkit.ProviderAdapterRuntime
 	startCalls := 0
-	registry := contentkit.NewProviderAdapterRegistry()
+	registry := contentengine.NewProviderAdapterRegistry()
 	if err := registry.RegisterWithModelInspector("fixture", func(_ context.Context, value contentkit.ProviderAdapterRuntime) (contentkit.ProviderAdapter, error) {
 		startCalls++
 		runtime = value
@@ -160,7 +161,7 @@ func TestModelInstallUsesProviderInspectionAndStartsWithInstalledModel(t *testin
 	if startCalls != 0 {
 		t.Fatalf("model inspection started the inference provider %d time(s)", startCalls)
 	}
-	engine, err := contentkit.StartConfiguredProviderAdapter(context.Background(), contentkit.ProviderAdapterConfig{
+	engine, err := contentengine.StartConfiguredProviderAdapter(context.Background(), contentengine.ProviderAdapterConfig{
 		ID: "fixture", Provider: "fixture", Model: "fixture-model@1.0.0", ModelRoot: modelRoot,
 	}, registry, nil)
 	if err != nil {
@@ -202,7 +203,7 @@ func TestRuntimeManifestInstallListAndRemove(t *testing.T) {
 	}
 	manifestPath := filepath.Join(source, "runtime.json")
 	runtimeRoot := filepath.Join(dir, "installed")
-	registry := contentkit.NewProviderAdapterRegistry()
+	registry := contentengine.NewProviderAdapterRegistry()
 	var output bytes.Buffer
 	if err := RunWithProviderAdapters([]string{
 		"runtime", "manifest", "--source", source, "--name", "python", "--version", "3.12.8",
@@ -210,7 +211,7 @@ func TestRuntimeManifestInstallListAndRemove(t *testing.T) {
 	}, &output, &bytes.Buffer{}, registry, nil); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := contentkit.LoadRuntimeManifest(manifestPath); err != nil {
+	if _, err := contentengine.LoadRuntimeManifest(manifestPath); err != nil {
 		t.Fatal(err)
 	}
 	output.Reset()
@@ -228,7 +229,7 @@ func TestRuntimeManifestInstallListAndRemove(t *testing.T) {
 	if err := RunWithProviderAdapters([]string{"runtime", "remove", "--name", "python", "--version", "3.12.8", "--root", runtimeRoot}, &output, &bytes.Buffer{}, registry, nil); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := contentkit.ResolveInstalledRuntime(runtimeRoot, "python", "3.12.8"); !os.IsNotExist(err) {
+	if _, err := contentengine.ResolveInstalledRuntime(runtimeRoot, "python", "3.12.8"); !os.IsNotExist(err) {
 		t.Fatalf("removed runtime resolution = %v", err)
 	}
 }
@@ -274,7 +275,7 @@ func TestInterpretCommandPassesTextAndAudioToProvider(t *testing.T) {
 		t.Fatal(err)
 	}
 	adapter := &cliContentAdapter{}
-	registry := contentkit.NewProviderAdapterRegistry()
+	registry := contentengine.NewProviderAdapterRegistry()
 	if err := registry.Register("fixture", func(context.Context, contentkit.ProviderAdapterRuntime) (contentkit.ProviderAdapter, error) {
 		return adapter, nil
 	}); err != nil {
@@ -304,7 +305,7 @@ func TestInterpretCommandPassesVideoToProvider(t *testing.T) {
 		t.Fatal(err)
 	}
 	adapter := &cliContentAdapter{}
-	registry := contentkit.NewProviderAdapterRegistry()
+	registry := contentengine.NewProviderAdapterRegistry()
 	if err := registry.Register("fixture", func(context.Context, contentkit.ProviderAdapterRuntime) (contentkit.ProviderAdapter, error) {
 		return adapter, nil
 	}); err != nil {
@@ -324,7 +325,7 @@ func TestEndpointAddTestListAndRemove(t *testing.T) {
 	configPath := filepath.Join(directory, "blockade.yaml")
 	t.Setenv("CYMONKEY_CONTENT_CONFIG", configPath)
 	adapter := &cliContentAdapter{}
-	registry := contentkit.NewProviderAdapterRegistry()
+	registry := contentengine.NewProviderAdapterRegistry()
 	if err := registry.Register("fixture", func(context.Context, contentkit.ProviderAdapterRuntime) (contentkit.ProviderAdapter, error) {
 		return adapter, nil
 	}); err != nil {
@@ -336,7 +337,7 @@ func TestEndpointAddTestListAndRemove(t *testing.T) {
 	}, &output, io.Discard, registry, nil); err != nil {
 		t.Fatal(err)
 	}
-	config, err := contentkit.LoadConfig(configPath)
+	config, err := contentengine.LoadConfig(configPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -367,13 +368,13 @@ func TestEndpointAddTestListAndRemove(t *testing.T) {
 
 func TestEndpointProfileCreatesCompatibleProviderConfig(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "blockade.yaml")
-	registry := contentkit.NewProviderAdapterRegistry()
+	registry := contentengine.NewProviderAdapterRegistry()
 	if err := RunWithProviderAdapters([]string{
 		"endpoint", "add", "--config", configPath, "--id", "ollama", "--profile", "ollama", "--model", "qwen3-vl", "--url", "http://127.0.0.1:11434/v1",
 	}, io.Discard, io.Discard, registry, nil); err != nil {
 		t.Fatal(err)
 	}
-	config, err := contentkit.LoadConfig(configPath)
+	config, err := contentengine.LoadConfig(configPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -384,7 +385,7 @@ func TestEndpointProfileCreatesCompatibleProviderConfig(t *testing.T) {
 }
 
 func TestServeRequiresAuthenticationAndTLSOutsideLoopback(t *testing.T) {
-	registry := contentkit.NewProviderAdapterRegistry()
+	registry := contentengine.NewProviderAdapterRegistry()
 	err := RunWithProviderAdapters([]string{"serve", "--bind", "0.0.0.0:8091", "--config", filepath.Join(t.TempDir(), "missing.yaml")}, io.Discard, io.Discard, registry, nil)
 	if err == nil || !strings.Contains(err.Error(), "non-loopback") {
 		t.Fatalf("serve error = %v", err)

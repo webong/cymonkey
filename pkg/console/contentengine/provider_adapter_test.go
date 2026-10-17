@@ -1,9 +1,10 @@
-package contentkit
+package contentengine
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"jangolova/contentkit"
 	"strings"
 	"sync"
 	"testing"
@@ -12,16 +13,16 @@ import (
 
 type fakeProviderAdapter struct {
 	mu              sync.Mutex
-	request         ProviderAdapterObserveRequest
-	observe         func(context.Context, ProviderAdapterObserveRequest) (ProviderAdapterObserveResponse, error)
-	capabilities    ProviderAdapterCapabilities
+	request         contentkit.ProviderAdapterObserveRequest
+	observe         func(context.Context, contentkit.ProviderAdapterObserveRequest) (contentkit.ProviderAdapterObserveResponse, error)
+	capabilities    contentkit.ProviderAdapterCapabilities
 	capabilitiesErr error
-	health          ProviderAdapterHealth
+	health          contentkit.ProviderAdapterHealth
 	healthErr       error
 	closeCount      int
 }
 
-func (a *fakeProviderAdapter) Observe(ctx context.Context, request ProviderAdapterObserveRequest) (ProviderAdapterObserveResponse, error) {
+func (a *fakeProviderAdapter) Observe(ctx context.Context, request contentkit.ProviderAdapterObserveRequest) (contentkit.ProviderAdapterObserveResponse, error) {
 	a.mu.Lock()
 	a.request = request
 	a.mu.Unlock()
@@ -31,11 +32,11 @@ func (a *fakeProviderAdapter) Observe(ctx context.Context, request ProviderAdapt
 	return validFakeProviderResponse(request), nil
 }
 
-func (a *fakeProviderAdapter) Capabilities(context.Context) (ProviderAdapterCapabilities, error) {
+func (a *fakeProviderAdapter) Capabilities(context.Context) (contentkit.ProviderAdapterCapabilities, error) {
 	return a.capabilities, a.capabilitiesErr
 }
 
-func (a *fakeProviderAdapter) Health(context.Context) (ProviderAdapterHealth, error) {
+func (a *fakeProviderAdapter) Health(context.Context) (contentkit.ProviderAdapterHealth, error) {
 	return a.health, a.healthErr
 }
 
@@ -46,15 +47,15 @@ func (a *fakeProviderAdapter) Close() error {
 	return nil
 }
 
-func validFakeProviderResponse(request ProviderAdapterObserveRequest) ProviderAdapterObserveResponse {
-	return ProviderAdapterObserveResponse{
-		APIVersion: ProviderAdapterAPIVersion,
-		Response: ObserveResponse{
-			APIVersion: APIVersion,
+func validFakeProviderResponse(request contentkit.ProviderAdapterObserveRequest) contentkit.ProviderAdapterObserveResponse {
+	return contentkit.ProviderAdapterObserveResponse{
+		APIVersion: contentkit.ProviderAdapterAPIVersion,
+		Response: contentkit.ObserveResponse{
+			APIVersion: contentkit.APIVersion,
 			RequestID:  request.Request.RequestID,
-			Observations: []Observation{{
+			Observations: []contentkit.Observation{{
 				Kind: "object", Label: "fixture", Confidence: 0.9,
-				Region:   Region{X: 1, Y: 2, Width: 3, Height: 4},
+				Region:   contentkit.Region{X: 1, Y: 2, Width: 3, Height: 4},
 				Evidence: "fixture:model",
 			}},
 		},
@@ -63,19 +64,21 @@ func validFakeProviderResponse(request ProviderAdapterObserveRequest) ProviderAd
 
 func readyFakeProvider() *fakeProviderAdapter {
 	return &fakeProviderAdapter{
-		capabilities: ProviderAdapterCapabilities{
-			APIVersion:   ProviderAdapterAPIVersion,
-			Capabilities: []string{CapabilityObjectDetect, CapabilityImageObserve},
+		capabilities: contentkit.ProviderAdapterCapabilities{
+			APIVersion:   contentkit.ProviderAdapterAPIVersion,
+			Capabilities: []string{contentkit.CapabilityObjectDetect, contentkit.CapabilityImageObserve},
 		},
-		health: ProviderAdapterHealth{APIVersion: ProviderAdapterAPIVersion, Ready: true},
+		health: contentkit.ProviderAdapterHealth{APIVersion: contentkit.ProviderAdapterAPIVersion, Ready: true},
 	}
 }
 
-func startFakeProvider(t *testing.T, config ProviderAdapterConfig, adapter *fakeProviderAdapter, factory func(context.Context, ProviderAdapterRuntime) (ProviderAdapter, error)) Engine {
+func startFakeProvider(t *testing.T, config ProviderAdapterConfig, adapter *fakeProviderAdapter, factory func(context.Context, contentkit.ProviderAdapterRuntime) (contentkit.ProviderAdapter, error)) Engine {
 	t.Helper()
 	registry := NewProviderAdapterRegistry()
 	if factory == nil {
-		factory = func(context.Context, ProviderAdapterRuntime) (ProviderAdapter, error) { return adapter, nil }
+		factory = func(context.Context, contentkit.ProviderAdapterRuntime) (contentkit.ProviderAdapter, error) {
+			return adapter, nil
+		}
 	}
 	if err := registry.Register(config.Provider, factory); err != nil {
 		t.Fatal(err)
@@ -97,7 +100,7 @@ func TestProviderAdapterEndToEnd(t *testing.T) {
 		Secrets:  map[string]SecretReference{"apiToken": {Env: "BLOCKADE_FIXTURE_TOKEN"}},
 	}
 	var resolvedSecret, configuredModel string
-	engine := startFakeProvider(t, config, adapter, func(ctx context.Context, runtime ProviderAdapterRuntime) (ProviderAdapter, error) {
+	engine := startFakeProvider(t, config, adapter, func(ctx context.Context, runtime contentkit.ProviderAdapterRuntime) (contentkit.ProviderAdapter, error) {
 		var err error
 		resolvedSecret, err = runtime.Secrets.Resolve(ctx, "apiToken")
 		configuredModel = runtime.Settings["model"]
@@ -105,12 +108,12 @@ func TestProviderAdapterEndToEnd(t *testing.T) {
 	})
 	defer engine.Close()
 
-	request := ObserveRequest{RequestID: "request-1", Image: []byte("original-image"), Prompt: "find the control"}
+	request := contentkit.ObserveRequest{RequestID: "request-1", Image: []byte("original-image"), Prompt: "find the control"}
 	result, err := engine.Observe(context.Background(), request)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := ValidateObserveResponse(result); err != nil {
+	if err := contentkit.ValidateObserveResponse(result); err != nil {
 		t.Fatal(err)
 	}
 	if resolvedSecret != secretValue || configuredModel != "fixture-v1" {
@@ -119,7 +122,7 @@ func TestProviderAdapterEndToEnd(t *testing.T) {
 	adapter.mu.Lock()
 	captured := adapter.request
 	adapter.mu.Unlock()
-	if captured.APIVersion != ProviderAdapterAPIVersion || captured.Request.APIVersion != APIVersion {
+	if captured.APIVersion != contentkit.ProviderAdapterAPIVersion || captured.Request.APIVersion != contentkit.APIVersion {
 		t.Fatalf("adapter envelope = %#v", captured)
 	}
 	if captured.Request.RequestID != request.RequestID || captured.Request.Prompt != request.Prompt || string(captured.Request.Image) != string(request.Image) {
@@ -131,7 +134,7 @@ func TestProviderAdapterEndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantCapabilities := []string{CapabilityImageObserve, CapabilityObjectDetect}
+	wantCapabilities := []string{contentkit.CapabilityImageObserve, contentkit.CapabilityObjectDetect}
 	if fmt.Sprint(capabilities) != fmt.Sprint(wantCapabilities) {
 		t.Fatalf("capabilities = %v, want %v", capabilities, wantCapabilities)
 	}
@@ -152,20 +155,20 @@ func TestProviderAdapterEndToEnd(t *testing.T) {
 }
 
 func TestProviderAdapterTypedFailures(t *testing.T) {
-	for _, kind := range []ProviderAdapterErrorKind{
-		ProviderAdapterErrorAuthentication,
-		ProviderAdapterErrorRateLimit,
-		ProviderAdapterErrorUnavailable,
+	for _, kind := range []contentkit.ProviderAdapterErrorKind{
+		contentkit.ProviderAdapterErrorAuthentication,
+		contentkit.ProviderAdapterErrorRateLimit,
+		contentkit.ProviderAdapterErrorUnavailable,
 	} {
 		t.Run(string(kind), func(t *testing.T) {
 			adapter := readyFakeProvider()
-			adapter.observe = func(context.Context, ProviderAdapterObserveRequest) (ProviderAdapterObserveResponse, error) {
-				return ProviderAdapterObserveResponse{}, NewProviderAdapterError(kind, errors.New("provider detail"))
+			adapter.observe = func(context.Context, contentkit.ProviderAdapterObserveRequest) (contentkit.ProviderAdapterObserveResponse, error) {
+				return contentkit.ProviderAdapterObserveResponse{}, contentkit.NewProviderAdapterError(kind, errors.New("provider detail"))
 			}
 			engine := startFakeProvider(t, ProviderAdapterConfig{ID: "fixture", Provider: "fixture"}, adapter, nil)
 			defer engine.Close()
-			_, err := engine.Observe(context.Background(), ObserveRequest{RequestID: "request-1", Image: []byte("image")})
-			if got, ok := ProviderAdapterErrorKindOf(err); !ok || got != kind {
+			_, err := engine.Observe(context.Background(), contentkit.ObserveRequest{RequestID: "request-1", Image: []byte("image")})
+			if got, ok := contentkit.ProviderAdapterErrorKindOf(err); !ok || got != kind {
 				t.Fatalf("error = %v, kind = %q", err, got)
 			}
 		})
@@ -175,9 +178,9 @@ func TestProviderAdapterTypedFailures(t *testing.T) {
 func TestProviderAdapterTimeoutAndCancellation(t *testing.T) {
 	blockingAdapter := func() *fakeProviderAdapter {
 		adapter := readyFakeProvider()
-		adapter.observe = func(ctx context.Context, _ ProviderAdapterObserveRequest) (ProviderAdapterObserveResponse, error) {
+		adapter.observe = func(ctx context.Context, _ contentkit.ProviderAdapterObserveRequest) (contentkit.ProviderAdapterObserveResponse, error) {
 			<-ctx.Done()
-			return ProviderAdapterObserveResponse{}, ctx.Err()
+			return contentkit.ProviderAdapterObserveResponse{}, ctx.Err()
 		}
 		return adapter
 	}
@@ -185,8 +188,8 @@ func TestProviderAdapterTimeoutAndCancellation(t *testing.T) {
 	t.Run("timeout", func(t *testing.T) {
 		engine := startFakeProvider(t, ProviderAdapterConfig{ID: "fixture", Provider: "fixture", Timeout: "10ms"}, blockingAdapter(), nil)
 		defer engine.Close()
-		_, err := engine.Observe(context.Background(), ObserveRequest{Image: []byte("image")})
-		if kind, ok := ProviderAdapterErrorKindOf(err); !ok || kind != ProviderAdapterErrorTimeout {
+		_, err := engine.Observe(context.Background(), contentkit.ObserveRequest{Image: []byte("image")})
+		if kind, ok := contentkit.ProviderAdapterErrorKindOf(err); !ok || kind != contentkit.ProviderAdapterErrorTimeout {
 			t.Fatalf("error = %v, kind = %q", err, kind)
 		}
 	})
@@ -196,8 +199,8 @@ func TestProviderAdapterTimeoutAndCancellation(t *testing.T) {
 		defer engine.Close()
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
-		_, err := engine.Observe(ctx, ObserveRequest{Image: []byte("image")})
-		if kind, ok := ProviderAdapterErrorKindOf(err); !ok || kind != ProviderAdapterErrorCanceled {
+		_, err := engine.Observe(ctx, contentkit.ObserveRequest{Image: []byte("image")})
+		if kind, ok := contentkit.ProviderAdapterErrorKindOf(err); !ok || kind != contentkit.ProviderAdapterErrorCanceled {
 			t.Fatalf("error = %v, kind = %q", err, kind)
 		}
 	})
@@ -207,23 +210,23 @@ func TestProviderAdapterRejectsInvalidPayloadAndResponse(t *testing.T) {
 	t.Run("payload", func(t *testing.T) {
 		engine := startFakeProvider(t, ProviderAdapterConfig{ID: "fixture", Provider: "fixture", MaxPayloadBytes: 4}, readyFakeProvider(), nil)
 		defer engine.Close()
-		_, err := engine.Observe(context.Background(), ObserveRequest{Image: []byte("12"), Prompt: "345"})
-		if kind, ok := ProviderAdapterErrorKindOf(err); !ok || kind != ProviderAdapterErrorInvalidRequest {
+		_, err := engine.Observe(context.Background(), contentkit.ObserveRequest{Image: []byte("12"), Prompt: "345"})
+		if kind, ok := contentkit.ProviderAdapterErrorKindOf(err); !ok || kind != contentkit.ProviderAdapterErrorInvalidRequest {
 			t.Fatalf("error = %v, kind = %q", err, kind)
 		}
 	})
 
 	t.Run("response", func(t *testing.T) {
 		adapter := readyFakeProvider()
-		adapter.observe = func(_ context.Context, request ProviderAdapterObserveRequest) (ProviderAdapterObserveResponse, error) {
+		adapter.observe = func(_ context.Context, request contentkit.ProviderAdapterObserveRequest) (contentkit.ProviderAdapterObserveResponse, error) {
 			result := validFakeProviderResponse(request)
 			result.Response.Observations[0].Confidence = 2
 			return result, nil
 		}
 		engine := startFakeProvider(t, ProviderAdapterConfig{ID: "fixture", Provider: "fixture"}, adapter, nil)
 		defer engine.Close()
-		_, err := engine.Observe(context.Background(), ObserveRequest{RequestID: "request-1", Image: []byte("image")})
-		if kind, ok := ProviderAdapterErrorKindOf(err); !ok || kind != ProviderAdapterErrorInvalidResponse {
+		_, err := engine.Observe(context.Background(), contentkit.ObserveRequest{RequestID: "request-1", Image: []byte("image")})
+		if kind, ok := contentkit.ProviderAdapterErrorKindOf(err); !ok || kind != contentkit.ProviderAdapterErrorInvalidResponse {
 			t.Fatalf("error = %v, kind = %q", err, kind)
 		}
 	})
@@ -237,12 +240,12 @@ func TestProviderAdapterSecretDoesNotAppearInError(t *testing.T) {
 		Secrets: map[string]SecretReference{"apiToken": {Env: "BLOCKADE_FIXTURE_TOKEN"}},
 	}
 	registry := NewProviderAdapterRegistry()
-	if err := registry.Register("fixture", func(ctx context.Context, runtime ProviderAdapterRuntime) (ProviderAdapter, error) {
+	if err := registry.Register("fixture", func(ctx context.Context, runtime contentkit.ProviderAdapterRuntime) (contentkit.ProviderAdapter, error) {
 		secret, err := runtime.Secrets.Resolve(ctx, "apiToken")
 		if err != nil {
 			return nil, err
 		}
-		return nil, NewProviderAdapterError(ProviderAdapterErrorAuthentication, fmt.Errorf("provider rejected %s", secret))
+		return nil, contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorAuthentication, fmt.Errorf("provider rejected %s", secret))
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -250,7 +253,7 @@ func TestProviderAdapterSecretDoesNotAppearInError(t *testing.T) {
 	if err == nil || strings.Contains(err.Error(), secretValue) {
 		t.Fatalf("unsafe error = %v", err)
 	}
-	if kind, ok := ProviderAdapterErrorKindOf(err); !ok || kind != ProviderAdapterErrorAuthentication {
+	if kind, ok := contentkit.ProviderAdapterErrorKindOf(err); !ok || kind != contentkit.ProviderAdapterErrorAuthentication {
 		t.Fatalf("error = %v, kind = %q", err, kind)
 	}
 }
