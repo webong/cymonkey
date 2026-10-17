@@ -2,8 +2,8 @@
 
 ## Implemented boundary
 
-The integration at `lib/jangolova` now uses the public wire contract in
-`lib/jangolova/contract` and public host/module types in `lib/jangolova/sdk`.
+The integration at `pkg/jangolova` now uses the public wire contract in
+`pkg/jangolova/contract` and public host/module types in `pkg/jangolova/sdk`.
 Its production dependency graph contains no private Cymonkey packages.
 The old private wire files were moved to the public contract package; the wire
 identifier remains `cymonkey/v1alpha1` for compatibility.
@@ -79,7 +79,7 @@ See [reproduction instructions](../tests/blender-cymonkey-fixture/README.md).
 Passed focused race checks:
 
 ```sh
-go test -race ./lib/jangolova ./lib/jangolova/... \
+go test -race ./pkg/jangolova ./pkg/jangolova/... \
   ./src ./src/internal/engineprovider \
   ./src/internal/provider ./pkg/lens-studio
 ```

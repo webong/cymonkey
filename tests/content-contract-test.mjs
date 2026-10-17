@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const observation = JSON.parse(await readFile(new URL("../lib/blockade/protocol/v1alpha1/observation.schema.json", import.meta.url), "utf8"));
-const content = JSON.parse(await readFile(new URL("../lib/blockade/protocol/v1alpha1/content-request.schema.json", import.meta.url), "utf8"));
-const providerSchema = JSON.parse(await readFile(new URL("../lib/blockade/protocol/v1alpha1/provider-adapter.schema.json", import.meta.url), "utf8"));
+const observation = JSON.parse(await readFile(new URL("../pkg/blockade/protocol/v1alpha1/observation.schema.json", import.meta.url), "utf8"));
+const content = JSON.parse(await readFile(new URL("../pkg/blockade/protocol/v1alpha1/content-request.schema.json", import.meta.url), "utf8"));
+const providerSchema = JSON.parse(await readFile(new URL("../pkg/blockade/protocol/v1alpha1/provider-adapter.schema.json", import.meta.url), "utf8"));
 const onnx = await readFile(new URL("../pkg/content-onnx/main.go", import.meta.url), "utf8");
 const ultralytics = await readFile(new URL("../pkg/content-ultralytics/python/provider.py", import.meta.url), "utf8");
 const webllm = await readFile(new URL("../pkg/content-webllm/main.go", import.meta.url), "utf8");

@@ -12,15 +12,15 @@ require (
 	jangolova v0.0.0
 )
 
-replace blockade => ./lib/blockade
+replace blockade => ./pkg/blockade
 
-replace console => ./lib/console
+replace console => ./pkg/console
 
 replace cymonkey-content-plugin-endpoints => ./pkg/content-endpoints
 
-replace board => ./lib/board
+replace board => ./pkg/board
 
-replace jangolova => ./lib/jangolova
+replace jangolova => ./pkg/jangolova
 
 require (
 	github.com/google/uuid v1.6.0 // indirect

@@ -17,7 +17,7 @@ schemas and provider limits still apply after envelope validation.
 Run from the repository root, with Go dependencies already available:
 
 ```sh
-(cd lib/board && GOWORK=off go test -race ./...)
+(cd pkg/board && GOWORK=off go test -race ./...)
 GOWORK=off go test -race ./src -run 'TestOperatorDevice|TestDeviceCommandUsesPublicCLI'
 ```
 

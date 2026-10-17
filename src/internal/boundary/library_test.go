@@ -99,7 +99,7 @@ func TestInternalLibrariesDoNotShipCommands(t *testing.T) {
 	}
 	root := filepath.Clean(filepath.Join(filepath.Dir(current), "..", "..", ".."))
 	for _, name := range []string{"jangolova", "blockade", "board"} {
-		library := filepath.Join(root, "lib", name)
+		library := filepath.Join(root, "pkg", name)
 		for _, commandDirectory := range []string{"cli", "cmd"} {
 			if _, err := os.Stat(filepath.Join(library, commandDirectory)); err == nil {
 				t.Errorf("internal library %s owns a %s command directory", name, commandDirectory)

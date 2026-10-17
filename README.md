@@ -87,7 +87,7 @@ audit events, reviewed packages, and caller-supplied target connections.
 
 ## Documentation
 
-- [Console tool composition library](lib/console/README.md)
+- [Console tool composition library](pkg/console/README.md)
 - [Display interaction](docs/engine-provider.md)
 - [Content observation and interpretation](docs/content.md)
 - [Device input and output](docs/device-sessions.md)

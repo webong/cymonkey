@@ -2,7 +2,7 @@
 
 The reusable features from [Tachikoma](https://github.com/openclaw/Tachikoma)
 are assigned to the libraries that own their contracts. Console lives in
-`lib/console` and provides composition for humans and agents.
+`pkg/console` and provides composition for humans and agents.
 
 | Feature | Cymonkey SDK ownership |
 | --- | --- |
@@ -39,16 +39,16 @@ Console provides no autonomous multi-step loop, planner, memory store, automatic
 retry, background tool execution, process launcher, or session manager. Caller
 applications may build those behaviors upon the primitives if desired.
 
-The [runnable handoff example](../lib/console/examples/handoff/README.md)
+The [runnable handoff example](../pkg/console/examples/handoff/README.md)
 demonstrates inspection, explicit invocation, rejection, and direct human use
 with a scripted local generator. No remote model or device is needed.
 
 ## Embedding surfaces
 
-- [`lib/blockade`](../lib/blockade/README.md): neutral contracts and model bindings.
-- [`lib/console`](../lib/console/README.md): tool composition, SDK bindings, MCP.
-- [`lib/board`](../lib/board/README.md): existing device providers and audio channels.
-- [`lib/jangolova`](../lib/jangolova/README.md): existing semantic interaction SDK.
+- [`pkg/blockade`](../pkg/blockade/README.md): neutral contracts and model bindings.
+- [`pkg/console`](../pkg/console/README.md): tool composition, SDK bindings, MCP.
+- [`pkg/board`](../pkg/board/README.md): existing device providers and audio channels.
+- [`pkg/jangolova`](../pkg/jangolova/README.md): existing semantic interaction SDK.
 - [`pkg/content-endpoints/generation`](../pkg/content-endpoints/generation/README.md): optional HTTP API dialects.
 - [`pkg/content-endpoints/realtime`](../pkg/content-endpoints/realtime/README.md): optional explicit model WebSocket session.
 

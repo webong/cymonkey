@@ -1,6 +1,6 @@
 # Console boundary
 
-Console is the composition library for humans and agents, under `lib/console`.
+Console is the composition library for humans and agents, under `pkg/console`.
 Keep control with the embedding caller.
 
 - Receiving a model proposal, discovering an MCP tool, or copying a transcript

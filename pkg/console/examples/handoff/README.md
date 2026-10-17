@@ -1,6 +1,6 @@
 # Explicit tool handoff
 
-Run from `lib/console`:
+Run from `pkg/console`:
 
 ```sh
 go run ./examples/handoff

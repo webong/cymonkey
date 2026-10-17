@@ -183,15 +183,17 @@ Every callable interaction engine uses the common bridge methods:
 The authenticated, provider-neutral `cymonkey.display/v1alpha1` HTTP API transports those
 calls. The cooperative Unity bridge implements the same vocabulary.
 
-The repository uses `src/` for Cymonkey provider code, generic contracts,
-adapters, and protocol assets. Standalone Jangolova, Blockade, Board, and
-Console libraries live under root `lib/`; `src/main.go` is the single Cymonkey
-interface binary. `pkg/` remains the distribution surface for runtime packages and platform
-products, while `tests/` remains the conformance and fixture surface. The
-Jangolova, Blockade, Board, and Console libraries are separate Go modules
-(`jangolova`, `blockade`, `board`, and `console`). They share the ext plugin
-system (`github.com/webong/ext/pkg/plugin`) and join the Cymonkey module through
-`go.work` and local replacements.
+The repository has one host and many guests. `src/` is the host: the
+single `cymy` binary, its generic contracts, admission policy and adapters.
+`pkg/` holds everything the host runs or builds on: the Jangolova, Blockade,
+Board and Console modules, the content providers, and the platform helpers and
+products. The host never imports a guest; it reaches them through the ext
+plugin system (`github.com/webong/ext/pkg/plugin-go/contract`). Until the cut is
+complete, `src/guest_imports_test.go` fails on any new import of a `pkg/` Go
+module and lists the ones that remain. `tests/` is the conformance and fixture
+surface. Jangolova, Blockade, Board and Console are separate Go modules
+(`jangolova`, `blockade`, `board`, `console`) joined through `go.work` and
+local replacements while the host still imports them.
 Each library's plugin adapter selects the native executable contracts it understands;
 ext checks package structure and integrity without enumerating libraries. Cymonkey owns the command handlers, shared plugin directory, and
 public `cymonkey.*` wire contracts. Its composition adapters translate to the
@@ -221,8 +223,8 @@ src/contentcli/                Cymonkey content command handlers
 src/devicecli/                 Cymonkey device command handlers
 src/internal/provider/         provider and MCP implementation
 src/fixtures/native-bridge/    native bridge fixture implementation
-lib/blockade/                  standalone Blockade inference library
-lib/console/                   standalone tool composition library
+pkg/blockade/                  standalone Blockade inference library
+pkg/console/                   standalone tool composition library
 src/adapters/browserautomation/ Playwright CDP and Puppeteer CDP/BiDi attachment
 src/adapters/webdriverclassic/  existing W3C WebDriver session attachment
 src/adapters/safarimcp/         caller-owned Safari MCP relay attachment
@@ -233,20 +235,20 @@ src/internal/orchestrator/      interaction lifecycle and target contracts
 src/internal/bridge/            engine-neutral semantic methods
 src/display_*.go                Executable-side display library services and adapter registration
 src/observation/                Jangolova capture and Blockade inference workflow
-lib/board/                      standalone Board device library
-lib/board/drive.go              read-only mounted-drive provider
-lib/board/macoskeyboard/         explicit-PID macOS keyboard provider
-lib/board/host/                 provider registration and grant selection
+pkg/board/                      standalone Board device library
+pkg/board/drive.go              read-only mounted-drive provider
+pkg/board/macoskeyboard/         explicit-PID macOS keyboard provider
+pkg/board/host/                 provider registration and grant selection
 src/internal/core/              core registry/composition/conformance code
 src/internal/host/              Cymonkey host configuration and process supervisor
-lib/jangolova/                  standalone Jangolova library and host boundary
-lib/jangolova/host/             Jangolova host service injection contract
-lib/blockade/                   standalone Blockade inference library
-lib/blockade/protocol/          Blockade schemas and fixtures
+pkg/jangolova/                  standalone Jangolova library and host boundary
+pkg/jangolova/host/             Jangolova host service injection contract
+pkg/blockade/                   standalone Blockade inference library
+pkg/blockade/protocol/          Blockade schemas and fixtures
 src/internal/targetconn/        caller-owned target connection helpers
-lib/jangolova/contract/         public runtime wire contract
-lib/jangolova/sdk/              public types and host-injection interfaces
-lib/jangolova/registry/         reviewed module discovery and activation
+pkg/jangolova/contract/         public runtime wire contract
+pkg/jangolova/sdk/              public types and host-injection interfaces
+pkg/jangolova/registry/         reviewed module discovery and activation
 src/protocol/cymonkey/          canonical versioned Cymonkey schemas
 src/protocol/browser-extension/ schema, recorded exchanges, and generated binding source
 tests/cymonkey-core-conformance.mjs  portable Cymonkey contract checks

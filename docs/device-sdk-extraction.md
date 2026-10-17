@@ -13,7 +13,7 @@ New device-mechanics development belongs here.
 
 ## Implementation inventory
 
-All imports below are relative to the standalone `board` Go module at `lib/board`.
+All imports below are relative to the standalone `board` Go module at `pkg/board`.
 These low-level SDKs are also wrapped by `board/devices` providers, with
 `board/rtc` for WebRTC and `board/config` for host-owned inventory loading.
 [Device sessions](device-sessions.md) documents registration, grants, duplex I/O,
@@ -117,7 +117,7 @@ placement, and product HTTP/ACP interfaces continue to be host responsibilities.
 
 The extracted source tests, audio device-selection checks, network bounds tests,
 and Board dependency-isolation test pass with `GOWORK=off go test ./...` from
-`lib/board`. The module also builds for Linux/amd64 and Windows/amd64 with cgo
+`pkg/board`. The module also builds for Linux/amd64 and Windows/amd64 with cgo
 disabled. These are implementation-stage results, not a hardware or deployment
 certification. Runtime entrypoints are owned by the deploying host.
 

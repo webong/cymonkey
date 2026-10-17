@@ -46,7 +46,7 @@ Build the CLI and browser library first:
 ```sh
 go build -o .cache/cymy-augmentation ./src
 npm run test:browser-helper
-go test ./src ./src/internal/provider ./lib/jangolova/...
+go test ./src ./src/internal/provider ./pkg/jangolova/...
 ```
 
 For bookmarklet and web-host fixtures, set `CYMONKEY_BROWSER_BIN` to Chrome or

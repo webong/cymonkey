@@ -11,17 +11,17 @@ are separate. Jangolova does not configure or call Blockade.
 
 | Path | Responsibility |
 | --- | --- |
-| `lib/jangolova/contract` | Public runtime wire data and validation. |
-| `lib/jangolova/sdk` | Target/spec/session types and injected host service interfaces. |
-| `lib/jangolova` | Runtime selection and browser/native semantic adapters. |
+| `pkg/jangolova/contract` | Public runtime wire data and validation. |
+| `pkg/jangolova/sdk` | Target/spec/session types and injected host service interfaces. |
+| `pkg/jangolova` | Runtime selection and browser/native semantic adapters. |
 | `src/internal/targetconn` | Caller-owned endpoint, credential, and TLS material handling. |
-| `lib/jangolova/registry` | Metadata discovery, verified retrieval, and explicit activation. |
-| `lib/jangolova/host` | Jangolova-owned host service boundary and dependency injection contract. |
+| `pkg/jangolova/registry` | Metadata discovery, verified retrieval, and explicit activation. |
+| `pkg/jangolova/host` | Jangolova-owned host service boundary and dependency injection contract. |
 | `src/display_*.go` | Executable-side composition of Cymonkey host services and the display library adapters. |
 | `src/internal/core` | Cymonkey's private composition and coordination implementation. |
 | `pkg/` | Distributable runtime packages. |
 
-`lib/jangolova` imports public Jangolova packages and has no transitive
+`pkg/jangolova` imports public Jangolova packages and has no transitive
 dependency on `cymonkey/src/internal`, the private adapter implementations, or
 `src/internal/targetconn`. Its optional process adapter imports only the
 ext plugin host (`pkg/plugin/host`). `TestPublicIntegrationHasNoPrivateDependencies`
@@ -42,7 +42,7 @@ cleanup remain host responsibilities.
 
 The host supplies worker startup, credential-aware connection setup, cooperative
 listeners, and the legacy Safari connection. Missing services fail explicitly.
-`lib/jangolova/host.Services` defines the Jangolova-owned host boundary.
+`pkg/jangolova/host.Services` defines the Jangolova-owned host boundary.
 The Cymonkey executable supplies private services through the public host
 contract and converts public adapter sessions into the private provider
 contract. Its `engineRegistry` registers Jangolova adapters at startup and
@@ -75,6 +75,6 @@ artifacts through `registry.Activate`, supplying an approval callback and a
 runtime-specific mount callback. The SDK does not implement a universal binary
 plugin loader, install editor licenses, or own target process lifecycle.
 
-See [the public SDK guide](../lib/jangolova/sdk/README.md),
+See [the public SDK guide](../pkg/jangolova/sdk/README.md),
 [module discovery and activation](display-module-registry.md), and
 [runtime validation record](display-runtime-validation.md).

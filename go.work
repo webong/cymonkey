@@ -2,10 +2,10 @@ go 1.26.5
 
 use (
 	.
-	./lib/blockade
-	./lib/board
-	./lib/console
-	./lib/jangolova
+	./pkg/blockade
+	./pkg/board
+	./pkg/console
+	./pkg/jangolova
 	./pkg/content-endpoints
 	./pkg/content-onnx
 	./pkg/content-webllm
