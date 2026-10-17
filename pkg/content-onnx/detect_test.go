@@ -6,6 +6,8 @@ import (
 	"image/draw"
 	"math"
 	"testing"
+
+	ort "github.com/yalue/onnxruntime_go"
 )
 
 func TestRasterizeLetterboxMath(t *testing.T) {
@@ -33,5 +35,46 @@ func TestObservationsFromDetectionsAndNMS(t *testing.T) {
 func TestIntersectionOverUnion(t *testing.T) {
 	if got := intersectionOverUnion([4]float64{0, 0, 10, 10}, [4]float64{0, 0, 10, 20}); got != 0.5 {
 		t.Fatalf("intersection over union = %v", got)
+	}
+}
+
+func tensorInfo(dimensions ...int64) ort.InputOutputInfo {
+	return ort.InputOutputInfo{OrtValueType: ort.ONNXTypeTensor, Dimensions: ort.NewShape(dimensions...)}
+}
+
+func TestResolveLayoutHandlesStaticAndDynamicCandidateAxes(t *testing.T) {
+	input := tensorInfo(1, 3, 640, 640)
+	cases := []struct {
+		name       string
+		output     []int64
+		layout     outputLayout
+		classes    int
+		candidates int64
+		wantErr    bool
+	}{
+		{"static channels first", []int64{1, 84, 8400}, layoutChannelsFirst, 80, 8400, false},
+		{"static candidates first", []int64{1, 8400, 84}, layoutCandidatesFirst, 80, 8400, false},
+		{"dynamic batch and candidates (official yolo11n export)", []int64{-1, 84, -1}, layoutChannelsFirst, 80, 0, false},
+		{"dynamic candidates first", []int64{-1, -1, 84}, layoutCandidatesFirst, 80, 0, false},
+		{"dynamic candidates with a fixed batch", []int64{1, 84, -1}, layoutChannelsFirst, 80, 0, false},
+		{"no static channel axis", []int64{-1, -1, -1}, 0, 0, 0, true},
+		{"too few channels", []int64{1, 4, 8400}, 0, 0, 0, true},
+		{"not three dimensions", []int64{1, 84}, 0, 0, 0, true},
+	}
+	for _, c := range cases {
+		engine := &onnxEngine{}
+		err := engine.resolveLayout(input, tensorInfo(c.output...))
+		if c.wantErr {
+			if err == nil {
+				t.Fatalf("%s: accepted %v", c.name, c.output)
+			}
+			continue
+		}
+		if err != nil {
+			t.Fatalf("%s: %v", c.name, err)
+		}
+		if engine.outputLayout != c.layout || engine.numClasses != c.classes || engine.candidateCap != c.candidates {
+			t.Fatalf("%s: layout=%v classes=%d candidates=%d", c.name, engine.outputLayout, engine.numClasses, engine.candidateCap)
+		}
 	}
 }

@@ -166,16 +166,31 @@ func (e *onnxEngine) resolveLayout(input, output ort.InputOutputInfo) error {
 	if len(out) != 3 {
 		return fmt.Errorf("unsupported detection output shape %v", out)
 	}
-	channelAxis := out[1]
-	candidateAxis := out[2]
-	e.outputLayout = layoutChannelsFirst
-	if out[2] < out[1] {
-		channelAxis, candidateAxis = out[2], out[1]
+	// A detection graph has one channel axis (4 box values plus the class
+	// scores) and one candidate axis. Exported graphs often leave the candidate
+	// count dynamic, so a dimension of zero or less means "unknown", not zero.
+	channelAxis, candidateAxis := out[1], out[2]
+	switch {
+	case out[1] > 0 && out[2] > 0:
+		e.outputLayout = layoutChannelsFirst
+		if out[2] < out[1] {
+			channelAxis, candidateAxis = out[2], out[1]
+			e.outputLayout = layoutCandidatesFirst
+		}
+	case out[1] > 0:
+		// Channels fixed, candidates dynamic: [N, channels, candidates].
+		e.outputLayout = layoutChannelsFirst
+		candidateAxis = 0
+	case out[2] > 0:
+		// Candidates dynamic, channels fixed: [N, candidates, channels].
 		e.outputLayout = layoutCandidatesFirst
+		channelAxis, candidateAxis = out[2], 0
+	default:
+		return fmt.Errorf("detection output shape %v has no static channel axis", out)
 	}
 	e.numClasses = int(channelAxis) - 4
-	e.candidateCap = candidateAxis
-	if e.numClasses <= 0 || e.candidateCap <= 0 {
+	e.candidateCap = candidateAxis // zero means the candidate count is dynamic
+	if e.numClasses <= 0 {
 		return fmt.Errorf("detection output shape %v has no usable candidates", out)
 	}
 	return nil
@@ -202,24 +217,44 @@ func (e *onnxEngine) Observe(ctx context.Context, request blockade.ObserveReques
 	}
 	defer inputTensor.Destroy()
 	channels := int64(e.numClasses + 4)
-	var outShape ort.Shape
-	if e.outputLayout == layoutChannelsFirst {
-		outShape = ort.NewShape(1, channels, e.candidateCap)
-	} else {
-		outShape = ort.NewShape(1, e.candidateCap, channels)
-	}
-	outputTensor, err := ort.NewTensor(outShape, make([]float32, channels*e.candidateCap))
-	if err != nil {
-		return blockade.ObserveResponse{}, fmt.Errorf("allocate ONNX output tensor: %w", err)
-	}
-	defer outputTensor.Destroy()
 	if err := ctx.Err(); err != nil {
 		return blockade.ObserveResponse{}, err
 	}
-	if err := e.session.Run([]ort.Value{inputTensor}, []ort.Value{outputTensor}); err != nil {
-		return blockade.ObserveResponse{}, fmt.Errorf("run ONNX inference: %w", err)
+	var data []float32
+	if e.candidateCap > 0 {
+		var outShape ort.Shape
+		if e.outputLayout == layoutChannelsFirst {
+			outShape = ort.NewShape(1, channels, e.candidateCap)
+		} else {
+			outShape = ort.NewShape(1, e.candidateCap, channels)
+		}
+		outputTensor, err := ort.NewTensor(outShape, make([]float32, channels*e.candidateCap))
+		if err != nil {
+			return blockade.ObserveResponse{}, fmt.Errorf("allocate ONNX output tensor: %w", err)
+		}
+		defer outputTensor.Destroy()
+		if err := e.session.Run([]ort.Value{inputTensor}, []ort.Value{outputTensor}); err != nil {
+			return blockade.ObserveResponse{}, fmt.Errorf("run ONNX inference: %w", err)
+		}
+		data = outputTensor.GetData()
+	} else {
+		// The graph leaves the candidate count dynamic, so ONNX Runtime
+		// allocates the output and we read its length.
+		outputs := []ort.Value{nil}
+		if err := e.session.Run([]ort.Value{inputTensor}, outputs); err != nil {
+			return blockade.ObserveResponse{}, fmt.Errorf("run ONNX inference: %w", err)
+		}
+		defer outputs[0].Destroy()
+		tensor, ok := outputs[0].(*ort.Tensor[float32])
+		if !ok {
+			return blockade.ObserveResponse{}, fmt.Errorf("ONNX output is not a float32 tensor")
+		}
+		data = tensor.GetData()
+		if len(data) == 0 || int64(len(data))%channels != 0 {
+			return blockade.ObserveResponse{}, fmt.Errorf("ONNX output length %d does not fit %d channels", len(data), channels)
+		}
 	}
-	observations := observationsFromDetections(outputTensor.GetData(), e.outputLayout, e.numClasses, letterbox, bounds, e.confidence, e.iou, e.evidence)
+	observations := observationsFromDetections(data, e.outputLayout, e.numClasses, letterbox, bounds, e.confidence, e.iou, e.evidence)
 	return blockade.ObserveResponse{APIVersion: blockade.APIVersion, RequestID: request.RequestID, Observations: observations}, nil
 }
 
