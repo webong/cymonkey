@@ -12,7 +12,7 @@ separate capabilities. Storage actions require an approved resource handle.
 
 Set `CYMONKEY_DEVICE_CONFIG` to an absolute path to a host owned JSON file. No
 file means no native devices are added implicitly. Installed
-`cymonkey.device@v1alpha1` plugins are loaded from the shared plugin store.
+`device.provider@v1` plugins are loaded from the shared plugin store.
 
 ```json
 {

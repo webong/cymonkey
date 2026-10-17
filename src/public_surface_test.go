@@ -153,7 +153,7 @@ func TestContentModelManifestIsTranslatedOnlyAtBoundary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(data), `"apiVersion": "blockade.model/v1alpha1"`) || !strings.Contains(string(data), `"provider": "onnx"`) {
+	if !strings.Contains(string(data), `"apiVersion": "content.model/v1"`) || !strings.Contains(string(data), `"provider": "onnx"`) {
 		t.Fatalf("library model manifest = %s", data)
 	}
 	publicData, err := os.ReadFile(manifest)
@@ -171,16 +171,16 @@ func TestContentServiceTranslatesPublicHTTPContract(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 			t.Fatal(err)
 		}
-		if request["apiVersion"] != "blockade.content/v1alpha1" {
+		if request["apiVersion"] != "content.item/v1" {
 			t.Fatalf("library request = %#v", request)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
-			"apiVersion": "blockade.content/v1alpha1",
+			"apiVersion": "content.item/v1",
 			"findings":   []any{map[string]any{"kind": "summary", "text": "done", "sourceParts": []int{0}}},
 		})
 	})
-	request := httptest.NewRequest(http.MethodPost, "/v1/interpret", strings.NewReader(`{"apiVersion":"cymonkey.content/v1alpha1","parts":[{"kind":"text","text":"hello"}]}`))
+	request := httptest.NewRequest(http.MethodPost, "/v1/interpret", strings.NewReader(`{"apiVersion":"content.item/v1","parts":[{"kind":"text","text":"hello"}]}`))
 	response := httptest.NewRecorder()
 	contentServiceContract(internal).ServeHTTP(response, request)
 	if response.Code != http.StatusOK || strings.Contains(response.Body.String(), "blockade") || !strings.Contains(response.Body.String(), contracts.ContentAPIVersion) {

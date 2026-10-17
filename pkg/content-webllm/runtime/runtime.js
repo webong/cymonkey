@@ -165,9 +165,9 @@ async function start() {
       await complete({
         id: call.id,
         result: {
-          apiVersion: "blockade.provider-adapter/v1alpha1",
+          apiVersion: "content.adapter/v1",
           response: {
-            apiVersion: "blockade.observation/v1alpha1",
+            apiVersion: "content.observation/v1",
             requestId: request.requestId,
             observations: decoded.observations,
           },

@@ -6,7 +6,7 @@ import (
 )
 
 // ValidateObservations checks observations against the
-// blockade.observation/v1alpha1 contract. Provider adapters should call this
+// content.observation/v1 contract. Provider adapters should call this
 // before returning mapped results so malformed evidence never reaches agents.
 func ValidateObservations(observations []Observation) error {
 	for i, observation := range observations {

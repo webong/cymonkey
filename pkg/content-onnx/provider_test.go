@@ -22,7 +22,7 @@ func TestModelInspectionRejectsWrongArtifactWithoutStarting(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	value, err := p.call(context.Background(), "blockade.model.inspect", params)
+	value, err := p.call(context.Background(), "content.provider.model.inspect", params)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +35,7 @@ func TestModelInspectionRejectsWrongArtifactWithoutStarting(t *testing.T) {
 func TestStartRequiresInstalledModel(t *testing.T) {
 	p := &provider{descriptor: plugin.Descriptor{Identity: plugin.Identity{ID: "onnx"}}}
 	params, _ := json.Marshal(map[string]any{"id": "detector", "settings": map[string]string{}})
-	if _, err := p.call(context.Background(), "blockade.start", params); err == nil {
+	if _, err := p.call(context.Background(), "content.provider.start", params); err == nil {
 		t.Fatal("expected start without model to fail")
 	}
 }
@@ -62,8 +62,8 @@ func TestProviderSettings(t *testing.T) {
 // call, and decodeParams rejects unknown fields, so the provider must declare it.
 func TestObserveAcceptsTheSecretsFieldBlockadeSends(t *testing.T) {
 	p := &provider{descriptor: plugin.Descriptor{Identity: plugin.Identity{ID: "onnx"}}}
-	params := `{"request":{"apiVersion":"blockade.provider-adapter/v1alpha1","request":{"apiVersion":"blockade.observation/v1alpha1","requestId":"r1","image":""}},"secrets":{}}`
-	_, err := p.call(context.Background(), "blockade.observe", json.RawMessage(params))
+	params := `{"request":{"apiVersion":"content.adapter/v1","request":{"apiVersion":"content.observation/v1","requestId":"r1","image":""}},"secrets":{}}`
+	_, err := p.call(context.Background(), "content.provider.observe", json.RawMessage(params))
 	// The provider has not been started, which is the error to see here; an
 	// "unknown field" error would mean the secrets field was rejected.
 	if err == nil || strings.Contains(err.Error(), "unknown field") {

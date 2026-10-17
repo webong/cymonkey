@@ -1,6 +1,7 @@
 package blockade
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -102,5 +103,31 @@ func TestRemoveInstalledModel(t *testing.T) {
 	}
 	if _, err := os.Stat(installed.Directory); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("removed model still exists: %v", err)
+	}
+}
+
+func TestLoadModelManifestAcceptsPreviousAPIVersions(t *testing.T) {
+	for _, legacy := range []string{"blockade.model/v1alpha1", "cymonkey.model/v1alpha1"} {
+		path := writeModelFixture(t, "fixture")
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		legacyData := bytes.ReplaceAll(data, []byte(ModelManifestAPIVersion), []byte(legacy))
+		if err := os.WriteFile(path, legacyData, 0600); err != nil {
+			t.Fatal(err)
+		}
+		manifest, err := LoadModelManifest(path)
+		if err != nil || manifest.APIVersion != ModelManifestAPIVersion {
+			t.Fatalf("%s: manifest = %+v, err = %v", legacy, manifest, err)
+		}
+	}
+	path := writeModelFixture(t, "fixture")
+	data, _ := os.ReadFile(path)
+	if err := os.WriteFile(path, bytes.ReplaceAll(data, []byte(ModelManifestAPIVersion), []byte("other.model/v1")), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadModelManifest(path); err == nil {
+		t.Fatal("an unknown apiVersion was accepted")
 	}
 }

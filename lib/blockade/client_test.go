@@ -19,7 +19,7 @@ func TestClientObserve(t *testing.T) {
 		if r.Header.Get("Authorization") != "Bearer secret" {
 			t.Fatalf("authorization = %q", r.Header.Get("Authorization"))
 		}
-		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(`{"apiVersion":"blockade.observation/v1alpha1","requestId":"req-1","observations":[{"kind":"object","label":"button","confidence":0.9,"region":{"x":1,"y":2,"width":3,"height":4}}]}`)), Header: make(http.Header)}, nil
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(`{"apiVersion":"content.observation/v1","requestId":"req-1","observations":[{"kind":"object","label":"button","confidence":0.9,"region":{"x":1,"y":2,"width":3,"height":4}}]}`)), Header: make(http.Header)}, nil
 	})
 	result, err := (Client{BaseURL: "http://blockade.test", HTTPClient: &http.Client{Transport: transport}, BearerToken: "secret"}).Observe(context.Background(), ObserveRequest{
 		RequestID: "req-1", Image: []byte("image"), Prompt: "find controls",
@@ -59,7 +59,7 @@ func TestClientReadsAuthenticatedServiceHealthAndCapabilities(t *testing.T) {
 		}
 		body := `{"status":"ok","provider":"fixture"}`
 		if request.URL.Path == "/capabilities" {
-			body = `{"apiVersion":"blockade.observation/v1alpha1","provider":"fixture","capabilities":["text.interpret"]}`
+			body = `{"apiVersion":"content.observation/v1","provider":"fixture","capabilities":["text.interpret"]}`
 		}
 		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(body)), Header: make(http.Header)}, nil
 	})

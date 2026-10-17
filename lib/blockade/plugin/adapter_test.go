@@ -42,7 +42,7 @@ func TestRegisterInstalledSelectsOnlyBlockadeProviders(t *testing.T) {
 	registry := blockade.NewProviderAdapterRegistry()
 	installed := []store.Installed{
 		testInstalled(t, "vision", ContractName, Operations),
-		testInstalled(t, "camera", "board.provider", []string{"list"}),
+		testInstalled(t, "camera", "device.provider", []string{"list"}),
 	}
 	if err := RegisterInstalled(registry, installed); err != nil {
 		t.Fatal(err)
@@ -124,10 +124,10 @@ func TestSourceProviderUsesBlockadeManagedRuntimeAndWorkerPool(t *testing.T) {
 	t.Setenv("BLOCKADE_RUNTIME_DIR", runtimeRoot)
 
 	providerSource := t.TempDir()
-	descriptor := []byte(`{"apiVersion":"blockade.provider-package/v1alpha1","runtime":{"name":"python","version":"3.12.8"},"entrypoint":"python/provider.py"}`)
+	descriptor := []byte(`{"apiVersion":"content.source/v1","runtime":{"name":"python","version":"3.12.8"},"entrypoint":"python/provider.py"}`)
 	provider := []byte(`
 import base64, json, os, sys
-with open(os.environ["BLOCKADE_PLUGIN_MANIFEST"], encoding="utf-8") as source:
+with open(os.environ["PLUGIN_MANIFEST"], encoding="utf-8") as source:
     package = json.load(source)
 ready = False
 for line in sys.stdin:
@@ -136,17 +136,17 @@ for line in sys.stdin:
     payload = request.get("payload")
     if operation == "plugin.hello": result = package["descriptor"]
     elif operation == "start": ready = True; result = {}
-    elif operation == "capabilities": result = {"apiVersion":"blockade.provider-adapter/v1alpha1","capabilities":["image.observe"]}
-    elif operation == "health": result = {"apiVersion":"blockade.provider-adapter/v1alpha1","ready":ready}
+    elif operation == "capabilities": result = {"apiVersion":"content.adapter/v1","capabilities":["image.observe"]}
+    elif operation == "health": result = {"apiVersion":"content.adapter/v1","ready":ready}
     elif operation == "observe":
         inner = payload["request"]["request"]
         base64.b64decode(inner["image"])
-        result = {"apiVersion":"blockade.provider-adapter/v1alpha1","response":{"apiVersion":"blockade.observation/v1alpha1","requestId":inner["requestId"],"observations":[{"kind":"text","label":str(os.getpid()),"confidence":1,"region":{"x":0,"y":0,"width":1,"height":1}}]}}
+        result = {"apiVersion":"content.adapter/v1","response":{"apiVersion":"content.observation/v1","requestId":inner["requestId"],"observations":[{"kind":"text","label":str(os.getpid()),"confidence":1,"region":{"x":0,"y":0,"width":1,"height":1}}]}}
     elif operation == "close": ready = False; result = {}
     else: raise RuntimeError(operation)
     print(json.dumps({"apiVersion":"ext.plugin/v1","id":request["id"],"payload":result}, separators=(",",":")), flush=True)
 `)
-	if err := os.WriteFile(filepath.Join(providerSource, "blockade.json"), descriptor, 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(providerSource, "content.json"), descriptor, 0600); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.MkdirAll(filepath.Join(providerSource, "python"), 0700); err != nil {
@@ -156,7 +156,7 @@ for line in sys.stdin:
 		t.Fatal(err)
 	}
 	pluginManifest, err := packagekit.SourceManifest("source-vision", "1.0.0",
-		[]plugin.Contract{testContract(ContractName, Operations)}, providerSource, []string{"blockade.json", "python"})
+		[]plugin.Contract{testContract(ContractName, Operations)}, providerSource, []string{"content.json", "python"})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,6 +1,6 @@
 # Cymonkey WebLLM content plugin
 
-This executable implements `cymonkey.content@v1alpha1` with WebLLM in a
+This executable implements `content.provider@v1` with WebLLM in a
 plugin owned Chromium process and dedicated Web Worker.
 
 ```sh

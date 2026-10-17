@@ -35,7 +35,7 @@ def load_provider(manifest_path):
     inference = types.ModuleType("inference")
     inference.Worker = FakeWorker
     sys.modules["inference"] = inference
-    os.environ["CYMONKEY_PLUGIN_MANIFEST"] = str(manifest_path)
+    os.environ["PLUGIN_MANIFEST"] = str(manifest_path)
     spec = importlib.util.spec_from_file_location(
         "blockade_ultralytics_provider", PROVIDER_PATH
     )
@@ -59,8 +59,8 @@ class ProviderTest(unittest.TestCase):
                         "identity": {"id": "local-ultralytics", "version": "1.0.0", "revision": "test"},
                         "contracts": [
                             {
-                                "name": "cymonkey.content",
-                                "version": "v1alpha1",
+                                "name": "content.provider",
+                                "version": "v1",
                                 "operations": [{"name": "start"}],
                             }
                         ],
@@ -75,7 +75,7 @@ class ProviderTest(unittest.TestCase):
         (self.model_root / "sam.pt").write_bytes(b"sam")
         self.model = {
             "manifest": {
-                "plugin": "local-ultralytics",
+                "provider": "local-ultralytics",
                 "capabilities": ["object.detect", "object.segment"],
                 "artifacts": [
                     {"role": "yolo", "file": "yolo.pt"},
@@ -91,19 +91,19 @@ class ProviderTest(unittest.TestCase):
     def test_lifecycle_and_observation_contract(self):
         provider = load_provider(self.manifest_path)
         inspection = provider.call(
-            "cymonkey.content.model.inspect", {"settings": {}, "model": self.model}
+            "content.provider.model.inspect", {"settings": {}, "model": self.model}
         )
         self.assertTrue(inspection["compatible"])
 
-        provider.call("cymonkey.content.start", {"settings": {}, "model": self.model})
-        self.assertTrue(provider.call("cymonkey.content.health", {})["ready"])
+        provider.call("content.provider.start", {"settings": {}, "model": self.model})
+        self.assertTrue(provider.call("content.provider.health", {})["ready"])
         result = provider.call(
-            "cymonkey.content.observe",
+            "content.provider.observe",
             {
                 "request": {
-                    "apiVersion": "cymonkey.content-adapter/v1alpha1",
+                    "apiVersion": "content.adapter/v1",
                     "request": {
-                        "apiVersion": "cymonkey.observation/v1alpha1",
+                        "apiVersion": "content.observation/v1",
                         "requestId": "request-1",
                         "image": base64.b64encode(b"image").decode("ascii"),
                     },
@@ -112,15 +112,15 @@ class ProviderTest(unittest.TestCase):
         )
         self.assertEqual(result["response"]["requestId"], "request-1")
         self.assertEqual(result["response"]["observations"][0]["label"], "image")
-        provider.call("cymonkey.content.close", {})
-        self.assertFalse(provider.call("cymonkey.content.health", {})["ready"])
+        provider.call("content.provider.close", {})
+        self.assertFalse(provider.call("content.provider.health", {})["ready"])
 
     def test_model_artifact_cannot_escape_install_directory(self):
         provider = load_provider(self.manifest_path)
         escaped = json.loads(json.dumps(self.model))
         escaped["manifest"]["artifacts"][0]["file"] = "../outside.pt"
         result = provider.call(
-            "cymonkey.content.model.inspect", {"settings": {}, "model": escaped}
+            "content.provider.model.inspect", {"settings": {}, "model": escaped}
         )
         self.assertFalse(result["compatible"])
         self.assertIn("outside", result["detail"])

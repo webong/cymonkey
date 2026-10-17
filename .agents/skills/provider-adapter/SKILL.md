@@ -7,7 +7,7 @@ description: Create or update Cymonkey content plugins that map local or hosted 
 
 Cymonkey owns the public plugin, configuration, model, runtime, CLI, and HTTP
 contracts. A plugin supplies an executable or a verified source package and
-implements `cymonkey.content@v1alpha1`. Internal library types stay behind
+implements `content.provider@v1`. Internal library types stay behind
 Cymonkey's composition bridge.
 
 ## Before implementation
@@ -32,8 +32,8 @@ Cymonkey's composition bridge.
 
 ## Implementation requirements
 
-- Declare `cymonkey.content@v1alpha1` in `package.json`.
-- Implement methods under `cymonkey.content.*` and use Cymonkey API versions in
+- Declare `content.provider@v1` in `package.json`.
+- Implement methods under `content.provider.*` and use Cymonkey API versions in
   every public request and response.
 - Preserve request IDs and original media bytes unless the upstream service
   requires a documented conversion.

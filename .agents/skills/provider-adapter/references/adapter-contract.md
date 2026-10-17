@@ -32,14 +32,14 @@ content plugins.
 ## Packaging
 
 Every package has a `package.json` manifest (`ext.package/v1`) that declares
-contract `cymonkey.content@v1alpha1` with every operation it serves.
+contract `content.provider@v1` with every operation it serves.
 
 An executable package sets `command` and its SHA-256. A source package lists
 all files and includes `content.json`:
 
 ```json
 {
-  "apiVersion": "cymonkey.content-source/v1alpha1",
+  "apiVersion": "content.source/v1",
   "runtime": {"name": "python", "version": "3.12.8"},
   "entrypoint": "python/provider.py"
 }
@@ -53,13 +53,13 @@ CLI.
 
 The shared handshake is `plugin.hello`. Content calls use:
 
-- `cymonkey.content.start`
-- `cymonkey.content.model.inspect`
-- `cymonkey.content.observe`
-- `cymonkey.content.interpret`
-- `cymonkey.content.capabilities`
-- `cymonkey.content.health`
-- `cymonkey.content.close`
+- `content.provider.start`
+- `content.provider.model.inspect`
+- `content.provider.observe`
+- `content.provider.interpret`
+- `content.provider.capabilities`
+- `content.provider.health`
+- `content.provider.close`
 
 Requests and responses are newline-delimited JSON with matching IDs. Standard
 error is diagnostic output. A structured error may include a stable code and
@@ -72,7 +72,7 @@ local runtime. Preserve prompt meaning while adding only instructions needed
 for structured output. Avoid recompression or resizing unless a documented
 provider constraint requires it.
 
-Observations use `cymonkey.observation-result/v1alpha1`; interpretations use
-`cymonkey.content/v1alpha1`. Evidence contains concise provenance and excludes
+Observations use `content.observation/v1`; interpretations use
+`content.item/v1`. Evidence contains concise provenance and excludes
 secrets, prompts, raw responses, and chain of thought. Return a typed error when
 the provider cannot produce a contract-valid result.

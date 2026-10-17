@@ -103,16 +103,15 @@ defer engine.Close()
 embedding application owns process startup, flags, configuration paths, TLS,
 and user facing names.
 
-## Native plugin protocol
+## Plugin protocol
 
-A standalone Blockade application may use the adapter in `plugin/` with
-packages declaring `blockade.provider@v1alpha1`. Its process methods use the
-`blockade.*` prefix. Source packages use `blockade.json` with
-`blockade.provider-package/v1alpha1`.
-
-The plugin adapter accepts a host supplied `Protocol`. Cymonkey uses this hook
-to expose `cymonkey.content@v1alpha1`, `cymonkey.content.*` methods, and a
-`content.json` descriptor without teaching plugin authors about Blockade.
+An application may use the adapter in `plugin/` with packages that declare
+`content.provider@v1` (an ext package). Process methods are
+`content.provider.<operation>`: `start`, `observe`, `interpret`, `capabilities`,
+`health`, `close` and `model.inspect`. Source packages carry a `content.json`
+descriptor with `content.source/v1` that names the managed runtime and the
+entrypoint. The adapter exports the installed package manifest path to the
+provider in `PLUGIN_MANIFEST`.
 
 ## Runtime ownership
 

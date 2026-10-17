@@ -1,6 +1,6 @@
 # Cymonkey Ultralytics content plugin
 
-This source package implements `cymonkey.content@v1alpha1` for local YOLO
+This source package implements `content.provider@v1` for local YOLO
 detection and SAM segmentation. It maps Ultralytics output into normalized
 Cymonkey observations.
 
@@ -68,7 +68,7 @@ names inside it may use any case. The tree path itself (`python`) must be
 lower-case, symlinks inside it are followed when staging, and the installer
 re-hashes the whole tree each time a worker starts.
 
-`content.json` uses `cymonkey.content-source/v1alpha1` and selects the exact
+`content.json` uses `content.source/v1` and selects the exact
 managed runtime and entrypoint. The generic installer treats its payload as
 opaque; Cymonkey's content adapter interprets the descriptor.
 
@@ -79,7 +79,7 @@ artifact, and both capabilities:
 
 ```json
 {
-  "apiVersion": "cymonkey.model/v1alpha1",
+  "apiVersion": "content.model/v1",
   "name": "yolo-sam",
   "version": "1.0.0",
   "plugin": "local-ultralytics",

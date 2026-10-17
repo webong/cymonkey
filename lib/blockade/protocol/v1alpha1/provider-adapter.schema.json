@@ -17,7 +17,7 @@
       "type": "object",
       "required": ["apiVersion", "image"],
       "properties": {
-        "apiVersion": {"const": "blockade.observation/v1alpha1"},
+        "apiVersion": {"const": "content.observation/v1"},
         "requestId": {"type": "string"},
         "image": {"type": "string", "contentEncoding": "base64"},
         "prompt": {"type": "string"}
@@ -28,7 +28,7 @@
       "type": "object",
       "required": ["apiVersion", "request"],
       "properties": {
-        "apiVersion": {"const": "blockade.provider-adapter/v1alpha1"},
+        "apiVersion": {"const": "content.adapter/v1"},
         "request": {"$ref": "#/$defs/publicObserveRequest"}
       },
       "additionalProperties": false
@@ -37,7 +37,7 @@
       "type": "object",
       "required": ["apiVersion", "response"],
       "properties": {
-        "apiVersion": {"const": "blockade.provider-adapter/v1alpha1"},
+        "apiVersion": {"const": "content.adapter/v1"},
         "response": {"$ref": "observation.schema.json"}
       },
       "additionalProperties": false
@@ -46,7 +46,7 @@
       "type": "object",
       "required": ["apiVersion", "request"],
       "properties": {
-        "apiVersion": {"const": "blockade.provider-adapter/v1alpha1"},
+        "apiVersion": {"const": "content.adapter/v1"},
         "request": {"$ref": "content-request.schema.json"}
       },
       "additionalProperties": false
@@ -55,7 +55,7 @@
       "type": "object",
       "required": ["apiVersion", "response"],
       "properties": {
-        "apiVersion": {"const": "blockade.provider-adapter/v1alpha1"},
+        "apiVersion": {"const": "content.adapter/v1"},
         "response": {"$ref": "content-response.schema.json"}
       },
       "additionalProperties": false
@@ -85,7 +85,7 @@
       "type": "object",
       "required": ["apiVersion", "compatible"],
       "properties": {
-        "apiVersion": {"const": "blockade.provider-adapter/v1alpha1"},
+        "apiVersion": {"const": "content.adapter/v1"},
         "compatible": {"type": "boolean"},
         "detail": {"type": "string"}
       },
@@ -95,7 +95,7 @@
       "type": "object",
       "required": ["apiVersion", "capabilities"],
       "properties": {
-        "apiVersion": {"const": "blockade.provider-adapter/v1alpha1"},
+        "apiVersion": {"const": "content.adapter/v1"},
         "capabilities": {
           "type": "array",
           "uniqueItems": true,
@@ -108,7 +108,7 @@
       "type": "object",
       "required": ["apiVersion", "ready"],
       "properties": {
-        "apiVersion": {"const": "blockade.provider-adapter/v1alpha1"},
+        "apiVersion": {"const": "content.adapter/v1"},
         "ready": {"type": "boolean"},
         "detail": {"type": "string"}
       },

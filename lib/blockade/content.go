@@ -10,7 +10,7 @@ import (
 	"unicode/utf8"
 )
 
-const ContentAPIVersion = "blockade.content/v1alpha1"
+const ContentAPIVersion = "content.item/v1"
 
 const (
 	CapabilityTextInterpret       = "text.interpret"

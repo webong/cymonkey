@@ -29,7 +29,7 @@ func TestServiceClientUsesCymonkeyContracts(t *testing.T) {
 		if payload["apiVersion"] != contracts.ContentAPIVersion || strings.Contains(string(data), "blockade") {
 			t.Fatalf("service request = %s", data)
 		}
-		body := `{"apiVersion":"cymonkey.content/v1alpha1","findings":[{"kind":"summary","text":"done","sourceParts":[0]}]}`
+		body := `{"apiVersion":"content.item/v1","findings":[{"kind":"summary","text":"done","sourceParts":[0]}]}`
 		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(body))}, nil
 	})}}
 	result, err := client.Interpret(context.Background(), contracts.ContentRequest{

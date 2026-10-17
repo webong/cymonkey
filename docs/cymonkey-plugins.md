@@ -30,7 +30,7 @@ identity, one entrypoint, and the contract with every operation it serves:
     "apiVersion": "ext.plugin/v1",
     "identity": {"id": "onnx", "version": "1.0.0", "revision": "sha256:<digest>"},
     "contracts": [
-      {"name": "cymonkey.content", "version": "v1alpha1",
+      {"name": "content.provider", "version": "v1",
        "operations": [{"name": "start"}, {"name": "observe"}, "..."]}
     ]
   },
@@ -50,9 +50,9 @@ Current contracts are:
 
 | Contract | Purpose |
 | --- | --- |
-| `cymonkey.display@v1alpha1` | Display interaction plugin |
-| `cymonkey.content@v1alpha1` | Content observation and interpretation plugin |
-| `cymonkey.device@v1alpha1` | Input and output device plugin |
+| `display.engine@v1` | Display interaction plugin |
+| `content.provider@v1` | Content observation and interpretation plugin |
+| `device.provider@v1` | Input and output device plugin |
 
 The original `plugin.json` format and its `kind` field are gone. Rebuild
 manifests with `cymy plugins manifest`.

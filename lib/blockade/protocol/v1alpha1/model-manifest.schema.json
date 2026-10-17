@@ -5,7 +5,7 @@
   "type": "object",
   "required": ["apiVersion", "name", "version", "provider", "capabilities", "artifacts"],
   "properties": {
-    "apiVersion": {"const": "blockade.model/v1alpha1"},
+    "apiVersion": {"const": "content.model/v1"},
     "name": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,62}$"},
     "version": {"type": "string", "pattern": "^v?[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][A-Za-z0-9.-]+)?$"},
     "provider": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,62}$"},

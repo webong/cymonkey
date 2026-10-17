@@ -2,7 +2,7 @@
 
 `pkg/content-webllm` builds a Cymonkey content plugin for browser
 local, WebGPU accelerated vision language inference. It speaks
-`cymonkey.content@v1alpha1` and returns the same normalized image observation
+`content.provider@v1` and returns the same normalized image observation
 contract as other content plugins.
 
 ## Boundary
@@ -33,7 +33,7 @@ cymy plugins install --manifest /tmp/package.json
 ```
 
 The manifest name should be `webllm` and its contract should be
-`cymonkey.content@v1alpha1`. See the
+`content.provider@v1`. See the
 [plugin packaging guide](cymonkey-plugins.md) for the complete manifest.
 
 ## Configure

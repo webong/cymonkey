@@ -11,8 +11,8 @@ types. The libraries do not import Cymonkey and remain usable by other hosts.
 Library names and native schemas are implementation details, except in the
 developer documentation for people embedding a library directly.
 
-Optional executables implement the public `cymonkey.display@v1alpha1`,
-`cymonkey.content@v1alpha1`, or `cymonkey.device@v1alpha1` plugin contract. See
+Optional executables implement the public `display.engine@v1`,
+`content.provider@v1`, or `device.provider@v1` plugin contract. See
 [Cymonkey plugins](cymonkey-plugins.md).
 
 The host boundary has two modes today: direct library calls from the Cymonkey

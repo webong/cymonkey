@@ -22,8 +22,8 @@ import (
 	packagekit "github.com/webong/ext/pkg/plugin-go/contract/package"
 )
 
-const ContractName = "blockade.provider"
-const ContractVersion = "v1alpha1"
+const ContractName = "content.provider"
+const ContractVersion = "v1"
 
 // Operations lists every method a Blockade provider package serves.
 var Operations = []string{"start", "observe", "interpret", "capabilities", "health", "close", "model.inspect"}
@@ -45,11 +45,11 @@ type Protocol struct {
 
 func nativeProtocol() Protocol {
 	return Protocol{
-		MethodPrefix: "blockade", AdapterAPIVersion: blockade.ProviderAdapterAPIVersion,
+		MethodPrefix: ContractName, AdapterAPIVersion: blockade.ProviderAdapterAPIVersion,
 		ObservationRequestAPI: blockade.APIVersion, ObservationAPIVersion: blockade.APIVersion,
 		ContentAPIVersion: blockade.ContentAPIVersion,
-		ModelAPIVersion:   blockade.ModelManifestAPIVersion, ManifestEnvironment: "BLOCKADE_PLUGIN_MANIFEST",
-		DescriptorFile: "blockade.json", DescriptorAPIVersion: blockade.ProviderPackageAPIVersion,
+		ModelAPIVersion:   blockade.ModelManifestAPIVersion, ManifestEnvironment: "PLUGIN_MANIFEST",
+		DescriptorFile: "content.json", DescriptorAPIVersion: blockade.ProviderPackageAPIVersion,
 	}
 }
 
@@ -105,6 +105,14 @@ func RegisterInstalled(registry *blockade.ProviderAdapterRegistry, installed []s
 
 func Register(registry *blockade.ProviderAdapterRegistry, installed store.Installed) error {
 	return RegisterWithProtocol(registry, installed, nativeProtocol())
+}
+
+// RegisterWithRuntimeRoot registers a package whose managed runtimes live under
+// root instead of Blockade's default runtime directory.
+func RegisterWithRuntimeRoot(registry *blockade.ProviderAdapterRegistry, installed store.Installed, root string) error {
+	protocol := nativeProtocol()
+	protocol.RuntimeRoot = root
+	return RegisterWithProtocol(registry, installed, protocol)
 }
 
 func RegisterWithProtocol(registry *blockade.ProviderAdapterRegistry, installed store.Installed, protocol Protocol) error {
@@ -469,7 +477,7 @@ func wireModel(model blockade.InstalledModel, protocol Protocol) map[string]any 
 		"manifest": map[string]any{
 			"apiVersion": protocol.ModelAPIVersion,
 			"name":       model.Manifest.Name, "version": model.Manifest.Version,
-			"plugin": model.Manifest.Provider, "capabilities": model.Manifest.Capabilities,
+			"provider": model.Manifest.Provider, "capabilities": model.Manifest.Capabilities,
 			"artifacts": model.Manifest.Artifacts,
 		},
 		"directory": model.Directory,

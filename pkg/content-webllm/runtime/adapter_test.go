@@ -222,7 +222,7 @@ func TestRuntimeUsesOfficialWorkerVisionAndStructuredAPIs(t *testing.T) {
 		`type: "image_url"`,
 		`type: "json_object"`,
 		"interruptGenerate",
-		"blockade.observation/v1alpha1",
+		"content.observation/v1",
 	} {
 		if !strings.Contains(defaultModuleURL+runtimeJavaScript, marker) {
 			t.Fatalf("runtime is missing %q", marker)

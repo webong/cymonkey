@@ -32,7 +32,7 @@ func TestHTTPServerRoutesObservation(t *testing.T) {
 	}
 	image := base64.StdEncoding.EncodeToString([]byte("png"))
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, "/v1/observe", strings.NewReader(`{"apiVersion":"blockade.observation/v1alpha1","requestId":"request-1","image":"`+image+`"}`))
+	request := httptest.NewRequest(http.MethodPost, "/v1/observe", strings.NewReader(`{"apiVersion":"content.observation/v1","requestId":"request-1","image":"`+image+`"}`))
 	server.Routes().ServeHTTP(recorder, request)
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())

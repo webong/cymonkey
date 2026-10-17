@@ -1,6 +1,6 @@
 # Cymonkey ONNX content plugin
 
-This executable implements `cymonkey.content@v1alpha1` with ONNX Runtime. Its
+This executable implements `content.provider@v1` with ONNX Runtime. Its
 current model profile accepts one YOLO detection graph with artifact role
 `yolo`, file extension `.onnx`, and capability `object.detect`.
 
@@ -28,7 +28,7 @@ Example `model.json` beside `yolo11n.onnx`:
 
 ```json
 {
-  "apiVersion": "cymonkey.model/v1alpha1",
+  "apiVersion": "content.model/v1",
   "name": "yolo11n",
   "version": "1.0.0",
   "plugin": "onnx",

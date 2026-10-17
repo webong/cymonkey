@@ -12,26 +12,7 @@ import (
 	plugin "github.com/webong/ext/pkg/plugin-go/contract"
 	packagekit "github.com/webong/ext/pkg/plugin-go/contract/package"
 	"github.com/webong/ext/pkg/plugin-go/contract/transport/jsonline"
-	"wirebridge"
 )
-
-var contentWire = wirebridge.Mapping{
-	PublicPrefix: "cymonkey.content.", InternalPrefix: "blockade.", NativePrefix: "blockade.provider.",
-	ToInternal: map[string]string{
-		"cymonkey.content-adapter/v1alpha1":    blockade.ProviderAdapterAPIVersion,
-		"cymonkey.observation/v1alpha1":        blockade.APIVersion,
-		"cymonkey.observation-result/v1alpha1": blockade.APIVersion,
-		"cymonkey.content/v1alpha1":            blockade.ContentAPIVersion,
-		"cymonkey.model/v1alpha1":              blockade.ModelManifestAPIVersion,
-	},
-	ToPublic: map[string]string{
-		blockade.ProviderAdapterAPIVersion: "cymonkey.content-adapter/v1alpha1",
-		blockade.APIVersion:                "cymonkey.observation-result/v1alpha1",
-		blockade.ContentAPIVersion:         "cymonkey.content/v1alpha1",
-		blockade.ModelManifestAPIVersion:   "cymonkey.model/v1alpha1",
-	},
-	KeysToInternal: map[string]string{"plugin": "provider"}, KeysToPublic: map[string]string{"provider": "plugin"},
-}
 
 type StartRequest struct {
 	ID       string                   `json:"id"`
@@ -50,7 +31,7 @@ type Provider interface {
 // Serve answers the ext handshake and runs the provider on stdin and stdout.
 func Serve(ctx context.Context, descriptor plugin.Descriptor, provider Provider) error {
 	manifest := packagekit.Manifest{Descriptor: descriptor}
-	if !manifest.Supports("blockade.provider", "v1alpha1") && !manifest.Supports("cymonkey.content", "v1alpha1") {
+	if !manifest.Supports("content.provider", "v1") {
 		return errors.New("plugin manifest does not declare a supported content contract")
 	}
 	defer provider.Close()
@@ -64,14 +45,8 @@ func Serve(ctx context.Context, descriptor plugin.Descriptor, provider Provider)
 }
 
 func call(ctx context.Context, provider Provider, method string, raw json.RawMessage) (any, error) {
-	return contentWire.WrapCall(method, raw, func(method string, raw json.RawMessage) (any, error) {
-		return callLibrary(ctx, provider, method, raw)
-	})
-}
-
-func callLibrary(ctx context.Context, provider Provider, method string, raw json.RawMessage) (any, error) {
 	switch method {
-	case "blockade.start":
+	case "content.provider.start":
 		var params StartRequest
 		if err := decodeParams(raw, &params); err != nil {
 			return nil, invalidRequest(err)
@@ -80,11 +55,11 @@ func callLibrary(ctx context.Context, provider Provider, method string, raw json
 			return nil, invalidRequest(errors.New("endpoint providers do not use Cymonkey-installed models"))
 		}
 		return map[string]any{}, provider.Start(ctx, params)
-	case "blockade.capabilities":
+	case "content.provider.capabilities":
 		return provider.Capabilities(ctx)
-	case "blockade.health":
+	case "content.provider.health":
 		return provider.Health(ctx)
-	case "blockade.interpret":
+	case "content.provider.interpret":
 		var params struct {
 			Request blockade.ProviderAdapterInterpretRequest `json:"request"`
 			Secrets map[string]string                        `json:"secrets,omitempty"`
@@ -99,7 +74,7 @@ func callLibrary(ctx context.Context, provider Provider, method string, raw json
 			return nil, invalidRequest(err)
 		}
 		return provider.Interpret(ctx, params.Request, params.Secrets)
-	case "blockade.close":
+	case "content.provider.close":
 		return map[string]any{}, provider.Close()
 	default:
 		return nil, invalidRequest(fmt.Errorf("unsupported method %q", method))

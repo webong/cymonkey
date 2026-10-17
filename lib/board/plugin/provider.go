@@ -19,8 +19,8 @@ type Provider struct {
 	MethodPrefix string
 }
 
-const ContractName = "board.provider"
-const ContractVersion = "v1alpha1"
+const ContractName = "device.provider"
+const ContractVersion = "v1"
 
 // Operations lists every method a Board device provider package serves.
 var Operations = []string{"list", "open", "invoke", "stream.open", "stream.read", "stream.close", "close"}
@@ -28,7 +28,7 @@ var Operations = []string{"list", "open", "invoke", "stream.open", "stream.read"
 func (p Provider) method(name string) string {
 	prefix := p.MethodPrefix
 	if prefix == "" {
-		prefix = "board"
+		prefix = ContractName
 	}
 	return prefix + "." + name
 }
@@ -86,7 +86,7 @@ type session struct {
 func (s *session) method(name string) string {
 	prefix := s.methodPrefix
 	if prefix == "" {
-		prefix = "board"
+		prefix = ContractName
 	}
 	return prefix + "." + name
 }

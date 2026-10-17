@@ -5,44 +5,30 @@ import os
 import ext_plugin
 from inference import Worker
 
-ADAPTER_API = "blockade.provider-adapter/v1alpha1"
-OBSERVATION_API = "blockade.observation/v1alpha1"
-CYMONKEY_ADAPTER_API = "cymonkey.content-adapter/v1alpha1"
-CYMONKEY_OBSERVATION_REQUEST_API = "cymonkey.observation/v1alpha1"
-CYMONKEY_OBSERVATION_API = "cymonkey.observation-result/v1alpha1"
+ADAPTER_API = "content.adapter/v1"
+OBSERVATION_API = "content.observation/v1"
+CONTRACT = "content.provider"
+CONTRACT_VERSION = "v1"
 
 
 class Provider:
     def __init__(self):
-        manifest_path = os.environ.get("CYMONKEY_PLUGIN_MANIFEST") or os.environ[
-            "BLOCKADE_PLUGIN_MANIFEST"
-        ]
+        manifest_path = os.environ["PLUGIN_MANIFEST"]
         with open(manifest_path, "r", encoding="utf-8") as source:
             self.manifest = json.load(source)
         self.name = self.manifest["descriptor"]["identity"]["id"]
         contracts = self.manifest["descriptor"]["contracts"]
         if not any(
-            item.get("name") in {"blockade.provider", "cymonkey.content"}
-            and item.get("version") == "v1alpha1"
+            item.get("name") == CONTRACT and item.get("version") == CONTRACT_VERSION
             for item in contracts
         ):
             raise ValueError("package does not declare a supported content contract")
-        self.public = any(
-            item.get("name") == "cymonkey.content"
-            and item.get("version") == "v1alpha1"
-            for item in contracts
-        )
         self.worker = None
 
     def call(self, method, params):
-        public = method.startswith("cymonkey.content.")
-        if public:
-            method = "blockade." + method.removeprefix("cymonkey.content.")
-        elif method.startswith("blockade.provider."):
-            method = "blockade." + method.removeprefix("blockade.provider.")
-        adapter_api = CYMONKEY_ADAPTER_API if public else ADAPTER_API
-        observation_api = CYMONKEY_OBSERVATION_API if public else OBSERVATION_API
-        if method == "blockade.model.inspect":
+        adapter_api = ADAPTER_API
+        observation_api = OBSERVATION_API
+        if method == "content.provider.model.inspect":
             try:
                 self._require_empty_settings(params.get("settings", {}))
                 yolo, sam = self._model_paths(params["model"])
@@ -55,7 +41,7 @@ class Provider:
                     "compatible": False,
                     "detail": str(exc),
                 }
-        if method == "blockade.start":
+        if method == "content.provider.start":
             if self.worker is not None:
                 raise ValueError("provider is already started")
             self._require_empty_settings(params.get("settings", {}))
@@ -65,7 +51,7 @@ class Provider:
             yolo, sam = self._model_paths(model)
             self.worker = Worker(yolo, sam)
             return {}
-        if method == "blockade.capabilities":
+        if method == "content.provider.capabilities":
             return {
                 "apiVersion": adapter_api,
                 "capabilities": [
@@ -74,19 +60,16 @@ class Provider:
                     "object.segment",
                 ],
             }
-        if method == "blockade.health":
+        if method == "content.provider.health":
             return {"apiVersion": adapter_api, "ready": self.worker is not None}
-        if method == "blockade.observe":
+        if method == "content.provider.observe":
             if self.worker is None:
                 raise ValueError("provider has not been started")
             wrapped = params["request"]
             if wrapped.get("apiVersion") != adapter_api:
                 raise ValueError("unsupported provider adapter apiVersion")
             request = wrapped["request"]
-            expected_request_api = (
-                CYMONKEY_OBSERVATION_REQUEST_API if public else OBSERVATION_API
-            )
-            if request.get("apiVersion") != expected_request_api:
+            if request.get("apiVersion") != OBSERVATION_API:
                 raise ValueError("unsupported observation request apiVersion")
             request_id = request.get("requestId", "")
             observations = self.worker.observe(
@@ -100,7 +83,7 @@ class Provider:
                     "observations": observations,
                 },
             }
-        if method == "blockade.close":
+        if method == "content.provider.close":
             self.worker = None
             return {}
         raise ValueError(f"unsupported method {method!r}")
@@ -114,7 +97,7 @@ class Provider:
 
     def _model_paths(self, model):
         manifest = model["manifest"]
-        plugin = manifest.get("plugin") if self.public else manifest.get("provider")
+        plugin = manifest.get("provider")
         if plugin != self.name:
             raise ValueError("model plugin does not match this plugin package")
         capabilities = set(manifest.get("capabilities", []))
@@ -144,7 +127,7 @@ class Provider:
 
 
 def main():
-    manifest_path = os.environ.get("CYMONKEY_PLUGIN_MANIFEST") or os.environ["BLOCKADE_PLUGIN_MANIFEST"]
+    manifest_path = os.environ["PLUGIN_MANIFEST"]
     provider = Provider()
     ext_plugin.serve_stdio(
         manifest_path,

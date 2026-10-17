@@ -1,5 +1,5 @@
 {
-  "apiVersion": "cymonkey.content-source/v1alpha1",
+  "apiVersion": "content.source/v1",
   "runtime": {
     "name": "python",
     "version": "3.12.8"

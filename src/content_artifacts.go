@@ -1,7 +1,6 @@
 package main
 
 import (
-	"cymonkey/src/contracts"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -195,21 +194,6 @@ func libraryContentJSON(value any) any {
 			result[key] = libraryContentJSON(item)
 		}
 		return result
-	case string:
-		switch value {
-		case contracts.ModelManifestVersion:
-			return "blockade.model/v1alpha1"
-		case contracts.RuntimeManifestVersion:
-			return "blockade.runtime/v1alpha1"
-		case contracts.ContentAdapterVersion:
-			return "blockade.provider-adapter/v1alpha1"
-		case contracts.ObservationAPIVersion:
-			return "blockade.observation/v1alpha1"
-		case contracts.ObservationRequestVersion:
-			return "blockade.observation/v1alpha1"
-		case contracts.ContentAPIVersion:
-			return "blockade.content/v1alpha1"
-		}
 	}
 	return value
 }

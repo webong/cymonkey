@@ -19,7 +19,6 @@ import (
 	"board"
 	boardconfig "board/config"
 	boardplugin "board/plugin"
-	"cymonkey/src/contracts"
 	"cymonkey/src/internal/orchestrator"
 	displayplugin "jangolova/plugin"
 
@@ -29,10 +28,10 @@ import (
 )
 
 const (
-	displayPluginContract = "cymonkey.display"
-	contentPluginContract = "cymonkey.content"
-	devicePluginContract  = "cymonkey.device"
-	pluginContractVersion = "v1alpha1"
+	displayPluginContract = displayplugin.ContractName
+	contentPluginContract = blockadeplugin.ContractName
+	devicePluginContract  = boardplugin.ContractName
+	pluginContractVersion = "v1"
 )
 
 // pluginOperations maps each public contract to the operations its libraries
@@ -140,7 +139,7 @@ func registerDisplayPlugins(registry *orchestrator.Registry) error {
 		if !item.Supports(displayPluginContract, pluginContractVersion) {
 			continue
 		}
-		if err := registry.RegisterEngine(item.Name(), wrapDisplayLibrary(displayplugin.Adapter{Installed: item, MethodPrefix: displayPluginContract})); err != nil {
+		if err := registry.RegisterEngine(item.Name(), wrapDisplayLibrary(displayplugin.Adapter{Installed: item})); err != nil {
 			return err
 		}
 	}
@@ -154,7 +153,7 @@ func devicePluginAdapters() ([]board.Provider, error) {
 	providers := make([]board.Provider, 0, len(installed))
 	for _, item := range installed {
 		if item.Supports(devicePluginContract, pluginContractVersion) {
-			providers = append(providers, boardplugin.Provider{Installed: item, MethodPrefix: devicePluginContract})
+			providers = append(providers, boardplugin.Provider{Installed: item})
 		}
 	}
 	if path := os.Getenv("CYMONKEY_DEVICE_CONFIG"); path != "" {
@@ -186,13 +185,7 @@ func contentPluginRegistry() (*blockade.ProviderAdapterRegistry, error) {
 		if !item.Supports(contentPluginContract, pluginContractVersion) {
 			continue
 		}
-		if err := blockadeplugin.RegisterWithProtocol(registry, item, blockadeplugin.Protocol{
-			MethodPrefix: contentPluginContract, AdapterAPIVersion: contracts.ContentAdapterVersion,
-			ObservationRequestAPI: contracts.ObservationRequestVersion, ObservationAPIVersion: contracts.ObservationAPIVersion,
-			ContentAPIVersion: contracts.ContentAPIVersion,
-			ModelAPIVersion:   contracts.ModelManifestVersion, ManifestEnvironment: "CYMONKEY_PLUGIN_MANIFEST",
-			RuntimeRoot: runtimeRoot, DescriptorFile: "content.json", DescriptorAPIVersion: contracts.ContentSourceVersion,
-		}); err != nil {
+		if err := blockadeplugin.RegisterWithRuntimeRoot(registry, item, runtimeRoot); err != nil {
 			return nil, err
 		}
 	}

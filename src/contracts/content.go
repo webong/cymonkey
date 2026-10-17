@@ -3,15 +3,15 @@
 package contracts
 
 const (
-	ContentAPIVersion         = "cymonkey.content/v1alpha1"
-	ContentAdapterVersion     = "cymonkey.content-adapter/v1alpha1"
-	ObservationRequestVersion = "cymonkey.observation/v1alpha1"
-	ObservationAPIVersion     = "cymonkey.observation-result/v1alpha1"
+	ContentAPIVersion         = "content.item/v1"
+	ContentAdapterVersion     = "content.adapter/v1"
+	ObservationRequestVersion = "content.observation/v1"
+	ObservationAPIVersion     = "content.observation/v1"
 	ContentConfigVersion      = "cymonkey.content-config/v1alpha1"
-	ModelManifestVersion      = "cymonkey.model/v1alpha1"
-	RuntimeManifestVersion    = "cymonkey.runtime/v1alpha1"
+	ModelManifestVersion      = "content.model/v1"
+	RuntimeManifestVersion    = "content.runtime/v1"
 	ContentServiceVersion     = "cymonkey.content-service/v1alpha1"
-	ContentSourceVersion      = "cymonkey.content-source/v1alpha1"
+	ContentSourceVersion      = "content.source/v1"
 )
 
 // ContentConfig is Cymonkey's public configuration for content adapters.

@@ -17,31 +17,11 @@ import (
 	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
 	packagekit "github.com/webong/ext/pkg/plugin-go/contract/package"
 	"github.com/webong/ext/pkg/plugin-go/contract/transport/jsonline"
-	"wirebridge"
 )
 
-var contentWire = wirebridge.Mapping{
-	PublicPrefix: "cymonkey.content.", InternalPrefix: "blockade.", NativePrefix: "blockade.provider.",
-	ToInternal: map[string]string{
-		"cymonkey.content-adapter/v1alpha1":    blockade.ProviderAdapterAPIVersion,
-		"cymonkey.observation/v1alpha1":        blockade.APIVersion,
-		"cymonkey.observation-result/v1alpha1": blockade.APIVersion,
-		"cymonkey.content/v1alpha1":            blockade.ContentAPIVersion,
-		"cymonkey.model/v1alpha1":              blockade.ModelManifestAPIVersion,
-	},
-	ToPublic: map[string]string{
-		blockade.ProviderAdapterAPIVersion: "cymonkey.content-adapter/v1alpha1",
-		blockade.APIVersion:                "cymonkey.observation-result/v1alpha1",
-		blockade.ContentAPIVersion:         "cymonkey.content/v1alpha1",
-		blockade.ModelManifestAPIVersion:   "cymonkey.model/v1alpha1",
-	},
-	KeysToInternal: map[string]string{"plugin": "provider"}, KeysToPublic: map[string]string{"provider": "plugin"},
-}
-
 const (
-	blockadeContract        = "blockade.provider"
-	cymonkeyContentContract = "cymonkey.content"
-	blockadeContractVersion = "v1alpha1"
+	contentContract        = "content.provider"
+	contentContractVersion = "v1"
 )
 
 type provider struct {
@@ -67,7 +47,7 @@ func loadPluginDescriptor(path string) (plugin.Descriptor, error) {
 		return plugin.Descriptor{}, err
 	}
 	manifest := packagekit.Manifest{Descriptor: descriptor}
-	if !manifest.Supports(blockadeContract, blockadeContractVersion) && !manifest.Supports(cymonkeyContentContract, blockadeContractVersion) {
+	if !manifest.Supports(contentContract, contentContractVersion) {
 		return plugin.Descriptor{}, errors.New("plugin manifest does not declare a supported content contract")
 	}
 	return descriptor, nil
@@ -80,14 +60,8 @@ func serveProvider(ctx context.Context, descriptor plugin.Descriptor) error {
 }
 
 func (p *provider) call(ctx context.Context, method string, raw json.RawMessage) (any, error) {
-	return contentWire.WrapCall(method, raw, func(method string, raw json.RawMessage) (any, error) {
-		return p.callLibrary(ctx, method, raw)
-	})
-}
-
-func (p *provider) callLibrary(ctx context.Context, method string, raw json.RawMessage) (any, error) {
 	switch method {
-	case "blockade.start":
+	case "content.provider.start":
 		if p.adapter != nil {
 			return nil, errors.New("provider is already started")
 		}
@@ -104,7 +78,7 @@ func (p *provider) callLibrary(ctx context.Context, method string, raw json.RawM
 		}
 		p.adapter = adapter
 		return map[string]any{}, nil
-	case "blockade.capabilities":
+	case "content.provider.capabilities":
 		if p.adapter == nil {
 			return blockade.ProviderAdapterCapabilities{
 				APIVersion:   blockade.ProviderAdapterAPIVersion,
@@ -112,12 +86,12 @@ func (p *provider) callLibrary(ctx context.Context, method string, raw json.RawM
 			}, nil
 		}
 		return p.adapter.Capabilities(ctx)
-	case "blockade.health":
+	case "content.provider.health":
 		if p.adapter == nil {
 			return blockade.ProviderAdapterHealth{APIVersion: blockade.ProviderAdapterAPIVersion, Ready: false}, nil
 		}
 		return p.adapter.Health(ctx)
-	case "blockade.observe":
+	case "content.provider.observe":
 		if p.adapter == nil {
 			return nil, errors.New("provider has not been started")
 		}
@@ -131,7 +105,7 @@ func (p *provider) callLibrary(ctx context.Context, method string, raw json.RawM
 			return nil, err
 		}
 		return p.adapter.Observe(ctx, params.Request)
-	case "blockade.close":
+	case "content.provider.close":
 		return map[string]any{}, p.close()
 	default:
 		return nil, fmt.Errorf("unsupported method %q", method)

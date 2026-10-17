@@ -9,18 +9,21 @@ const ultralytics = await readFile(new URL("../pkg/content-ultralytics/python/pr
 const webllm = await readFile(new URL("../pkg/content-webllm/main.go", import.meta.url), "utf8");
 const endpointServer = await readFile(new URL("../pkg/content-endpoints/internal/providerexec/server.go", import.meta.url), "utf8");
 
-assert.equal(observation.properties.apiVersion.const, "blockade.observation/v1alpha1");
+assert.equal(observation.properties.apiVersion.const, "content.observation/v1");
 assert.ok(content.properties.parts.items.oneOf.some((part) => part.properties.kind.const === "video"));
 assert.equal(providerSchema.$defs.modelInspectRequest.properties.settings.type, "object");
 for (const source of [onnx, webllm]) {
-  assert.match(source, /PublicPrefix:\s*"cymonkey\.content\."/);
-  assert.match(source, /cymonkeyContentContract\s*=\s*"cymonkey\.content"/);
+  assert.match(source, /contentContract\s*=\s*"content\.provider"/);
+  assert.match(source, /case "content\.provider\.observe":/);
   assert.match(source, /packagekit\.LoadDescriptor/);
+  assert.doesNotMatch(source, /wirebridge|cymonkey\.content|"blockade\.(provider|start|observe|interpret|capabilities|health|close)"/);
 }
-assert.match(onnx, /cymonkey\.content-adapter\/v1alpha1/);
-assert.match(ultralytics, /method\.startswith\("cymonkey\.content\."\)/);
-assert.match(ultralytics, /method\.removeprefix\("cymonkey\.content\."\)/);
-assert.match(ultralytics, /CYMONKEY_PLUGIN_MANIFEST/);
-assert.match(endpointServer, /PublicPrefix:\s*"cymonkey\.content\."/);
+assert.match(onnx, /blockade\.ProviderAdapterAPIVersion/);
+assert.match(ultralytics, /CONTRACT = "content\.provider"/);
+assert.match(ultralytics, /method == "content\.provider\.observe"/);
+assert.match(ultralytics, /PLUGIN_MANIFEST/);
+assert.doesNotMatch(ultralytics, /cymonkey\.content|"blockade\.(provider|start|observe)"/);
+assert.match(endpointServer, /"content\.provider\.interpret"/);
+assert.doesNotMatch(endpointServer, /wirebridge|cymonkey\.content/);
 assert.match(endpointServer, /RetryAfterMilliseconds/);
 console.log("Cymonkey content contract checks passed");

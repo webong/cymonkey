@@ -7,7 +7,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
 	packagekit "github.com/webong/ext/pkg/plugin-go/contract/package"
@@ -27,54 +26,40 @@ func main() {
 	name := descriptor.Identity.ID
 	started := false
 	err = jsonline.ServeFunc(context.Background(), descriptor, func(_ context.Context, method string, payload json.RawMessage) (any, error) {
-		publicContent := strings.HasPrefix(method, "cymonkey.content.")
-		method = strings.NewReplacer(
-			"cymonkey.display.", "jangolova.",
-			"cymonkey.content.", "blockade.",
-			"cymonkey.device.", "board.",
-			"jangolova.engine.", "jangolova.",
-			"blockade.provider.", "blockade.",
-			"board.provider.", "board.",
-		).Replace(method)
-		adapterAPI := "blockade.provider-adapter/v1alpha1"
-		observationAPI := "blockade.observation/v1alpha1"
-		contentAPI := "blockade.content/v1alpha1"
-		if publicContent {
-			adapterAPI = "cymonkey.content-adapter/v1alpha1"
-			observationAPI = "cymonkey.observation-result/v1alpha1"
-			contentAPI = "cymonkey.content/v1alpha1"
-		}
+		adapterAPI := "content.adapter/v1"
+		observationAPI := "content.observation/v1"
+		contentAPI := "content.item/v1"
 		var response answer
 		switch method {
-		case "jangolova.inspect":
+		case "display.engine.inspect":
 			response.Result = map[string]any{"Available": true, "Capabilities": []string{"window.screenshot"}}
-		case "jangolova.connect":
+		case "display.engine.connect":
 			response.Result = map[string]any{"capabilities": []string{"window.screenshot"}}
-		case "jangolova.authorize":
+		case "display.engine.authorize":
 			response.Result = map[string]any{"Authorized": true}
-		case "jangolova.call":
+		case "display.engine.call":
 			response.Result = map[string]any{"ok": true}
-		case "jangolova.health":
+		case "display.engine.health":
 			response.Result = map[string]any{"Status": "connected"}
-		case "jangolova.events":
+		case "display.engine.events":
 			response.Result = map[string]any{"cursor": "0", "events": []any{}}
-		case "jangolova.material", "jangolova.disconnect":
+		case "display.engine.material", "display.engine.disconnect":
 			response.Result = map[string]any{}
-		case "blockade.start":
+		case "content.provider.start":
 			started = true
 			response.Result = map[string]any{}
-		case "blockade.close":
+		case "content.provider.close":
 			started = false
 			response.Result = map[string]any{}
-		case "blockade.health":
+		case "content.provider.health":
 			response.Result = map[string]any{"APIVersion": adapterAPI, "Ready": true}
-		case "blockade.capabilities":
+		case "content.provider.capabilities":
 			capabilities := []string{"image.observe", "text.interpret", "audio.interpret", "multimodal.interpret"}
 			if name == "content-fixture" {
 				capabilities = []string{"text.interpret", "audio.interpret"}
 			}
 			response.Result = map[string]any{"APIVersion": adapterAPI, "Capabilities": capabilities}
-		case "blockade.observe":
+		case "content.provider.observe":
 			var params struct {
 				Request struct {
 					APIVersion string `json:"apiVersion"`
@@ -85,12 +70,12 @@ func main() {
 				} `json:"request"`
 			}
 			_ = json.Unmarshal(payload, &params)
-			if publicContent && (params.Request.APIVersion != "cymonkey.content-adapter/v1alpha1" || params.Request.Request.APIVersion != "cymonkey.observation/v1alpha1") {
-				response.Error = "public observation request used an internal contract"
+			if params.Request.APIVersion != "content.adapter/v1" || params.Request.Request.APIVersion != "content.observation/v1" {
+				response.Error = "observation request used an unexpected apiVersion"
 				break
 			}
 			response.Result = map[string]any{"apiVersion": adapterAPI, "response": map[string]any{"apiVersion": observationAPI, "requestId": params.Request.Request.RequestID, "observations": []any{}}}
-		case "blockade.interpret":
+		case "content.provider.interpret":
 			var params struct {
 				Request struct {
 					Request struct {
@@ -107,23 +92,23 @@ func main() {
 				kind = "transcript"
 			}
 			response.Result = map[string]any{"apiVersion": adapterAPI, "response": map[string]any{"apiVersion": contentAPI, "requestId": params.Request.Request.RequestID, "findings": []any{map[string]any{"kind": kind, "text": "fixture interpretation", "sourceParts": []int{0}}}}}
-		case "blockade.model.inspect":
+		case "content.provider.model.inspect":
 			if started {
 				response.Error = "model inspection must happen before provider startup"
 			} else {
 				response.Result = map[string]any{"apiVersion": adapterAPI, "compatible": true}
 			}
-		case "board.list":
+		case "device.provider.list":
 			response.Result = []any{map[string]any{"id": "device", "kind": "drive", "capabilities": []any{map[string]any{"name": "drive.read", "inputSchema": map[string]any{"type": "object"}}}}}
-		case "board.open":
+		case "device.provider.open":
 			response.Result = map[string]any{}
-		case "board.invoke":
+		case "device.provider.invoke":
 			response.Result = map[string]any{"output": map[string]any{"ok": true}}
-		case "board.stream.open":
+		case "device.provider.stream.open":
 			response.Result = map[string]any{"id": "stream", "size": 7, "truncated": false}
-		case "board.stream.read":
+		case "device.provider.stream.read":
 			response.Result = map[string]any{"data": []byte("content"), "eof": true}
-		case "board.stream.close", "board.close":
+		case "device.provider.stream.close", "device.provider.close":
 			response.Result = map[string]any{}
 		default:
 			response.Error = "unknown fixture method"

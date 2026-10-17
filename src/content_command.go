@@ -359,20 +359,10 @@ func publicContentJSON(value any) any {
 		}
 		return result
 	case string:
-		switch value {
-		case blockade.ContentAPIVersion:
-			return contracts.ContentAPIVersion
-		case blockade.APIVersion:
-			return contracts.ObservationAPIVersion
-		case blockade.ConfigAPIVersion:
+		if value == blockade.ConfigAPIVersion {
 			return contracts.ContentConfigVersion
-		case blockade.ModelManifestAPIVersion:
-			return contracts.ModelManifestVersion
-		case blockade.RuntimeManifestAPIVersion:
-			return contracts.RuntimeManifestVersion
-		default:
-			return value
 		}
+		return value
 	default:
 		return value
 	}

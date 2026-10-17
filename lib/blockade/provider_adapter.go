@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	ProviderAdapterAPIVersion = "blockade.provider-adapter/v1alpha1"
+	ProviderAdapterAPIVersion = "content.adapter/v1"
 
 	CapabilityImageObserve   = "image.observe"
 	CapabilityObjectDetect   = "object.detect"
@@ -27,7 +27,7 @@ const (
 )
 
 // ProviderAdapterObserveRequest is the image observation boundary. The nested
-// request remains the public blockade.observation/v1alpha1 request.
+// request remains the public content.observation/v1 request.
 type ProviderAdapterObserveRequest struct {
 	APIVersion string         `json:"apiVersion"`
 	Request    ObserveRequest `json:"request"`

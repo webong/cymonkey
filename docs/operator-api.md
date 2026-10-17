@@ -130,11 +130,11 @@ For a managed image observation:
 {"instanceId":"browser-one","prompt":"find the primary action"}
 ```
 
-For content interpretation, send the `cymonkey.content/v1alpha1` request body
+For content interpretation, send the `content.item/v1` request body
 to `POST /v1/interpretations`:
 
 ```json
-{"apiVersion":"cymonkey.content/v1alpha1","parts":[{"kind":"text","text":"Meeting starts at 9."}],"prompt":"Summarize"}
+{"apiVersion":"content.item/v1","parts":[{"kind":"text","text":"Meeting starts at 9."}],"prompt":"Summarize"}
 ```
 
 `cymy operator interpret` reads files on the caller's machine and sends their

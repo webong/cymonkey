@@ -2,7 +2,7 @@ package blockade
 
 import "encoding/json"
 
-const APIVersion = "blockade.observation/v1alpha1"
+const APIVersion = "content.observation/v1"
 
 type Region struct {
 	X      float64 `json:"x"`

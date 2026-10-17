@@ -20,7 +20,7 @@ import (
 	"cymonkey/src/contracts"
 )
 
-const ObservationAPIVersion = "cymonkey.observation/v1alpha1"
+const ObservationAPIVersion = "content.observation/v1"
 const CaptureServiceContract = "display.interaction"
 const InterpretationServiceContract = "content.interpretation"
 

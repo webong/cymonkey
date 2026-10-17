@@ -16,7 +16,7 @@ import (
 	"strings"
 )
 
-const ModelManifestAPIVersion = "blockade.model/v1alpha1"
+const ModelManifestAPIVersion = "content.model/v1"
 
 const maxModelManifestBytes = 64 << 10
 const maxModelArtifactBytes int64 = 64 << 30
@@ -107,6 +107,10 @@ func LoadModelManifest(path string) (ModelManifest, error) {
 	var trailing any
 	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
 		return ModelManifest{}, errors.New("model manifest must contain one JSON object")
+	}
+	// Manifests installed before the neutral names keep loading for one release.
+	if manifest.APIVersion == "blockade.model/v1alpha1" || manifest.APIVersion == "cymonkey.model/v1alpha1" {
+		manifest.APIVersion = ModelManifestAPIVersion
 	}
 	return manifest, manifest.Validate()
 }

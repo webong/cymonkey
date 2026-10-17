@@ -410,7 +410,7 @@ cymy content model list
 cymy content model remove --plugin onnx --model yolo11n@1.0.0
 ```
 
-The public manifest uses `cymonkey.model/v1alpha1`, names the installed plugin,
+The public manifest uses `content.model/v1`, names the installed plugin,
 and includes every artifact's role and SHA-256 digest. The content adapter
 copies and verifies the files, asks that plugin to inspect compatibility, then registers the installed
 version. Use `--root` on model commands or `CYMONKEY_MODEL_DIR` to choose a

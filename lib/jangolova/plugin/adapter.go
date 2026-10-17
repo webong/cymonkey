@@ -19,8 +19,8 @@ type Adapter struct {
 	MethodPrefix string
 }
 
-const ContractName = "jangolova.engine"
-const ContractVersion = "v1alpha1"
+const ContractName = "display.engine"
+const ContractVersion = "v1"
 
 // Operations lists every method a Jangolova engine package serves.
 var Operations = []string{"inspect", "connect", "call", "authorize", "health", "disconnect", "events", "material"}
@@ -28,7 +28,7 @@ var Operations = []string{"inspect", "connect", "call", "authorize", "health", "
 func (a Adapter) method(name string) string {
 	prefix := a.MethodPrefix
 	if prefix == "" {
-		prefix = "jangolova"
+		prefix = ContractName
 	}
 	return prefix + "." + name
 }
@@ -129,7 +129,7 @@ type session struct {
 func (s *session) method(name string) string {
 	prefix := s.methodPrefix
 	if prefix == "" {
-		prefix = "jangolova"
+		prefix = ContractName
 	}
 	return prefix + "." + name
 }

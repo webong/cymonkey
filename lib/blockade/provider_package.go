@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-const ProviderPackageAPIVersion = "blockade.provider-package/v1alpha1"
+const ProviderPackageAPIVersion = "content.source/v1"
 
 // ProviderPackage describes how Blockade runs a source-only provider package.
 // It is deliberately separate from plugin.json: the shared package installer
@@ -48,7 +48,7 @@ func (p ProviderPackage) ValidateAPIVersion(expected string) error {
 }
 
 func validProviderPackagePath(value string) bool {
-	return value != "" && value != "." && value != ".." && value != "blockade.json" &&
+	return value != "" && value != "." && value != ".." && value != "content.json" &&
 		!strings.Contains(value, `\`) && !strings.HasPrefix(value, "/") &&
 		pathpkg.Clean(value) == value && !strings.HasPrefix(value, "../")
 }

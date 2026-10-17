@@ -16,7 +16,7 @@ import (
 	"strings"
 )
 
-const RuntimeManifestAPIVersion = "blockade.runtime/v1alpha1"
+const RuntimeManifestAPIVersion = "content.runtime/v1"
 
 const maxRuntimeManifestBytes = 16 << 20
 const maxRuntimeFileBytes int64 = 4 << 30
@@ -108,6 +108,10 @@ func LoadRuntimeManifest(path string) (RuntimeManifest, error) {
 	var trailing any
 	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
 		return RuntimeManifest{}, errors.New("runtime manifest must contain one JSON object")
+	}
+	// Manifests installed before the neutral names keep loading for one release.
+	if manifest.APIVersion == "blockade.runtime/v1alpha1" || manifest.APIVersion == "cymonkey.runtime/v1alpha1" {
+		manifest.APIVersion = RuntimeManifestAPIVersion
 	}
 	return manifest, manifest.Validate()
 }

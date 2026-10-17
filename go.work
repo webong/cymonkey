@@ -6,7 +6,6 @@ use (
 	./lib/board
 	./lib/console
 	./lib/jangolova
-	./pkg/wirebridge
 	./pkg/content-endpoints
 	./pkg/content-onnx
 	./pkg/content-webllm

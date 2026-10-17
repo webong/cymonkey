@@ -20,7 +20,7 @@ adapters:
     maxPayloadBytes: 8388608
 ```
 
-`plugin` names an installed `cymonkey.content@v1alpha1` package. `id` names one
+`plugin` names an installed `content.provider@v1` package. `id` names one
 configured adapter and is selected with `--inference`. Secrets contain only
 environment references:
 
@@ -43,8 +43,8 @@ Use `--plugin NAME` when adding a custom endpoint plugin.
 
 ## Local models and runtimes
 
-Model manifests use `cymonkey.model/v1alpha1` and the `plugin` field. Runtime
-manifests use `cymonkey.runtime/v1alpha1`.
+Model manifests use `content.model/v1` and the `plugin` field. Runtime
+manifests use `content.runtime/v1`.
 
 ```sh
 cymy content model install --manifest /models/model.json \
@@ -71,8 +71,8 @@ cymy content interpret --audio recording.wav --audio-type audio/wav \
   --prompt 'Transcribe'
 ```
 
-The CLI returns `cymonkey.observation-result/v1alpha1` or
-`cymonkey.content/v1alpha1` JSON.
+The CLI returns `content.observation/v1` or
+`content.item/v1` JSON.
 
 ## HTTP service
 
@@ -90,8 +90,8 @@ Routes:
 | --- | --- |
 | `GET /healthz` | Service readiness |
 | `GET /capabilities` | `cymonkey.content-service/v1alpha1` |
-| `POST /v1/observe` | `cymonkey.observation/v1alpha1` request |
-| `POST /v1/interpret` | `cymonkey.content/v1alpha1` request |
+| `POST /v1/observe` | `content.observation/v1` request |
+| `POST /v1/interpret` | `content.item/v1` request |
 
 The server response never exposes its internal library schema. The operator
 uses this same public service contract.
@@ -99,5 +99,5 @@ uses this same public service contract.
 ## Plugins
 
 Install or author plugins through the generic Cymonkey package flow. A content
-plugin declares `cymonkey.content@v1alpha1` and implements methods under the
-`cymonkey.content.*` prefix. See [Cymonkey plugins](cymonkey-plugins.md).
+plugin declares `content.provider@v1` and implements methods under the
+`content.provider.*` prefix. See [Cymonkey plugins](cymonkey-plugins.md).
