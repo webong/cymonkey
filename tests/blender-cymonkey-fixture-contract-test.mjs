@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const packageSource = await readFile(new URL("../pkg/blender/blender_cymonkey.py", import.meta.url), "utf8");
-const packageReadme = await readFile(new URL("../pkg/blender/README.md", import.meta.url), "utf8");
+const packageSource = await readFile(new URL("../lib/blender/blender_cymonkey.py", import.meta.url), "utf8");
+const packageReadme = await readFile(new URL("../lib/blender/README.md", import.meta.url), "utf8");
 const fixture = await readFile(new URL("blender-cymonkey-fixture/fixture.py", import.meta.url), "utf8");
 const manifest = JSON.parse(await readFile(new URL("../pkg/board/display/registry/index.json", import.meta.url), "utf8"));
 

@@ -57,7 +57,7 @@ func run() error {
 	fmt.Println("Artifacts:", out)
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
-	code, err := os.ReadFile(filepath.Join(base, "pkg/blender/blender_cymonkey.py"))
+	code, err := os.ReadFile(filepath.Join(base, "lib/blender/blender_cymonkey.py"))
 	if err != nil {
 		return err
 	}

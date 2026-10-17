@@ -18,7 +18,7 @@ its container after verification. The runtime module never stops Blender.
 The output directory must be new; use `--output /absolute/new-directory` or
 accept the generated temporary directory.
 
-The test serves a local registry and the actual `pkg/blender/blender_cymonkey.py`
+The test serves a local registry and the actual `lib/blender/blender_cymonkey.py`
 artifact. It checks discovery, SHA-256 retrieval, denial without approval,
 explicit mounting of verified bytes, authenticated protocol negotiation,
 registered object mutation, events, and per-resource action rejection.

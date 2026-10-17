@@ -20,7 +20,7 @@ docker run --rm \
 ```
 
 For a live Blender target, provide a bootstrap script that imports
-`pkg/blender/blender_cymonkey.py`, registers caller-selected resources, creates
+`lib/blender/blender_cymonkey.py`, registers caller-selected resources, creates
 `CymonkeyWebSocketHost`, and registers its `poll` method with
 `bpy.app.timers`. The token must be injected at runtime and never placed in
 the image, scene, or repository.

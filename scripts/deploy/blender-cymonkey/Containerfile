@@ -4,7 +4,7 @@ ARG BLENDER_IMAGE
 FROM ${BLENDER_IMAGE}
 
 WORKDIR /workspace
-COPY pkg/blender ./pkg/blender
+COPY lib/blender ./lib/blender
 COPY tests/blender-cymonkey-fixture ./tests/blender-cymonkey-fixture
 
 ENV CYMONKEY_PORT=9321

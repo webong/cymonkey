@@ -46,5 +46,5 @@ Jangolova; it does not quit Blender or free the scene.
 ## Distribution
 
 The canonical module ID is `render/blender`. The current source distribution
-path is `pkg/blender`; see the
+path is `lib/blender`; see the
 [Jangolova render module map](../../docs/display-render-modules.md).
