@@ -40,7 +40,7 @@ go build -o /path/to/google-compatible/provider \
   ./pkg/content-endpoints/cmd/google-compatible
 ```
 
-Each binary needs a `package.json` beside it. The package name must be
+Each binary needs a `plugin.json` beside it. The package name must be
 `openai-compatible`, `anthropic-compatible`, or `google-compatible`. Generate
 the reviewed manifest and install each plugin through Cymonkey:
 
@@ -48,7 +48,7 @@ the reviewed manifest and install each plugin through Cymonkey:
 cymy plugins manifest --type content --name openai-compatible --version 1.0.0 \
   --command /path/to/openai-compatible/provider
 cymy plugins install \
-  --manifest /path/to/openai-compatible/package.json
+  --manifest /path/to/openai-compatible/plugin.json
 ```
 
 ## Configure

@@ -55,7 +55,7 @@ func adaptersCommand(args []string, stdout, stderr io.Writer) error {
 	case "install":
 		flags := flag.NewFlagSet("adapters install", flag.ContinueOnError)
 		flags.SetOutput(io.Discard)
-		source := flags.String("source", "", "adapter directory containing adapter.toml")
+		source := flags.String("source", "", "adapter directory containing plugin.json")
 		if err := flags.Parse(args[1:]); err != nil {
 			return err
 		}

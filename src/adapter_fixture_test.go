@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/webong/ext/pkg/plugin-go/contract/host/adapter"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -60,8 +61,10 @@ func installFakeAdapter(t *testing.T, name string, operations []string, response
 			t.Fatal(err)
 		}
 	}
-	write("adapter.toml", manifest, 0o600)
 	write("ctx-fake", fakeAdapterScript, 0o700)
+	if err := adapter.WriteKeyValueManifest(source, manifest); err != nil {
+		t.Fatal(err)
+	}
 	for key, response := range responses {
 		write(key+".out", response+"\n", 0o600)
 	}

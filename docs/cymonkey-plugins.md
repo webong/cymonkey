@@ -20,7 +20,7 @@ cymy plugins manifest --type content --name onnx --version 1.0.0 \
   --command /path/to/plugin
 ```
 
-Cymy writes `package.json` beside the executable. It declares one package
+Cymy writes `plugin.json` beside the executable. It declares one package
 identity, one entrypoint, and the contract with every operation it serves:
 
 ```json
@@ -60,13 +60,13 @@ manifests with `cymy plugins manifest`.
 ## Lifecycle
 
 ```sh
-cymy plugins install --manifest /path/to/package.json
+cymy plugins install --manifest /path/to/plugin.json
 cymy plugins list
-cymy plugins upgrade --manifest /path/to/new/package.json
+cymy plugins upgrade --manifest /path/to/new/plugin.json
 cymy plugins remove onnx
 ```
 
-`--manifest` accepts `package.json` or its directory. Install and upgrade read
+`--manifest` accepts `plugin.json` or its directory. Install and upgrade read
 local files, verify every declared artifact, and copy them into the Cymonkey
 plugin directory. They do not execute the plugin. An upgrade must keep the same
 contracts and carry a new revision, and the old install survives any failure.

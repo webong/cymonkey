@@ -100,7 +100,7 @@ func pluginContract(name string) plugin.Contract {
 	return plugin.Contract{ContractRef: plugin.ContractRef{Name: name, Version: pluginContractVersion}, Operations: operations}
 }
 
-// packageDirectory returns the directory holding package.json for a path that
+// packageDirectory returns the directory holding plugin.json for a path that
 // names either that directory or the manifest file.
 func packageDirectory(path string) (string, error) {
 	absolute, err := filepath.Abs(path)
@@ -258,8 +258,8 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 		var files, directories stringList
 		flags.Var(&files, "file", "file within --root to include; repeatable (source package)")
 		flags.Var(&directories, "dir", "directory within --root to include recursively; repeatable (source package)")
-		stage := flags.String("stage", "", "copy the listed files into this empty directory and write package.json there (source package)")
-		output := flags.String("output", "", "package.json output path; defaults beside the executable or in --root")
+		stage := flags.String("stage", "", "copy the listed files into this empty directory and write plugin.json there (source package)")
+		output := flags.String("output", "", "plugin.json output path; defaults beside the executable or in --root")
 		if err := flags.Parse(args[1:]); err != nil {
 			return err
 		}
@@ -330,7 +330,7 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 	case "install":
 		flags := flag.NewFlagSet("plugins install", flag.ContinueOnError)
 		flags.SetOutput(io.Discard)
-		manifest := flags.String("manifest", "", "local package.json path or package directory")
+		manifest := flags.String("manifest", "", "local plugin.json path or package directory")
 		if err := flags.Parse(args[1:]); err != nil {
 			return err
 		}
@@ -350,7 +350,7 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 	case "upgrade":
 		flags := flag.NewFlagSet("plugins upgrade", flag.ContinueOnError)
 		flags.SetOutput(io.Discard)
-		manifest := flags.String("manifest", "", "local package.json path or package directory")
+		manifest := flags.String("manifest", "", "local plugin.json path or package directory")
 		if err := flags.Parse(args[1:]); err != nil {
 			return err
 		}

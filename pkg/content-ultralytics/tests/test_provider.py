@@ -49,7 +49,7 @@ class ProviderTest(unittest.TestCase):
         FakeWorker.created.clear()
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
-        self.manifest_path = self.root / "package.json"
+        self.manifest_path = self.root / "plugin.json"
         self.manifest_path.write_text(
             json.dumps(
                 {

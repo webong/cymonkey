@@ -3,6 +3,7 @@ package browsermanage
 import (
 	"context"
 	"encoding/json"
+	"github.com/webong/ext/pkg/plugin-go/contract/host/adapter"
 	"github.com/webong/ext/res/web/contract"
 	"os"
 	"path/filepath"
@@ -56,10 +57,10 @@ func newHost(t *testing.T, trust bool) *Host {
 		t.Skip("the fake adapter is a POSIX script")
 	}
 	source := t.TempDir()
-	if err := os.WriteFile(filepath.Join(source, "adapter.toml"), []byte(fakeManifest), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(source, "ctx-fake"), []byte(fakeAdapter), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(source, "ctx-fake"), []byte(fakeAdapter), 0o700); err != nil {
+	if err := adapter.WriteKeyValueManifest(source, fakeManifest); err != nil {
 		t.Fatal(err)
 	}
 	host := New(t.TempDir())
@@ -182,10 +183,10 @@ func TestCookieQueryRunsAShareOperationAndNeverLeaksValuesInErrors(t *testing.T)
 	t.Setenv("FAKE_ADAPTER_LOG", t.TempDir())
 	source := t.TempDir()
 	manifest := strings.Replace(fakeManifest, `browser_share = "cookie.list"`, `browser_share = "cookie.query,cookie.normalize"`, 1)
-	if err := os.WriteFile(filepath.Join(source, "adapter.toml"), []byte(manifest), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(source, "ctx-fake"), []byte(cookieAdapter), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(source, "ctx-fake"), []byte(cookieAdapter), 0o700); err != nil {
+	if err := adapter.WriteKeyValueManifest(source, manifest); err != nil {
 		t.Fatal(err)
 	}
 	host := New(t.TempDir())

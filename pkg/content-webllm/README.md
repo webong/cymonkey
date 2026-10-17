@@ -8,7 +8,7 @@ go build -o /path/to/package/provider ./pkg/content-webllm
 ```
 
 Run `cymy plugins manifest --type content --name webllm --version 1.0.0 --command <binary>`
-to write `package.json` beside the binary, then install it with
+to write `plugin.json` beside the binary, then install it with
 `cymy plugins install --manifest <dir>`.
 
 WebLLM uses a remote model ID in plugin settings and its own browser cache. It

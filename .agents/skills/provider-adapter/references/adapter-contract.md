@@ -31,7 +31,7 @@ content plugins.
 
 ## Packaging
 
-Every package has a `package.json` manifest (`ext.package/v1`) that declares
+Every package has a `plugin.json` manifest (`ext.package/v1`) that declares
 contract `content.provider@v1` with every operation it serves.
 
 An executable package sets `command` and its SHA-256. A source package lists

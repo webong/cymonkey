@@ -34,7 +34,7 @@ require (
 	github.com/pion/transport/v5 v5.1.1 // indirect
 	github.com/pion/turn/v5 v5.1.2 // indirect
 	github.com/pion/webrtc/v4 v4.2.22
-	github.com/webong/ext/pkg/plugin-go/contract v0.2.1
+	github.com/webong/ext/pkg/plugin-go/contract v0.4.0
 	github.com/webong/ext/res/web v0.5.0
 	github.com/wlynxg/anet v0.0.5 // indirect
 	golang.org/x/crypto v0.48.0 // indirect

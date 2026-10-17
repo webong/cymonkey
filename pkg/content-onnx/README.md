@@ -14,12 +14,12 @@ mapping into Cymonkey observations.
 go build -o /path/to/package/provider ./pkg/content-onnx
 ```
 
-Generate `package.json` beside the binary, then install it:
+Generate `plugin.json` beside the binary, then install it:
 
 ```sh
 cymy plugins manifest --type content --name onnx --version 1.0.0 \
   --command /path/to/package/provider
-cymy plugins install --manifest /path/to/package/package.json
+cymy plugins install --manifest /path/to/package/plugin.json
 ```
 
 ## Model

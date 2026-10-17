@@ -80,7 +80,7 @@ Board's device implementations reach the host as an ext package that serves
 ```sh
 go build -o board-provider ./pkg/board/cmd/provider
 cymy plugins manifest --type device --name board --version 1.0.0 --command ./board-provider
-cymy plugins install --manifest ./package.json
+cymy plugins install --manifest ./plugin.json
 ```
 
 The host passes the package non-secret settings with each list and open:
