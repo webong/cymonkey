@@ -1,5 +1,5 @@
 {
-  "name": "@jangolova/snapchat-camera-kit-cymonkey",
+  "name": "@cymonkey/snapchat-camera",
   "version": "0.1.0",
   "private": true,
   "type": "module",
