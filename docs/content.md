@@ -41,6 +41,27 @@ cymy content endpoint test --id local-ollama --text 'hello'
 
 Use `--plugin NAME` when adding a custom endpoint plugin.
 
+
+## Content service package
+
+`cymy content` commands run in the content engine, which is an ext package that
+serves `content.service`. Build and install it once:
+
+```sh
+go build -o content ./pkg/console/cmd/content
+cymy plugins manifest --type content-service --name content --version 1.0.0 --command ./content
+cymy plugins install --manifest ./plugin.json
+```
+
+The host forwards each command to the package and prints what it wrote, and it
+admits only the `command` operation. The package starts with a scrubbed
+environment, so the host passes it only the variables the engine needs to find
+its configuration and storage, plus any variable a command or the content
+configuration names (a `--token-env` value, or an adapter secret's `env`).
+`cymy content serve` is long-lived, so the host runs the verified executable as a
+child with the same environment instead of one call. The providers
+(`content.provider` packages) are hosted by the engine, not by `cymy`.
+
 ## Local models and runtimes
 
 Model manifests use `content.model/v1` and the `plugin` field. Runtime

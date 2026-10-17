@@ -1,25 +1,24 @@
-package main
+package contentcmd
 
 import (
 	"bytes"
+	contentcli "console/contentcli"
 	"console/contentengine"
-	"cymonkey/src/contentbridge"
-	contentcli "cymonkey/src/contentcli"
-	"cymonkey/src/contracts"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"jangolova/contentkit"
+	"jangolova/contentkit/public"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
-// runContent adapts Cymonkey's public content command and data contracts to
+// Run adapts Cymonkey's public content command and data contracts to
 // the internal interpretation library. No library contract is exposed here.
-func runContent(args []string, stdout, stderr io.Writer) error {
+func Run(args []string, stdout, stderr io.Writer) error {
 	if len(args) > 0 && args[0] == "service" {
 		return runContentService(args[1:], stdout)
 	}
@@ -206,9 +205,9 @@ func prepareLibraryContentConfig(args []string, publicPath string) ([]string, st
 		return nil, "", nil, err
 	}
 	cleanup := func() { _ = os.Remove(temporaryPath) }
-	config, err := contentbridge.LoadConfig(publicPath)
+	config, err := LoadConfig(publicPath)
 	if err == nil {
-		libraryConfig := contentbridge.ToLibraryConfig(config)
+		libraryConfig := ToLibraryConfig(config)
 		modelRoot, rootErr := defaultContentModelRoot()
 		if rootErr != nil {
 			cleanup()
@@ -243,14 +242,14 @@ func isContentValidate(args []string) bool {
 }
 
 func listContentEndpoints(path string, stdout io.Writer) error {
-	config, err := contentbridge.LoadConfig(path)
+	config, err := LoadConfig(path)
 	if errors.Is(err, os.ErrNotExist) {
-		return json.NewEncoder(stdout).Encode(map[string]any{"apiVersion": contracts.ContentConfigVersion, "config": path, "endpoints": []contracts.ContentAdapterConfig{}})
+		return json.NewEncoder(stdout).Encode(map[string]any{"apiVersion": public.ContentConfigVersion, "config": path, "endpoints": []public.ContentAdapterConfig{}})
 	}
 	if err != nil {
 		return publicContentError(err)
 	}
-	return json.NewEncoder(stdout).Encode(map[string]any{"apiVersion": contracts.ContentConfigVersion, "config": path, "endpoints": config.Adapters})
+	return json.NewEncoder(stdout).Encode(map[string]any{"apiVersion": public.ContentConfigVersion, "config": path, "endpoints": config.Adapters})
 }
 
 func validateContentConfig(args []string, path string, stdout io.Writer) error {
@@ -264,12 +263,12 @@ func validateContentConfig(args []string, path string, stdout io.Writer) error {
 	if flags.NArg() != 0 {
 		return errors.New("cymy content validate accepts flags only")
 	}
-	config, err := contentbridge.LoadConfig(*configPath)
+	config, err := LoadConfig(*configPath)
 	if err != nil {
 		return publicContentError(err)
 	}
 	if *checkFiles {
-		if err := contentbridge.ToLibraryConfig(config).ValidateModelFiles(); err != nil {
+		if err := ToLibraryConfig(config).ValidateModelFiles(); err != nil {
 			return publicContentError(err)
 		}
 	}
@@ -288,7 +287,7 @@ func persistContentEndpointMutation(args []string, publicPath, temporaryPath str
 	if err != nil {
 		return err
 	}
-	return contentbridge.SaveConfig(publicPath, contentbridge.FromLibraryConfig(config))
+	return SaveConfig(publicPath, FromLibraryConfig(config))
 }
 
 func writeContentEndpointMutationResult(args []string, configPath string, stdout io.Writer) error {
@@ -297,13 +296,13 @@ func writeContentEndpointMutationResult(args []string, configPath string, stdout
 		_, err := fmt.Fprintf(stdout, "removed content endpoint %s\n", strings.TrimSpace(id))
 		return err
 	}
-	config, err := contentbridge.LoadConfig(configPath)
+	config, err := LoadConfig(configPath)
 	if err != nil {
 		return err
 	}
 	for _, adapter := range config.Adapters {
 		if adapter.ID == strings.TrimSpace(id) {
-			return json.NewEncoder(stdout).Encode(map[string]any{"apiVersion": contracts.ContentConfigVersion, "config": configPath, "endpoint": adapter})
+			return json.NewEncoder(stdout).Encode(map[string]any{"apiVersion": public.ContentConfigVersion, "config": configPath, "endpoint": adapter})
 		}
 	}
 	return fmt.Errorf("content endpoint %q was not saved", strings.TrimSpace(id))
@@ -315,14 +314,14 @@ func writePublicContentOutput(args []string, configPath string, output []byte, s
 		if err := json.Unmarshal(output, &response); err != nil {
 			return err
 		}
-		return json.NewEncoder(stdout).Encode(contentbridge.FromLibraryResponse(response))
+		return json.NewEncoder(stdout).Encode(public.FromLibraryResponse(response))
 	}
 	if len(args) > 0 && args[0] == "observe" {
 		var response contentkit.ObserveResponse
 		if err := json.Unmarshal(output, &response); err != nil {
 			return err
 		}
-		return json.NewEncoder(stdout).Encode(contentbridge.FromLibraryObservation(response))
+		return json.NewEncoder(stdout).Encode(public.FromLibraryObservation(response))
 	}
 	if len(bytes.TrimSpace(output)) == 0 {
 		return nil
@@ -361,7 +360,7 @@ func publicContentJSON(value any) any {
 		return result
 	case string:
 		if value == contentengine.ConfigAPIVersion {
-			return contracts.ContentConfigVersion
+			return public.ContentConfigVersion
 		}
 		return value
 	default:

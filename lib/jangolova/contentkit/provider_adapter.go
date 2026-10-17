@@ -152,3 +152,13 @@ type ProviderAdapterRuntime struct {
 type ProviderAdapterSecrets interface {
 	Resolve(context.Context, string) (string, error)
 }
+
+// The content.provider contract: the name, version and operations an ext package
+// declares when it serves content providers.
+const (
+	ProviderContract        = "content.provider"
+	ProviderContractVersion = "v1"
+)
+
+// ProviderOperations lists every method a content.provider package serves.
+var ProviderOperations = []string{"start", "observe", "interpret", "capabilities", "health", "close", "model.inspect"}

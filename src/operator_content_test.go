@@ -4,34 +4,34 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"jangolova/contentkit/public"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"cymonkey/src/contracts"
 	"cymonkey/src/internal/orchestrator"
 )
 
 func TestOperatorInterpretsTextAudioAndVideoThroughContentService(t *testing.T) {
-	requests := make(chan contracts.ContentRequest, 3)
+	requests := make(chan public.ContentRequest, 3)
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/interpret" {
 			t.Errorf("content path = %q", r.URL.Path)
 			http.NotFound(w, r)
 			return
 		}
-		var request contracts.ContentRequest
+		var request public.ContentRequest
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 			t.Errorf("decode content request: %v", err)
 			http.Error(w, "invalid request", http.StatusBadRequest)
 			return
 		}
 		requests <- request
-		_ = json.NewEncoder(w).Encode(contracts.ContentResponse{
-			APIVersion: contracts.ContentAPIVersion, RequestID: request.RequestID,
-			Findings: []contracts.ContentFinding{{Kind: "summary", Text: "fixture result", SourceParts: []int{0}}},
+		_ = json.NewEncoder(w).Encode(public.ContentResponse{
+			APIVersion: public.ContentAPIVersion, RequestID: request.RequestID,
+			Findings: []public.ContentFinding{{Kind: "summary", Text: "fixture result", SourceParts: []int{0}}},
 		})
 	}))
 	defer backend.Close()
@@ -49,7 +49,7 @@ func TestOperatorInterpretsTextAudioAndVideoThroughContentService(t *testing.T) 
 	if interpreted.Code != http.StatusOK || !bytes.Contains(interpreted.Body.Bytes(), []byte("fixture result")) {
 		t.Fatalf("text interpretation = %d %s", interpreted.Code, interpreted.Body.String())
 	}
-	if request := <-requests; request.APIVersion != contracts.ContentAPIVersion || request.Parts[0].Text != "meeting notes" {
+	if request := <-requests; request.APIVersion != public.ContentAPIVersion || request.Parts[0].Text != "meeting notes" {
 		t.Fatalf("forwarded text = %#v", request)
 	}
 

@@ -2,12 +2,9 @@ package main
 
 import (
 	"bytes"
-	"console/contentengine"
 	"context"
 	"encoding/json"
-	"errors"
 	"io"
-	"jangolova/contentkit"
 	"net/http"
 	"os"
 	"os/exec"
@@ -117,68 +114,6 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	vision, err := contentPluginRegistry()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := contentengine.InspectConfiguredProviderModel(context.Background(), contentengine.ProviderAdapterConfig{ID: "vision", Provider: "vision-fixture"}, contentkit.InstalledModel{
-		Manifest: contentkit.ModelManifest{
-			APIVersion: contentkit.ModelManifestAPIVersion, Name: "fixture", Version: "1.0.0", Provider: "vision-fixture",
-			Capabilities: []string{contentkit.CapabilityTextInterpret},
-			Artifacts:    []contentkit.ModelArtifact{{Role: "weights", File: "weights.gguf", SHA256: strings.Repeat("0", 64)}},
-		},
-		Directory: t.TempDir(),
-	}, vision, contentengine.EnvironmentSecretResolver{}); err != nil {
-		t.Fatalf("Blockade plugin model inspection before startup: %v", err)
-	}
-	backend, err := contentengine.StartConfiguredProviderAdapter(context.Background(), contentengine.ProviderAdapterConfig{ID: "vision", Provider: "vision-fixture"}, vision, contentengine.EnvironmentSecretResolver{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	observed, err := backend.Observe(context.Background(), contentkit.ObserveRequest{Image: []byte("image"), RequestID: "request-1"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if observed.RequestID != "request-1" {
-		t.Fatalf("Blockade plugin request ID = %q", observed.RequestID)
-	}
-	interpreter, ok := backend.(contentkit.ContentEngine)
-	if !ok {
-		t.Fatal("Blockade plugin has no content interpretation interface")
-	}
-	for _, request := range []contentkit.InterpretRequest{
-		{RequestID: "text-1", Parts: []contentkit.ContentPart{{Kind: "text", Text: "Summarize this note"}}},
-		{RequestID: "image-1", Parts: []contentkit.ContentPart{{Kind: "image", MediaType: "image/png", Data: []byte("image")}}},
-		{RequestID: "audio-1", Parts: []contentkit.ContentPart{{Kind: "audio", MediaType: "audio/wav", Data: []byte("audio")}}},
-	} {
-		interpreted, err := interpreter.Interpret(context.Background(), request)
-		if err != nil || interpreted.RequestID != request.RequestID || len(interpreted.Findings) != 1 {
-			t.Fatalf("Blockade plugin interpretation: %#v %v", interpreted, err)
-		}
-	}
-	if err := backend.Close(); err != nil {
-		t.Fatal(err)
-	}
-	contentOnly, err := contentengine.StartConfiguredProviderAdapter(context.Background(), contentengine.ProviderAdapterConfig{ID: "content", Provider: "content-fixture"}, vision, contentengine.EnvironmentSecretResolver{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := contentOnly.Observe(context.Background(), contentkit.ObserveRequest{Image: []byte("image")}); !errors.Is(err, contentkit.ErrModalityUnsupported) {
-		t.Fatalf("content-only plugin image call = %v", err)
-	}
-	contentInterpreter := contentOnly.(contentkit.ContentEngine)
-	for _, part := range []contentkit.ContentPart{
-		{Kind: "text", Text: "Summarize"},
-		{Kind: "audio", MediaType: "audio/wav", Data: []byte("sound")},
-	} {
-		response, err := contentInterpreter.Interpret(context.Background(), contentkit.InterpretRequest{Parts: []contentkit.ContentPart{part}})
-		if err != nil || len(response.Findings) != 1 {
-			t.Fatalf("content-only plugin %s = %#v %v", part.Kind, response, err)
-		}
-	}
-	if err := contentOnly.Close(); err != nil {
-		t.Fatal(err)
-	}
 	providers, err := devicePluginAdapters()
 	if err != nil {
 		t.Fatal(err)
@@ -235,47 +170,6 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 	}
 	if err := pluginsCommand([]string{"remove", "device-fixture"}, io.Discard, io.Discard); err != nil {
 		t.Fatal(err)
-	}
-}
-
-func TestStandaloneOnnxProviderUsesExecutableBoundary(t *testing.T) {
-	root := t.TempDir()
-	t.Setenv("CYMONKEY_PLUGIN_DIR", filepath.Join(root, "installed"))
-	source := filepath.Join(root, "onnx")
-	if err := os.Mkdir(source, 0700); err != nil {
-		t.Fatal(err)
-	}
-	executable := filepath.Join(source, "provider")
-	build := exec.Command("go", "build", "-o", executable, "./pkg/content-onnx")
-	build.Dir = filepath.Dir(filepath.Dir(fixtureSourcePath(t)))
-	if output, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build ONNX provider: %v\n%s", err, output)
-	}
-	pluginManifest, err := packagekit.ExecutableManifest("onnx", "1.0.0",
-		[]plugin.Contract{pluginContract(contentPluginContract)}, executable)
-	if err != nil {
-		t.Fatal(err)
-	}
-	encoded, _ := json.Marshal(pluginManifest)
-	manifestPath := filepath.Join(source, store.ManifestName)
-	if err := os.WriteFile(manifestPath, encoded, 0600); err != nil {
-		t.Fatal(err)
-	}
-	if err := pluginsCommand([]string{"install", "--manifest", manifestPath}, io.Discard, io.Discard); err != nil {
-		t.Fatal(err)
-	}
-	registry, err := contentPluginRegistry()
-	if err != nil {
-		t.Fatal(err)
-	}
-	model := contentkit.InstalledModel{Manifest: contentkit.ModelManifest{
-		APIVersion: contentkit.ModelManifestAPIVersion, Name: "detector", Version: "1.0.0", Provider: "onnx",
-		Capabilities: []string{contentkit.CapabilityObjectDetect},
-		Artifacts:    []contentkit.ModelArtifact{{Role: "yolo", File: "detector.gguf", SHA256: strings.Repeat("0", 64)}},
-	}, Directory: t.TempDir()}
-	err = contentengine.InspectConfiguredProviderModel(context.Background(), contentengine.ProviderAdapterConfig{ID: "onnx", Provider: "onnx"}, model, registry, nil)
-	if kind, ok := contentkit.ProviderAdapterErrorKindOf(err); !ok || kind != contentkit.ProviderAdapterErrorInvalidRequest {
-		t.Fatalf("standalone ONNX provider inspection error = %v, kind = %q", err, kind)
 	}
 }
 

@@ -3,11 +3,10 @@ package observation
 import (
 	"context"
 	"encoding/json"
+	"jangolova/contentkit/public"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"cymonkey/src/contracts"
 )
 
 func TestObservationCoordinatorCoordinatesDisplayAndContent(t *testing.T) {
@@ -50,7 +49,7 @@ func TestObservationCoordinatorCoordinatesDisplayAndContent(t *testing.T) {
 		if request.Image != "cG5n" || request.Prompt != "find button" {
 			t.Fatalf("content request = %#v", request)
 		}
-		_ = json.NewEncoder(w).Encode(contracts.ObservationResult{APIVersion: contracts.ObservationAPIVersion, RequestID: "observation-1", Observations: []contracts.Observation{}})
+		_ = json.NewEncoder(w).Encode(public.ObservationResult{APIVersion: public.ObservationAPIVersion, RequestID: "observation-1", Observations: []public.Observation{}})
 	}))
 	defer blockadeServer.Close()
 
@@ -80,7 +79,7 @@ func TestObservationCoordinatorAcceptsHostCapture(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil || request.Image != "cG5n" {
 			t.Fatalf("content request = %#v, %v", request, err)
 		}
-		_ = json.NewEncoder(w).Encode(contracts.ObservationResult{APIVersion: contracts.ObservationAPIVersion, RequestID: "host-capture", Observations: []contracts.Observation{}})
+		_ = json.NewEncoder(w).Encode(public.ObservationResult{APIVersion: public.ObservationAPIVersion, RequestID: "host-capture", Observations: []public.Observation{}})
 	}))
 	defer blockadeServer.Close()
 	coordinator, err := NewObservationCoordinatorWithCapture(Config{

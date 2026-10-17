@@ -1,12 +1,12 @@
-package contentbridge
+package contentcmd
 
 import (
 	"bytes"
 	"console/contentengine"
-	"cymonkey/src/contracts"
 	"errors"
 	"fmt"
 	"io"
+	"jangolova/contentkit/public"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,7 +16,7 @@ import (
 
 const maxConfigBytes = 1 << 20
 
-func ToLibraryConfig(config contracts.ContentConfig) contentengine.Config {
+func ToLibraryConfig(config public.ContentConfig) contentengine.Config {
 	adapters := make([]contentengine.ProviderAdapterConfig, len(config.Adapters))
 	for index, adapter := range config.Adapters {
 		secrets := make(map[string]contentengine.SecretReference, len(adapter.Secrets))
@@ -33,49 +33,49 @@ func ToLibraryConfig(config contracts.ContentConfig) contentengine.Config {
 	return contentengine.Config{APIVersion: contentengine.ConfigAPIVersion, Providers: adapters}
 }
 
-func FromLibraryConfig(config contentengine.Config) contracts.ContentConfig {
-	adapters := make([]contracts.ContentAdapterConfig, len(config.Providers))
+func FromLibraryConfig(config contentengine.Config) public.ContentConfig {
+	adapters := make([]public.ContentAdapterConfig, len(config.Providers))
 	for index, adapter := range config.Providers {
-		secrets := make(map[string]contracts.SecretReference, len(adapter.Secrets))
+		secrets := make(map[string]public.SecretReference, len(adapter.Secrets))
 		for name, reference := range adapter.Secrets {
-			secrets[name] = contracts.SecretReference{Env: reference.Env}
+			secrets[name] = public.SecretReference{Env: reference.Env}
 		}
-		adapters[index] = contracts.ContentAdapterConfig{
+		adapters[index] = public.ContentAdapterConfig{
 			ID: adapter.ID, Plugin: adapter.Provider, Model: adapter.Model,
 			ModelRoot: adapter.ModelRoot, Workers: adapter.Workers,
 			Timeout: adapter.Timeout, MaxPayloadBytes: adapter.MaxPayloadBytes,
 			Settings: cloneStrings(adapter.Settings), Secrets: secrets,
 		}
 	}
-	return contracts.ContentConfig{APIVersion: contracts.ContentConfigVersion, Adapters: adapters}
+	return public.ContentConfig{APIVersion: public.ContentConfigVersion, Adapters: adapters}
 }
 
-func LoadConfig(path string) (contracts.ContentConfig, error) {
+func LoadConfig(path string) (public.ContentConfig, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return contracts.ContentConfig{}, err
+		return public.ContentConfig{}, err
 	}
 	defer file.Close()
 	data, err := io.ReadAll(io.LimitReader(file, maxConfigBytes+1))
 	if err != nil {
-		return contracts.ContentConfig{}, err
+		return public.ContentConfig{}, err
 	}
 	if len(data) > maxConfigBytes {
-		return contracts.ContentConfig{}, errors.New("content config exceeds 1 MiB")
+		return public.ContentConfig{}, errors.New("content config exceeds 1 MiB")
 	}
-	var config contracts.ContentConfig
+	var config public.ContentConfig
 	decoder := yaml.NewDecoder(bytes.NewReader(data))
 	decoder.KnownFields(true)
 	if err := decoder.Decode(&config); err != nil {
-		return contracts.ContentConfig{}, fmt.Errorf("decode content config: %w", err)
+		return public.ContentConfig{}, fmt.Errorf("decode content config: %w", err)
 	}
 	if err := ValidateConfig(config); err != nil {
-		return contracts.ContentConfig{}, err
+		return public.ContentConfig{}, err
 	}
 	return config, nil
 }
 
-func SaveConfig(path string, config contracts.ContentConfig) error {
+func SaveConfig(path string, config public.ContentConfig) error {
 	if err := ValidateConfig(config); err != nil {
 		return err
 	}
@@ -118,15 +118,15 @@ func SaveConfig(path string, config contracts.ContentConfig) error {
 	return os.Rename(temporaryPath, absolute)
 }
 
-func ValidateConfig(config contracts.ContentConfig) error {
-	if config.APIVersion != contracts.ContentConfigVersion {
-		return fmt.Errorf("content config apiVersion must be %q", contracts.ContentConfigVersion)
+func ValidateConfig(config public.ContentConfig) error {
+	if config.APIVersion != public.ContentConfigVersion {
+		return fmt.Errorf("content config apiVersion must be %q", public.ContentConfigVersion)
 	}
 	if len(config.Adapters) == 0 {
 		return errors.New("content config requires at least one adapter")
 	}
 	if err := ToLibraryConfig(config).Validate(); err != nil {
-		return publicError(err)
+		return public.PublicError(err)
 	}
 	return nil
 }
@@ -140,17 +140,4 @@ func cloneStrings(source map[string]string) map[string]string {
 		result[key] = value
 	}
 	return result
-}
-
-func publicError(err error) error {
-	if err == nil {
-		return nil
-	}
-	message := strings.NewReplacer(
-		"Blockade provider adapter", "content adapter",
-		"Blockade provider", "content adapter",
-		"Blockade config", "content config",
-		"blockade", "content",
-	).Replace(err.Error())
-	return errors.New(message)
 }

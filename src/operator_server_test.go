@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"jangolova/contentkit/public"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -13,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"cymonkey/src/contracts"
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
 	"cymonkey/src/observation"
@@ -124,7 +124,7 @@ func TestOperatorObservesItsOwnBrowserSession(t *testing.T) {
 		if r.URL.Path != "/v1/observe" {
 			t.Fatalf("content path = %q", r.URL.Path)
 		}
-		_ = json.NewEncoder(w).Encode(contracts.ObservationResult{APIVersion: contracts.ObservationAPIVersion, RequestID: "observed", Observations: []contracts.Observation{}})
+		_ = json.NewEncoder(w).Encode(public.ObservationResult{APIVersion: public.ObservationAPIVersion, RequestID: "observed", Observations: []public.Observation{}})
 	}))
 	defer contentServer.Close()
 	registry := orchestrator.NewRegistry()

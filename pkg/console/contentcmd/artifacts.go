@@ -1,4 +1,4 @@
-package main
+package contentcmd
 
 import (
 	"encoding/json"

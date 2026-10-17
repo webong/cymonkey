@@ -1,8 +1,6 @@
 package main
 
 import (
-	"console/contentengine"
-	contentplugin "console/contentengine/plugin"
 	"context"
 	"encoding/json"
 	"errors"
@@ -10,6 +8,8 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"jangolova/contentkit"
+	"jangolova/contentkit/service"
 	"os"
 	"path/filepath"
 	"sort"
@@ -27,18 +27,20 @@ import (
 )
 
 const (
-	displayPluginContract = displayplugin.ContractName
-	contentPluginContract = contentplugin.ContractName
-	devicePluginContract  = deviceplugin.ContractName
-	pluginContractVersion = "v1"
+	displayPluginContract  = displayplugin.ContractName
+	contentPluginContract  = contentkit.ProviderContract
+	contentServiceContract = service.ContractName
+	devicePluginContract   = deviceplugin.ContractName
+	pluginContractVersion  = "v1"
 )
 
 // pluginOperations maps each public contract to the operations its libraries
 // serve, which ext requires every package to declare.
 var pluginOperations = map[string][]string{
-	displayPluginContract: displayplugin.Operations,
-	contentPluginContract: contentplugin.Operations,
-	devicePluginContract:  deviceplugin.Operations,
+	displayPluginContract:  displayplugin.Operations,
+	contentPluginContract:  contentkit.ProviderOperations,
+	contentServiceContract: service.Operations,
+	devicePluginContract:   deviceplugin.Operations,
 }
 
 // installedPlugins lists the installed packages from their manifests alone.
@@ -188,27 +190,6 @@ func keyboardPluginProvider(pid int) (devicekit.Provider, error) {
 	return nil, errors.New("no installed device plugin serves the macOS keyboard; install the board provider (pkg/board/cmd/provider)")
 }
 
-func contentPluginRegistry() (*contentengine.ProviderAdapterRegistry, error) {
-	installed, err := installedPlugins()
-	if err != nil {
-		return nil, err
-	}
-	registry := contentengine.NewProviderAdapterRegistry()
-	runtimeRoot, err := defaultContentRuntimeRoot()
-	if err != nil {
-		return nil, err
-	}
-	for _, item := range installed {
-		if !item.Supports(contentPluginContract, pluginContractVersion) {
-			continue
-		}
-		if err := contentplugin.RegisterWithRuntimeRoot(registry, item, runtimeRoot); err != nil {
-			return nil, err
-		}
-	}
-	return registry, nil
-}
-
 func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
 		return errors.New("plugins requires install, upgrade, list, or remove")
@@ -239,13 +220,14 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 			return err
 		}
 		contract, ok := map[string]string{
-			"display": displayPluginContract,
-			"content": contentPluginContract,
-			"device":  devicePluginContract,
+			"display":         displayPluginContract,
+			"content":         contentPluginContract,
+			"content-service": contentServiceContract,
+			"device":          devicePluginContract,
 		}[strings.TrimSpace(*pluginType)]
 		source := strings.TrimSpace(*root) != ""
 		if flags.NArg() != 0 || !ok || strings.TrimSpace(*name) == "" || strings.TrimSpace(*version) == "" || (strings.TrimSpace(*command) == "") == !source {
-			return errors.New("plugins manifest requires --type display|content|device, --name, --version, and either --command or --root with --file/--dir")
+			return errors.New("plugins manifest requires --type display|content|content-service|device, --name, --version, and either --command or --root with --file/--dir")
 		}
 		var manifest packagekit.Manifest
 		var err error

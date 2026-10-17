@@ -52,6 +52,7 @@ Current contracts are:
 | --- | --- |
 | `display.engine@v1` | Display interaction plugin |
 | `content.provider@v1` | Content observation and interpretation plugin |
+| `content.service@v1` | The content engine itself: runs `cymy content` commands and hosts the content providers |
 | `device.provider@v1` | Input and output device plugin |
 
 The original `plugin.json` format and its `kind` field are gone. Rebuild

@@ -1,6 +1,6 @@
 // Package contracts defines Cymonkey's public wire types. Library-specific
 // adapters translate these values at the composition boundary.
-package contracts
+package public
 
 const (
 	ContentAPIVersion         = "content.item/v1"

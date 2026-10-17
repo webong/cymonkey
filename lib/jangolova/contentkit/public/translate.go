@@ -1,13 +1,12 @@
 // Package contentbridge translates Cymonkey's public content contract to the
 // internal interpretation library contract.
-package contentbridge
+package public
 
 import (
-	"cymonkey/src/contracts"
 	"jangolova/contentkit"
 )
 
-func ToLibraryRequest(request contracts.ContentRequest) contentkit.InterpretRequest {
+func ToLibraryRequest(request ContentRequest) contentkit.InterpretRequest {
 	parts := make([]contentkit.ContentPart, len(request.Parts))
 	for index, part := range request.Parts {
 		parts[index] = contentkit.ContentPart{Kind: part.Kind, Text: part.Text, MediaType: part.MediaType, Data: part.Data}
@@ -20,35 +19,35 @@ func ToLibraryRequest(request contracts.ContentRequest) contentkit.InterpretRequ
 	}
 }
 
-func FromLibraryResponse(response contentkit.InterpretResponse) contracts.ContentResponse {
-	findings := make([]contracts.ContentFinding, len(response.Findings))
+func FromLibraryResponse(response contentkit.InterpretResponse) ContentResponse {
+	findings := make([]ContentFinding, len(response.Findings))
 	for index, finding := range response.Findings {
-		findings[index] = contracts.ContentFinding{
+		findings[index] = ContentFinding{
 			Kind: finding.Kind, Text: finding.Text,
 			SourceParts: append([]int(nil), finding.SourceParts...), Confidence: finding.Confidence,
 		}
 	}
-	return contracts.ContentResponse{
-		APIVersion: contracts.ContentAPIVersion,
+	return ContentResponse{
+		APIVersion: ContentAPIVersion,
 		RequestID:  response.RequestID,
 		Findings:   findings,
 	}
 }
 
-func FromLibraryObservation(response contentkit.ObserveResponse) contracts.ObservationResult {
-	observations := make([]contracts.Observation, len(response.Observations))
+func FromLibraryObservation(response contentkit.ObserveResponse) ObservationResult {
+	observations := make([]Observation, len(response.Observations))
 	for index, observation := range response.Observations {
-		observations[index] = contracts.Observation{
+		observations[index] = Observation{
 			Kind: observation.Kind, Label: observation.Label, Confidence: observation.Confidence,
-			Region: contracts.Region{
+			Region: Region{
 				X: observation.Region.X, Y: observation.Region.Y,
 				Width: observation.Region.Width, Height: observation.Region.Height,
 			},
 			Mask: observation.Mask, Evidence: observation.Evidence,
 		}
 	}
-	return contracts.ObservationResult{
-		APIVersion: contracts.ObservationAPIVersion,
+	return ObservationResult{
+		APIVersion: ObservationAPIVersion,
 		RequestID:  response.RequestID, Observations: observations,
 	}
 }

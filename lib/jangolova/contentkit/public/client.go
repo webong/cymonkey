@@ -1,9 +1,8 @@
-package contentbridge
+package public
 
 import (
 	"bytes"
 	"context"
-	"cymonkey/src/contracts"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -33,52 +32,52 @@ type ServiceCapabilities struct {
 	Capabilities []string `json:"capabilities"`
 }
 
-func ValidateRequest(request contracts.ContentRequest) error {
+func ValidateRequest(request ContentRequest) error {
 	if request.APIVersion == "" {
-		request.APIVersion = contracts.ContentAPIVersion
+		request.APIVersion = ContentAPIVersion
 	}
-	if request.APIVersion != contracts.ContentAPIVersion {
-		return fmt.Errorf("content apiVersion must be %q", contracts.ContentAPIVersion)
+	if request.APIVersion != ContentAPIVersion {
+		return fmt.Errorf("content apiVersion must be %q", ContentAPIVersion)
 	}
 	if err := contentkit.ValidateInterpretRequest(ToLibraryRequest(request)); err != nil {
-		return publicError(err)
+		return PublicError(err)
 	}
 	return nil
 }
 
-func (client ServiceClient) Interpret(ctx context.Context, request contracts.ContentRequest) (contracts.ContentResponse, error) {
+func (client ServiceClient) Interpret(ctx context.Context, request ContentRequest) (ContentResponse, error) {
 	if request.APIVersion == "" {
-		request.APIVersion = contracts.ContentAPIVersion
+		request.APIVersion = ContentAPIVersion
 	}
 	if err := ValidateRequest(request); err != nil {
-		return contracts.ContentResponse{}, err
+		return ContentResponse{}, err
 	}
-	var response contracts.ContentResponse
+	var response ContentResponse
 	if err := client.call(ctx, "/v1/interpret", request, &response); err != nil {
-		return contracts.ContentResponse{}, err
+		return ContentResponse{}, err
 	}
-	if response.APIVersion != contracts.ContentAPIVersion {
-		return contracts.ContentResponse{}, fmt.Errorf("content service returned unsupported apiVersion %q", response.APIVersion)
+	if response.APIVersion != ContentAPIVersion {
+		return ContentResponse{}, fmt.Errorf("content service returned unsupported apiVersion %q", response.APIVersion)
 	}
 	return response, nil
 }
 
-func (client ServiceClient) Observe(ctx context.Context, request contracts.ObservationRequest) (contracts.ObservationResult, error) {
+func (client ServiceClient) Observe(ctx context.Context, request ObservationRequest) (ObservationResult, error) {
 	if request.APIVersion == "" {
-		request.APIVersion = contracts.ObservationRequestVersion
+		request.APIVersion = ObservationRequestVersion
 	}
-	if request.APIVersion != contracts.ObservationRequestVersion {
-		return contracts.ObservationResult{}, fmt.Errorf("observation apiVersion must be %q", contracts.ObservationRequestVersion)
+	if request.APIVersion != ObservationRequestVersion {
+		return ObservationResult{}, fmt.Errorf("observation apiVersion must be %q", ObservationRequestVersion)
 	}
 	if len(request.Image) == 0 {
-		return contracts.ObservationResult{}, errors.New("observation image is required")
+		return ObservationResult{}, errors.New("observation image is required")
 	}
-	var response contracts.ObservationResult
+	var response ObservationResult
 	if err := client.call(ctx, "/v1/observe", request, &response); err != nil {
-		return contracts.ObservationResult{}, err
+		return ObservationResult{}, err
 	}
-	if response.APIVersion != contracts.ObservationAPIVersion {
-		return contracts.ObservationResult{}, fmt.Errorf("content service returned unsupported observation apiVersion %q", response.APIVersion)
+	if response.APIVersion != ObservationAPIVersion {
+		return ObservationResult{}, fmt.Errorf("content service returned unsupported observation apiVersion %q", response.APIVersion)
 	}
 	return response, nil
 }
@@ -104,7 +103,7 @@ func (client ServiceClient) Capabilities(ctx context.Context) (ServiceCapabiliti
 	if status/100 != 2 {
 		return ServiceCapabilities{}, fmt.Errorf("content service capabilities returned HTTP %d", status)
 	}
-	if result.APIVersion != contracts.ContentServiceVersion {
+	if result.APIVersion != ContentServiceVersion {
 		return ServiceCapabilities{}, fmt.Errorf("content service returned unsupported apiVersion %q", result.APIVersion)
 	}
 	return result, nil

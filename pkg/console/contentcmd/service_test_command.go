@@ -1,13 +1,13 @@
-package main
+package contentcmd
 
 import (
 	"context"
-	"cymonkey/src/contentbridge"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
+	"jangolova/contentkit/public"
 	"net/url"
 	"os"
 	"strings"
@@ -42,7 +42,7 @@ func runContentService(args []string, stdout io.Writer) error {
 			return fmt.Errorf("content token environment variable %q is not set", name)
 		}
 	}
-	client := contentbridge.ServiceClient{BaseURL: strings.TrimRight(*baseURL, "/"), BearerToken: token}
+	client := public.ServiceClient{BaseURL: strings.TrimRight(*baseURL, "/"), BearerToken: token}
 	health, err := client.Health(context.Background())
 	if err != nil {
 		return err

@@ -5,13 +5,12 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"jangolova/contentkit/public"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
-	"cymonkey/src/contentbridge"
-	"cymonkey/src/contracts"
 	cymonkeyhost "cymonkey/src/internal/host"
 	"cymonkey/src/observation"
 )
@@ -54,26 +53,26 @@ func (server *operatorServer) handleInterpretation(w http.ResponseWriter, r *htt
 		operatorError(w, http.StatusServiceUnavailable, "interpretation_unconfigured", err.Error())
 		return
 	}
-	var request contracts.ContentRequest
+	var request public.ContentRequest
 	if err := decodeOperatorJSONLimit(w, r, &request, 16<<20); err != nil {
 		operatorError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
 	if request.APIVersion == "" {
-		request.APIVersion = contracts.ContentAPIVersion
+		request.APIVersion = public.ContentAPIVersion
 	}
-	if request.APIVersion != contracts.ContentAPIVersion {
+	if request.APIVersion != public.ContentAPIVersion {
 		operatorError(w, http.StatusUnprocessableEntity, "invalid_content", "unsupported content apiVersion")
 		return
 	}
-	if err := contentbridge.ValidateRequest(request); err != nil {
+	if err := public.ValidateRequest(request); err != nil {
 		operatorError(w, http.StatusUnprocessableEntity, "invalid_content", err.Error())
 		return
 	}
-	result, err := (contentbridge.ServiceClient{BaseURL: endpoint, BearerToken: token}).Interpret(r.Context(), request)
+	result, err := (public.ServiceClient{BaseURL: endpoint, BearerToken: token}).Interpret(r.Context(), request)
 	if err != nil {
 		status := http.StatusBadGateway
-		if errors.Is(err, contentbridge.ErrModalityUnsupported) {
+		if errors.Is(err, public.ErrModalityUnsupported) {
 			status = http.StatusNotImplemented
 			err = errors.New("requested content modality is unsupported")
 		}
@@ -101,23 +100,23 @@ func operatorInterpretClient(args []string, output io.Writer) error {
 	if flags.NArg() != 0 {
 		return errors.New("operator interpret accepts flags only")
 	}
-	parts := make([]contracts.ContentPart, 0, 4)
+	parts := make([]public.ContentPart, 0, 4)
 	if *text != "" {
-		parts = append(parts, contracts.ContentPart{Kind: "text", Text: *text})
+		parts = append(parts, public.ContentPart{Kind: "text", Text: *text})
 	}
 	if *textFile != "" {
 		data, err := readOperatorContentFile(*textFile)
 		if err != nil {
 			return err
 		}
-		parts = append(parts, contracts.ContentPart{Kind: "text", Text: string(data)})
+		parts = append(parts, public.ContentPart{Kind: "text", Text: string(data)})
 	}
 	if *imagePath != "" {
 		data, err := readOperatorContentFile(*imagePath)
 		if err != nil {
 			return err
 		}
-		parts = append(parts, contracts.ContentPart{Kind: "image", MediaType: http.DetectContentType(data), Data: data})
+		parts = append(parts, public.ContentPart{Kind: "image", MediaType: http.DetectContentType(data), Data: data})
 	}
 	if *audioPath != "" {
 		if *audioType == "" {
@@ -127,7 +126,7 @@ func operatorInterpretClient(args []string, output io.Writer) error {
 		if err != nil {
 			return err
 		}
-		parts = append(parts, contracts.ContentPart{Kind: "audio", MediaType: *audioType, Data: data})
+		parts = append(parts, public.ContentPart{Kind: "audio", MediaType: *audioType, Data: data})
 	}
 	if *videoPath != "" {
 		if *videoType == "" {
@@ -137,10 +136,10 @@ func operatorInterpretClient(args []string, output io.Writer) error {
 		if err != nil {
 			return err
 		}
-		parts = append(parts, contracts.ContentPart{Kind: "video", MediaType: *videoType, Data: data})
+		parts = append(parts, public.ContentPart{Kind: "video", MediaType: *videoType, Data: data})
 	}
-	request := contracts.ContentRequest{APIVersion: contracts.ContentAPIVersion, Parts: parts, Prompt: *prompt}
-	if err := contentbridge.ValidateRequest(request); err != nil {
+	request := public.ContentRequest{APIVersion: public.ContentAPIVersion, Parts: parts, Prompt: *prompt}
+	if err := public.ValidateRequest(request); err != nil {
 		return err
 	}
 	return sendOperatorRequest(*base, http.MethodPost, "/v1/interpretations", request, output, 3*time.Minute)

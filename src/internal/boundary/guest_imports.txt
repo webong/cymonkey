@@ -7,11 +7,6 @@ src/console_command.go console/bindings
 src/console_command.go console/httpapi
 src/console_command.go console/mcp
 src/console_command.go cymonkey-content-plugin-endpoints/generation
-src/content_command.go console/contentengine
-src/contentbridge/config.go console/contentengine
-src/contentcli/command.go console/contentengine
-src/contentcli/command_test.go console/contentengine
-src/contentcli/endpoint.go console/contentengine
 src/devicecli/gateway.go board/vncgateway
 src/display_library.go board/display/host
 src/display_library.go board/display/sdk
@@ -22,6 +17,3 @@ src/displaybridge/modules_test.go board/display/registry
 src/operator_device_sessions_test.go board/devices
 src/operator_device_sessions_test.go board/volumearchive
 src/operator_device_targets.go board/rtc
-src/plugins.go console/contentengine
-src/plugins.go console/contentengine/plugin
-src/plugins_test.go console/contentengine

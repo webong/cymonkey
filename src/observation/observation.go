@@ -10,14 +10,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"jangolova/contentkit/public"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
 	"time"
-
-	"cymonkey/src/contentbridge"
-	"cymonkey/src/contracts"
 )
 
 const ObservationAPIVersion = "content.observation/v1"
@@ -45,11 +43,11 @@ type ObservationRequest struct {
 }
 
 type ObservationResponse struct {
-	APIVersion    string                      `json:"apiVersion"`
-	InstanceID    string                      `json:"instanceId"`
-	CapturedAt    time.Time                   `json:"capturedAt"`
-	CaptureAction string                      `json:"captureAction"`
-	Observation   contracts.ObservationResult `json:"observation"`
+	APIVersion    string                   `json:"apiVersion"`
+	InstanceID    string                   `json:"instanceId"`
+	CapturedAt    time.Time                `json:"capturedAt"`
+	CaptureAction string                   `json:"captureAction"`
+	Observation   public.ObservationResult `json:"observation"`
 }
 
 type ObservationCoordinator struct {
@@ -111,7 +109,7 @@ func (c *ObservationCoordinator) Observe(ctx context.Context, request Observatio
 	if err != nil {
 		return ObservationResponse{}, err
 	}
-	observation, err := (contentbridge.ServiceClient{BaseURL: c.config.Interpretation.Endpoint, HTTPClient: c.httpClient, BearerToken: c.interpretationToken}).Observe(ctx, contracts.ObservationRequest{APIVersion: contracts.ObservationRequestVersion, Image: image, Prompt: request.Prompt})
+	observation, err := (public.ServiceClient{BaseURL: c.config.Interpretation.Endpoint, HTTPClient: c.httpClient, BearerToken: c.interpretationToken}).Observe(ctx, public.ObservationRequest{APIVersion: public.ObservationRequestVersion, Image: image, Prompt: request.Prompt})
 	if err != nil {
 		return ObservationResponse{}, fmt.Errorf("interpret captured content: %w", err)
 	}

@@ -23,11 +23,11 @@ import (
 	"jangolova/contentkit"
 )
 
-const ContractName = "content.provider"
-const ContractVersion = "v1"
+const ContractName = contentkit.ProviderContract
+const ContractVersion = contentkit.ProviderContractVersion
 
 // Operations lists every method a Blockade provider package serves.
-var Operations = []string{"start", "observe", "interpret", "capabilities", "health", "close", "model.inspect"}
+var Operations = contentkit.ProviderOperations
 
 // Protocol lets a host expose its own plugin wire contract while this package
 // continues to implement Blockade's Go interfaces internally.
