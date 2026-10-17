@@ -57,3 +57,16 @@ func TestProviderSettings(t *testing.T) {
 		t.Fatal("expected unknown setting to fail")
 	}
 }
+
+// Blockade sends "secrets" (empty for an image provider) with every observe
+// call, and decodeParams rejects unknown fields, so the provider must declare it.
+func TestObserveAcceptsTheSecretsFieldBlockadeSends(t *testing.T) {
+	p := &provider{descriptor: plugin.Descriptor{Identity: plugin.Identity{ID: "onnx"}}}
+	params := `{"request":{"apiVersion":"blockade.provider-adapter/v1alpha1","request":{"apiVersion":"blockade.observation/v1alpha1","requestId":"r1","image":""}},"secrets":{}}`
+	_, err := p.call(context.Background(), "blockade.observe", json.RawMessage(params))
+	// The provider has not been started, which is the error to see here; an
+	// "unknown field" error would mean the secrets field was rejected.
+	if err == nil || strings.Contains(err.Error(), "unknown field") {
+		t.Fatalf("observe with secrets = %v", err)
+	}
+}

@@ -145,6 +145,9 @@ func (p *provider) callLibrary(ctx context.Context, method string, raw json.RawM
 		}
 		var params struct {
 			Request blockade.ProviderAdapterObserveRequest `json:"request"`
+			// Blockade sends the adapter's resolved secrets with every call. An
+			// image provider has none to use, but must still accept the field.
+			Secrets map[string]string `json:"secrets,omitempty"`
 		}
 		if err := decodeParams(raw, &params); err != nil {
 			return nil, err
