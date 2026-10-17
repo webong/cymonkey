@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -394,4 +395,67 @@ func TestInstalledPluginsReusesTheVerifiedListUntilTheStoreChanges(t *testing.T)
 		t.Fatalf("the list was stale after an install: %d packages", len(fresh))
 	}
 	forgetInstalledPlugins()
+}
+
+func TestStandaloneBoardProviderServesTheInventoryAndKeyboard(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("CYMONKEY_PLUGIN_DIR", filepath.Join(root, "installed"))
+	source := filepath.Join(root, "board")
+	if err := os.Mkdir(source, 0700); err != nil {
+		t.Fatal(err)
+	}
+	executable := filepath.Join(source, "provider")
+	build := exec.Command("go", "build", "-o", executable, "./pkg/board/cmd/provider")
+	build.Dir = filepath.Dir(filepath.Dir(fixtureSourcePath(t)))
+	if output, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("build Board provider: %v\n%s", err, output)
+	}
+	pluginManifest, err := packagekit.ExecutableManifest("board", "1.0.0",
+		[]plugin.Contract{pluginContract(devicePluginContract)}, executable)
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, _ := json.Marshal(pluginManifest)
+	manifestPath := filepath.Join(source, store.ManifestName)
+	if err := os.WriteFile(manifestPath, encoded, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := pluginsCommand([]string{"install", "--manifest", manifestPath}, io.Discard, io.Discard); err != nil {
+		t.Fatal(err)
+	}
+
+	drive := t.TempDir()
+	if err := os.WriteFile(filepath.Join(drive, "note.txt"), []byte("hello"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	inventory := filepath.Join(root, "devices.json")
+	config := `{"devices":[{"id":"vault","storage":{"path":` + strconv.Quote(drive) + `,"resourceId":"vault"}}]}`
+	if err := os.WriteFile(inventory, []byte(config), 0600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("CYMONKEY_DEVICE_CONFIG", inventory)
+
+	providers, err := devicePluginAdapters()
+	if err != nil {
+		t.Fatal(err)
+	}
+	registry, err := devicekit.NewRegistry(providers...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	devices, err := registry.List(context.Background())
+	if err != nil || len(devices) == 0 {
+		t.Fatalf("Board provider devices: %#v %v", devices, err)
+	}
+	for _, device := range devices {
+		if device.ProviderID == "board" {
+			t.Fatalf("a device kept the package name as its provider ID: %#v", device)
+		}
+	}
+
+	// The keyboard needs Accessibility permission or macOS; either way the
+	// request must reach the plugin rather than fail because none is installed.
+	if _, err := keyboardPluginProvider(os.Getpid()); err != nil && strings.Contains(err.Error(), "no installed device plugin") {
+		t.Fatalf("keyboard provider did not reach the installed plugin: %v", err)
+	}
 }

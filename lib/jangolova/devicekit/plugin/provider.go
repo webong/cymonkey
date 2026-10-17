@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"sort"
 	"sync"
 	"time"
 
@@ -14,9 +15,15 @@ import (
 	"jangolova/devicekit"
 )
 
+// Provider is one device provider served by an installed package. A package
+// may serve several providers; Inner selects one by the provider ID it reports,
+// and an empty Inner means the package as a whole under its installed name.
+// Settings are host-chosen, non-secret launch parameters sent with list and open.
 type Provider struct {
 	Installed    store.Installed
 	MethodPrefix string
+	Inner        string
+	Settings     map[string]string
 }
 
 const ContractName = "device.provider"
@@ -48,7 +55,56 @@ func Providers(installed []store.Installed) []devicekit.Provider {
 	return providers
 }
 
-func (p Provider) ID() string { return p.Installed.Name() }
+func (p Provider) ID() string {
+	if p.Inner != "" {
+		return p.Inner
+	}
+	return p.Installed.Name()
+}
+
+// params builds the optional selector and settings sent with list and open.
+func (p Provider) params(extra map[string]any) map[string]any {
+	if p.Inner == "" && len(p.Settings) == 0 && extra == nil {
+		return nil
+	}
+	params := map[string]any{}
+	for key, value := range extra {
+		params[key] = value
+	}
+	if p.Inner != "" {
+		params["provider"] = p.Inner
+	}
+	if len(p.Settings) != 0 {
+		params["settings"] = p.Settings
+	}
+	return params
+}
+
+// Discover starts the package once, lists every device it serves and returns one
+// Provider per provider ID the devices report, so a package that serves several
+// providers keeps each under its own ID. A package whose devices carry no
+// provider ID is returned as a single Provider named after the package.
+func Discover(ctx context.Context, installed store.Installed, settings map[string]string) ([]Provider, error) {
+	whole := Provider{Installed: installed, Settings: settings}
+	devices, err := whole.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	seen := map[string]bool{}
+	var providers []Provider
+	for _, device := range devices {
+		if device.ProviderID == "" || seen[device.ProviderID] {
+			continue
+		}
+		seen[device.ProviderID] = true
+		providers = append(providers, Provider{Installed: installed, Inner: device.ProviderID, Settings: settings})
+	}
+	if len(providers) == 0 {
+		return []Provider{whole}, nil
+	}
+	sort.Slice(providers, func(i, j int) bool { return providers[i].Inner < providers[j].Inner })
+	return providers, nil
+}
 
 func (p Provider) List(ctx context.Context) ([]devicekit.Device, error) {
 	proc, err := host.Open(ctx, p.Installed, host.Options{Authorize: listPolicy()})
@@ -57,7 +113,7 @@ func (p Provider) List(ctx context.Context) ([]devicekit.Device, error) {
 	}
 	defer proc.Close()
 	var devices []devicekit.Device
-	if err := proc.Call(ctx, p.method("list"), nil, &devices); err != nil {
+	if err := proc.Call(ctx, p.method("list"), p.params(nil), &devices); err != nil {
 		return nil, err
 	}
 	return devices, nil
@@ -68,7 +124,7 @@ func (p Provider) Open(ctx context.Context, deviceID string, grant devicekit.Gra
 	if err != nil {
 		return nil, err
 	}
-	if err := proc.Call(ctx, p.method("open"), map[string]any{"deviceId": deviceID, "grant": grant}, nil); err != nil {
+	if err := proc.Call(ctx, p.method("open"), p.params(map[string]any{"deviceId": deviceID, "grant": grant}), nil); err != nil {
 		_ = proc.Close()
 		return nil, err
 	}

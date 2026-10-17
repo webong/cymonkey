@@ -98,7 +98,7 @@ func TestInternalLibrariesDoNotShipCommands(t *testing.T) {
 		t.Fatal("resolve boundary test location")
 	}
 	root := filepath.Clean(filepath.Join(filepath.Dir(current), "..", "..", ".."))
-	for _, library := range []string{filepath.Join(root, "lib", "jangolova"), filepath.Join(root, "pkg", "board")} {
+	for _, library := range []string{filepath.Join(root, "lib", "jangolova")} {
 		name := filepath.Base(library)
 		for _, commandDirectory := range []string{"cli", "cmd"} {
 			if _, err := os.Stat(filepath.Join(library, commandDirectory)); err == nil {

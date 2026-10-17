@@ -21,7 +21,7 @@ func runDevice(args []string, stdout, stderr io.Writer) error {
 		if err != nil {
 			return publicDeviceError(err)
 		}
-		engine := devicecli.CommandEngine{Invocation: "cymy device", Stdin: os.Stdin, Providers: providers}
+		engine := devicecli.CommandEngine{Invocation: "cymy device", Stdin: os.Stdin, Providers: providers, Keyboard: keyboardPluginProvider}
 		if args[0] == "adapter-stream" {
 			return publicDeviceError(engine.Run(args, stdout, stderr))
 		}
@@ -46,7 +46,7 @@ func runDevice(args []string, stdout, stderr io.Writer) error {
 	}
 	if len(args) > 0 && args[0] == "devices" && hasDeviceFlag(args, "json") {
 		var libraryOutput bytes.Buffer
-		if err := (devicecli.CommandEngine{Invocation: "cymy device", Stdin: os.Stdin}).Run(args, &libraryOutput, stderr); err != nil {
+		if err := (devicecli.CommandEngine{Invocation: "cymy device", Stdin: os.Stdin, Keyboard: keyboardPluginProvider}).Run(args, &libraryOutput, stderr); err != nil {
 			return publicDeviceError(err)
 		}
 		var response struct {
@@ -57,7 +57,7 @@ func runDevice(args []string, stdout, stderr io.Writer) error {
 		}
 		return json.NewEncoder(stdout).Encode(devicebridge.FromLibraryDevices(response.Devices))
 	}
-	return publicDeviceError((devicecli.CommandEngine{Invocation: "cymy device", Stdin: os.Stdin}).Run(args, stdout, stderr))
+	return publicDeviceError((devicecli.CommandEngine{Invocation: "cymy device", Stdin: os.Stdin, Keyboard: keyboardPluginProvider}).Run(args, stdout, stderr))
 }
 
 func hasDeviceFlag(args []string, name string) bool {

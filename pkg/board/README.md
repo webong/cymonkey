@@ -7,7 +7,7 @@ its grant gate, lives in the device kit (`lib/jangolova/devicekit`). A Board pro
 binds that contract to a particular operating system, device class, or
 transport.
 
-Board ships a read-only mounted-drive provider and a macOS keyboard provider.
+Board runs as an ext package built from `cmd/provider`; see [device sessions](../../docs/device-sessions.md#board-device-provider-package). It ships a read-only mounted-drive provider and a macOS keyboard provider.
 The host registers each provider and authorizes each attachment. Board does not
 discover, mount, or manage physical devices. There is no hotplug event source.
 

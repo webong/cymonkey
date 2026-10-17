@@ -72,6 +72,25 @@ cymy device adapter-invoke \
   --capability storage.inspect --resource transfer-root --input '{}'
 ```
 
+## Board device provider package
+
+Board's device implementations reach the host as an ext package that serves
+`device.provider`. Build and install it once:
+
+```sh
+go build -o board-provider ./pkg/board/cmd/provider
+cymy plugins manifest --type device --name board --version 1.0.0 --command ./board-provider
+cymy plugins install --manifest ./package.json
+```
+
+The host passes the package non-secret settings with each list and open:
+`inventory` (the absolute path in `CYMONKEY_DEVICE_CONFIG`) and, for the
+keyboard commands, `keyboardPid`. The package builds its own providers from them
+and reports each device under the provider ID that owns it, so a device keeps
+its inventory ID. `cymy device keyboard-press` and `keyboard-type` use the same
+package; without it installed they report that no device plugin serves the
+keyboard.
+
 Mounted drive and macOS keyboard commands require the caller to name the exact
 root or process:
 

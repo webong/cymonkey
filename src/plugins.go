@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -12,11 +13,11 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	boardconfig "board/config"
 	"cymonkey/src/internal/displayplugin"
 	"cymonkey/src/internal/orchestrator"
 	"jangolova/devicekit"
@@ -145,30 +146,71 @@ func registerDisplayPlugins(registry *orchestrator.Registry) error {
 	}
 	return nil
 }
+
+// devicePluginAdapters returns one provider per provider ID that each installed
+// device.provider package reports. CYMONKEY_DEVICE_CONFIG names a device
+// inventory file; it is handed to the packages as a launch setting, and the
+// packages build their own providers from it.
 func devicePluginAdapters() ([]devicekit.Provider, error) {
 	installed, err := installedPlugins()
 	if err != nil {
 		return nil, err
 	}
+	settings := map[string]string{}
+	if path := os.Getenv("CYMONKEY_DEVICE_CONFIG"); path != "" {
+		absolute, err := filepath.Abs(path)
+		if err != nil {
+			return nil, err
+		}
+		settings["inventory"] = absolute
+	}
 	providers := make([]devicekit.Provider, 0, len(installed))
 	for _, item := range installed {
-		if item.Supports(devicePluginContract, pluginContractVersion) {
-			providers = append(providers, deviceplugin.Provider{Installed: item})
+		if !item.Supports(devicePluginContract, pluginContractVersion) {
+			continue
 		}
-	}
-	if path := os.Getenv("CYMONKEY_DEVICE_CONFIG"); path != "" {
-		file, err := os.Open(path)
+		discovered, err := deviceplugin.Discover(context.Background(), item, settings)
 		if err != nil {
-			return nil, err
+			// A package that cannot start still appears under its own name, so
+			// listing it reports the failure instead of hiding the package.
+			providers = append(providers, deviceplugin.Provider{Installed: item, Settings: settings})
+			continue
 		}
-		defer file.Close()
-		configured, err := boardconfig.Load(file)
-		if err != nil {
-			return nil, err
+		for _, provider := range discovered {
+			providers = append(providers, provider)
 		}
-		providers = append(providers, configured...)
 	}
 	return providers, nil
+}
+
+// keyboardPluginProvider returns the macOS keyboard provider bound to pid from
+// whichever installed device.provider package serves it.
+func keyboardPluginProvider(pid int) (devicekit.Provider, error) {
+	installed, err := installedPlugins()
+	if err != nil {
+		return nil, err
+	}
+	settings := map[string]string{"keyboardPid": strconv.Itoa(pid)}
+	var failure error
+	for _, item := range installed {
+		if !item.Supports(devicePluginContract, pluginContractVersion) {
+			continue
+		}
+		discovered, err := deviceplugin.Discover(context.Background(), item, settings)
+		if err != nil {
+			failure = err
+			continue
+		}
+		for _, provider := range discovered {
+			if provider.ID() == "macos-keyboard" {
+				return provider, nil
+			}
+		}
+	}
+	if failure != nil {
+		return nil, failure
+	}
+	return nil, errors.New("no installed device plugin serves the macOS keyboard; install the board provider (pkg/board/cmd/provider)")
 }
 
 func contentPluginRegistry() (*contentkit.ProviderAdapterRegistry, error) {

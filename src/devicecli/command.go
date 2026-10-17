@@ -14,6 +14,9 @@ type CommandEngine struct {
 	Invocation string
 	Stdin      io.Reader
 	Providers  []devicekit.Provider
+	// Keyboard returns the macOS keyboard provider bound to one process ID. The
+	// host supplies it, so the CLI never links a device implementation.
+	Keyboard func(pid int) (devicekit.Provider, error)
 }
 
 // Run executes the device command handlers. Provider actions still pass
@@ -34,9 +37,9 @@ func (engine CommandEngine) Run(args []string, stdout, stderr io.Writer) error {
 	case "drive-read":
 		return driveReadCommand(args[1:], stdout)
 	case "keyboard-press":
-		return keyboardPressCommand(args[1:], stdout)
+		return keyboardPressCommand(args[1:], stdout, engine.Keyboard)
 	case "keyboard-type":
-		return keyboardTypeCommand(args[1:], engine.Stdin, stdout)
+		return keyboardTypeCommand(args[1:], engine.Stdin, stdout, engine.Keyboard)
 	case "adapter-devices", "adapter-invoke", "adapter-stream":
 		return providerCommand(args[0], args[1:], stdout, engine.Providers)
 	case "gateway":

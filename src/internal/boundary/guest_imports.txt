@@ -8,7 +8,6 @@ src/console_command.go console/httpapi
 src/console_command.go console/mcp
 src/console_command.go cymonkey-content-plugin-endpoints/generation
 src/devicecli/gateway.go board/vncgateway
-src/devicecli/keyboard.go board/macoskeyboard
 src/display_library.go board/display/host
 src/display_library.go board/display/sdk
 src/display_library_test.go board/display/sdk
@@ -18,4 +17,3 @@ src/displaybridge/modules_test.go board/display/registry
 src/operator_device_sessions_test.go board/devices
 src/operator_device_sessions_test.go board/volumearchive
 src/operator_device_targets.go board/rtc
-src/plugins.go board/config

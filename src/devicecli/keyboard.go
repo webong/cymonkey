@@ -9,14 +9,18 @@ import (
 	"io"
 	"strings"
 
-	"board/macoskeyboard"
 	"jangolova/devicekit"
 	devicehost "jangolova/devicekit/host"
 )
 
-const keyboardProviderID = "macos-keyboard"
+// maxKeyboardTextRunes is the keyboard provider's default text bound. The
+// provider enforces it again; this only caps what the command reads.
+const maxKeyboardTextRunes = 1024
 
-func keyboardPressCommand(args []string, stdout io.Writer) error {
+// keyboardSource returns the keyboard provider bound to one process ID.
+type keyboardSource func(pid int) (devicekit.Provider, error)
+
+func keyboardPressCommand(args []string, stdout io.Writer, keyboardFor keyboardSource) error {
 	flags := flag.NewFlagSet("keyboard-press", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	pid := flags.Int("pid", 0, "explicit target process ID")
@@ -27,10 +31,10 @@ func keyboardPressCommand(args []string, stdout io.Writer) error {
 	if flags.NArg() != 0 || *pid <= 0 || strings.TrimSpace(*key) == "" {
 		return errors.New("keyboard-press requires --pid PID and --key KEY, with no other arguments")
 	}
-	return invokeKeyboard(*pid, devicekit.KeyboardPress, map[string]string{"key": *key}, stdout)
+	return invokeKeyboard(keyboardFor, *pid, devicekit.KeyboardPress, map[string]string{"key": *key}, stdout)
 }
 
-func keyboardTypeCommand(args []string, stdin io.Reader, stdout io.Writer) error {
+func keyboardTypeCommand(args []string, stdin io.Reader, stdout io.Writer, keyboardFor keyboardSource) error {
 	flags := flag.NewFlagSet("keyboard-type", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	pid := flags.Int("pid", 0, "explicit target process ID")
@@ -46,7 +50,7 @@ func keyboardTypeCommand(args []string, stdin io.Reader, stdout io.Writer) error
 	// A Unicode scalar needs at most four UTF-8 bytes. Read one byte beyond the
 	// maximum so an oversized pipe cannot make this command consume unbounded
 	// memory before Board validates the text.
-	const maxInputBytes = 4 * macoskeyboard.DefaultMaxTextRunes
+	const maxInputBytes = 4 * maxKeyboardTextRunes
 	data, err := io.ReadAll(io.LimitReader(stdin, maxInputBytes+1))
 	if err != nil {
 		return err
@@ -54,12 +58,15 @@ func keyboardTypeCommand(args []string, stdin io.Reader, stdout io.Writer) error
 	if len(data) == 0 || len(data) > maxInputBytes {
 		return fmt.Errorf("keyboard-type needs 1 to %d bytes of UTF-8 text", maxInputBytes)
 	}
-	return invokeKeyboard(*pid, devicekit.KeyboardType, map[string]string{"text": string(data)}, stdout)
+	return invokeKeyboard(keyboardFor, *pid, devicekit.KeyboardType, map[string]string{"text": string(data)}, stdout)
 }
 
-func invokeKeyboard(pid int, capability devicekit.Capability, input any, stdout io.Writer) error {
+func invokeKeyboard(keyboardFor keyboardSource, pid int, capability devicekit.Capability, input any, stdout io.Writer) error {
 	ctx := context.Background()
-	keyboard, err := macoskeyboard.New(macoskeyboard.Options{ProviderID: keyboardProviderID, PID: pid})
+	if keyboardFor == nil {
+		return errors.New("this host has no keyboard provider")
+	}
+	keyboard, err := keyboardFor(pid)
 	if err != nil {
 		return err
 	}
