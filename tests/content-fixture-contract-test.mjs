@@ -20,7 +20,7 @@ assert.match(endpointConfig, /plugin: anthropic-compatible/);
 assert.match(endpointConfig, /plugin: google-compatible/);
 assert.match(endpointConfig, /modalities: text,image,audio,video/);
 assert.match(webllmDocs, /plugin owned Chromium \+ dedicated Web Worker/);
-assert.match(worker, /method\.startswith\("cymonkey\.content\."\)/);
+assert.match(worker, /method == "content\.provider\.observe"/);
 assert.match(runtime, /YOLO\(/);
 assert.match(runtime, /SAM\(/);
 console.log("Cymonkey content plugin fixture checks passed");
