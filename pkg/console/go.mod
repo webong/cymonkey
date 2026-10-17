@@ -3,6 +3,7 @@ module console
 go 1.26.5
 
 require (
+	devicekit v0.0.0
 	contentkit v0.0.0
 	generationkit v0.0.0
 	board v0.0.0
@@ -24,3 +25,5 @@ replace board => ../board
 replace jangolova => ../jangolova
 
 replace contentkit => ../contentkit
+
+replace devicekit => ../devicekit

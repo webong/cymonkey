@@ -10,25 +10,25 @@ import (
 	"strings"
 	"time"
 
-	"board"
+	"devicekit"
 	"cymonkey/src/contracts"
 	"cymonkey/src/devicebridge"
 )
 
 const operatorDeviceStreamLimit = 16 << 20
 
-func (server *operatorServer) deviceRegistry() (*board.Registry, error) {
+func (server *operatorServer) deviceRegistry() (*devicekit.Registry, error) {
 	providers, err := server.deviceProviders()
 	if err != nil {
 		return nil, err
 	}
-	providers = append([]board.Provider(nil), providers...)
+	providers = append([]devicekit.Provider(nil), providers...)
 	server.mu.Lock()
 	for _, target := range server.mobileTargets {
 		providers = append(providers, target.provider)
 	}
 	server.mu.Unlock()
-	return board.NewRegistry(providers...)
+	return devicekit.NewRegistry(providers...)
 }
 
 func (server *operatorServer) handleDeviceInventory(w http.ResponseWriter, r *http.Request) {
@@ -100,7 +100,7 @@ func (server *operatorServer) handleDeviceAction(w http.ResponseWriter, r *http.
 		operatorError(w, http.StatusRequestEntityTooLarge, "device_stream_too_large", "device stream exceeds the 16 MiB operator limit")
 		return
 	}
-	data, err := board.ReadAll(content, operatorDeviceStreamLimit)
+	data, err := devicekit.ReadAll(content, operatorDeviceStreamLimit)
 	if err != nil {
 		operatorDeviceError(w, err)
 		return
@@ -116,9 +116,9 @@ func (server *operatorServer) handleDeviceAction(w http.ResponseWriter, r *http.
 func operatorDeviceError(w http.ResponseWriter, err error) {
 	publicErr := publicDeviceError(err)
 	status := http.StatusBadGateway
-	if errors.Is(err, board.ErrNotGranted) {
+	if errors.Is(err, devicekit.ErrNotGranted) {
 		status = http.StatusForbidden
-	} else if errors.Is(err, board.ErrUnknownProvider) || errors.Is(err, board.ErrUnknownDevice) {
+	} else if errors.Is(err, devicekit.ErrUnknownProvider) || errors.Is(err, devicekit.ErrUnknownDevice) {
 		status = http.StatusNotFound
 	}
 	operatorError(w, status, "device_action_failed", publicErr.Error())

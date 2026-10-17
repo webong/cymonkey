@@ -1,7 +1,7 @@
 package rtc
 
 import (
-	"board"
+	"devicekit"
 	"context"
 	"encoding/json"
 	"errors"
@@ -43,7 +43,7 @@ func (m Message) Validate() error {
 		return errors.New("unsupported signaling message type")
 	}
 	if len(m.Payload) > 512<<10 {
-		return board.ErrLimit
+		return devicekit.ErrLimit
 	}
 	if len(m.Payload) > 0 && !json.Valid(m.Payload) {
 		return errors.New("invalid signaling payload")
@@ -55,7 +55,7 @@ func (m Message) Validate() error {
 // The host must authenticate Remote before calling Forward or Poll.
 type Forwarder struct {
 	SessionID, Local, Remote string
-	Connection               *board.Connection
+	Connection               *devicekit.Connection
 }
 
 func (f Forwarder) valid() bool {
@@ -66,7 +66,7 @@ func (f Forwarder) Forward(ctx context.Context, m Message) ([]Message, error) {
 		return nil, err
 	}
 	if !f.valid() || m.SessionID != f.SessionID || m.From != f.Remote || m.To != "" && m.To != f.Local {
-		return nil, board.ErrNotGranted
+		return nil, devicekit.ErrNotGranted
 	}
 	s := Signal{Type: string(m.Type)}
 	switch m.Type {
@@ -92,16 +92,16 @@ func (f Forwarder) Forward(ctx context.Context, m Message) ([]Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	if _, err = f.Connection.Invoke(ctx, board.Action{Capability: board.WebRTCSignal, Input: raw}); err != nil {
+	if _, err = f.Connection.Invoke(ctx, devicekit.Action{Capability: devicekit.WebRTCSignal, Input: raw}); err != nil {
 		return nil, err
 	}
 	return f.Poll(ctx)
 }
 func (f Forwarder) Poll(ctx context.Context) ([]Message, error) {
 	if !f.valid() {
-		return nil, board.ErrNotGranted
+		return nil, devicekit.ErrNotGranted
 	}
-	result, err := f.Connection.Invoke(ctx, board.Action{Capability: board.WebRTCPoll})
+	result, err := f.Connection.Invoke(ctx, devicekit.Action{Capability: devicekit.WebRTCPoll})
 	if err != nil {
 		return nil, err
 	}

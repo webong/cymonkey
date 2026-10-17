@@ -2,8 +2,8 @@
 package rtc
 
 import (
-	"board"
-	"board/device"
+	"devicekit"
+	"devicekit/device"
 	"context"
 	"encoding/json"
 	"errors"
@@ -36,9 +36,9 @@ type Options struct {
 	API                      *pion.API
 	Video, Audio, Microphone *Source
 	Playback                 *Playback
-	InputCapabilities        []board.Capability
-	Input                    func(context.Context, board.Action) error
-	OpenInput                func(context.Context, []board.Capability) (func(context.Context, board.Action) error, func() error, error)
+	InputCapabilities        []devicekit.Capability
+	Input                    func(context.Context, devicekit.Action) error
+	OpenInput                func(context.Context, []devicekit.Capability) (func(context.Context, devicekit.Action) error, func() error, error)
 }
 
 // Signal is scoped to the already-authorized Board session. SDP and candidates
@@ -68,8 +68,8 @@ func New(o Options) (*device.Provider, error) {
 		settings.SetSCTPMaxReceiveBufferSize(1 << 20)
 		o.API = pion.NewAPI(pion.WithSettingEngine(settings))
 	}
-	caps := []board.CapabilityDescriptor{device.Descriptor(board.WebRTCSignal, signalSchema, false), device.Descriptor(board.WebRTCPoll, device.EmptySchema, false), device.Descriptor(board.DeviceHealth, device.EmptySchema, false)}
-	for cap, source := range map[board.Capability]*Source{board.DisplayVideo: o.Video, board.AudioCapture: o.Audio, board.AudioMicrophone: o.Microphone} {
+	caps := []devicekit.CapabilityDescriptor{device.Descriptor(devicekit.WebRTCSignal, signalSchema, false), device.Descriptor(devicekit.WebRTCPoll, device.EmptySchema, false), device.Descriptor(devicekit.DeviceHealth, device.EmptySchema, false)}
+	for cap, source := range map[devicekit.Capability]*Source{devicekit.DisplayVideo: o.Video, devicekit.AudioCapture: o.Audio, devicekit.AudioMicrophone: o.Microphone} {
 		if source != nil {
 			if source.Open == nil || source.Codec.MimeType == "" {
 				return nil, errors.New("WebRTC source needs a codec and opener")
@@ -81,46 +81,46 @@ func New(o Options) (*device.Provider, error) {
 		if o.Playback.Open == nil || (!strings.EqualFold(o.Playback.Codec.MimeType, pion.MimeTypePCMU) && !strings.EqualFold(o.Playback.Codec.MimeType, pion.MimeTypeOpus)) {
 			return nil, errors.New("WebRTC playback requires PCMU or Opus audio")
 		}
-		caps = append(caps, device.Descriptor(board.AudioPlayback, device.EmptySchema, false))
+		caps = append(caps, device.Descriptor(devicekit.AudioPlayback, device.EmptySchema, false))
 	}
 	for _, cap := range o.InputCapabilities {
 		if (o.Input == nil && o.OpenInput == nil) || !inputCapability(cap) {
 			return nil, errors.New("WebRTC input requires a bound input handler")
 		}
-		if cap == board.PointerDown && o.OpenInput == nil {
+		if cap == devicekit.PointerDown && o.OpenInput == nil {
 			return nil, errors.New("held pointer input requires a session input factory")
 		}
 		caps = append(caps, device.Descriptor(cap, `{"type":"object"}`, false))
 	}
-	return &device.Provider{ProviderID: o.ID, Device: board.Device{ID: "peer", Kind: "webrtc", Name: o.Name, Capabilities: caps}, Bind: func(life context.Context, g board.Grant) (device.Binding, error) {
-		allowed := map[board.Capability]bool{}
+	return &device.Provider{ProviderID: o.ID, Device: devicekit.Device{ID: "peer", Kind: "webrtc", Name: o.Name, Capabilities: caps}, Bind: func(life context.Context, g devicekit.Grant) (device.Binding, error) {
+		allowed := map[devicekit.Capability]bool{}
 		for _, cap := range g.Capabilities {
 			allowed[cap] = true
 		}
-		if !allowed[board.WebRTCSignal] || !allowed[board.WebRTCPoll] {
+		if !allowed[devicekit.WebRTCSignal] || !allowed[devicekit.WebRTCPoll] {
 			return device.Binding{}, errors.New("WebRTC requires signaling and polling grants")
 		}
 		p, err := openPeer(life, o, allowed)
 		if err != nil {
 			return device.Binding{}, err
 		}
-		ops := map[board.Capability]device.Operation{
-			board.WebRTCSignal: {Invoke: func(ctx context.Context, a board.Action) (board.Result, error) {
+		ops := map[devicekit.Capability]device.Operation{
+			devicekit.WebRTCSignal: {Invoke: func(ctx context.Context, a devicekit.Action) (devicekit.Result, error) {
 				if len(a.Input) > 512<<10 {
-					return board.Result{}, board.ErrLimit
+					return devicekit.Result{}, devicekit.ErrLimit
 				}
 				var in Signal
 				if err := decodeSignal(a.Input, &in); err != nil {
-					return board.Result{}, err
+					return devicekit.Result{}, err
 				}
 				if err := p.signal(ctx, in); err != nil {
-					return board.Result{}, err
+					return devicekit.Result{}, err
 				}
 				return device.Result(map[string]bool{"accepted": true})
 			}},
-			board.WebRTCPoll: {Invoke: func(_ context.Context, a board.Action) (board.Result, error) {
+			devicekit.WebRTCPoll: {Invoke: func(_ context.Context, a devicekit.Action) (devicekit.Result, error) {
 				if err := device.Empty(a.Input); err != nil {
-					return board.Result{}, err
+					return devicekit.Result{}, err
 				}
 				p.mu.Lock()
 				defer p.mu.Unlock()
@@ -128,24 +128,24 @@ func New(o Options) (*device.Provider, error) {
 				p.queue = nil
 				return device.Result(result)
 			}},
-			board.DeviceHealth: {Invoke: func(_ context.Context, a board.Action) (board.Result, error) {
+			devicekit.DeviceHealth: {Invoke: func(_ context.Context, a devicekit.Action) (devicekit.Result, error) {
 				if err := device.Empty(a.Input); err != nil {
-					return board.Result{}, err
+					return devicekit.Result{}, err
 				}
 				return device.Result(map[string]string{"state": p.pc.ConnectionState().String()})
 			}},
 		}
 		for _, cap := range o.InputCapabilities {
-			ops[cap] = device.Operation{Invoke: func(ctx context.Context, a board.Action) (board.Result, error) {
+			ops[cap] = device.Operation{Invoke: func(ctx context.Context, a devicekit.Action) (devicekit.Result, error) {
 				if err := p.input(ctx, a); err != nil {
-					return board.Result{}, err
+					return devicekit.Result{}, err
 				}
 				return device.Result(map[string]bool{"submitted": true})
 			}}
 		}
 		// Media capabilities authorize track setup, never raw action callbacks.
-		for _, cap := range []board.Capability{board.DisplayVideo, board.AudioCapture, board.AudioMicrophone, board.AudioPlayback} {
-			ops[cap] = device.Operation{Invoke: func(context.Context, board.Action) (board.Result, error) {
+		for _, cap := range []devicekit.Capability{devicekit.DisplayVideo, devicekit.AudioCapture, devicekit.AudioMicrophone, devicekit.AudioPlayback} {
+			ops[cap] = device.Operation{Invoke: func(context.Context, devicekit.Action) (devicekit.Result, error) {
 				return device.Result(map[string]string{"transport": "webrtc"})
 			}}
 		}
@@ -160,7 +160,7 @@ type sending struct {
 type peer struct {
 	pc           *pion.PeerConnection
 	o            Options
-	allowed      map[board.Capability]bool
+	allowed      map[devicekit.Capability]bool
 	ctx          context.Context
 	cancel       context.CancelFunc
 	mu           sync.Mutex
@@ -169,8 +169,8 @@ type peer struct {
 	pending      []pion.ICECandidateInit
 	remote       bool
 	closed       bool
-	inputs       chan board.Action
-	events       chan board.Event
+	inputs       chan devicekit.Action
+	events       chan devicekit.Event
 	sources      []sending
 	start        sync.Once
 	closeOnce    sync.Once
@@ -180,7 +180,7 @@ type peer struct {
 	closeInput   func() error
 }
 
-func openPeer(parent context.Context, o Options, allowed map[board.Capability]bool) (*peer, error) {
+func openPeer(parent context.Context, o Options, allowed map[devicekit.Capability]bool) (*peer, error) {
 	ctx, cancel := context.WithTimeout(parent, o.TTL)
 	config := pion.Configuration{ICEServers: o.ICEServers}
 	if o.RelayOnly {
@@ -191,9 +191,9 @@ func openPeer(parent context.Context, o Options, allowed map[board.Capability]bo
 		cancel()
 		return nil, err
 	}
-	p := &peer{pc: pc, o: o, allowed: allowed, ctx: ctx, cancel: cancel, inputs: make(chan board.Action, 32), events: make(chan board.Event, 64)}
+	p := &peer{pc: pc, o: o, allowed: allowed, ctx: ctx, cancel: cancel, inputs: make(chan devicekit.Action, 32), events: make(chan devicekit.Event, 64)}
 	if o.OpenInput != nil {
-		granted := []board.Capability{}
+		granted := []devicekit.Capability{}
 		for cap, yes := range allowed {
 			if yes && inputCapability(cap) {
 				granted = append(granted, cap)
@@ -224,15 +224,15 @@ func openPeer(parent context.Context, o Options, allowed map[board.Capability]bo
 				}
 			})
 		}
-		if state == pion.PeerConnectionStateFailed || (state == pion.PeerConnectionStateDisconnected && p.allowed[board.PointerDown]) {
+		if state == pion.PeerConnectionStateFailed || (state == pion.PeerConnectionStateDisconnected && p.allowed[devicekit.PointerDown]) {
 			go p.close()
 		}
 	})
 	fail := func(err error) (*peer, error) { _ = p.close(); return nil, err }
 	for _, entry := range []struct {
-		cap    board.Capability
+		cap    devicekit.Capability
 		source *Source
-	}{{board.DisplayVideo, o.Video}, {board.AudioCapture, o.Audio}, {board.AudioMicrophone, o.Microphone}} {
+	}{{devicekit.DisplayVideo, o.Video}, {devicekit.AudioCapture, o.Audio}, {devicekit.AudioMicrophone, o.Microphone}} {
 		if !allowed[entry.cap] || entry.source == nil {
 			continue
 		}
@@ -254,7 +254,7 @@ func openPeer(parent context.Context, o Options, allowed map[board.Capability]bo
 		}()
 		p.sources = append(p.sources, sending{entry.source, track})
 	}
-	if allowed[board.AudioPlayback] && o.Playback != nil {
+	if allowed[devicekit.AudioPlayback] && o.Playback != nil {
 		tr, err := pc.AddTransceiverFromKind(pion.RTPCodecTypeAudio, pion.RTPTransceiverInit{Direction: pion.RTPTransceiverDirectionRecvonly})
 		if err != nil {
 			return fail(err)
@@ -285,7 +285,7 @@ func openPeer(parent context.Context, o Options, allowed map[board.Capability]bo
 			p.mu.Lock()
 			p.inputChannel = false
 			p.mu.Unlock()
-			if p.allowed[board.PointerDown] {
+			if p.allowed[devicekit.PointerDown] {
 				go p.close()
 			}
 		})
@@ -295,7 +295,7 @@ func openPeer(parent context.Context, o Options, allowed map[board.Capability]bo
 				_ = d.Close()
 				return
 			}
-			var a board.Action
+			var a devicekit.Action
 			if err := device.Decode(m.Data, &a); err != nil {
 				p.emit("input.denied")
 				return
@@ -321,7 +321,7 @@ func openPeer(parent context.Context, o Options, allowed map[board.Capability]bo
 			case a := <-p.inputs:
 				if err := p.input(ctx, a); err != nil {
 					p.emit("input.failed")
-					if p.allowed[board.PointerDown] {
+					if p.allowed[devicekit.PointerDown] {
 						go p.close()
 						return
 					}
@@ -336,7 +336,7 @@ func openPeer(parent context.Context, o Options, allowed map[board.Capability]bo
 }
 func (p *peer) emit(kind string) {
 	select {
-	case p.events <- board.Event{Type: kind}:
+	case p.events <- devicekit.Event{Type: kind}:
 	default:
 	}
 }
@@ -356,12 +356,12 @@ func (p *peer) enqueue(s Signal) {
 	p.queue = append(p.queue, s)
 	p.mu.Unlock()
 }
-func (p *peer) input(ctx context.Context, a board.Action) error {
+func (p *peer) input(ctx context.Context, a devicekit.Action) error {
 	if p.ctx.Err() != nil {
-		return board.ErrClosed
+		return devicekit.ErrClosed
 	}
 	if !p.allowed[a.Capability] || p.o.Input == nil || a.ResourceID != "" || !inputCapability(a.Capability) {
-		return board.ErrNotGranted
+		return devicekit.ErrNotGranted
 	}
 	call, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -372,7 +372,7 @@ func (p *peer) input(ctx context.Context, a board.Action) error {
 func (p *peer) send(src sending) {
 	reader, err := src.source.Open(p.ctx)
 	if err != nil {
-		if errors.Is(err, board.ErrClosed) {
+		if errors.Is(err, devicekit.ErrClosed) {
 			go p.close()
 		}
 		p.emit("media.failed")
@@ -384,7 +384,7 @@ func (p *peer) send(src sending) {
 	for {
 		sample, err := reader.ReadSample(p.ctx)
 		if err != nil {
-			if errors.Is(err, board.ErrClosed) {
+			if errors.Is(err, devicekit.ErrClosed) {
 				go p.close()
 			}
 			if p.ctx.Err() == nil {
@@ -403,7 +403,7 @@ func (p *peer) send(src sending) {
 	}
 }
 func (p *peer) receive(track *pion.TrackRemote) {
-	if !p.allowed[board.AudioPlayback] || p.o.Playback == nil || !strings.EqualFold(track.Codec().MimeType, p.o.Playback.Codec.MimeType) {
+	if !p.allowed[devicekit.AudioPlayback] || p.o.Playback == nil || !strings.EqualFold(track.Codec().MimeType, p.o.Playback.Codec.MimeType) {
 		p.emit("media.denied")
 		_ = p.close()
 		return
@@ -456,7 +456,7 @@ func (p *peer) close() error {
 func decodeSignal(raw json.RawMessage, in *Signal) error {
 	// SDP may exceed ordinary action metadata; validate the envelope separately.
 	if len(raw) > 512<<10 {
-		return board.ErrLimit
+		return devicekit.ErrLimit
 	}
 	dec := json.NewDecoder(strings.NewReader(string(raw)))
 	dec.DisallowUnknownFields()
@@ -476,7 +476,7 @@ func (p *peer) signal(ctx context.Context, s Signal) error {
 		return err
 	}
 	if p.ctx.Err() != nil {
-		return board.ErrClosed
+		return devicekit.ErrClosed
 	}
 	switch s.Type {
 	case "heartbeat":
@@ -491,7 +491,7 @@ func (p *peer) signal(ctx context.Context, s Signal) error {
 			p.mu.Lock()
 			defer p.mu.Unlock()
 			if len(p.pending) >= 128 {
-				return board.ErrLimit
+				return devicekit.ErrLimit
 			}
 			p.pending = append(p.pending, *s.Candidate)
 			return nil

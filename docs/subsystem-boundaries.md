@@ -78,7 +78,7 @@ The macOS keyboard provider sends bounded key or Unicode events to a caller
 selected PID, with Accessibility permission and process identity checks. It
 reports event submission, not confirmation that an application used the input.
 
-`board/host` registers host-approved roots or caller-owned providers, then
+`devicekit/host` registers host-approved roots or caller-owned providers, then
 turns a request into a grant. The caller must supply an `Authorizer`; a
 decision may narrow a request and never widen it. Cymonkey's `src/devicecli`
 package exposes drive discovery, listing, reading, and macOS keyboard actions

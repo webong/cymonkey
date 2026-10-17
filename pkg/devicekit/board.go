@@ -1,7 +1,7 @@
 // Package board defines a host-independent boundary for input and output
 // devices. Providers bind concrete devices to this contract; the calling host
 // decides which device and capabilities a session may use.
-package board
+package devicekit
 
 import (
 	"context"

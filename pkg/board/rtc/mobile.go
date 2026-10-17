@@ -1,7 +1,7 @@
 package rtc
 
 import (
-	"board"
+	"devicekit"
 	"context"
 	"encoding/binary"
 	"errors"
@@ -35,19 +35,19 @@ func (m *MobileMedia) Done() <-chan struct{}   { return m.ctx.Done() }
 func (m *MobileMedia) Playback() <-chan []byte { return m.playback }
 func (m *MobileMedia) Push(kind byte, data []byte) error {
 	if !m.allowed[kind] || kind == 4 {
-		return board.ErrNotGranted
+		return devicekit.ErrNotGranted
 	}
 	if kind == 1 {
 		if len(data) == 0 || len(data) > 4<<20 {
-			return board.ErrLimit
+			return devicekit.ErrLimit
 		}
 	} else if len(data) == 0 || len(data) > 3840 || len(data)%4 != 0 {
-		return board.ErrLimit
+		return devicekit.ErrLimit
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.ctx.Err() != nil {
-		return board.ErrClosed
+		return devicekit.ErrClosed
 	}
 	queue := m.active[kind]
 	if queue == nil {
@@ -60,7 +60,7 @@ func (m *MobileMedia) Push(kind byte, data []byte) error {
 	default:
 	}
 	if kind != 1 {
-		return board.ErrLimit
+		return devicekit.ErrLimit
 	}
 	select {
 	case <-queue:
@@ -84,7 +84,7 @@ func (m *MobileMedia) Source(kind byte) *Source {
 		m.mu.Lock()
 		if m.ctx.Err() != nil {
 			m.mu.Unlock()
-			return nil, board.ErrClosed
+			return nil, devicekit.ErrClosed
 		}
 		if m.active[kind] != nil {
 			m.mu.Unlock()
@@ -210,11 +210,11 @@ type mobileStream struct {
 func (s *mobileStream) Read(p []byte) (int, error) {
 	n, err := s.reader.Read(p)
 	if err != nil && s.owner.Err() != nil {
-		return n, board.ErrClosed
+		return n, devicekit.ErrClosed
 	}
 	return n, err
 }
-func (s *mobileStream) Write([]byte) (int, error) { return 0, board.ErrNotGranted }
+func (s *mobileStream) Write([]byte) (int, error) { return 0, devicekit.ErrNotGranted }
 func (s *mobileStream) Close() error {
 	s.once.Do(func() { s.cancel(); s.reader.Close(); <-s.done })
 	return nil
@@ -237,7 +237,7 @@ type mobilePlayback struct {
 func (p *mobilePlayback) Close() error { return nil }
 func (p *mobilePlayback) Write(data []byte) (int, error) {
 	if len(data) > 160 {
-		return 0, board.ErrLimit
+		return 0, devicekit.ErrLimit
 	}
 	// G.711 expansion; six 48 kHz samples per 8 kHz sample, in both channels.
 	out := make([]byte, len(data)*24)
@@ -258,6 +258,6 @@ func (p *mobilePlayback) Write(data []byte) (int, error) {
 	case <-p.ctx.Done():
 		return 0, p.ctx.Err()
 	case <-p.owner.ctx.Done():
-		return 0, board.ErrClosed
+		return 0, devicekit.ErrClosed
 	}
 }

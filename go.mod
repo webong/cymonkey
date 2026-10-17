@@ -3,6 +3,7 @@ module cymonkey
 go 1.26.5
 
 require (
+	devicekit v0.0.0
 	contentkit v0.0.0
 	generationkit v0.0.0
 	board v0.0.0
@@ -51,3 +52,5 @@ require (
 )
 
 replace contentkit => ./pkg/contentkit
+
+replace devicekit => ./pkg/devicekit

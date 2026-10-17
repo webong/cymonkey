@@ -1,8 +1,8 @@
 package devices
 
 import (
-	"board"
-	"board/device"
+	"devicekit"
+	"devicekit/device"
 	"context"
 	"encoding/json"
 	"errors"
@@ -33,28 +33,28 @@ func NativeAudio(o NativeAudioOptions) (*device.Provider, error) {
 	if err != nil {
 		return nil, errors.New("native audio requires ffmpeg format conversion")
 	}
-	caps := []board.CapabilityDescriptor{device.Descriptor(board.AudioDescribe, device.EmptySchema, false)}
-	enabled := map[board.Capability]bool{board.AudioCapture: o.SystemCapture, board.AudioMicrophone: o.Microphone, board.AudioPlayback: o.Playback}
+	caps := []devicekit.CapabilityDescriptor{device.Descriptor(devicekit.AudioDescribe, device.EmptySchema, false)}
+	enabled := map[devicekit.Capability]bool{devicekit.AudioCapture: o.SystemCapture, devicekit.AudioMicrophone: o.Microphone, devicekit.AudioPlayback: o.Playback}
 	for cap, on := range enabled {
 		if on {
 			caps = append(caps, device.Descriptor(cap, `{"type":"object","properties":{"encoding":{"enum":["pcm","pcmu"]}},"additionalProperties":false}`, false))
 		}
 	}
-	return &device.Provider{ProviderID: o.ID, Device: board.Device{ID: "audio", Kind: "audio", Name: o.Name, Capabilities: caps}, Bind: func(context.Context, board.Grant) (device.Binding, error) {
-		ops := map[board.Capability]device.Operation{}
-		ops[board.AudioDescribe] = device.Operation{Invoke: func(ctx context.Context, a board.Action) (board.Result, error) {
+	return &device.Provider{ProviderID: o.ID, Device: devicekit.Device{ID: "audio", Kind: "audio", Name: o.Name, Capabilities: caps}, Bind: func(context.Context, devicekit.Grant) (device.Binding, error) {
+		ops := map[devicekit.Capability]device.Operation{}
+		ops[devicekit.AudioDescribe] = device.Operation{Invoke: func(ctx context.Context, a devicekit.Action) (devicekit.Result, error) {
 			if err := device.Empty(a.Input); err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			probe, cancel := context.WithTimeout(ctx, 5*time.Second)
 			defer cancel()
 			raw, err := (commandRunner{}).Run(probe, o.Helper, "describe", "")
 			if err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			var availability map[string]any
 			if err := json.Unmarshal(raw, &availability); err != nil {
-				return board.Result{}, errors.New("invalid native audio readiness response")
+				return devicekit.Result{}, errors.New("invalid native audio readiness response")
 			}
 			return device.Result(map[string]any{"backend": "native-helper", "systemSource": o.SystemSource, "microphoneSource": o.MicrophoneSource, "playbackSource": o.PlaybackSource, "encodings": []string{"pcm", "pcmu"}, "availability": availability})
 		}}
@@ -62,7 +62,7 @@ func NativeAudio(o NativeAudioOptions) (*device.Provider, error) {
 			if !on {
 				continue
 			}
-			ops[cap] = device.Operation{Channel: func(ctx context.Context, a board.Action, l board.ChannelLimits) (io.ReadWriteCloser, error) {
+			ops[cap] = device.Operation{Channel: func(ctx context.Context, a devicekit.Action, l devicekit.ChannelLimits) (io.ReadWriteCloser, error) {
 				var in struct {
 					Encoding string `json:"encoding"`
 				}
@@ -76,15 +76,15 @@ func NativeAudio(o NativeAudioOptions) (*device.Provider, error) {
 					return nil, errors.New("unsupported native audio encoding")
 				}
 				mode, source := "capture-system", o.SystemSource
-				read := cap != board.AudioPlayback
-				if cap == board.AudioMicrophone {
+				read := cap != devicekit.AudioPlayback
+				if cap == devicekit.AudioMicrophone {
 					mode, source = "capture-microphone", o.MicrophoneSource
 				}
 				if !read {
 					mode, source = "playback", o.PlaybackSource
 				}
 				if read && l.WriteBytes != 0 || !read && l.ReadBytes != 0 {
-					return nil, board.ErrNotGranted
+					return nil, devicekit.ErrNotGranted
 				}
 				args := []string{"-hide_banner", "-loglevel", "error", "-nostdin"}
 				if read {
@@ -109,13 +109,13 @@ type nativeAudioChannel struct {
 
 func (c *nativeAudioChannel) Read(b []byte) (int, error) {
 	if c.reader == nil {
-		return 0, board.ErrNotGranted
+		return 0, devicekit.ErrNotGranted
 	}
 	return c.reader.Read(b)
 }
 func (c *nativeAudioChannel) Write(b []byte) (int, error) {
 	if c.writer == nil {
-		return 0, board.ErrNotGranted
+		return 0, devicekit.ErrNotGranted
 	}
 	return c.writer.Write(b)
 }

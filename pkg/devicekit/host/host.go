@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"board"
+	"devicekit"
 )
 
 // ErrNotAuthorized reports that no host-approved device served a request. A
@@ -34,8 +34,8 @@ type DriveRoot struct {
 	// is deliberately not Path: a caller addresses the root by handle, and the
 	// host path never becomes part of an action contract.
 	ResourceID string
-	// Capabilities selects a subset of board.DriveList and board.DriveRead.
-	Capabilities []board.Capability
+	// Capabilities selects a subset of devicekit.DriveList and devicekit.DriveRead.
+	Capabilities []devicekit.Capability
 	// MaxReadBytes, MaxListEntries, and MaxScanEntries bound one action.
 	MaxReadBytes   int64
 	MaxListEntries int
@@ -46,7 +46,7 @@ type DriveRoot struct {
 // handles the host published for it. Board keeps its own descriptors
 // provider-neutral, so the host view is what carries those handles.
 type Devices struct {
-	registry  *board.Registry
+	registry  *devicekit.Registry
 	resources map[string][]string
 	closers   []interface{ Close() error }
 }
@@ -54,14 +54,14 @@ type Devices struct {
 // Registration makes a caller-owned provider available to the host. The host
 // publishes only the named resource handles; keyboard providers use none.
 type Registration struct {
-	Provider    board.Provider
+	Provider    devicekit.Provider
 	ResourceIDs []string
 }
 
 // Descriptor is a host view of one device, including the opaque resource
 // handles a caller may name.
 type Descriptor struct {
-	board.Device
+	devicekit.Device
 	ResourceIDs []string `json:"resourceIds"`
 }
 
@@ -70,7 +70,7 @@ type Descriptor struct {
 // device access is granted by the host, not discovered by this package.
 func New(roots ...DriveRoot) (*Devices, error) {
 	registrations := make([]Registration, 0, len(roots))
-	created := make([]*board.MountedDriveProvider, 0, len(roots))
+	created := make([]*devicekit.MountedDriveProvider, 0, len(roots))
 	complete := false
 	defer func() {
 		if !complete {
@@ -80,7 +80,7 @@ func New(roots ...DriveRoot) (*Devices, error) {
 		}
 	}()
 	for _, root := range roots {
-		provider, err := board.NewMountedDriveProvider(root.ID, board.MountedDriveOptions{
+		provider, err := devicekit.NewMountedDriveProvider(root.ID, devicekit.MountedDriveOptions{
 			Root:           root.Path,
 			Name:           root.Name,
 			DeviceID:       root.DeviceID,
@@ -109,7 +109,7 @@ func New(roots ...DriveRoot) (*Devices, error) {
 // NewRegistered accepts explicit Board providers from a host. Board still
 // supplies all device operations; the host supplies grant selection.
 func NewRegistered(registrations ...Registration) (*Devices, error) {
-	providers := make([]board.Provider, 0, len(registrations))
+	providers := make([]devicekit.Provider, 0, len(registrations))
 	devices := &Devices{resources: make(map[string][]string)}
 	for _, registration := range registrations {
 		if registration.Provider == nil {
@@ -131,7 +131,7 @@ func NewRegistered(registrations ...Registration) (*Devices, error) {
 			devices.closers = append(devices.closers, closer)
 		}
 	}
-	registry, err := board.NewRegistry(providers...)
+	registry, err := devicekit.NewRegistry(providers...)
 	if err != nil {
 		return nil, fmt.Errorf("register board providers: %w", err)
 	}
@@ -176,14 +176,14 @@ func (d *Devices) List(ctx context.Context) ([]Descriptor, error) {
 // Request is what a caller asked for. It names capabilities and opaque resource
 // handles only; a host path never belongs in a request.
 type Request struct {
-	Capabilities []board.Capability
+	Capabilities []devicekit.Capability
 	ResourceIDs  []string
 }
 
 // Decision is the host's answer for one candidate device. An empty Decision
 // denies the request, and Reason is then reported back to the caller.
 type Decision struct {
-	Capabilities []board.Capability
+	Capabilities []devicekit.Capability
 	ResourceIDs  []string
 	Reason       string
 }
@@ -191,7 +191,7 @@ type Decision struct {
 // Authorizer decides whether one host-approved device may serve a request. It is
 // required and is never defaulted. Board leaves authorization to the host, and a
 // binding that invented a default answer would be the thing it exists to prevent.
-type Authorizer func(context.Context, board.Device, Request) (Decision, error)
+type Authorizer func(context.Context, devicekit.Device, Request) (Decision, error)
 
 // Attach selects a device, applies the host's decision, and returns the
 // connection that enforces it.
@@ -201,7 +201,7 @@ type Authorizer func(context.Context, board.Device, Request) (Decision, error)
 // attaches the same device twice. A host that refuses one device is treated as a
 // refusal of that device, not of the request, so the search continues and the
 // reasons are reported together if nothing is approved.
-func (d *Devices) Attach(ctx context.Context, request Request, authorize Authorizer) (*board.Connection, error) {
+func (d *Devices) Attach(ctx context.Context, request Request, authorize Authorizer) (*devicekit.Connection, error) {
 	if d == nil || d.registry == nil {
 		return nil, errors.New("board device surface is not configured")
 	}
@@ -232,7 +232,7 @@ func (d *Devices) Attach(ctx context.Context, request Request, authorize Authori
 			refusals = append(refusals, fmt.Sprintf("%s: %v", key, err))
 			continue
 		}
-		return d.registry.Open(ctx, board.OpenRequest{
+		return d.registry.Open(ctx, devicekit.OpenRequest{
 			ProviderID: device.ProviderID, DeviceID: device.ID, Grant: grant,
 		})
 	}
@@ -248,41 +248,41 @@ func (d *Devices) Attach(ctx context.Context, request Request, authorize Authori
 // is the reason the binding exists: a decision may narrow a request, never
 // widen it, so a misconfigured or buggy authorizer cannot quietly hand out a
 // capability nobody requested.
-func (d *Devices) authorizedGrant(device board.Device, request Request, decision Decision) (board.Grant, error) {
+func (d *Devices) authorizedGrant(device devicekit.Device, request Request, decision Decision) (devicekit.Grant, error) {
 	if len(decision.Capabilities) == 0 {
 		reason := strings.TrimSpace(decision.Reason)
 		if reason == "" {
 			reason = "the host authorized no capability"
 		}
-		return board.Grant{}, errors.New(reason)
+		return devicekit.Grant{}, errors.New(reason)
 	}
 	granted, err := requestedCapabilities(decision.Capabilities)
 	if err != nil {
-		return board.Grant{}, err
+		return devicekit.Grant{}, err
 	}
 	asked, err := requestedCapabilities(request.Capabilities)
 	if err != nil {
-		return board.Grant{}, err
+		return devicekit.Grant{}, err
 	}
-	permitted := make(map[board.Capability]struct{}, len(asked))
+	permitted := make(map[devicekit.Capability]struct{}, len(asked))
 	for _, capability := range asked {
 		permitted[capability] = struct{}{}
 	}
 	for _, capability := range granted {
 		if _, ok := permitted[capability]; !ok {
-			return board.Grant{}, fmt.Errorf("the host granted unrequested capability %q", capability)
+			return devicekit.Grant{}, fmt.Errorf("the host granted unrequested capability %q", capability)
 		}
 		if !advertises(device, capability) {
-			return board.Grant{}, fmt.Errorf("the host granted capability %q that %s does not advertise", capability, deviceKey(device.ProviderID, device.ID))
+			return devicekit.Grant{}, fmt.Errorf("the host granted capability %q that %s does not advertise", capability, deviceKey(device.ProviderID, device.ID))
 		}
 	}
 
 	published := d.resources[deviceKey(device.ProviderID, device.ID)]
 	resources, err := d.grantedResources(published, decision.ResourceIDs)
 	if err != nil {
-		return board.Grant{}, err
+		return devicekit.Grant{}, err
 	}
-	requiresResource := board.IsDriveCapability(granted...)
+	requiresResource := devicekit.IsDriveCapability(granted...)
 	for _, descriptor := range device.Capabilities {
 		for _, cap := range granted {
 			if descriptor.Name == cap && descriptor.ResourceRequired {
@@ -297,14 +297,14 @@ func (d *Devices) authorizedGrant(device board.Device, request Request, decision
 				found = found || wanted == id
 			}
 			if !found {
-				return board.Grant{}, errors.New("host granted an unrequested resource")
+				return devicekit.Grant{}, errors.New("host granted an unrequested resource")
 			}
 		}
 	}
 	if requiresResource && len(resources) == 0 {
-		return board.Grant{}, errors.New("the host granted a drive capability without naming a resource root")
+		return devicekit.Grant{}, errors.New("the host granted a drive capability without naming a resource root")
 	}
-	return board.Grant{Capabilities: granted, ResourceIDs: resources}, nil
+	return devicekit.Grant{Capabilities: granted, ResourceIDs: resources}, nil
 }
 
 // grantedResources keeps a decision to handles the host actually published. The
@@ -337,12 +337,12 @@ func (d *Devices) grantedResources(published, requested []string) ([]string, err
 	return granted, nil
 }
 
-func requestedCapabilities(values []board.Capability) ([]board.Capability, error) {
+func requestedCapabilities(values []devicekit.Capability) ([]devicekit.Capability, error) {
 	if len(values) == 0 {
 		return nil, errors.New("a board request needs at least one capability")
 	}
-	seen := make(map[board.Capability]struct{}, len(values))
-	unique := make([]board.Capability, 0, len(values))
+	seen := make(map[devicekit.Capability]struct{}, len(values))
+	unique := make([]devicekit.Capability, 0, len(values))
 	for _, capability := range values {
 		if strings.TrimSpace(string(capability)) == "" {
 			return nil, errors.New("a board request contains an empty capability")
@@ -358,7 +358,7 @@ func requestedCapabilities(values []board.Capability) ([]board.Capability, error
 	return unique, nil
 }
 
-func capabilityNames(capabilities []board.Capability) []string {
+func capabilityNames(capabilities []devicekit.Capability) []string {
 	names := make([]string, 0, len(capabilities))
 	for _, capability := range capabilities {
 		names = append(names, string(capability))
@@ -366,7 +366,7 @@ func capabilityNames(capabilities []board.Capability) []string {
 	return names
 }
 
-func advertisesAll(device board.Device, capabilities []board.Capability) bool {
+func advertisesAll(device devicekit.Device, capabilities []devicekit.Capability) bool {
 	for _, capability := range capabilities {
 		if !advertises(device, capability) {
 			return false
@@ -375,7 +375,7 @@ func advertisesAll(device board.Device, capabilities []board.Capability) bool {
 	return true
 }
 
-func advertises(device board.Device, capability board.Capability) bool {
+func advertises(device devicekit.Device, capability devicekit.Capability) bool {
 	for _, descriptor := range device.Capabilities {
 		if descriptor.Name == capability {
 			return true

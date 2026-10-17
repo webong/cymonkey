@@ -37,7 +37,7 @@ func TestLibrariesStayOutsideInternal(t *testing.T) {
 			if err != nil {
 				return err
 			}
-			for _, library := range []string{"board", "contentkit", "generationkit", "jangolova"} {
+			for _, library := range []string{"board", "contentkit", "devicekit", "generationkit", "jangolova"} {
 				if name == library || strings.HasPrefix(name, library+"/") {
 					t.Errorf("internal package imports %s: %s", library, path)
 				}
@@ -49,7 +49,7 @@ func TestLibrariesStayOutsideInternal(t *testing.T) {
 				return err
 			}
 			lower := bytes.ToLower(contents)
-			for _, library := range []string{"board", "contentkit", "generationkit", "jangolova"} {
+			for _, library := range []string{"board", "contentkit", "devicekit", "generationkit", "jangolova"} {
 				if bytes.Contains(lower, []byte(library)) {
 					t.Errorf("internal package names standalone library %s: %s", library, path)
 				}
@@ -80,7 +80,7 @@ func TestHostConfigurationUsesServiceContracts(t *testing.T) {
 			return err
 		}
 		lower := bytes.ToLower(data)
-		for _, library := range []string{"contentkit", "generationkit", "jangolova", "board"} {
+		for _, library := range []string{"contentkit", "devicekit", "generationkit", "jangolova", "board"} {
 			if bytes.Contains(lower, []byte(library)) {
 				t.Errorf("internal host configuration names library %s: %s", library, path)
 			}
@@ -98,7 +98,7 @@ func TestInternalLibrariesDoNotShipCommands(t *testing.T) {
 		t.Fatal("resolve boundary test location")
 	}
 	root := filepath.Clean(filepath.Join(filepath.Dir(current), "..", "..", ".."))
-	for _, name := range []string{"jangolova", "contentkit", "generationkit", "board"} {
+	for _, name := range []string{"jangolova", "contentkit", "devicekit", "generationkit", "board"} {
 		library := filepath.Join(root, "pkg", name)
 		for _, commandDirectory := range []string{"cli", "cmd"} {
 			if _, err := os.Stat(filepath.Join(library, commandDirectory)); err == nil {

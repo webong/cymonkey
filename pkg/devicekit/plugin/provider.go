@@ -1,6 +1,6 @@
-// Package boardplugin adapts an installed executable to Board's provider
+// Package deviceplugin adapts an installed executable to Board's provider
 // contract. Board's registry remains the grant gate for every action.
-package boardplugin
+package deviceplugin
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"board"
+	"devicekit"
 	"github.com/webong/ext/pkg/plugin-go/contract/host"
 	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
 )
@@ -38,8 +38,8 @@ func (p Provider) method(name string) string {
 const Kind = ContractName
 
 // Providers selects Board executables from a shared installation inventory.
-func Providers(installed []store.Installed) []board.Provider {
-	var providers []board.Provider
+func Providers(installed []store.Installed) []devicekit.Provider {
+	var providers []devicekit.Provider
 	for _, item := range installed {
 		if item.Supports(ContractName, ContractVersion) {
 			providers = append(providers, Provider{Installed: item})
@@ -50,20 +50,20 @@ func Providers(installed []store.Installed) []board.Provider {
 
 func (p Provider) ID() string { return p.Installed.Name() }
 
-func (p Provider) List(ctx context.Context) ([]board.Device, error) {
+func (p Provider) List(ctx context.Context) ([]devicekit.Device, error) {
 	proc, err := host.Open(ctx, p.Installed, host.Options{Authorize: listPolicy()})
 	if err != nil {
 		return nil, err
 	}
 	defer proc.Close()
-	var devices []board.Device
+	var devices []devicekit.Device
 	if err := proc.Call(ctx, p.method("list"), nil, &devices); err != nil {
 		return nil, err
 	}
 	return devices, nil
 }
 
-func (p Provider) Open(ctx context.Context, deviceID string, grant board.Grant) (board.Session, error) {
+func (p Provider) Open(ctx context.Context, deviceID string, grant devicekit.Grant) (devicekit.Session, error) {
 	proc, err := host.Open(ctx, p.Installed, host.Options{Authorize: sessionPolicy(grant)})
 	if err != nil {
 		return nil, err
@@ -91,29 +91,29 @@ func (s *session) method(name string) string {
 	return prefix + "." + name
 }
 
-func (s *session) Invoke(ctx context.Context, action board.Action) (board.Result, error) {
-	if action.Capability == board.DriveRead {
-		return board.Result{}, board.ErrStreamRequired
+func (s *session) Invoke(ctx context.Context, action devicekit.Action) (devicekit.Result, error) {
+	if action.Capability == devicekit.DriveRead {
+		return devicekit.Result{}, devicekit.ErrStreamRequired
 	}
 	s.mu.Lock()
 	closed := s.closed
 	s.mu.Unlock()
 	if closed {
-		return board.Result{}, board.ErrClosed
+		return devicekit.Result{}, devicekit.ErrClosed
 	}
-	var result board.Result
+	var result devicekit.Result
 	if err := s.proc.Call(ctx, s.method("invoke"), action, &result); err != nil {
-		return board.Result{}, err
+		return devicekit.Result{}, err
 	}
 	return result, nil
 }
 
-func (s *session) Stream(ctx context.Context, action board.Action) (board.Content, error) {
+func (s *session) Stream(ctx context.Context, action devicekit.Action) (devicekit.Content, error) {
 	s.mu.Lock()
 	closed := s.closed
 	s.mu.Unlock()
 	if closed {
-		return nil, board.ErrClosed
+		return nil, devicekit.ErrClosed
 	}
 	var result struct {
 		ID        string `json:"id"`
@@ -131,7 +131,7 @@ func (s *session) Stream(ctx context.Context, action board.Action) (board.Conten
 	if s.closed {
 		s.mu.Unlock()
 		_ = c.Close()
-		return nil, board.ErrClosed
+		return nil, devicekit.ErrClosed
 	}
 	if s.streams == nil {
 		s.streams = make(map[*content]struct{})
@@ -181,7 +181,7 @@ func (c *content) Read(dst []byte) (int, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.closed {
-		return 0, board.ErrClosed
+		return 0, devicekit.ErrClosed
 	}
 	if err := c.ctx.Err(); err != nil {
 		return 0, err

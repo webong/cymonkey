@@ -9,11 +9,11 @@ import (
 	"io"
 	"strings"
 
-	"board"
+	"devicekit"
 )
 
-func providerCommand(command string, args []string, output io.Writer, providers []board.Provider) error {
-	registry, err := board.NewRegistry(providers...)
+func providerCommand(command string, args []string, output io.Writer, providers []devicekit.Provider) error {
+	registry, err := devicekit.NewRegistry(providers...)
 	if err != nil {
 		return err
 	}
@@ -44,16 +44,16 @@ func providerCommand(command string, args []string, output io.Writer, providers 
 	if !json.Valid([]byte(*input)) {
 		return errors.New("--input must be JSON")
 	}
-	grant := board.Grant{Capabilities: []board.Capability{board.Capability(*capability)}}
+	grant := devicekit.Grant{Capabilities: []devicekit.Capability{devicekit.Capability(*capability)}}
 	if *resource != "" {
 		grant.ResourceIDs = []string{*resource}
 	}
-	conn, err := registry.Open(context.Background(), board.OpenRequest{ProviderID: *provider, DeviceID: *device, Grant: grant})
+	conn, err := registry.Open(context.Background(), devicekit.OpenRequest{ProviderID: *provider, DeviceID: *device, Grant: grant})
 	if err != nil {
 		return err
 	}
 	defer conn.Close(context.Background())
-	action := board.Action{Capability: board.Capability(*capability), ResourceID: *resource, Input: json.RawMessage(*input)}
+	action := devicekit.Action{Capability: devicekit.Capability(*capability), ResourceID: *resource, Input: json.RawMessage(*input)}
 	if command == "adapter-invoke" {
 		result, err := conn.Invoke(context.Background(), action)
 		if err != nil {

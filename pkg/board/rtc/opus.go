@@ -1,7 +1,7 @@
 package rtc
 
 import (
-	"board"
+	"devicekit"
 	"context"
 	"errors"
 	"io"
@@ -22,10 +22,10 @@ func OpusCodec() pion.RTPCodecCapability {
 
 // BoardOpusAudio encodes the granted PCM channel with a local libopus-enabled
 // ffmpeg. Source IDs and process arguments are never supplied by remote peers.
-func BoardOpusAudio(r *board.Registry, t Target, cap board.Capability) *Source {
+func BoardOpusAudio(r *devicekit.Registry, t Target, cap devicekit.Capability) *Source {
 	return &Source{Codec: OpusCodec(), Open: func(ctx context.Context) (Samples, error) {
-		if cap != board.AudioCapture && cap != board.AudioMicrophone {
-			return nil, board.ErrNotGranted
+		if cap != devicekit.AudioCapture && cap != devicekit.AudioMicrophone {
+			return nil, devicekit.ErrNotGranted
 		}
 		ch, err := channelEncoding(ctx, r, t, cap, false, "pcm")
 		if err != nil {
@@ -38,9 +38,9 @@ func BoardOpusAudio(r *board.Registry, t Target, cap board.Capability) *Source {
 		return &opusSamples{process: process}, nil
 	}}
 }
-func BoardOpusPlayback(r *board.Registry, t Target) *Playback {
+func BoardOpusPlayback(r *devicekit.Registry, t Target) *Playback {
 	return &Playback{Codec: OpusCodec(), Open: func(ctx context.Context) (io.WriteCloser, error) {
-		ch, err := channelEncoding(ctx, r, t, board.AudioPlayback, true, "pcm")
+		ch, err := channelEncoding(ctx, r, t, devicekit.AudioPlayback, true, "pcm")
 		if err != nil {
 			return nil, err
 		}
@@ -156,7 +156,7 @@ func (s *opusSamples) ReadSample(ctx context.Context) (media.Sample, error) {
 		}
 		for _, size := range laces {
 			if len(s.partial)+int(size) > 64<<10 {
-				return media.Sample{}, board.ErrLimit
+				return media.Sample{}, devicekit.ErrLimit
 			}
 			segment := make([]byte, int(size))
 			if _, err := io.ReadFull(s.process.pipe, segment); err != nil {
@@ -183,7 +183,7 @@ func (s *opusSamples) ReadSample(ctx context.Context) (media.Sample, error) {
 				continue
 			}
 			if len(packet) > 4096 {
-				return media.Sample{}, board.ErrLimit
+				return media.Sample{}, devicekit.ErrLimit
 			}
 			s.packets = append(s.packets, packet)
 		}

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"board"
+	"devicekit"
 	"board/devices"
 	"board/volumearchive"
 	"bytes"
@@ -36,7 +36,7 @@ func TestOperatorDevicePersistentUploadAndRestore(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer server.Close(context.Background())
-	server.deviceProviders = func() ([]board.Provider, error) { return []board.Provider{provider}, nil }
+	server.deviceProviders = func() ([]devicekit.Provider, error) { return []devicekit.Provider{provider}, nil }
 	opened := operatorTestRequest(server, "secret", http.MethodPost, "/v1/device-sessions", `{"open":{"adapterId":"storage","deviceId":"volume","grant":{"capabilities":["storage.upload","storage.restore"],"resourceIds":["root"]}},"ttlSeconds":60}`)
 	if opened.Code != 201 {
 		t.Fatalf("open %d %s", opened.Code, opened.Body.String())
@@ -104,7 +104,7 @@ func TestOperatorDeviceSessionExpiry(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer server.Close(context.Background())
-	server.deviceProviders = func() ([]board.Provider, error) { return []board.Provider{operatorDeviceFixture{}}, nil }
+	server.deviceProviders = func() ([]devicekit.Provider, error) { return []devicekit.Provider{operatorDeviceFixture{}}, nil }
 	opened := operatorTestRequest(server, "secret", http.MethodPost, "/v1/device-sessions", `{"open":{"adapterId":"fixture","deviceId":"drive","grant":{"capabilities":["drive.read"],"resourceIds":["photos"]}},"ttlSeconds":1}`)
 	if opened.Code != 201 {
 		t.Fatal(opened.Body.String())
@@ -134,7 +134,7 @@ func TestOperatorDeviceRevocationClosesWriteOnlyChannel(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer server.Close(context.Background())
-	server.deviceProviders = func() ([]board.Provider, error) { return []board.Provider{provider}, nil }
+	server.deviceProviders = func() ([]devicekit.Provider, error) { return []devicekit.Provider{provider}, nil }
 	response := operatorTestRequest(server, "secret", http.MethodPost, "/v1/device-sessions", `{"open":{"adapterId":"storage","deviceId":"volume","grant":{"capabilities":["storage.upload"],"resourceIds":["root"]}},"ttlSeconds":300}`)
 	if response.Code != 201 {
 		t.Fatalf("open: %d %s", response.Code, response.Body.String())

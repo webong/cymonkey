@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"board"
+	"devicekit"
 )
 
 // testProviderPrefix mirrors the CLI's provider naming so the tests exercise
@@ -38,27 +38,27 @@ func populatedRoot(t *testing.T, id string) DriveRoot {
 
 // refuseAlways stands in for a host that approves nothing. It is used where the
 // test needs a non-nil authorizer but expects the request to fail first.
-func refuseAlways(context.Context, board.Device, Request) (Decision, error) {
+func refuseAlways(context.Context, devicekit.Device, Request) (Decision, error) {
 	return Decision{}, errors.New("this authorizer approves nothing")
 }
 
 type fakeKeyboardProvider struct{ invoked int }
 
 func (*fakeKeyboardProvider) ID() string { return "selected-keyboard" }
-func (*fakeKeyboardProvider) List(context.Context) ([]board.Device, error) {
-	return []board.Device{{ID: "keyboard", Kind: "keyboard", Capabilities: []board.CapabilityDescriptor{{
-		Name: board.KeyboardPress, InputSchema: json.RawMessage(`{"type":"object"}`),
+func (*fakeKeyboardProvider) List(context.Context) ([]devicekit.Device, error) {
+	return []devicekit.Device{{ID: "keyboard", Kind: "keyboard", Capabilities: []devicekit.CapabilityDescriptor{{
+		Name: devicekit.KeyboardPress, InputSchema: json.RawMessage(`{"type":"object"}`),
 	}}}}, nil
 }
-func (p *fakeKeyboardProvider) Open(context.Context, string, board.Grant) (board.Session, error) {
+func (p *fakeKeyboardProvider) Open(context.Context, string, devicekit.Grant) (devicekit.Session, error) {
 	return &fakeKeyboardSession{provider: p}, nil
 }
 
 type fakeKeyboardSession struct{ provider *fakeKeyboardProvider }
 
-func (s *fakeKeyboardSession) Invoke(_ context.Context, _ board.Action) (board.Result, error) {
+func (s *fakeKeyboardSession) Invoke(_ context.Context, _ devicekit.Action) (devicekit.Result, error) {
 	s.provider.invoked++
-	return board.Result{Output: json.RawMessage(`{"submitted":true}`)}, nil
+	return devicekit.Result{Output: json.RawMessage(`{"submitted":true}`)}, nil
 }
 func (*fakeKeyboardSession) Close(context.Context) error { return nil }
 
@@ -69,19 +69,19 @@ func TestRegisteredKeyboardUsesHostAuthorization(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	connection, err := devices.Attach(ctx, Request{Capabilities: []board.Capability{board.KeyboardPress}},
-		func(_ context.Context, device board.Device, _ Request) (Decision, error) {
+	connection, err := devices.Attach(ctx, Request{Capabilities: []devicekit.Capability{devicekit.KeyboardPress}},
+		func(_ context.Context, device devicekit.Device, _ Request) (Decision, error) {
 			if device.ProviderID != provider.ID() || device.Kind != "keyboard" {
 				return Decision{}, errors.New("wrong keyboard target")
 			}
-			return Decision{Capabilities: []board.Capability{board.KeyboardPress}}, nil
+			return Decision{Capabilities: []devicekit.Capability{devicekit.KeyboardPress}}, nil
 		})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer connection.Close(ctx)
-	if _, err := connection.Invoke(ctx, board.Action{
-		Capability: board.KeyboardPress, Input: json.RawMessage(`{"key":"Enter"}`),
+	if _, err := connection.Invoke(ctx, devicekit.Action{
+		Capability: devicekit.KeyboardPress, Input: json.RawMessage(`{"key":"Enter"}`),
 	}); err != nil || provider.invoked != 1 {
 		t.Fatalf("keyboard action = %d, %v", provider.invoked, err)
 	}
@@ -146,13 +146,13 @@ func TestAttachEnforcesTheHostGrant(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var authorized board.Device
+	var authorized devicekit.Device
 	connection, err := devices.Attach(ctx,
-		Request{Capabilities: []board.Capability{board.DriveList, board.DriveRead}},
-		func(_ context.Context, device board.Device, _ Request) (Decision, error) {
+		Request{Capabilities: []devicekit.Capability{devicekit.DriveList, devicekit.DriveRead}},
+		func(_ context.Context, device devicekit.Device, _ Request) (Decision, error) {
 			authorized = device
 			return Decision{
-				Capabilities: []board.Capability{board.DriveList, board.DriveRead},
+				Capabilities: []devicekit.Capability{devicekit.DriveList, devicekit.DriveRead},
 				ResourceIDs:  []string{"photos"},
 			}, nil
 		})
@@ -165,8 +165,8 @@ func TestAttachEnforcesTheHostGrant(t *testing.T) {
 	}
 
 	// Listing works, and the result stays small structured JSON.
-	result, err := connection.Invoke(ctx, board.Action{
-		Capability: board.DriveList, ResourceID: "photos", Input: json.RawMessage(`{"recursive":true}`),
+	result, err := connection.Invoke(ctx, devicekit.Action{
+		Capability: devicekit.DriveList, ResourceID: "photos", Input: json.RawMessage(`{"recursive":true}`),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -186,19 +186,19 @@ func TestAttachEnforcesTheHostGrant(t *testing.T) {
 
 	// Reading is granted, but only as a stream; the Result shape never carries
 	// file bytes.
-	if _, err := connection.Invoke(ctx, board.Action{
-		Capability: board.DriveRead, ResourceID: "photos", Input: json.RawMessage(`{"path":"IMG_0001.JPG"}`),
-	}); !errors.Is(err, board.ErrStreamRequired) {
+	if _, err := connection.Invoke(ctx, devicekit.Action{
+		Capability: devicekit.DriveRead, ResourceID: "photos", Input: json.RawMessage(`{"path":"IMG_0001.JPG"}`),
+	}); !errors.Is(err, devicekit.ErrStreamRequired) {
 		t.Fatalf("drive.read through Invoke = %v, want ErrStreamRequired", err)
 	}
-	content, err := connection.Stream(ctx, board.Action{
-		Capability: board.DriveRead, ResourceID: "photos", Input: json.RawMessage(`{"path":"IMG_0001.JPG"}`),
+	content, err := connection.Stream(ctx, devicekit.Action{
+		Capability: devicekit.DriveRead, ResourceID: "photos", Input: json.RawMessage(`{"path":"IMG_0001.JPG"}`),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer content.Close()
-	bytes, err := board.ReadAll(content, 1<<20)
+	bytes, err := devicekit.ReadAll(content, 1<<20)
 	if err != nil || string(bytes) != "jpeg" {
 		t.Fatalf("read = %q, %v", bytes, err)
 	}
@@ -211,18 +211,18 @@ func TestAttachRefusesAGrantTheDeviceCannotServe(t *testing.T) {
 	}
 	// A host decision that names a root the device never published.
 	_, err = devices.Attach(context.Background(),
-		Request{Capabilities: []board.Capability{board.DriveList}},
-		func(context.Context, board.Device, Request) (Decision, error) {
-			return Decision{Capabilities: []board.Capability{board.DriveList}, ResourceIDs: []string{"not-approved"}}, nil
+		Request{Capabilities: []devicekit.Capability{devicekit.DriveList}},
+		func(context.Context, devicekit.Device, Request) (Decision, error) {
+			return Decision{Capabilities: []devicekit.Capability{devicekit.DriveList}, ResourceIDs: []string{"not-approved"}}, nil
 		})
 	if err == nil || !strings.Contains(err.Error(), "not-approved") {
 		t.Fatalf("an unpublished resource was granted: %v", err)
 	}
 	// A drive capability with no resource root names nothing to confine to.
 	_, err = devices.Attach(context.Background(),
-		Request{Capabilities: []board.Capability{board.DriveList}},
-		func(context.Context, board.Device, Request) (Decision, error) {
-			return Decision{Capabilities: []board.Capability{board.DriveList}}, nil
+		Request{Capabilities: []devicekit.Capability{devicekit.DriveList}},
+		func(context.Context, devicekit.Device, Request) (Decision, error) {
+			return Decision{Capabilities: []devicekit.Capability{devicekit.DriveList}}, nil
 		})
 	if err == nil || !strings.Contains(err.Error(), "resource root") {
 		t.Fatalf("a drive grant without a resource root was accepted: %v", err)
@@ -237,10 +237,10 @@ func TestAttachRefusesAGrantBeyondTheRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = devices.Attach(context.Background(),
-		Request{Capabilities: []board.Capability{board.DriveList}},
-		func(context.Context, board.Device, Request) (Decision, error) {
+		Request{Capabilities: []devicekit.Capability{devicekit.DriveList}},
+		func(context.Context, devicekit.Device, Request) (Decision, error) {
 			return Decision{
-				Capabilities: []board.Capability{board.DriveList, board.DriveRead},
+				Capabilities: []devicekit.Capability{devicekit.DriveList, devicekit.DriveRead},
 				ResourceIDs:  []string{"photos"},
 			}, nil
 		})
@@ -253,16 +253,16 @@ func TestAttachRefusesUnadvertisedCapabilities(t *testing.T) {
 	dir := t.TempDir()
 	devices, err := New(DriveRoot{
 		ID: "listing-only", Name: "listing-only", Path: dir, ResourceID: "photos",
-		Capabilities: []board.Capability{board.DriveList},
+		Capabilities: []devicekit.Capability{devicekit.DriveList},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	// The device never advertised drive.read, so no decision can grant it.
 	_, err = devices.Attach(context.Background(),
-		Request{Capabilities: []board.Capability{board.DriveRead}},
-		func(context.Context, board.Device, Request) (Decision, error) {
-			return Decision{Capabilities: []board.Capability{board.DriveRead}, ResourceIDs: []string{"photos"}}, nil
+		Request{Capabilities: []devicekit.Capability{devicekit.DriveRead}},
+		func(context.Context, devicekit.Device, Request) (Decision, error) {
+			return Decision{Capabilities: []devicekit.Capability{devicekit.DriveRead}, ResourceIDs: []string{"photos"}}, nil
 		})
 	if err == nil {
 		t.Fatal("an unadvertised capability was granted")
@@ -280,13 +280,13 @@ func TestAttachSkipsADeviceTheHostRefuses(t *testing.T) {
 		t.Fatal(err)
 	}
 	var considered []string
-	connection, err := devices.Attach(ctx, Request{Capabilities: []board.Capability{board.DriveList}},
-		func(_ context.Context, device board.Device, _ Request) (Decision, error) {
+	connection, err := devices.Attach(ctx, Request{Capabilities: []devicekit.Capability{devicekit.DriveList}},
+		func(_ context.Context, device devicekit.Device, _ Request) (Decision, error) {
 			considered = append(considered, device.ID)
 			if device.ProviderID == testProviderPrefix+"a" {
 				return Decision{}, errors.New("that drive is not approved for this session")
 			}
-			return Decision{Capabilities: []board.Capability{board.DriveList}, ResourceIDs: []string{"b"}}, nil
+			return Decision{Capabilities: []devicekit.Capability{devicekit.DriveList}, ResourceIDs: []string{"b"}}, nil
 		})
 	if err != nil {
 		t.Fatalf("a refusal for one device ended the whole request: %v", err)
@@ -296,8 +296,8 @@ func TestAttachSkipsADeviceTheHostRefuses(t *testing.T) {
 		t.Fatalf("the authorizer considered %#v, want both devices", considered)
 	}
 	// The second root is a different directory, so its listing is its own.
-	result, err := connection.Invoke(ctx, board.Action{
-		Capability: board.DriveList, ResourceID: "b", Input: json.RawMessage(`{}`),
+	result, err := connection.Invoke(ctx, devicekit.Action{
+		Capability: devicekit.DriveList, ResourceID: "b", Input: json.RawMessage(`{}`),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -305,8 +305,8 @@ func TestAttachSkipsADeviceTheHostRefuses(t *testing.T) {
 	if !strings.Contains(string(result.Output), "IMG_0001.JPG") {
 		t.Fatalf("listing = %s", result.Output)
 	}
-	if _, err := connection.Invoke(ctx, board.Action{
-		Capability: board.DriveList, ResourceID: "a", Input: json.RawMessage(`{}`),
+	if _, err := connection.Invoke(ctx, devicekit.Action{
+		Capability: devicekit.DriveList, ResourceID: "a", Input: json.RawMessage(`{}`),
 	}); err == nil {
 		t.Fatal("the refused device's root was granted through the surviving connection")
 	}
@@ -317,8 +317,8 @@ func TestAttachReportsEveryRefusal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = devices.Attach(context.Background(), Request{Capabilities: []board.Capability{board.DriveList}},
-		func(context.Context, board.Device, Request) (Decision, error) {
+	_, err = devices.Attach(context.Background(), Request{Capabilities: []devicekit.Capability{devicekit.DriveList}},
+		func(context.Context, devicekit.Device, Request) (Decision, error) {
 			return Decision{}, errors.New("no device is approved right now")
 		})
 	if !errors.Is(err, ErrNotAuthorized) {
@@ -337,19 +337,19 @@ func TestAttachRequiresAHostAuthorizer(t *testing.T) {
 	}
 	// Board deliberately leaves authorization to the host, so a binding with no
 	// answer to give must refuse rather than assume one.
-	if _, err := devices.Attach(ctx, Request{Capabilities: []board.Capability{board.DriveList}}, nil); err == nil {
+	if _, err := devices.Attach(ctx, Request{Capabilities: []devicekit.Capability{devicekit.DriveList}}, nil); err == nil {
 		t.Fatal("a request with no authorizer was attached")
 	}
 	for name, request := range map[string]Request{
 		"no capabilities":  {},
-		"blank capability": {Capabilities: []board.Capability{""}},
+		"blank capability": {Capabilities: []devicekit.Capability{""}},
 	} {
 		if _, err := devices.Attach(ctx, request, refuseAlways); err == nil {
 			t.Fatalf("%s was accepted", name)
 		}
 	}
 	var unconfigured *Devices
-	if _, err := unconfigured.Attach(ctx, Request{Capabilities: []board.Capability{board.DriveList}}, refuseAlways); err == nil {
+	if _, err := unconfigured.Attach(ctx, Request{Capabilities: []devicekit.Capability{devicekit.DriveList}}, refuseAlways); err == nil {
 		t.Fatal("an unconfigured surface attached a device")
 	}
 }
@@ -357,14 +357,14 @@ func TestAttachRequiresAHostAuthorizer(t *testing.T) {
 func TestRequestedCapabilitiesAreDeduplicatedAndOrdered(t *testing.T) {
 	t.Parallel()
 
-	unique, err := requestedCapabilities([]board.Capability{board.DriveRead, board.DriveList, board.DriveRead})
+	unique, err := requestedCapabilities([]devicekit.Capability{devicekit.DriveRead, devicekit.DriveList, devicekit.DriveRead})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(unique) != 2 || unique[0] != board.DriveList || unique[1] != board.DriveRead {
+	if len(unique) != 2 || unique[0] != devicekit.DriveList || unique[1] != devicekit.DriveRead {
 		t.Fatalf("capabilities = %#v, want a sorted deduplicated list", unique)
 	}
-	if !board.IsDriveCapability(unique...) {
+	if !devicekit.IsDriveCapability(unique...) {
 		t.Fatal("the drive capabilities were not recognized as drive capabilities")
 	}
 }
@@ -378,10 +378,10 @@ func TestAttachAcceptsARepeatedGrant(t *testing.T) {
 	// A decision that names a capability or resource more than once is a host
 	// mistake, not an escalation, and must not produce a different grant.
 	connection, err := devices.Attach(ctx,
-		Request{Capabilities: []board.Capability{board.DriveList, board.DriveList}},
-		func(context.Context, board.Device, Request) (Decision, error) {
+		Request{Capabilities: []devicekit.Capability{devicekit.DriveList, devicekit.DriveList}},
+		func(context.Context, devicekit.Device, Request) (Decision, error) {
 			return Decision{
-				Capabilities: []board.Capability{board.DriveList, board.DriveList},
+				Capabilities: []devicekit.Capability{devicekit.DriveList, devicekit.DriveList},
 				ResourceIDs:  []string{"photos", "photos"},
 			}, nil
 		})
@@ -389,8 +389,8 @@ func TestAttachAcceptsARepeatedGrant(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer connection.Close(ctx)
-	if _, err := connection.Invoke(ctx, board.Action{
-		Capability: board.DriveList, ResourceID: "photos", Input: json.RawMessage(`{}`),
+	if _, err := connection.Invoke(ctx, devicekit.Action{
+		Capability: devicekit.DriveList, ResourceID: "photos", Input: json.RawMessage(`{}`),
 	}); err != nil {
 		t.Fatal(err)
 	}

@@ -1,8 +1,8 @@
 package devices
 
 import (
-	"board"
-	"board/device"
+	"devicekit"
+	"devicekit/device"
 	"board/networkprobe"
 	"context"
 	"errors"
@@ -31,24 +31,24 @@ func Endpoint(o EndpointOptions) (*device.Provider, error) {
 	if o.Dialer == nil {
 		o.Dialer = &net.Dialer{Timeout: 5 * time.Second}
 	}
-	return &device.Provider{ProviderID: o.ID, Device: board.Device{ID: o.DeviceID, Kind: "remote", Name: o.Name, Capabilities: []board.CapabilityDescriptor{
-		device.Descriptor(board.DeviceHealth, device.EmptySchema, false), device.Descriptor(board.RemoteConnect, device.EmptySchema, false),
-	}}, Bind: func(context.Context, board.Grant) (device.Binding, error) {
+	return &device.Provider{ProviderID: o.ID, Device: devicekit.Device{ID: o.DeviceID, Kind: "remote", Name: o.Name, Capabilities: []devicekit.CapabilityDescriptor{
+		device.Descriptor(devicekit.DeviceHealth, device.EmptySchema, false), device.Descriptor(devicekit.RemoteConnect, device.EmptySchema, false),
+	}}, Bind: func(context.Context, devicekit.Grant) (device.Binding, error) {
 		return device.Binding{Health: func(ctx context.Context) (bool, error) {
 			v, err := networkprobe.New(networkprobe.Config{Dialer: o.Dialer}).Observe(ctx, networkprobe.NewTCPRequest(o.Address))
 			return v.Healthy, err
-		}, Operations: map[board.Capability]device.Operation{
-			board.DeviceHealth: {Invoke: func(ctx context.Context, a board.Action) (board.Result, error) {
+		}, Operations: map[devicekit.Capability]device.Operation{
+			devicekit.DeviceHealth: {Invoke: func(ctx context.Context, a devicekit.Action) (devicekit.Result, error) {
 				if err := device.Empty(a.Input); err != nil {
-					return board.Result{}, err
+					return devicekit.Result{}, err
 				}
 				v, err := networkprobe.New(networkprobe.Config{Dialer: o.Dialer}).Observe(ctx, networkprobe.NewTCPRequest(o.Address))
 				if err != nil {
-					return board.Result{}, err
+					return devicekit.Result{}, err
 				}
 				return device.Result(v)
 			}},
-			board.RemoteConnect: {Channel: func(ctx context.Context, a board.Action, _ board.ChannelLimits) (io.ReadWriteCloser, error) {
+			devicekit.RemoteConnect: {Channel: func(ctx context.Context, a devicekit.Action, _ devicekit.ChannelLimits) (io.ReadWriteCloser, error) {
 				if err := device.Empty(a.Input); err != nil {
 					return nil, err
 				}

@@ -2,7 +2,7 @@
 package config
 
 import (
-	"board"
+	"devicekit"
 	"board/devices"
 	"board/rtc"
 	"bytes"
@@ -75,7 +75,7 @@ type Endpoint struct {
 }
 type WebRTC struct {
 	Pointer             *rtc.Target        `json:"pointer,omitempty"`
-	PointerCapabilities []board.Capability `json:"pointerCapabilities,omitempty"`
+	PointerCapabilities []devicekit.Capability `json:"pointerCapabilities,omitempty"`
 	AudioCodec          string             `json:"audioCodec,omitempty"`
 	TTLSeconds          int                `json:"ttlSeconds,omitempty"`
 	ICEServers          []pion.ICEServer   `json:"iceServers,omitempty"`
@@ -85,10 +85,10 @@ type WebRTC struct {
 	Microphone          *rtc.Target        `json:"microphone,omitempty"`
 	Playback            *rtc.Target        `json:"playback,omitempty"`
 	Input               *rtc.Target        `json:"input,omitempty"`
-	InputCapabilities   []board.Capability `json:"inputCapabilities,omitempty"`
+	InputCapabilities   []devicekit.Capability `json:"inputCapabilities,omitempty"`
 }
 
-func Load(reader io.Reader) ([]board.Provider, error) {
+func Load(reader io.Reader) ([]devicekit.Provider, error) {
 	raw, err := io.ReadAll(io.LimitReader(reader, (1<<20)+1))
 	if err != nil {
 		return nil, err
@@ -108,11 +108,11 @@ func Load(reader io.Reader) ([]board.Provider, error) {
 	}
 	return c.Providers()
 }
-func (c Config) Providers() ([]board.Provider, error) {
+func (c Config) Providers() ([]devicekit.Provider, error) {
 	if len(c.Devices) > 128 {
 		return nil, errors.New("at most 128 device providers may be configured")
 	}
-	var result []board.Provider
+	var result []devicekit.Provider
 	seen := map[string]bool{}
 	for _, d := range c.Devices {
 		if d.ID == "" || seen[d.ID] {
@@ -128,7 +128,7 @@ func (c Config) Providers() ([]board.Provider, error) {
 		if n != 1 {
 			return nil, fmt.Errorf("provider %s needs exactly one device type", d.ID)
 		}
-		var p board.Provider
+		var p devicekit.Provider
 		var err error
 		switch {
 		case d.Desktop != nil:
@@ -155,7 +155,7 @@ func (c Config) Providers() ([]board.Provider, error) {
 		}
 		result = append(result, p)
 	}
-	registry, err := board.NewRegistry(result...)
+	registry, err := devicekit.NewRegistry(result...)
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +163,7 @@ func (c Config) Providers() ([]board.Provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	check := func(t *rtc.Target, cap board.Capability) error {
+	check := func(t *rtc.Target, cap devicekit.Capability) error {
 		if t == nil {
 			return nil
 		}
@@ -193,8 +193,8 @@ func (c Config) Providers() ([]board.Provider, error) {
 		o := rtc.Options{ID: d.ID, Name: d.Name, TTL: time.Duration(w.TTLSeconds) * time.Second, ICEServers: w.ICEServers, RelayOnly: w.RelayOnly}
 		for _, v := range []struct {
 			t   *rtc.Target
-			cap board.Capability
-		}{{w.Video, board.DisplayVideo}, {w.Audio, board.AudioCapture}, {w.Microphone, board.AudioMicrophone}, {w.Playback, board.AudioPlayback}} {
+			cap devicekit.Capability
+		}{{w.Video, devicekit.DisplayVideo}, {w.Audio, devicekit.AudioCapture}, {w.Microphone, devicekit.AudioMicrophone}, {w.Playback, devicekit.AudioPlayback}} {
 			if err := check(v.t, v.cap); err != nil {
 				return nil, err
 			}
@@ -203,10 +203,10 @@ func (c Config) Providers() ([]board.Provider, error) {
 			o.Video = rtc.BoardVideo(registry, *w.Video)
 		}
 		if w.Audio != nil {
-			o.Audio = audioSource(registry, *w.Audio, board.AudioCapture)
+			o.Audio = audioSource(registry, *w.Audio, devicekit.AudioCapture)
 		}
 		if w.Microphone != nil {
-			o.Microphone = audioSource(registry, *w.Microphone, board.AudioMicrophone)
+			o.Microphone = audioSource(registry, *w.Microphone, devicekit.AudioMicrophone)
 		}
 		if w.Playback != nil {
 			o.Playback = playback(registry, *w.Playback)
@@ -230,7 +230,7 @@ func (c Config) Providers() ([]board.Provider, error) {
 				return nil, errors.New("pointer target requires explicit pointerCapabilities")
 			}
 			for _, cap := range w.PointerCapabilities {
-				if cap != board.PointerMove && cap != board.PointerClick && cap != board.PointerScroll && cap != board.PointerDown && cap != board.PointerUp && cap != board.PointerRelease {
+				if cap != devicekit.PointerMove && cap != devicekit.PointerClick && cap != devicekit.PointerScroll && cap != devicekit.PointerDown && cap != devicekit.PointerUp && cap != devicekit.PointerRelease {
 					return nil, errors.New("invalid pointer capability")
 				}
 				if err := check(w.Pointer, cap); err != nil {
@@ -239,19 +239,19 @@ func (c Config) Providers() ([]board.Provider, error) {
 			}
 			keyboard := o.Input
 			factory := rtc.BoardInputSession(registry, *w.Pointer, w.PointerCapabilities)
-			o.InputCapabilities = append(append([]board.Capability{}, o.InputCapabilities...), w.PointerCapabilities...)
-			o.OpenInput = func(life context.Context, granted []board.Capability) (func(context.Context, board.Action) error, func() error, error) {
+			o.InputCapabilities = append(append([]devicekit.Capability{}, o.InputCapabilities...), w.PointerCapabilities...)
+			o.OpenInput = func(life context.Context, granted []devicekit.Capability) (func(context.Context, devicekit.Action) error, func() error, error) {
 				pointer, closePointer, err := factory(life, granted)
 				if err != nil {
 					return nil, nil, err
 				}
-				return func(ctx context.Context, a board.Action) error {
+				return func(ctx context.Context, a devicekit.Action) error {
 					switch a.Capability {
-					case board.PointerMove, board.PointerClick, board.PointerScroll, board.PointerDown, board.PointerUp, board.PointerRelease:
+					case devicekit.PointerMove, devicekit.PointerClick, devicekit.PointerScroll, devicekit.PointerDown, devicekit.PointerUp, devicekit.PointerRelease:
 						return pointer(ctx, a)
 					}
 					if keyboard == nil {
-						return board.ErrNotGranted
+						return devicekit.ErrNotGranted
 					}
 					return keyboard(ctx, a)
 				}, closePointer, nil

@@ -8,15 +8,15 @@ import (
 	"errors"
 	"fmt"
 
-	"board"
-	"board/device"
+	"devicekit"
+	"devicekit/device"
 )
 
 const (
-	Describe board.Capability = "clipboard.describe"
-	Read     board.Capability = "clipboard.read"
-	Write    board.Capability = "clipboard.write"
-	Clear    board.Capability = "clipboard.clear"
+	Describe devicekit.Capability = "clipboard.describe"
+	Read     devicekit.Capability = "clipboard.read"
+	Write    devicekit.Capability = "clipboard.write"
+	Clear    devicekit.Capability = "clipboard.clear"
 )
 
 var ErrChanged = errors.New("clipboard generation changed")
@@ -98,12 +98,12 @@ func NewProvider(backend Backend, options Options) (*device.Provider, error) {
 		seen[format] = true
 	}
 	options.Formats = append([]string(nil), options.Formats...)
-	return &device.Provider{ProviderID: options.ProviderID, Device: board.Device{ID: options.DeviceID, Kind: "clipboard", Capabilities: []board.CapabilityDescriptor{
+	return &device.Provider{ProviderID: options.ProviderID, Device: devicekit.Device{ID: options.DeviceID, Kind: "clipboard", Capabilities: []devicekit.CapabilityDescriptor{
 		device.Descriptor(Describe, device.EmptySchema, true), device.Descriptor(Read, device.EmptySchema, true),
 		device.Descriptor(Write, `{"type":"object","required":["expectedGeneration","items"],"properties":{"expectedGeneration":{"type":"string"},"items":{"type":"array"}},"additionalProperties":false}`, true),
 		device.Descriptor(Clear, `{"type":"object","required":["expectedGeneration"],"properties":{"expectedGeneration":{"type":"string"}},"additionalProperties":false}`, true),
-	}}, ResourceIDs: []string{options.ResourceID}, Bind: func(_ context.Context, _ board.Grant) (device.Binding, error) {
-		read := func(ctx context.Context, a board.Action) (Snapshot, error) {
+	}}, ResourceIDs: []string{options.ResourceID}, Bind: func(_ context.Context, _ devicekit.Grant) (device.Binding, error) {
+		read := func(ctx context.Context, a devicekit.Action) (Snapshot, error) {
 			if err := device.Empty(a.Input); err != nil {
 				return Snapshot{}, err
 			}
@@ -113,37 +113,37 @@ func NewProvider(backend Backend, options Options) (*device.Provider, error) {
 			}
 			return s, Validate(s, options.MaxBytes, options.Formats)
 		}
-		write := func(ctx context.Context, a board.Action) (board.Result, error) {
+		write := func(ctx context.Context, a devicekit.Action) (devicekit.Result, error) {
 			var r WriteRequest
 			if a.Capability == Clear {
 				var c struct {
 					ExpectedGeneration string `json:"expectedGeneration"`
 				}
 				if err := device.Decode(a.Input, &c); err != nil {
-					return board.Result{}, err
+					return devicekit.Result{}, err
 				}
 				r.ExpectedGeneration = c.ExpectedGeneration
 				r.Items = []Item{}
 			} else if err := device.Decode(a.Input, &r); err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			if err := Validate(Snapshot{Generation: r.ExpectedGeneration, Items: r.Items}, options.MaxBytes, options.Formats); err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			receipt, err := backend.Write(ctx, r, options.MaxBytes)
 			if err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			if receipt.Generation == "" || receipt.Dispatch != "dispatched" {
-				return board.Result{}, errors.New("clipboard write returned unknown dispatch")
+				return devicekit.Result{}, errors.New("clipboard write returned unknown dispatch")
 			}
 			return device.Result(receipt)
 		}
-		return device.Binding{Operations: map[board.Capability]device.Operation{
-			Describe: {Invoke: func(ctx context.Context, a board.Action) (board.Result, error) {
+		return device.Binding{Operations: map[devicekit.Capability]device.Operation{
+			Describe: {Invoke: func(ctx context.Context, a devicekit.Action) (devicekit.Result, error) {
 				s, err := read(ctx, a)
 				if err != nil {
-					return board.Result{}, err
+					return devicekit.Result{}, err
 				}
 				type meta struct {
 					Format string `json:"format"`
@@ -157,7 +157,7 @@ func NewProvider(backend Backend, options Options) (*device.Provider, error) {
 				}
 				return device.Result(map[string]any{"generation": s.Generation, "items": items})
 			}},
-			Read: {Stream: func(ctx context.Context, a board.Action) (board.Content, error) {
+			Read: {Stream: func(ctx context.Context, a devicekit.Action) (devicekit.Content, error) {
 				s, err := read(ctx, a)
 				if err != nil {
 					return nil, err

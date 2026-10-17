@@ -1,8 +1,8 @@
 package device_test
 
 import (
-	"board"
-	"board/device"
+	"devicekit"
+	"devicekit/device"
 	"context"
 	"errors"
 	"io"
@@ -13,18 +13,18 @@ import (
 
 func TestSessionChannelGrantsLimitsAndClose(t *testing.T) {
 	var remote net.Conn
-	p := &device.Provider{ProviderID: "test", ResourceIDs: []string{"approved"}, Device: board.Device{ID: "device", Capabilities: []board.CapabilityDescriptor{device.Descriptor(board.RemoteConnect, device.EmptySchema, true)}}, Bind: func(context.Context, board.Grant) (device.Binding, error) {
-		return device.Binding{Operations: map[board.Capability]device.Operation{board.RemoteConnect: {Channel: func(context.Context, board.Action, board.ChannelLimits) (io.ReadWriteCloser, error) {
+	p := &device.Provider{ProviderID: "test", ResourceIDs: []string{"approved"}, Device: devicekit.Device{ID: "device", Capabilities: []devicekit.CapabilityDescriptor{device.Descriptor(devicekit.RemoteConnect, device.EmptySchema, true)}}, Bind: func(context.Context, devicekit.Grant) (device.Binding, error) {
+		return device.Binding{Operations: map[devicekit.Capability]device.Operation{devicekit.RemoteConnect: {Channel: func(context.Context, devicekit.Action, devicekit.ChannelLimits) (io.ReadWriteCloser, error) {
 			a, b := net.Pipe()
 			remote = b
 			return a, nil
 		}}}}, nil
 	}}
-	registry, err := board.NewRegistry(p)
+	registry, err := devicekit.NewRegistry(p)
 	if err != nil {
 		t.Fatal(err)
 	}
-	req := board.OpenRequest{ProviderID: "test", DeviceID: "device", Grant: board.Grant{Capabilities: []board.Capability{board.RemoteConnect}}}
+	req := devicekit.OpenRequest{ProviderID: "test", DeviceID: "device", Grant: devicekit.Grant{Capabilities: []devicekit.Capability{devicekit.RemoteConnect}}}
 	if _, err = registry.Open(context.Background(), req); err == nil {
 		t.Fatal("resource-less grant accepted")
 	}
@@ -34,9 +34,9 @@ func TestSessionChannelGrantsLimitsAndClose(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer c.Close(context.Background())
-	a := board.Action{Capability: board.RemoteConnect, ResourceID: "other"}
-	limits := board.ChannelLimits{ReadBytes: 3, WriteBytes: 2, Duration: time.Minute}
-	if _, err = c.OpenChannel(context.Background(), a, limits); !errors.Is(err, board.ErrNotGranted) {
+	a := devicekit.Action{Capability: devicekit.RemoteConnect, ResourceID: "other"}
+	limits := devicekit.ChannelLimits{ReadBytes: 3, WriteBytes: 2, Duration: time.Minute}
+	if _, err = c.OpenChannel(context.Background(), a, limits); !errors.Is(err, devicekit.ErrNotGranted) {
 		t.Fatalf("ungranted resource: %v", err)
 	}
 	a.ResourceID = "approved"
@@ -50,10 +50,10 @@ func TestSessionChannelGrantsLimitsAndClose(t *testing.T) {
 	if n, err := ch.Read(buf); err != nil || n != 3 {
 		t.Fatalf("read %d: %v", n, err)
 	}
-	if _, err = ch.Read(buf); !errors.Is(err, board.ErrLimit) {
+	if _, err = ch.Read(buf); !errors.Is(err, devicekit.ErrLimit) {
 		t.Fatal(err)
 	}
-	if _, err = ch.Write([]byte("abc")); !errors.Is(err, board.ErrLimit) {
+	if _, err = ch.Write([]byte("abc")); !errors.Is(err, devicekit.ErrLimit) {
 		t.Fatal(err)
 	}
 	ch.Close()
@@ -72,7 +72,7 @@ func TestSessionChannelGrantsLimitsAndClose(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("close did not unblock read")
 	}
-	if _, err = c.Invoke(context.Background(), a); !errors.Is(err, board.ErrClosed) {
+	if _, err = c.Invoke(context.Background(), a); !errors.Is(err, devicekit.ErrClosed) {
 		t.Fatal(err)
 	}
 	events, err := c.Events(0)

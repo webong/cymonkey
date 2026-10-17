@@ -1,8 +1,8 @@
 package devices
 
 import (
-	"board"
-	"board/device"
+	"devicekit"
+	"devicekit/device"
 	"bufio"
 	"context"
 	"encoding/json"
@@ -25,20 +25,20 @@ func NativePointer(id, name, helper, source string) (*device.Provider, error) {
 		return nil, err
 	}
 	var owner sync.Mutex
-	caps := []board.CapabilityDescriptor{}
-	for _, cap := range []board.Capability{board.PointerMove, board.PointerClick, board.PointerScroll, board.PointerDown, board.PointerUp, board.PointerRelease} {
-		if cap == board.PointerRelease {
+	caps := []devicekit.CapabilityDescriptor{}
+	for _, cap := range []devicekit.Capability{devicekit.PointerMove, devicekit.PointerClick, devicekit.PointerScroll, devicekit.PointerDown, devicekit.PointerUp, devicekit.PointerRelease} {
+		if cap == devicekit.PointerRelease {
 			caps = append(caps, device.Descriptor(cap, device.EmptySchema, false))
 			continue
 		}
 		caps = append(caps, device.Descriptor(cap, `{"type":"object","properties":{"x":{"type":"number","minimum":0,"maximum":1},"y":{"type":"number","minimum":0,"maximum":1},"button":{"enum":["left","right","middle"]},"deltaX":{"type":"integer","minimum":-100,"maximum":100},"deltaY":{"type":"integer","minimum":-100,"maximum":100}},"required":["x","y"],"additionalProperties":false}`, false))
 	}
-	return &device.Provider{ProviderID: id, Device: board.Device{ID: "pointer", Kind: "pointer", Name: name, Capabilities: caps}, Bind: func(life context.Context, grant board.Grant) (device.Binding, error) {
-		allowed := map[board.Capability]bool{}
+	return &device.Provider{ProviderID: id, Device: devicekit.Device{ID: "pointer", Kind: "pointer", Name: name, Capabilities: caps}, Bind: func(life context.Context, grant devicekit.Grant) (device.Binding, error) {
+		allowed := map[devicekit.Capability]bool{}
 		for _, cap := range grant.Capabilities {
 			allowed[cap] = true
 		}
-		if allowed[board.PointerDown] && (!allowed[board.PointerUp] || !allowed[board.PointerRelease] || !allowed[board.PointerMove]) {
+		if allowed[devicekit.PointerDown] && (!allowed[devicekit.PointerUp] || !allowed[devicekit.PointerRelease] || !allowed[devicekit.PointerMove]) {
 			return device.Binding{}, errors.New("held input requires pointer.move, pointer.up and pointer.release grants")
 		}
 		if !owner.TryLock() {
@@ -61,9 +61,9 @@ func NativePointer(id, name, helper, source string) (*device.Provider, error) {
 			return nil
 		}
 
-		ops := map[board.Capability]device.Operation{}
-		for _, cap := range []board.Capability{board.PointerMove, board.PointerClick, board.PointerScroll, board.PointerDown, board.PointerUp, board.PointerRelease} {
-			ops[cap] = device.Operation{Invoke: func(ctx context.Context, a board.Action) (result board.Result, invokeErr error) {
+		ops := map[devicekit.Capability]device.Operation{}
+		for _, cap := range []devicekit.Capability{devicekit.PointerMove, devicekit.PointerClick, devicekit.PointerScroll, devicekit.PointerDown, devicekit.PointerUp, devicekit.PointerRelease} {
+			ops[cap] = device.Operation{Invoke: func(ctx context.Context, a devicekit.Action) (result devicekit.Result, invokeErr error) {
 				mu.Lock()
 				defer mu.Unlock()
 				defer func() {
@@ -72,17 +72,17 @@ func NativePointer(id, name, helper, source string) (*device.Provider, error) {
 					}
 				}()
 				if closed || life.Err() != nil {
-					return board.Result{}, board.ErrClosed
+					return devicekit.Result{}, devicekit.ErrClosed
 				}
-				if cap == board.PointerRelease {
+				if cap == devicekit.PointerRelease {
 					if err := device.Empty(a.Input); err != nil {
-						return board.Result{}, err
+						return devicekit.Result{}, err
 					}
 					if process != nil {
 						call, cancel := context.WithTimeout(ctx, 3*time.Second)
 						defer cancel()
 						if err := process.invoke(call, []byte(`{"operation":"pointer.release","x":0,"y":0,"button":"","deltaX":0,"deltaY":0}`)); err != nil {
-							return board.Result{}, err
+							return devicekit.Result{}, err
 						}
 					}
 					return device.Result(map[string]bool{"submitted": true})
@@ -95,47 +95,47 @@ func NativePointer(id, name, helper, source string) (*device.Provider, error) {
 					DeltaY int      `json:"deltaY,omitempty"`
 				}
 				if err := device.Decode(a.Input, &in); err != nil {
-					return board.Result{}, err
+					return devicekit.Result{}, err
 				}
 				if in.X == nil || in.Y == nil || math.IsNaN(*in.X) || math.IsNaN(*in.Y) || *in.X < 0 || *in.X > 1 || *in.Y < 0 || *in.Y > 1 || in.DeltaX < -100 || in.DeltaX > 100 || in.DeltaY < -100 || in.DeltaY > 100 {
-					return board.Result{}, errors.New("invalid pointer coordinates or delta")
+					return devicekit.Result{}, errors.New("invalid pointer coordinates or delta")
 				}
 				switch cap {
-				case board.PointerClick, board.PointerDown, board.PointerUp:
+				case devicekit.PointerClick, devicekit.PointerDown, devicekit.PointerUp:
 					if in.Button != "left" && in.Button != "right" && in.Button != "middle" {
-						return board.Result{}, errors.New("explicit pointer button required")
+						return devicekit.Result{}, errors.New("explicit pointer button required")
 					}
 					if in.DeltaX != 0 || in.DeltaY != 0 {
-						return board.Result{}, errors.New("click cannot scroll")
+						return devicekit.Result{}, errors.New("click cannot scroll")
 					}
-				case board.PointerMove:
+				case devicekit.PointerMove:
 					if in.Button != "" || in.DeltaX != 0 || in.DeltaY != 0 {
-						return board.Result{}, errors.New("move cannot click or scroll")
+						return devicekit.Result{}, errors.New("move cannot click or scroll")
 					}
-				case board.PointerScroll:
+				case devicekit.PointerScroll:
 					if in.Button != "" {
-						return board.Result{}, errors.New("scroll cannot click")
+						return devicekit.Result{}, errors.New("scroll cannot click")
 					}
 				}
 				raw, err := json.Marshal(map[string]any{"operation": cap, "x": *in.X, "y": *in.Y, "button": in.Button, "deltaX": in.DeltaX, "deltaY": in.DeltaY})
 				if err != nil {
-					return board.Result{}, err
+					return devicekit.Result{}, err
 				}
 				call, cancel := context.WithTimeout(ctx, 3*time.Second)
 				defer cancel()
-				if process == nil && cap == board.PointerDown {
+				if process == nil && cap == devicekit.PointerDown {
 					process, err = startPointerProcess(helper, source)
 					if err != nil {
-						return board.Result{}, err
+						return devicekit.Result{}, err
 					}
 				}
 				if process != nil {
 					err = process.invoke(call, raw)
-				} else if cap != board.PointerUp {
+				} else if cap != devicekit.PointerUp {
 					_, err = (commandRunner{}).Run(call, helper, "pointer", source, string(raw))
 				}
 				if err != nil {
-					return board.Result{}, err
+					return devicekit.Result{}, err
 				}
 				return device.Result(map[string]bool{"submitted": true})
 			}}

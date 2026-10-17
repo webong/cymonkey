@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"board"
-	boardhost "board/host"
+	"devicekit"
+	devicehost "devicekit/host"
 )
 
 // Board drives are mounted by the host, not found by Board. Naming a root on
@@ -63,17 +63,17 @@ func (f *driveRootFlags) Set(value string) error {
 }
 
 // driveRoots converts command-line roots into the host approvals Board is
-// registered with. Only board.DriveList and board.DriveRead are offered, and
+// registered with. Only devicekit.DriveList and devicekit.DriveRead are offered, and
 // both by default, because a mounted drive is a read-only device here.
-func driveRoots(roots driveRootFlags) []boardhost.DriveRoot {
-	approvals := make([]boardhost.DriveRoot, 0, len(roots))
+func driveRoots(roots driveRootFlags) []devicehost.DriveRoot {
+	approvals := make([]devicehost.DriveRoot, 0, len(roots))
 	for _, root := range roots {
-		approvals = append(approvals, boardhost.DriveRoot{
+		approvals = append(approvals, devicehost.DriveRoot{
 			ID:           driveProviderPrefix + root.ResourceID,
 			Name:         root.ResourceID,
 			Path:         root.Path,
 			ResourceID:   root.ResourceID,
-			Capabilities: []board.Capability{board.DriveList, board.DriveRead},
+			Capabilities: []devicekit.Capability{devicekit.DriveList, devicekit.DriveRead},
 		})
 	}
 	return approvals
@@ -81,10 +81,10 @@ func driveRoots(roots driveRootFlags) []boardhost.DriveRoot {
 
 // approveDrive is the host's decision for a command-line invocation. The
 // operator named the root, so listing inside it is approved and nothing else is.
-func approveDrive(resourceID string, capability board.Capability) boardhost.Authorizer {
-	return func(_ context.Context, _ board.Device, _ boardhost.Request) (boardhost.Decision, error) {
-		return boardhost.Decision{
-			Capabilities: []board.Capability{capability},
+func approveDrive(resourceID string, capability devicekit.Capability) devicehost.Authorizer {
+	return func(_ context.Context, _ devicekit.Device, _ devicehost.Request) (devicehost.Decision, error) {
+		return devicehost.Decision{
+			Capabilities: []devicekit.Capability{capability},
 			ResourceIDs:  []string{resourceID},
 		}, nil
 	}
@@ -107,7 +107,7 @@ func devicesCommand(args []string, stdout io.Writer) error {
 	if len(roots) == 0 {
 		return errors.New("at least one --root is required")
 	}
-	devices, err := boardhost.New(driveRoots(roots)...)
+	devices, err := devicehost.New(driveRoots(roots)...)
 	if err != nil {
 		return err
 	}
@@ -136,7 +136,7 @@ func devicesCommand(args []string, stdout io.Writer) error {
 	return nil
 }
 
-// driveListRequest mirrors the published board.DriveList input schema. The host
+// driveListRequest mirrors the published devicekit.DriveList input schema. The host
 // binds to the schema Board advertises rather than to its private types, which
 // is what lets Board keep changing its internals.
 type driveListRequest struct {
@@ -145,7 +145,7 @@ type driveListRequest struct {
 	Limit     int    `json:"limit,omitempty"`
 }
 
-// driveListing mirrors the published board.DriveList output schema.
+// driveListing mirrors the published devicekit.DriveList output schema.
 type driveListing struct {
 	Path      string       `json:"path"`
 	Entries   []driveEntry `json:"entries"`
@@ -184,15 +184,15 @@ func driveListCommand(args []string, stdout io.Writer) error {
 		return errors.New("drive-list requires exactly one --root")
 	}
 	ctx := context.Background()
-	devices, err := boardhost.New(driveRoots(roots)...)
+	devices, err := devicehost.New(driveRoots(roots)...)
 	if err != nil {
 		return err
 	}
 	defer devices.Close()
-	connection, err := devices.Attach(ctx, boardhost.Request{
-		Capabilities: []board.Capability{board.DriveList},
+	connection, err := devices.Attach(ctx, devicehost.Request{
+		Capabilities: []devicekit.Capability{devicekit.DriveList},
 		ResourceIDs:  []string{roots[0].ResourceID},
-	}, approveDrive(roots[0].ResourceID, board.DriveList))
+	}, approveDrive(roots[0].ResourceID, devicekit.DriveList))
 	if err != nil {
 		return err
 	}
@@ -202,8 +202,8 @@ func driveListCommand(args []string, stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
-	result, err := connection.Invoke(ctx, board.Action{
-		Capability: board.DriveList,
+	result, err := connection.Invoke(ctx, devicekit.Action{
+		Capability: devicekit.DriveList,
 		ResourceID: roots[0].ResourceID,
 		Input:      input,
 	})
@@ -258,15 +258,15 @@ func driveReadCommand(args []string, stdout io.Writer) error {
 		return errors.New("drive-read max-bytes cannot be negative")
 	}
 	ctx := context.Background()
-	devices, err := boardhost.New(driveRoots(roots)...)
+	devices, err := devicehost.New(driveRoots(roots)...)
 	if err != nil {
 		return err
 	}
 	defer devices.Close()
-	connection, err := devices.Attach(ctx, boardhost.Request{
-		Capabilities: []board.Capability{board.DriveRead},
+	connection, err := devices.Attach(ctx, devicehost.Request{
+		Capabilities: []devicekit.Capability{devicekit.DriveRead},
 		ResourceIDs:  []string{roots[0].ResourceID},
-	}, approveDrive(roots[0].ResourceID, board.DriveRead))
+	}, approveDrive(roots[0].ResourceID, devicekit.DriveRead))
 	if err != nil {
 		return err
 	}
@@ -278,8 +278,8 @@ func driveReadCommand(args []string, stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
-	content, err := connection.Stream(ctx, board.Action{
-		Capability: board.DriveRead,
+	content, err := connection.Stream(ctx, devicekit.Action{
+		Capability: devicekit.DriveRead,
 		ResourceID: roots[0].ResourceID,
 		Input:      input,
 	})

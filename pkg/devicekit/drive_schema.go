@@ -1,4 +1,4 @@
-package board
+package devicekit
 
 // The mounted-drive capability schemas. They are published verbatim in the
 // device descriptor so a host can advertise the exact action contract, and the

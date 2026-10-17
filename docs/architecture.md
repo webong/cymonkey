@@ -186,13 +186,13 @@ calls. The cooperative Unity bridge implements the same vocabulary.
 The repository has one host and many guests. `src/` is the host: the
 single `cymy` binary, its generic contracts, admission policy and adapters.
 `pkg/` holds everything the host runs or builds on: the Jangolova, Board and Console
-modules, the content and generation kits, the content providers, and the platform helpers and
+modules, the content, device and generation kits, the content providers, and the platform helpers and
 products. The host never imports a guest; it reaches them through the ext
 plugin system (`github.com/webong/ext/pkg/plugin-go/contract`). Until the cut is
 complete, `src/internal/boundary/guest_imports_test.go` fails on any new import of a `pkg/` Go
 module and lists the ones that remain. `tests/` is the conformance and fixture
 surface. Jangolova, Board, Console and the kits are separate Go modules
-(`jangolova`, `board`, `console`, `contentkit`, `generationkit`) joined through `go.work` and
+(`jangolova`, `board`, `console`, `contentkit`, `devicekit`, `generationkit`) joined through `go.work` and
 local replacements while the host still imports them.
 Each library's plugin adapter selects the native executable contracts it understands;
 ext checks package structure and integrity without enumerating libraries. Cymonkey owns the command handlers, shared plugin directory, and
@@ -239,7 +239,7 @@ src/observation/                Jangolova capture and Blockade inference workflo
 pkg/board/                      standalone Board device library
 pkg/board/drive.go              read-only mounted-drive provider
 pkg/board/macoskeyboard/         explicit-PID macOS keyboard provider
-pkg/board/host/                 provider registration and grant selection
+pkg/devicekit/host/              provider registration and grant selection
 src/internal/core/              core registry/composition/conformance code
 src/internal/host/              Cymonkey host configuration and process supervisor
 pkg/jangolova/                  standalone Jangolova library and host boundary

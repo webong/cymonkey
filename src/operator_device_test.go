@@ -8,29 +8,29 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"board"
+	"devicekit"
 	"cymonkey/src/internal/orchestrator"
 )
 
 type operatorDeviceFixture struct{}
 
 func (operatorDeviceFixture) ID() string { return "fixture" }
-func (operatorDeviceFixture) List(context.Context) ([]board.Device, error) {
-	return []board.Device{{ID: "drive", Kind: "drive", Capabilities: []board.CapabilityDescriptor{
-		{Name: board.DriveList, InputSchema: json.RawMessage(`{"type":"object"}`)},
-		{Name: board.DriveRead, InputSchema: json.RawMessage(`{"type":"object"}`)},
+func (operatorDeviceFixture) List(context.Context) ([]devicekit.Device, error) {
+	return []devicekit.Device{{ID: "drive", Kind: "drive", Capabilities: []devicekit.CapabilityDescriptor{
+		{Name: devicekit.DriveList, InputSchema: json.RawMessage(`{"type":"object"}`)},
+		{Name: devicekit.DriveRead, InputSchema: json.RawMessage(`{"type":"object"}`)},
 	}}}, nil
 }
-func (operatorDeviceFixture) Open(context.Context, string, board.Grant) (board.Session, error) {
+func (operatorDeviceFixture) Open(context.Context, string, devicekit.Grant) (devicekit.Session, error) {
 	return operatorDeviceSession{}, nil
 }
 
 type operatorDeviceSession struct{}
 
-func (operatorDeviceSession) Invoke(context.Context, board.Action) (board.Result, error) {
-	return board.Result{Output: json.RawMessage(`{"files":["image.jpg"]}`)}, nil
+func (operatorDeviceSession) Invoke(context.Context, devicekit.Action) (devicekit.Result, error) {
+	return devicekit.Result{Output: json.RawMessage(`{"files":["image.jpg"]}`)}, nil
 }
-func (operatorDeviceSession) Stream(context.Context, board.Action) (board.Content, error) {
+func (operatorDeviceSession) Stream(context.Context, devicekit.Action) (devicekit.Content, error) {
 	return &operatorDeviceContent{Reader: bytes.NewReader([]byte("image"))}, nil
 }
 func (operatorDeviceSession) Close(context.Context) error { return nil }
@@ -47,7 +47,7 @@ func TestOperatorDeviceUsesExplicitGrantForActionsAndStreams(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer server.Close(context.Background())
-	server.deviceProviders = func() ([]board.Provider, error) { return []board.Provider{operatorDeviceFixture{}}, nil }
+	server.deviceProviders = func() ([]devicekit.Provider, error) { return []devicekit.Provider{operatorDeviceFixture{}}, nil }
 	listed := operatorTestRequest(server, "secret", http.MethodGet, "/v1/devices", "")
 	if listed.Code != http.StatusOK || !bytes.Contains(listed.Body.Bytes(), []byte(`"adapterId":"fixture"`)) {
 		t.Fatalf("device inventory = %d %s", listed.Code, listed.Body.String())

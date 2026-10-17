@@ -16,9 +16,9 @@ import (
 	"sync"
 	"time"
 
-	"board"
+	"devicekit"
 	boardconfig "board/config"
-	boardplugin "board/plugin"
+	deviceplugin "devicekit/plugin"
 	"cymonkey/src/internal/displayplugin"
 	"cymonkey/src/internal/orchestrator"
 
@@ -30,7 +30,7 @@ import (
 const (
 	displayPluginContract = displayplugin.ContractName
 	contentPluginContract = contentplugin.ContractName
-	devicePluginContract  = boardplugin.ContractName
+	devicePluginContract  = deviceplugin.ContractName
 	pluginContractVersion = "v1"
 )
 
@@ -39,7 +39,7 @@ const (
 var pluginOperations = map[string][]string{
 	displayPluginContract: displayplugin.Operations,
 	contentPluginContract: contentplugin.Operations,
-	devicePluginContract:  boardplugin.Operations,
+	devicePluginContract:  deviceplugin.Operations,
 }
 
 // pluginListTTL bounds how long a verified plugin list is reused. ext's store
@@ -145,15 +145,15 @@ func registerDisplayPlugins(registry *orchestrator.Registry) error {
 	}
 	return nil
 }
-func devicePluginAdapters() ([]board.Provider, error) {
+func devicePluginAdapters() ([]devicekit.Provider, error) {
 	installed, err := installedPlugins()
 	if err != nil {
 		return nil, err
 	}
-	providers := make([]board.Provider, 0, len(installed))
+	providers := make([]devicekit.Provider, 0, len(installed))
 	for _, item := range installed {
 		if item.Supports(devicePluginContract, pluginContractVersion) {
-			providers = append(providers, boardplugin.Provider{Installed: item})
+			providers = append(providers, deviceplugin.Provider{Installed: item})
 		}
 	}
 	if path := os.Getenv("CYMONKEY_DEVICE_CONFIG"); path != "" {

@@ -1,8 +1,8 @@
 package devices
 
 import (
-	"board"
-	"board/device"
+	"devicekit"
+	"devicekit/device"
 	"board/filesystemprobe"
 	"board/volumearchive"
 	"context"
@@ -13,7 +13,7 @@ import (
 	"sync"
 )
 
-const StorageUpload = board.StorageUpload
+const StorageUpload = devicekit.StorageUpload
 
 type StorageOptions struct {
 	ID, Name, RootID, Path              string
@@ -49,15 +49,15 @@ func Storage(o StorageOptions) (*device.Provider, error) {
 	check := func() error {
 		now, err := os.Stat(o.Path)
 		if err != nil || !os.SameFile(identity, now) {
-			return board.ErrDriveUnavailable
+			return devicekit.ErrDriveUnavailable
 		}
 		return nil
 	}
-	caps := []board.CapabilityDescriptor{device.Descriptor(board.StorageInspect, device.EmptySchema, true), device.Descriptor(board.StorageExport, device.EmptySchema, true)}
+	caps := []devicekit.CapabilityDescriptor{device.Descriptor(devicekit.StorageInspect, device.EmptySchema, true), device.Descriptor(devicekit.StorageExport, device.EmptySchema, true)}
 	if o.AllowRestore {
-		caps = append(caps, device.Descriptor(StorageUpload, device.EmptySchema, true), device.Descriptor(board.StorageRestore, device.EmptySchema, true))
+		caps = append(caps, device.Descriptor(StorageUpload, device.EmptySchema, true), device.Descriptor(devicekit.StorageRestore, device.EmptySchema, true))
 	}
-	return &device.Provider{ProviderID: o.ID, ResourceIDs: []string{o.RootID}, Device: board.Device{ID: "volume", Kind: "storage", Name: o.Name, Capabilities: caps}, Bind: func(context.Context, board.Grant) (device.Binding, error) {
+	return &device.Provider{ProviderID: o.ID, ResourceIDs: []string{o.RootID}, Device: devicekit.Device{ID: "volume", Kind: "storage", Name: o.Name, Capabilities: caps}, Bind: func(context.Context, devicekit.Grant) (device.Binding, error) {
 		if err := check(); err != nil {
 			return device.Binding{}, err
 		}
@@ -68,7 +68,7 @@ func Storage(o StorageOptions) (*device.Provider, error) {
 		now, err := root.Stat(".")
 		if err != nil || !os.SameFile(identity, now) {
 			root.Close()
-			return device.Binding{}, board.ErrDriveUnavailable
+			return device.Binding{}, devicekit.ErrDriveUnavailable
 		}
 		tmp, err := os.MkdirTemp("", "board-transfer-")
 		if err != nil {
@@ -77,18 +77,18 @@ func Storage(o StorageOptions) (*device.Provider, error) {
 		}
 		var mu sync.Mutex
 		var upload *uploadFile
-		ops := map[board.Capability]device.Operation{}
-		ops[board.StorageInspect] = device.Operation{Invoke: func(_ context.Context, a board.Action) (board.Result, error) {
+		ops := map[devicekit.Capability]device.Operation{}
+		ops[devicekit.StorageInspect] = device.Operation{Invoke: func(_ context.Context, a devicekit.Action) (devicekit.Result, error) {
 			if err := device.Empty(a.Input); err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			if err := check(); err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			v, ok := filesystemprobe.VolumeCapacityBytes(o.Path)
 			return device.Result(map[string]any{"available": ok, "capacityBytes": v.CapacityBytes, "availableBytes": v.AvailableBytes})
 		}}
-		ops[board.StorageExport] = device.Operation{Stream: func(ctx context.Context, a board.Action) (board.Content, error) {
+		ops[devicekit.StorageExport] = device.Operation{Stream: func(ctx context.Context, a devicekit.Action) (devicekit.Content, error) {
 			if err := device.Empty(a.Input); err != nil {
 				return nil, err
 			}
@@ -115,12 +115,12 @@ func Storage(o StorageOptions) (*device.Provider, error) {
 			}
 			return &temporaryContent{Content: content, path: f.Name()}, nil
 		}}
-		ops[StorageUpload] = device.Operation{Channel: func(_ context.Context, a board.Action, l board.ChannelLimits) (io.ReadWriteCloser, error) {
+		ops[StorageUpload] = device.Operation{Channel: func(_ context.Context, a devicekit.Action, l devicekit.ChannelLimits) (io.ReadWriteCloser, error) {
 			if err := device.Empty(a.Input); err != nil {
 				return nil, err
 			}
 			if l.ReadBytes != 0 || l.WriteBytes > o.MaxTransferBytes {
-				return nil, board.ErrNotGranted
+				return nil, devicekit.ErrNotGranted
 			}
 			mu.Lock()
 			defer mu.Unlock()
@@ -134,20 +134,20 @@ func Storage(o StorageOptions) (*device.Provider, error) {
 			upload = &uploadFile{file: f, remaining: o.MaxTransferBytes}
 			return upload, nil
 		}}
-		ops[board.StorageRestore] = device.Operation{Invoke: func(ctx context.Context, a board.Action) (board.Result, error) {
+		ops[devicekit.StorageRestore] = device.Operation{Invoke: func(ctx context.Context, a devicekit.Action) (devicekit.Result, error) {
 			if err := device.Empty(a.Input); err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			if err := check(); err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			mu.Lock()
 			defer mu.Unlock()
 			if upload == nil || !upload.complete() {
-				return board.Result{}, errors.New("close the upload channel before restoring")
+				return devicekit.Result{}, errors.New("close the upload channel before restoring")
 			}
 			if err := volumearchive.RestoreRootWithLimits(ctx, filepath.Join(tmp, "upload.tar.gz"), root, volumearchive.Limits{Bytes: o.MaxExtractedBytes, Entries: 100000}); err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			return device.Result(map[string]bool{"restored": true})
 		}}
@@ -169,7 +169,7 @@ type limitedWriter struct {
 
 func (w *limitedWriter) Write(p []byte) (int, error) {
 	if int64(len(p)) > w.remaining {
-		return 0, board.ErrLimit
+		return 0, devicekit.ErrLimit
 	}
 	n, err := w.writer.Write(p)
 	w.remaining -= int64(n)
@@ -184,15 +184,15 @@ type uploadFile struct {
 	err       error
 }
 
-func (u *uploadFile) Read([]byte) (int, error) { return 0, board.ErrNotGranted }
+func (u *uploadFile) Read([]byte) (int, error) { return 0, devicekit.ErrNotGranted }
 func (u *uploadFile) Write(p []byte) (int, error) {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	if u.closed {
-		return 0, board.ErrClosed
+		return 0, devicekit.ErrClosed
 	}
 	if int64(len(p)) > u.remaining {
-		u.err = board.ErrLimit
+		u.err = devicekit.ErrLimit
 		return 0, u.err
 	}
 	n, err := u.file.Write(p)
@@ -218,7 +218,7 @@ func (u *uploadFile) complete() bool {
 }
 
 type temporaryContent struct {
-	board.Content
+	devicekit.Content
 	path string
 	once sync.Once
 	err  error

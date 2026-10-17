@@ -1,7 +1,7 @@
 package rtc
 
 import (
-	"board"
+	"devicekit"
 	"context"
 	"encoding/binary"
 	"errors"
@@ -18,31 +18,31 @@ type Target struct {
 	DeviceID   string `json:"deviceId"`
 }
 
-func openTarget(ctx context.Context, r *board.Registry, t Target, cap board.Capability) (*board.Connection, error) {
-	return r.Open(ctx, board.OpenRequest{ProviderID: t.ProviderID, DeviceID: t.DeviceID, Grant: board.Grant{Capabilities: []board.Capability{cap}}})
+func openTarget(ctx context.Context, r *devicekit.Registry, t Target, cap devicekit.Capability) (*devicekit.Connection, error) {
+	return r.Open(ctx, devicekit.OpenRequest{ProviderID: t.ProviderID, DeviceID: t.DeviceID, Grant: devicekit.Grant{Capabilities: []devicekit.Capability{cap}}})
 }
 
 type ownedChannel struct {
 	io.ReadWriteCloser
-	connection *board.Connection
+	connection *devicekit.Connection
 }
 
 func (c *ownedChannel) Close() error {
 	return errors.Join(c.ReadWriteCloser.Close(), c.connection.Close(context.Background()))
 }
-func channel(ctx context.Context, r *board.Registry, t Target, cap board.Capability, write bool) (*ownedChannel, error) {
+func channel(ctx context.Context, r *devicekit.Registry, t Target, cap devicekit.Capability, write bool) (*ownedChannel, error) {
 	return channelEncoding(ctx, r, t, cap, write, "pcmu")
 }
-func channelEncoding(ctx context.Context, r *board.Registry, t Target, cap board.Capability, write bool, encoding string) (*ownedChannel, error) {
+func channelEncoding(ctx context.Context, r *devicekit.Registry, t Target, cap devicekit.Capability, write bool, encoding string) (*ownedChannel, error) {
 	c, err := openTarget(ctx, r, t, cap)
 	if err != nil {
 		return nil, err
 	}
-	a := board.Action{Capability: cap}
-	if cap != board.DisplayVideo {
+	a := devicekit.Action{Capability: cap}
+	if cap != devicekit.DisplayVideo {
 		a.Input = []byte(`{"encoding":"` + encoding + `"}`)
 	}
-	l := board.ChannelLimits{ReadBytes: 1 << 30, Duration: time.Hour}
+	l := devicekit.ChannelLimits{ReadBytes: 1 << 30, Duration: time.Hour}
 	if write {
 		l.ReadBytes = 0
 		l.WriteBytes = 1 << 30
@@ -56,9 +56,9 @@ func channelEncoding(ctx context.Context, r *board.Registry, t Target, cap board
 }
 
 // BoardVideo consumes the bounded VP8/IVF channel exposed by devices.Desktop.
-func BoardVideo(r *board.Registry, t Target) *Source {
+func BoardVideo(r *devicekit.Registry, t Target) *Source {
 	return &Source{Codec: pion.RTPCodecCapability{MimeType: pion.MimeTypeVP8, ClockRate: 90000}, Open: func(ctx context.Context) (Samples, error) {
-		ch, err := channel(ctx, r, t, board.DisplayVideo, false)
+		ch, err := channel(ctx, r, t, devicekit.DisplayVideo, false)
 		if err != nil {
 			return nil, err
 		}
@@ -80,10 +80,10 @@ func BoardVideo(r *board.Registry, t Target) *Source {
 		return &samples{ch: ch, video: true, duration: duration}, nil
 	}}
 }
-func BoardAudio(r *board.Registry, t Target, cap board.Capability) *Source {
+func BoardAudio(r *devicekit.Registry, t Target, cap devicekit.Capability) *Source {
 	return &Source{Codec: pion.RTPCodecCapability{MimeType: pion.MimeTypePCMU, ClockRate: 8000, Channels: 1}, Open: func(ctx context.Context) (Samples, error) {
-		if cap != board.AudioCapture && cap != board.AudioMicrophone {
-			return nil, board.ErrNotGranted
+		if cap != devicekit.AudioCapture && cap != devicekit.AudioMicrophone {
+			return nil, devicekit.ErrNotGranted
 		}
 		ch, err := channel(ctx, r, t, cap, false)
 		if err != nil {
@@ -92,15 +92,15 @@ func BoardAudio(r *board.Registry, t Target, cap board.Capability) *Source {
 		return &samples{ch: ch, duration: 20 * time.Millisecond}, nil
 	}}
 }
-func BoardPlayback(r *board.Registry, t Target) *Playback {
+func BoardPlayback(r *devicekit.Registry, t Target) *Playback {
 	return &Playback{Codec: pion.RTPCodecCapability{MimeType: pion.MimeTypePCMU, ClockRate: 8000, Channels: 1}, Open: func(ctx context.Context) (io.WriteCloser, error) {
-		return channel(ctx, r, t, board.AudioPlayback, true)
+		return channel(ctx, r, t, devicekit.AudioPlayback, true)
 	}}
 }
-func BoardInput(r *board.Registry, t Target) func(context.Context, board.Action) error {
-	return func(ctx context.Context, a board.Action) error {
+func BoardInput(r *devicekit.Registry, t Target) func(context.Context, devicekit.Action) error {
+	return func(ctx context.Context, a devicekit.Action) error {
 		if !inputCapability(a.Capability) {
-			return board.ErrNotGranted
+			return devicekit.ErrNotGranted
 		}
 		c, err := openTarget(ctx, r, t, a.Capability)
 		if err != nil {
@@ -131,7 +131,7 @@ func (s *samples) ReadSample(ctx context.Context) (media.Sample, error) {
 		}
 		size = binary.LittleEndian.Uint32(h[:4])
 		if size == 0 || size > 8<<20 {
-			return media.Sample{}, board.ErrLimit
+			return media.Sample{}, devicekit.ErrLimit
 		}
 	}
 	data := make([]byte, int(size))
@@ -139,9 +139,9 @@ func (s *samples) ReadSample(ctx context.Context) (media.Sample, error) {
 	return media.Sample{Data: data, Duration: s.duration}, err
 }
 
-func inputCapability(cap board.Capability) bool {
+func inputCapability(cap devicekit.Capability) bool {
 	switch cap {
-	case board.KeyboardPress, board.KeyboardType, board.PointerMove, board.PointerClick, board.PointerScroll, board.PointerDown, board.PointerUp, board.PointerRelease:
+	case devicekit.KeyboardPress, devicekit.KeyboardType, devicekit.PointerMove, devicekit.PointerClick, devicekit.PointerScroll, devicekit.PointerDown, devicekit.PointerUp, devicekit.PointerRelease:
 		return true
 	}
 	return false
@@ -149,12 +149,12 @@ func inputCapability(cap board.Capability) bool {
 
 // BoardInputSession retains one input connection for the peer lifetime. Opening
 // is lazy so view-only peers do not occupy the pointer. No grants are widened.
-func BoardInputSession(r *board.Registry, t Target, caps []board.Capability) func(context.Context, []board.Capability) (func(context.Context, board.Action) error, func() error, error) {
-	return func(life context.Context, granted []board.Capability) (func(context.Context, board.Action) error, func() error, error) {
+func BoardInputSession(r *devicekit.Registry, t Target, caps []devicekit.Capability) func(context.Context, []devicekit.Capability) (func(context.Context, devicekit.Action) error, func() error, error) {
+	return func(life context.Context, granted []devicekit.Capability) (func(context.Context, devicekit.Action) error, func() error, error) {
 		var mu sync.Mutex
-		var connection *board.Connection
+		var connection *devicekit.Connection
 		closed := false
-		allowed := []board.Capability{}
+		allowed := []devicekit.Capability{}
 		for _, cap := range caps {
 			for _, grant := range granted {
 				if cap == grant {
@@ -163,11 +163,11 @@ func BoardInputSession(r *board.Registry, t Target, caps []board.Capability) fun
 				}
 			}
 		}
-		has := map[board.Capability]bool{}
+		has := map[devicekit.Capability]bool{}
 		for _, cap := range allowed {
 			has[cap] = true
 		}
-		if has[board.PointerDown] && (!has[board.PointerMove] || !has[board.PointerUp] || !has[board.PointerRelease]) {
+		if has[devicekit.PointerDown] && (!has[devicekit.PointerMove] || !has[devicekit.PointerUp] || !has[devicekit.PointerRelease]) {
 			return nil, nil, errors.New("held input requires pointer.move, pointer.up and pointer.release grants")
 		}
 		closeInput := func() error {
@@ -179,11 +179,11 @@ func BoardInputSession(r *board.Registry, t Target, caps []board.Capability) fun
 			}
 			return nil
 		}
-		invoke := func(ctx context.Context, a board.Action) error {
+		invoke := func(ctx context.Context, a devicekit.Action) error {
 			mu.Lock()
 			defer mu.Unlock()
 			if closed || life.Err() != nil {
-				return board.ErrClosed
+				return devicekit.ErrClosed
 			}
 			found := false
 			for _, cap := range allowed {
@@ -192,11 +192,11 @@ func BoardInputSession(r *board.Registry, t Target, caps []board.Capability) fun
 				}
 			}
 			if !found {
-				return board.ErrNotGranted
+				return devicekit.ErrNotGranted
 			}
 			if connection == nil {
 				var err error
-				connection, err = r.Open(ctx, board.OpenRequest{ProviderID: t.ProviderID, DeviceID: t.DeviceID, Grant: board.Grant{Capabilities: allowed}})
+				connection, err = r.Open(ctx, devicekit.OpenRequest{ProviderID: t.ProviderID, DeviceID: t.DeviceID, Grant: devicekit.Grant{Capabilities: allowed}})
 				if err != nil {
 					return err
 				}

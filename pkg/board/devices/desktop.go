@@ -1,8 +1,8 @@
 package devices
 
 import (
-	"board"
-	"board/device"
+	"devicekit"
+	"devicekit/device"
 	"board/displayaction"
 	"board/displayprobe"
 	"board/permissionprobe"
@@ -31,7 +31,7 @@ type DesktopOptions struct {
 	LookPath                                      func(string) (string, error)
 }
 
-const RecordingRead = board.RecordingRead
+const RecordingRead = devicekit.RecordingRead
 
 func Desktop(o DesktopOptions) (*device.Provider, error) {
 	if o.ID == "" || o.Scope != "desktop" {
@@ -126,37 +126,37 @@ func Desktop(o DesktopOptions) (*device.Provider, error) {
 		return nil, errors.New("recording duration must be at most one hour")
 	}
 	actions := displayaction.New(displayaction.Config{OS: o.OS, Runner: o.Runner, LookupEnv: func(key string) string { return envMap[key] }})
-	caps := []board.CapabilityDescriptor{device.Descriptor(board.DisplayDescribe, device.EmptySchema, false), device.Descriptor(board.DeviceHealth, device.EmptySchema, false)}
+	caps := []devicekit.CapabilityDescriptor{device.Descriptor(devicekit.DisplayDescribe, device.EmptySchema, false), device.Descriptor(devicekit.DeviceHealth, device.EmptySchema, false)}
 	if o.Capture {
-		caps = append(caps, device.Descriptor(board.DisplayCapture, device.EmptySchema, false))
+		caps = append(caps, device.Descriptor(devicekit.DisplayCapture, device.EmptySchema, false))
 	}
 	if o.Video {
-		caps = append(caps, device.Descriptor(board.DisplayVideo, device.EmptySchema, false))
+		caps = append(caps, device.Descriptor(devicekit.DisplayVideo, device.EmptySchema, false))
 	}
 	if o.Input {
-		caps = append(caps, device.Descriptor(board.KeyboardPress, `{"type":"object","properties":{"key":{"type":"string","maxLength":128}},"required":["key"],"additionalProperties":false}`, false))
+		caps = append(caps, device.Descriptor(devicekit.KeyboardPress, `{"type":"object","properties":{"key":{"type":"string","maxLength":128}},"required":["key"],"additionalProperties":false}`, false))
 		if o.OS != "linux" {
-			caps = append(caps, device.Descriptor(board.KeyboardType, `{"type":"object","properties":{"text":{"type":"string","maxLength":1024}},"required":["text"],"additionalProperties":false}`, false))
+			caps = append(caps, device.Descriptor(devicekit.KeyboardType, `{"type":"object","properties":{"text":{"type":"string","maxLength":1024}},"required":["text"],"additionalProperties":false}`, false))
 		}
 	}
 	if o.Recording {
-		caps = append(caps, device.Descriptor(board.RecordingStart, `{"type":"object","properties":{"format":{"enum":["mp4","webm"]}},"required":["format"],"additionalProperties":false}`, false), device.Descriptor(board.RecordingStop, device.EmptySchema, false), device.Descriptor(RecordingRead, device.EmptySchema, false))
+		caps = append(caps, device.Descriptor(devicekit.RecordingStart, `{"type":"object","properties":{"format":{"enum":["mp4","webm"]}},"required":["format"],"additionalProperties":false}`, false), device.Descriptor(devicekit.RecordingStop, device.EmptySchema, false), device.Descriptor(RecordingRead, device.EmptySchema, false))
 	}
 	if o.Permissions {
-		caps = append(caps, device.Descriptor(board.PermissionOpen, `{"type":"object","properties":{"permission":{"type":"string"}},"required":["permission"],"additionalProperties":false}`, false))
+		caps = append(caps, device.Descriptor(devicekit.PermissionOpen, `{"type":"object","properties":{"permission":{"type":"string"}},"required":["permission"],"additionalProperties":false}`, false))
 	}
-	return &device.Provider{ProviderID: o.ID, Device: board.Device{ID: "desktop", Kind: "display", Name: o.Name, Capabilities: caps}, Bind: func(life context.Context, g board.Grant) (device.Binding, error) {
-		state := &recordingState{events: make(chan board.Event, 16)}
-		ops := map[board.Capability]device.Operation{}
-		describe := func(_ context.Context, a board.Action) (board.Result, error) {
+	return &device.Provider{ProviderID: o.ID, Device: devicekit.Device{ID: "desktop", Kind: "display", Name: o.Name, Capabilities: caps}, Bind: func(life context.Context, g devicekit.Grant) (device.Binding, error) {
+		state := &recordingState{events: make(chan devicekit.Event, 16)}
+		ops := map[devicekit.Capability]device.Operation{}
+		describe := func(_ context.Context, a devicekit.Action) (devicekit.Result, error) {
 			if err := device.Empty(a.Input); err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			return device.Result(displayprobe.New(displayprobe.Config{OS: o.OS, LookupEnv: func(key string) (string, bool) { v, ok := envMap[key]; return v, ok }, LookPath: o.LookPath}).Observe())
 		}
-		ops[board.DisplayDescribe] = device.Operation{Invoke: describe}
-		ops[board.DeviceHealth] = device.Operation{Invoke: describe}
-		ops[board.DisplayCapture] = device.Operation{Stream: func(ctx context.Context, a board.Action) (board.Content, error) {
+		ops[devicekit.DisplayDescribe] = device.Operation{Invoke: describe}
+		ops[devicekit.DeviceHealth] = device.Operation{Invoke: describe}
+		ops[devicekit.DisplayCapture] = device.Operation{Stream: func(ctx context.Context, a devicekit.Action) (devicekit.Content, error) {
 			if err := device.Empty(a.Input); err != nil {
 				return nil, err
 			}
@@ -175,16 +175,16 @@ func Desktop(o DesktopOptions) (*device.Provider, error) {
 				return nil, err
 			}
 			if len(b) > 16<<20 {
-				return nil, board.ErrLimit
+				return nil, devicekit.ErrLimit
 			}
 			return device.Bytes(b), nil
 		}}
-		ops[board.DisplayVideo] = device.Operation{Channel: func(ctx context.Context, a board.Action, l board.ChannelLimits) (io.ReadWriteCloser, error) {
+		ops[devicekit.DisplayVideo] = device.Operation{Channel: func(ctx context.Context, a devicekit.Action, l devicekit.ChannelLimits) (io.ReadWriteCloser, error) {
 			if err := device.Empty(a.Input); err != nil {
 				return nil, err
 			}
 			if l.WriteBytes != 0 {
-				return nil, board.ErrNotGranted
+				return nil, devicekit.ErrNotGranted
 			}
 			args, err := actions.RecordingArgs("-", "webm")
 			if err != nil {
@@ -199,90 +199,90 @@ func Desktop(o DesktopOptions) (*device.Provider, error) {
 			args = append(args, "-deadline", "realtime", "-cpu-used", "8", "-f", "ivf", "pipe:1")
 			return processStream(ctx, env, true, "ffmpeg", args...)
 		}}
-		for _, cap := range []board.Capability{board.KeyboardPress, board.KeyboardType} {
+		for _, cap := range []devicekit.Capability{devicekit.KeyboardPress, devicekit.KeyboardType} {
 			cap := cap
-			ops[cap] = device.Operation{Invoke: func(ctx context.Context, a board.Action) (board.Result, error) {
+			ops[cap] = device.Operation{Invoke: func(ctx context.Context, a devicekit.Action) (devicekit.Result, error) {
 				var key, text string
-				if cap == board.KeyboardPress {
+				if cap == devicekit.KeyboardPress {
 					var in struct {
 						Key string `json:"key"`
 					}
 					if err := device.Decode(a.Input, &in); err != nil {
-						return board.Result{}, err
+						return devicekit.Result{}, err
 					}
 					key = in.Key
 					if key == "" || strings.HasPrefix(key, "-") || len(key) > 128 || strings.ContainsAny(key, "\x00\r\n") {
-						return board.Result{}, errors.New("invalid key")
+						return devicekit.Result{}, errors.New("invalid key")
 					}
 				} else {
 					var in struct {
 						Text string `json:"text"`
 					}
 					if err := device.Decode(a.Input, &in); err != nil {
-						return board.Result{}, err
+						return devicekit.Result{}, err
 					}
 					text = in.Text
 					if text == "" || !utf8.ValidString(text) || utf8.RuneCountInString(text) > 1024 {
-						return board.Result{}, errors.New("invalid text")
+						return devicekit.Result{}, errors.New("invalid text")
 					}
 				}
 				kind := "key"
-				if cap == board.KeyboardType {
+				if cap == devicekit.KeyboardType {
 					kind = "text"
 				}
 				if err := actions.Input(ctx, displayaction.Input{Kind: kind, Key: key, Text: text}); err != nil {
-					return board.Result{}, err
+					return devicekit.Result{}, err
 				}
 				return device.Result(map[string]bool{"submitted": true})
 			}}
 		}
-		ops[board.PermissionOpen] = device.Operation{Invoke: func(ctx context.Context, a board.Action) (board.Result, error) {
+		ops[devicekit.PermissionOpen] = device.Operation{Invoke: func(ctx context.Context, a devicekit.Action) (devicekit.Result, error) {
 			var in struct {
 				Permission string `json:"permission"`
 			}
 			if err := device.Decode(a.Input, &in); err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			result, err := permissionprobe.New(permissionprobe.Config{OS: o.OS, Runner: o.Runner}).Open(ctx, in.Permission)
 			if err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			return device.Result(result)
 		}}
-		ops[board.RecordingStart] = device.Operation{Invoke: func(_ context.Context, a board.Action) (board.Result, error) {
+		ops[devicekit.RecordingStart] = device.Operation{Invoke: func(_ context.Context, a devicekit.Action) (devicekit.Result, error) {
 			var in struct {
 				Format string `json:"format"`
 			}
 			if err := device.Decode(a.Input, &in); err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			if in.Format != "mp4" && in.Format != "webm" {
-				return board.Result{}, errors.New("unsupported format")
+				return devicekit.Result{}, errors.New("unsupported format")
 			}
 			state.mu.Lock()
 			defer state.mu.Unlock()
 			if state.closed || life.Err() != nil {
-				return board.Result{}, board.ErrClosed
+				return devicekit.Result{}, devicekit.ErrClosed
 			}
 			if state.path != "" {
-				return board.Result{}, errors.New("open a new session for another recording")
+				return devicekit.Result{}, errors.New("open a new session for another recording")
 			}
 			if state.dir == "" {
 				var err error
 				state.dir, err = os.MkdirTemp(o.RecordingDirectory, "board-recording-")
 				if err != nil {
-					return board.Result{}, err
+					return devicekit.Result{}, err
 				}
 			}
 			state.path = filepath.Join(state.dir, "capture."+in.Format)
 			args, err := actions.RecordingArgs(state.path, in.Format)
 			if err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			args = append(args[:len(args)-1], "-fs", "134217728", state.path)
 			p, err := o.Runner.Start("ffmpeg", args...)
 			if err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			watched := watchCommand(p)
 			state.process = watched
@@ -305,16 +305,16 @@ func Desktop(o DesktopOptions) (*device.Provider, error) {
 			state.emit("recording.started")
 			return device.Result(map[string]string{"recordingId": "current", "status": "recording"})
 		}}
-		ops[board.RecordingStop] = device.Operation{Invoke: func(_ context.Context, a board.Action) (board.Result, error) {
+		ops[devicekit.RecordingStop] = device.Operation{Invoke: func(_ context.Context, a devicekit.Action) (devicekit.Result, error) {
 			if err := device.Empty(a.Input); err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			if err := state.stop(); err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			return device.Result(map[string]string{"recordingId": "current", "status": "stopped"})
 		}}
-		ops[RecordingRead] = device.Operation{Stream: func(_ context.Context, a board.Action) (board.Content, error) {
+		ops[RecordingRead] = device.Operation{Stream: func(_ context.Context, a devicekit.Action) (devicekit.Content, error) {
 			if err := device.Empty(a.Input); err != nil {
 				return nil, err
 			}
@@ -349,12 +349,12 @@ type recordingState struct {
 	timer     *time.Timer
 	path, dir string
 	closed    bool
-	events    chan board.Event
+	events    chan devicekit.Event
 }
 
 func (s *recordingState) emit(kind string) {
 	select {
-	case s.events <- board.Event{Type: kind}:
+	case s.events <- devicekit.Event{Type: kind}:
 	default:
 	}
 }
@@ -398,7 +398,7 @@ func (f *fileContent) Read(p []byte) (int, error) {
 }
 func (f *fileContent) Size() int64   { return f.size }
 func (*fileContent) Truncated() bool { return false }
-func openContent(path string, limit int64) (board.Content, error) {
+func openContent(path string, limit int64) (devicekit.Content, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -410,7 +410,7 @@ func openContent(path string, limit int64) (board.Content, error) {
 	}
 	if !st.Mode().IsRegular() || st.Size() > limit {
 		_ = f.Close()
-		return nil, board.ErrLimit
+		return nil, devicekit.ErrLimit
 	}
 	return &fileContent{File: f, reader: io.LimitReader(f, st.Size()), size: st.Size()}, nil
 }

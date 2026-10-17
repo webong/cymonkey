@@ -1,7 +1,7 @@
 package devices
 
 import (
-	"board"
+	"devicekit"
 	"board/displayaction"
 	"bytes"
 	"context"
@@ -46,7 +46,7 @@ type boundedBuffer struct {
 
 func (b *boundedBuffer) Write(p []byte) (int, error) {
 	if len(p) > b.remaining {
-		return 0, board.ErrLimit
+		return 0, devicekit.ErrLimit
 	}
 	b.remaining -= len(p)
 	return b.Buffer.Write(p)
@@ -90,13 +90,13 @@ func processStream(ctx context.Context, env []string, read bool, name string, ar
 }
 func (p *processChannel) Read(b []byte) (int, error) {
 	if p.reader == nil {
-		return 0, board.ErrNotGranted
+		return 0, devicekit.ErrNotGranted
 	}
 	return p.reader.Read(b)
 }
 func (p *processChannel) Write(b []byte) (int, error) {
 	if p.writer == nil {
-		return 0, board.ErrNotGranted
+		return 0, devicekit.ErrNotGranted
 	}
 	return p.writer.Write(b)
 }

@@ -3,34 +3,34 @@
 package devicebridge
 
 import (
-	"board"
+	"devicekit"
 	"cymonkey/src/contracts"
 )
 
-func ToLibraryOpen(request contracts.DeviceOpenRequest) board.OpenRequest {
-	capabilities := make([]board.Capability, len(request.Grant.Capabilities))
+func ToLibraryOpen(request contracts.DeviceOpenRequest) devicekit.OpenRequest {
+	capabilities := make([]devicekit.Capability, len(request.Grant.Capabilities))
 	for index, capability := range request.Grant.Capabilities {
-		capabilities[index] = board.Capability(capability)
+		capabilities[index] = devicekit.Capability(capability)
 	}
-	return board.OpenRequest{
+	return devicekit.OpenRequest{
 		ProviderID: request.AdapterID,
 		DeviceID:   request.DeviceID,
-		Grant: board.Grant{
+		Grant: devicekit.Grant{
 			Capabilities: capabilities,
 			ResourceIDs:  append([]string(nil), request.Grant.ResourceIDs...),
 		},
 	}
 }
 
-func ToLibraryAction(action contracts.DeviceAction) board.Action {
-	return board.Action{
-		Capability: board.Capability(action.Capability),
+func ToLibraryAction(action contracts.DeviceAction) devicekit.Action {
+	return devicekit.Action{
+		Capability: devicekit.Capability(action.Capability),
 		ResourceID: action.ResourceID,
 		Input:      action.Input,
 	}
 }
 
-func FromLibraryDevices(devices []board.Device) contracts.DeviceList {
+func FromLibraryDevices(devices []devicekit.Device) contracts.DeviceList {
 	result := contracts.DeviceList{APIVersion: contracts.DeviceAPIVersion, Devices: make([]contracts.Device, len(devices))}
 	for index, device := range devices {
 		capabilities := make([]contracts.DeviceCapability, len(device.Capabilities))
@@ -48,11 +48,11 @@ func FromLibraryDevices(devices []board.Device) contracts.DeviceList {
 	return result
 }
 
-func FromLibraryResult(result board.Result) contracts.DeviceResult {
+func FromLibraryResult(result devicekit.Result) contracts.DeviceResult {
 	return contracts.DeviceResult{APIVersion: contracts.DeviceAPIVersion, Output: result.Output}
 }
 
-func FromLibraryEvents(batch board.EventBatch) contracts.DeviceEventBatch {
+func FromLibraryEvents(batch devicekit.EventBatch) contracts.DeviceEventBatch {
 	result := contracts.DeviceEventBatch{APIVersion: contracts.DeviceAPIVersion, Cursor: batch.Cursor, Events: make([]contracts.DeviceEvent, len(batch.Events))}
 	for index, event := range batch.Events {
 		result.Events[index] = contracts.DeviceEvent{Cursor: event.Cursor, Type: event.Type, Capability: string(event.Capability), At: event.At}

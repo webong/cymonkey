@@ -1,9 +1,9 @@
 package devices
 
 import (
-	"board"
+	"devicekit"
 	"board/audio"
-	"board/device"
+	"devicekit/device"
 	"context"
 	"encoding/json"
 	"errors"
@@ -51,29 +51,29 @@ func Audio(o AudioOptions) (*device.Provider, error) {
 		}
 	}
 	server := "--server=unix:" + o.Socket
-	caps := []board.CapabilityDescriptor{device.Descriptor(board.AudioDescribe, device.EmptySchema, false), device.Descriptor(board.DeviceHealth, device.EmptySchema, false)}
+	caps := []devicekit.CapabilityDescriptor{device.Descriptor(devicekit.AudioDescribe, device.EmptySchema, false), device.Descriptor(devicekit.DeviceHealth, device.EmptySchema, false)}
 	schema := `{"type":"object","properties":{"encoding":{"enum":["pcm","pcmu"]},"sampleRate":{"type":"integer","minimum":8000,"maximum":192000},"channels":{"type":"integer","minimum":1,"maximum":8}},"additionalProperties":false}`
-	for cap, enabled := range map[board.Capability]bool{board.AudioCapture: o.SystemCapture, board.AudioMicrophone: o.Microphone, board.AudioPlayback: o.Playback} {
+	for cap, enabled := range map[devicekit.Capability]bool{devicekit.AudioCapture: o.SystemCapture, devicekit.AudioMicrophone: o.Microphone, devicekit.AudioPlayback: o.Playback} {
 		if enabled {
 			caps = append(caps, device.Descriptor(cap, schema, false))
 		}
 	}
 	if o.Configure {
-		caps = append(caps, device.Descriptor(board.AudioConfigure, `{"type":"object","properties":{"direction":{"enum":["input","output"]},"level":{"type":"integer","minimum":0,"maximum":100},"muted":{"type":"boolean"}},"required":["direction","level","muted"],"additionalProperties":false}`, false))
+		caps = append(caps, device.Descriptor(devicekit.AudioConfigure, `{"type":"object","properties":{"direction":{"enum":["input","output"]},"level":{"type":"integer","minimum":0,"maximum":100},"muted":{"type":"boolean"}},"required":["direction","level","muted"],"additionalProperties":false}`, false))
 	}
-	return &device.Provider{ProviderID: o.ID, Device: board.Device{ID: "audio", Kind: "audio", Name: o.Name, Capabilities: caps}, Bind: func(context.Context, board.Grant) (device.Binding, error) {
-		ops := map[board.Capability]device.Operation{}
-		inspect := func(ctx context.Context, a board.Action) (board.Result, error) {
+	return &device.Provider{ProviderID: o.ID, Device: devicekit.Device{ID: "audio", Kind: "audio", Name: o.Name, Capabilities: caps}, Bind: func(context.Context, devicekit.Grant) (device.Binding, error) {
+		ops := map[devicekit.Capability]device.Operation{}
+		inspect := func(ctx context.Context, a devicekit.Action) (devicekit.Result, error) {
 			if err := device.Empty(a.Input); err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			sinks, err := o.Runner.Run(ctx, "pactl", server, "list", "short", "sinks")
 			if err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			sources, err := o.Runner.Run(ctx, "pactl", server, "list", "short", "sources")
 			if err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			result := audio.ParsePulseDevices(string(sinks), string(sources), audio.Request{Playback: o.Playback, Microphone: o.Microphone, SystemCapture: o.SystemCapture, OutputDevice: o.OutputDevice, InputDevice: o.InputDevice})
 			selected := result.Devices[:0]
@@ -85,11 +85,11 @@ func Audio(o AudioOptions) (*device.Provider, error) {
 			result.Devices = selected
 			return device.Result(result)
 		}
-		ops[board.AudioDescribe] = device.Operation{Invoke: inspect}
-		ops[board.DeviceHealth] = device.Operation{Invoke: inspect}
-		for _, cap := range []board.Capability{board.AudioCapture, board.AudioMicrophone, board.AudioPlayback} {
+		ops[devicekit.AudioDescribe] = device.Operation{Invoke: inspect}
+		ops[devicekit.DeviceHealth] = device.Operation{Invoke: inspect}
+		for _, cap := range []devicekit.Capability{devicekit.AudioCapture, devicekit.AudioMicrophone, devicekit.AudioPlayback} {
 			cap := cap
-			ops[cap] = device.Operation{Channel: func(ctx context.Context, a board.Action, l board.ChannelLimits) (io.ReadWriteCloser, error) {
+			ops[cap] = device.Operation{Channel: func(ctx context.Context, a devicekit.Action, l devicekit.ChannelLimits) (io.ReadWriteCloser, error) {
 				var in struct {
 					Encoding   string `json:"encoding"`
 					SampleRate *int   `json:"sampleRate"`
@@ -118,12 +118,12 @@ func Audio(o AudioOptions) (*device.Provider, error) {
 					}
 					channelCount = *in.Channels
 				}
-				read := cap != board.AudioPlayback
+				read := cap != devicekit.AudioPlayback
 				if read && l.WriteBytes != 0 || !read && l.ReadBytes != 0 {
-					return nil, board.ErrNotGranted
+					return nil, devicekit.ErrNotGranted
 				}
 				direction, target := "--record", o.OutputDevice+".monitor"
-				if cap == board.AudioMicrophone {
+				if cap == devicekit.AudioMicrophone {
 					target = o.InputDevice
 				}
 				if !read {
@@ -132,34 +132,34 @@ func Audio(o AudioOptions) (*device.Provider, error) {
 				return processStream(ctx, nil, read, "pacat", server, direction, "--raw", "--device="+target, "--format="+format, "--rate="+strconv.Itoa(sampleRate), "--channels="+strconv.Itoa(channelCount))
 			}}
 		}
-		ops[board.AudioConfigure] = device.Operation{Invoke: func(ctx context.Context, a board.Action) (board.Result, error) {
+		ops[devicekit.AudioConfigure] = device.Operation{Invoke: func(ctx context.Context, a devicekit.Action) (devicekit.Result, error) {
 			var in struct {
 				Direction string `json:"direction"`
 				Level     *int   `json:"level"`
 				Muted     *bool  `json:"muted"`
 			}
 			if err := device.Decode(a.Input, &in); err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			if in.Level == nil || in.Muted == nil || *in.Level < 0 || *in.Level > 100 {
-				return board.Result{}, errors.New("audio level and muted are required")
+				return devicekit.Result{}, errors.New("audio level and muted are required")
 			}
 			kind, target := "sink", o.OutputDevice
 			if in.Direction == "input" {
 				kind, target = "source", o.InputDevice
 			} else if in.Direction != "output" {
-				return board.Result{}, errors.New("invalid audio direction")
+				return devicekit.Result{}, errors.New("invalid audio direction")
 			}
 			if _, err := o.Runner.Run(ctx, "pactl", server, "set-"+kind+"-volume", target, strconv.Itoa(*in.Level)+"%"); err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			if _, err := o.Runner.Run(ctx, "pactl", server, "set-"+kind+"-mute", target, strconv.FormatBool(*in.Muted)); err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			return device.Result(map[string]bool{"applied": true})
 		}}
 		return device.Binding{Operations: ops, Health: func(ctx context.Context) (bool, error) {
-			v, err := inspect(ctx, board.Action{})
+			v, err := inspect(ctx, devicekit.Action{})
 			if err != nil {
 				return false, err
 			}

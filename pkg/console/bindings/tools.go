@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"board"
+	"devicekit"
 	"console"
 	"jangolova/contract"
 	"jangolova/sdk"
@@ -33,12 +33,12 @@ func Display(definition console.Definition, caller sdk.Caller, action contract.A
 
 // Device binds a fixed capability and resource to an already granted Board
 // connection. Tool arguments cannot change the capability or resource binding.
-func Device(definition console.Definition, connection *board.Connection, capability board.Capability, resourceID string) (console.Tool, error) {
+func Device(definition console.Definition, connection *devicekit.Connection, capability devicekit.Capability, resourceID string) (console.Tool, error) {
 	if connection == nil || capability == "" {
 		return console.Tool{}, errors.New("device connection and capability are required")
 	}
 	return console.NewTool(definition, func(ctx context.Context, input json.RawMessage) (json.RawMessage, error) {
-		result, err := connection.Invoke(ctx, board.Action{Capability: capability, ResourceID: resourceID, Input: input})
+		result, err := connection.Invoke(ctx, devicekit.Action{Capability: capability, ResourceID: resourceID, Input: input})
 		if err != nil {
 			return nil, err
 		}

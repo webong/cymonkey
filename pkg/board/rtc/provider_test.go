@@ -1,7 +1,7 @@
 package rtc
 
 import (
-	"board"
+	"devicekit"
 	"bytes"
 	"context"
 	"encoding/base64"
@@ -66,7 +66,7 @@ func TestRealPeersMediaInputAndRestart(t *testing.T) {
 func runRealPeer(t *testing.T, inputGranted bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	input := make(chan board.Action, 4)
+	input := make(chan devicekit.Action, 4)
 	played := make(chan []byte, 8)
 	received := make(chan struct{}, 16)
 	videoReceived := make(chan struct{}, 16)
@@ -74,19 +74,19 @@ func runRealPeer(t *testing.T, inputGranted bool) {
 	codec := pion.RTPCodecCapability{MimeType: pion.MimeTypePCMU, ClockRate: 8000, Channels: 1}
 	p, err := New(Options{ID: "rtc", API: localAPI(), TTL: time.Minute, Video: &Source{Codec: pion.RTPCodecCapability{MimeType: pion.MimeTypeVP8, ClockRate: 90000}, Open: func(context.Context) (Samples, error) {
 		return &testSamples{closed: make(chan struct{}), data: fixture[44:]}, nil
-	}}, Audio: &Source{Codec: codec, Open: func(context.Context) (Samples, error) { return &testSamples{closed: make(chan struct{})}, nil }}, Playback: &Playback{Codec: codec, Open: func(context.Context) (io.WriteCloser, error) { return testPlayback{played}, nil }}, InputCapabilities: []board.Capability{board.KeyboardPress}, Input: func(_ context.Context, a board.Action) error { input <- a; return nil }})
+	}}, Audio: &Source{Codec: codec, Open: func(context.Context) (Samples, error) { return &testSamples{closed: make(chan struct{})}, nil }}, Playback: &Playback{Codec: codec, Open: func(context.Context) (io.WriteCloser, error) { return testPlayback{played}, nil }}, InputCapabilities: []devicekit.Capability{devicekit.KeyboardPress}, Input: func(_ context.Context, a devicekit.Action) error { input <- a; return nil }})
 	if err != nil {
 		t.Fatal(err)
 	}
-	registry, err := board.NewRegistry(p)
+	registry, err := devicekit.NewRegistry(p)
 	if err != nil {
 		t.Fatal(err)
 	}
-	caps := []board.Capability{board.WebRTCSignal, board.WebRTCPoll, board.AudioCapture, board.DisplayVideo}
+	caps := []devicekit.Capability{devicekit.WebRTCSignal, devicekit.WebRTCPoll, devicekit.AudioCapture, devicekit.DisplayVideo}
 	if inputGranted {
-		caps = append(caps, board.KeyboardPress, board.AudioPlayback)
+		caps = append(caps, devicekit.KeyboardPress, devicekit.AudioPlayback)
 	}
-	c, err := registry.Open(ctx, board.OpenRequest{ProviderID: "rtc", DeviceID: "peer", Grant: board.Grant{Capabilities: caps}})
+	c, err := registry.Open(ctx, devicekit.OpenRequest{ProviderID: "rtc", DeviceID: "peer", Grant: devicekit.Grant{Capabilities: caps}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +137,7 @@ func runRealPeer(t *testing.T, inputGranted bool) {
 	dc.OnOpen(func() { close(opened) })
 	invoke := func(s Signal) {
 		b, _ := json.Marshal(s)
-		if _, err := c.Invoke(ctx, board.Action{Capability: board.WebRTCSignal, Input: b}); err != nil {
+		if _, err := c.Invoke(ctx, devicekit.Action{Capability: devicekit.WebRTCSignal, Input: b}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -159,7 +159,7 @@ func runRealPeer(t *testing.T, inputGranted bool) {
 		answered := false
 		var candidates []pion.ICECandidateInit
 		for {
-			result, err := c.Invoke(ctx, board.Action{Capability: board.WebRTCPoll})
+			result, err := c.Invoke(ctx, devicekit.Action{Capability: devicekit.WebRTCPoll})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -231,7 +231,7 @@ func runRealPeer(t *testing.T, inputGranted bool) {
 			t.Fatal("inbound audio not delivered")
 		}
 	} else {
-		if _, err = c.Invoke(ctx, board.Action{Capability: board.AudioPlayback}); !errors.Is(err, board.ErrNotGranted) {
+		if _, err = c.Invoke(ctx, devicekit.Action{Capability: devicekit.AudioPlayback}); !errors.Is(err, devicekit.ErrNotGranted) {
 			t.Fatal("view grant allowed playback")
 		}
 		select {
@@ -256,7 +256,7 @@ func runRealPeer(t *testing.T, inputGranted bool) {
 		case <-time.After(150 * time.Millisecond):
 		}
 	}
-	if _, err = c.Invoke(ctx, board.Action{Capability: board.KeyboardType, Input: []byte(`{"text":"denied"}`)}); !errors.Is(err, board.ErrNotGranted) {
+	if _, err = c.Invoke(ctx, devicekit.Action{Capability: devicekit.KeyboardType, Input: []byte(`{"text":"denied"}`)}); !errors.Is(err, devicekit.ErrNotGranted) {
 		t.Fatalf("ungranted text input: %v", err)
 	}
 	negotiate(true)
@@ -269,21 +269,21 @@ func runRealPeer(t *testing.T, inputGranted bool) {
 		t.Fatal("media did not survive ICE restart")
 	}
 	invoke(Signal{Type: "bye"})
-	if _, err = c.Invoke(ctx, board.Action{Capability: board.WebRTCSignal, Input: []byte(`{"type":"heartbeat"}`)}); !errors.Is(err, board.ErrClosed) {
+	if _, err = c.Invoke(ctx, devicekit.Action{Capability: devicekit.WebRTCSignal, Input: []byte(`{"type":"heartbeat"}`)}); !errors.Is(err, devicekit.ErrClosed) {
 		t.Fatalf("peer remained open: %v", err)
 	}
 }
 func TestPeerExpiryAndQueueBounds(t *testing.T) {
-	p, err := openPeer(context.Background(), Options{API: localAPI(), TTL: 20 * time.Millisecond}, map[board.Capability]bool{})
+	p, err := openPeer(context.Background(), Options{API: localAPI(), TTL: 20 * time.Millisecond}, map[devicekit.Capability]bool{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer p.close()
 	<-p.ctx.Done()
-	if err := p.signal(context.Background(), Signal{Type: "heartbeat"}); !errors.Is(err, board.ErrClosed) {
+	if err := p.signal(context.Background(), Signal{Type: "heartbeat"}); !errors.Is(err, devicekit.ErrClosed) {
 		t.Fatal(err)
 	}
-	q, err := openPeer(context.Background(), Options{API: localAPI(), TTL: time.Minute}, map[board.Capability]bool{})
+	q, err := openPeer(context.Background(), Options{API: localAPI(), TTL: time.Minute}, map[devicekit.Capability]bool{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -308,7 +308,7 @@ func TestNeutralEnvelopeAndIVFBounds(t *testing.T) {
 		t.Fatal("invalid type accepted")
 	}
 	m.Type = Offer
-	if _, err := (Forwarder{}).Forward(context.Background(), m); !errors.Is(err, board.ErrNotGranted) {
+	if _, err := (Forwarder{}).Forward(context.Background(), m); !errors.Is(err, devicekit.ErrNotGranted) {
 		t.Fatal(err)
 	}
 	fixture, _ := base64.StdEncoding.DecodeString("REtJRgAAIABWUDgwEAAQAB4AAAABAAAAAQAAAAAAAAA4AAAAAAAAAAAAAACwAgCdASoQABAAAEcIhYWIhYSIAgICdaoD+AIM/SgA/v9NEv/8WFfxYV/FhX/xYV/8/M7txfzmAA==")
@@ -319,7 +319,7 @@ func TestNeutralEnvelopeAndIVFBounds(t *testing.T) {
 	}
 	invalid := append([]byte{255, 255, 255, 255}, make([]byte, 8)...)
 	reader.ch = sampleChannel{bytes.NewReader(invalid)}
-	if _, err = reader.ReadSample(context.Background()); !errors.Is(err, board.ErrLimit) {
+	if _, err = reader.ReadSample(context.Background()); !errors.Is(err, devicekit.ErrLimit) {
 		t.Fatal(err)
 	}
 }
@@ -327,4 +327,4 @@ func TestNeutralEnvelopeAndIVFBounds(t *testing.T) {
 type sampleChannel struct{ *bytes.Reader }
 
 func (sampleChannel) Close() error              { return nil }
-func (sampleChannel) Write([]byte) (int, error) { return 0, board.ErrNotGranted }
+func (sampleChannel) Write([]byte) (int, error) { return 0, devicekit.ErrNotGranted }

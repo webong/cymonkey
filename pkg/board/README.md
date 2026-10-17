@@ -1,10 +1,11 @@
 # Board
 
-Board is a standalone device access and input/output library used by Cymonkey,
-covering physical and virtual devices in local and remote environments. It
-provides a small contract for discovering devices, opening a host-approved
-session, and invoking bounded capabilities. A Board provider binds that
-contract to a particular operating system, device class, or transport.
+Board holds the device implementations used by Cymonkey, covering physical and
+virtual devices in local and remote environments. The contract for discovering
+devices, opening a host-approved session and invoking bounded capabilities, with
+its grant gate, lives in the device kit (`pkg/devicekit`). A Board provider
+binds that contract to a particular operating system, device class, or
+transport.
 
 Board ships a read-only mounted-drive provider and a macOS keyboard provider.
 The host registers each provider and authorizes each attachment. Board does not
@@ -59,7 +60,7 @@ capture/playback lifetime. No model connection opens a device automatically.
 3. The macOS keyboard provider can separately receive a grant for
    `keyboard.press` or `keyboard.type` for an explicitly selected process.
 4. The host coordinates file selection and app interaction through
-   `board/host` or its own Board registry.
+   `devicekit/host` or its own Board registry.
 
 The first capability names are `keyboard.press`, `keyboard.type`, `drive.list`,
 and `drive.read`. Providers may define more names for other devices. A grant
@@ -179,7 +180,7 @@ registry, err := board.NewRegistry(keyboard)
 ```
 
 Board does not ship a CLI. Cymonkey exposes these operations through
-`cymy device keyboard-press` and `cymy device keyboard-type`. `board/host`
+`cymy device keyboard-press` and `cymy device keyboard-type`. `devicekit/host`
 also accepts caller-owned providers with `host.NewRegistered`, and its
 `Attach` method requires an explicit `Authorizer` for every grant.
 

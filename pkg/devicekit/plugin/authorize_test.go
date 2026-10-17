@@ -1,4 +1,4 @@
-package boardplugin
+package deviceplugin
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"errors"
 	"testing"
 
-	"board"
+	"devicekit"
 	extplugin "github.com/webong/ext/pkg/plugin-go/contract"
 )
 
@@ -28,9 +28,9 @@ func TestListProcessAdmitsOnlyList(t *testing.T) {
 }
 
 func TestSessionProcessOpensOnceBeforeAnythingElse(t *testing.T) {
-	authorize := sessionPolicy(board.Grant{Capabilities: []board.Capability{board.PointerMove}})
+	authorize := sessionPolicy(devicekit.Grant{Capabilities: []devicekit.Capability{devicekit.PointerMove}})
 	ctx := context.Background()
-	if err := authorize(ctx, request("invoke", board.Action{Capability: board.PointerMove})); err == nil {
+	if err := authorize(ctx, request("invoke", devicekit.Action{Capability: devicekit.PointerMove})); err == nil {
 		t.Fatal("invoke was admitted before open")
 	}
 	if err := authorize(ctx, request("list", nil)); err == nil {
@@ -42,7 +42,7 @@ func TestSessionProcessOpensOnceBeforeAnythingElse(t *testing.T) {
 	if err := authorize(ctx, request("open", nil)); err == nil {
 		t.Fatal("open was admitted twice")
 	}
-	if err := authorize(ctx, request("invoke", board.Action{Capability: board.PointerMove})); err != nil {
+	if err := authorize(ctx, request("invoke", devicekit.Action{Capability: devicekit.PointerMove})); err != nil {
 		t.Fatalf("a granted action was refused: %v", err)
 	}
 	if err := authorize(ctx, request("close", nil)); err != nil {
@@ -51,28 +51,28 @@ func TestSessionProcessOpensOnceBeforeAnythingElse(t *testing.T) {
 }
 
 func TestSessionProcessEnforcesTheGrant(t *testing.T) {
-	authorize := sessionPolicy(board.Grant{
-		Capabilities: []board.Capability{board.DriveRead},
+	authorize := sessionPolicy(devicekit.Grant{
+		Capabilities: []devicekit.Capability{devicekit.DriveRead},
 		ResourceIDs:  []string{"root"},
 	})
 	ctx := context.Background()
 	if err := authorize(ctx, request("open", nil)); err != nil {
 		t.Fatal(err)
 	}
-	if err := authorize(ctx, request("stream.open", board.Action{Capability: board.DriveRead, ResourceID: "root"})); err != nil {
+	if err := authorize(ctx, request("stream.open", devicekit.Action{Capability: devicekit.DriveRead, ResourceID: "root"})); err != nil {
 		t.Fatalf("a granted stream was refused: %v", err)
 	}
-	for name, action := range map[string]board.Action{
-		"capability not granted": {Capability: board.PointerClick},
-		"resource not granted":   {Capability: board.DriveRead, ResourceID: "other"},
+	for name, action := range map[string]devicekit.Action{
+		"capability not granted": {Capability: devicekit.PointerClick},
+		"resource not granted":   {Capability: devicekit.DriveRead, ResourceID: "other"},
 	} {
 		err := authorize(ctx, request("stream.open", action))
-		if !errors.Is(err, board.ErrNotGranted) {
+		if !errors.Is(err, devicekit.ErrNotGranted) {
 			t.Fatalf("%s: error = %v", name, err)
 		}
 	}
 	bad := extplugin.Request{Operation: "invoke", Payload: json.RawMessage(`"not an action"`)}
-	if err := authorize(ctx, bad); !errors.Is(err, board.ErrNotGranted) {
+	if err := authorize(ctx, bad); !errors.Is(err, devicekit.ErrNotGranted) {
 		t.Fatalf("unreadable action error = %v", err)
 	}
 }

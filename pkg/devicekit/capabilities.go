@@ -1,4 +1,4 @@
-package board
+package devicekit
 
 // Standard device operations. Providers advertise only operations their selected
 // target implements; the host chooses the subset granted to each session.

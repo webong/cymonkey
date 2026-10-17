@@ -1,7 +1,7 @@
 package main
 
 import (
-	"board"
+	"devicekit"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
@@ -20,7 +20,7 @@ import (
 )
 
 type managedDeviceSession struct {
-	connection   *board.Connection
+	connection   *devicekit.Connection
 	expires      time.Time
 	timer        *time.Timer
 	once         sync.Once
@@ -245,7 +245,7 @@ func (server *operatorServer) deviceChannel(w http.ResponseWriter, r *http.Reque
 	if req.DurationSeconds < 1 || req.DurationSeconds > 3600 {
 		return
 	}
-	limits := board.ChannelLimits{ReadBytes: req.ReadBytes, WriteBytes: req.WriteBytes, Duration: time.Duration(req.DurationSeconds) * time.Second}
+	limits := devicekit.ChannelLimits{ReadBytes: req.ReadBytes, WriteBytes: req.WriteBytes, Duration: time.Duration(req.DurationSeconds) * time.Second}
 	ctx, cancel := context.WithTimeout(r.Context(), limits.Duration)
 	defer cancel()
 	stop := context.AfterFunc(ctx, func() { _ = ws.Close() })

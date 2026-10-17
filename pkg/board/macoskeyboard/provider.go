@@ -15,7 +15,7 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
-	"board"
+	"devicekit"
 )
 
 var (
@@ -54,7 +54,7 @@ type Provider struct {
 	identity processIdentity
 }
 
-var _ board.Provider = (*Provider)(nil)
+var _ devicekit.Provider = (*Provider)(nil)
 
 // New prepares a provider for exactly one caller-selected process. It checks
 // Accessibility permission and records the process start identity so a reused
@@ -108,23 +108,23 @@ func (p *Provider) checkTarget() error {
 	return nil
 }
 
-func (p *Provider) List(ctx context.Context) ([]board.Device, error) {
+func (p *Provider) List(ctx context.Context) ([]devicekit.Device, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	if err := p.checkTarget(); err != nil {
 		return nil, err
 	}
-	return []board.Device{{
+	return []devicekit.Device{{
 		ID: p.options.DeviceID, Kind: "keyboard", Name: p.options.Name,
-		Capabilities: []board.CapabilityDescriptor{
-			{Name: board.KeyboardPress, InputSchema: json.RawMessage(pressSchema), OutputSchema: json.RawMessage(submittedSchema)},
-			{Name: board.KeyboardType, InputSchema: json.RawMessage(fmt.Sprintf(typeSchema, p.options.MaxTextRunes)), OutputSchema: json.RawMessage(submittedSchema)},
+		Capabilities: []devicekit.CapabilityDescriptor{
+			{Name: devicekit.KeyboardPress, InputSchema: json.RawMessage(pressSchema), OutputSchema: json.RawMessage(submittedSchema)},
+			{Name: devicekit.KeyboardType, InputSchema: json.RawMessage(fmt.Sprintf(typeSchema, p.options.MaxTextRunes)), OutputSchema: json.RawMessage(submittedSchema)},
 		},
 	}}, nil
 }
 
-func (p *Provider) Open(ctx context.Context, deviceID string, grant board.Grant) (board.Session, error) {
+func (p *Provider) Open(ctx context.Context, deviceID string, grant devicekit.Grant) (devicekit.Session, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -137,9 +137,9 @@ func (p *Provider) Open(ctx context.Context, deviceID string, grant board.Grant)
 	if len(grant.Capabilities) == 0 || len(grant.ResourceIDs) != 0 {
 		return nil, errors.New("macOS keyboard grant needs capabilities and no drive resources")
 	}
-	allowed := make(map[board.Capability]struct{}, len(grant.Capabilities))
+	allowed := make(map[devicekit.Capability]struct{}, len(grant.Capabilities))
 	for _, capability := range grant.Capabilities {
-		if capability != board.KeyboardPress && capability != board.KeyboardType {
+		if capability != devicekit.KeyboardPress && capability != devicekit.KeyboardType {
 			return nil, fmt.Errorf("macOS keyboard does not provide %q", capability)
 		}
 		allowed[capability] = struct{}{}
@@ -150,75 +150,75 @@ func (p *Provider) Open(ctx context.Context, deviceID string, grant board.Grant)
 type session struct {
 	mu       sync.Mutex
 	provider *Provider
-	allowed  map[board.Capability]struct{}
+	allowed  map[devicekit.Capability]struct{}
 	closed   bool
 }
 
-var _ board.Session = (*session)(nil)
+var _ devicekit.Session = (*session)(nil)
 
-func (s *session) Invoke(ctx context.Context, action board.Action) (board.Result, error) {
+func (s *session) Invoke(ctx context.Context, action devicekit.Action) (devicekit.Result, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.closed {
-		return board.Result{}, board.ErrClosed
+		return devicekit.Result{}, devicekit.ErrClosed
 	}
 	if err := ctx.Err(); err != nil {
-		return board.Result{}, err
+		return devicekit.Result{}, err
 	}
 	if _, allowed := s.allowed[action.Capability]; !allowed {
-		return board.Result{}, fmt.Errorf("macOS keyboard capability %q is not granted", action.Capability)
+		return devicekit.Result{}, fmt.Errorf("macOS keyboard capability %q is not granted", action.Capability)
 	}
 	if action.ResourceID != "" {
-		return board.Result{}, errors.New("keyboard actions do not accept a resource ID")
+		return devicekit.Result{}, errors.New("keyboard actions do not accept a resource ID")
 	}
 	if err := s.provider.checkTarget(); err != nil {
-		return board.Result{}, err
+		return devicekit.Result{}, err
 	}
 	switch action.Capability {
-	case board.KeyboardPress:
+	case devicekit.KeyboardPress:
 		var input struct {
 			Key string `json:"key"`
 		}
 		if err := strictInput(action.Input, &input); err != nil {
-			return board.Result{}, err
+			return devicekit.Result{}, err
 		}
 		code, modifiers, err := parseKey(input.Key)
 		if err != nil {
-			return board.Result{}, err
+			return devicekit.Result{}, err
 		}
 		if err := s.provider.native.press(s.provider.options.PID, code, modifiers); err != nil {
-			return board.Result{}, err
+			return devicekit.Result{}, err
 		}
-	case board.KeyboardType:
+	case devicekit.KeyboardType:
 		var input struct {
 			Text string `json:"text"`
 		}
 		if err := strictInput(action.Input, &input); err != nil {
-			return board.Result{}, err
+			return devicekit.Result{}, err
 		}
 		if !utf8.ValidString(input.Text) || input.Text == "" || utf8.RuneCountInString(input.Text) > s.provider.options.MaxTextRunes {
-			return board.Result{}, errors.New("keyboard text is empty, invalid, or exceeds its limit")
+			return devicekit.Result{}, errors.New("keyboard text is empty, invalid, or exceeds its limit")
 		}
 		for _, char := range input.Text {
 			if unicode.IsControl(char) {
-				return board.Result{}, errors.New("keyboard text contains a control character; use keyboard.press")
+				return devicekit.Result{}, errors.New("keyboard text contains a control character; use keyboard.press")
 			}
 		}
 		for _, char := range input.Text {
 			if err := ctx.Err(); err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			if err := s.provider.checkTarget(); err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 			if err := s.provider.native.typeRune(s.provider.options.PID, utf16.Encode([]rune{char})); err != nil {
-				return board.Result{}, err
+				return devicekit.Result{}, err
 			}
 		}
 	default:
-		return board.Result{}, fmt.Errorf("macOS keyboard cannot invoke %q", action.Capability)
+		return devicekit.Result{}, fmt.Errorf("macOS keyboard cannot invoke %q", action.Capability)
 	}
-	return board.Result{Output: json.RawMessage(`{"submitted":true}`)}, nil
+	return devicekit.Result{Output: json.RawMessage(`{"submitted":true}`)}, nil
 }
 
 func (s *session) Close(context.Context) error {

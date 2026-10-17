@@ -1,7 +1,7 @@
 package main
 
 import (
-	"board"
+	"devicekit"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -58,7 +58,7 @@ func (server *operatorServer) handleDeviceViewer(w http.ResponseWriter, r *http.
 		operatorError(w, 400, "invalid_request", err.Error())
 		return
 	}
-	if action.ResourceID != "" || (action.Capability != string(board.WebRTCSignal) && action.Capability != string(board.WebRTCPoll)) {
+	if action.ResourceID != "" || (action.Capability != string(devicekit.WebRTCSignal) && action.Capability != string(devicekit.WebRTCPoll)) {
 		operatorError(w, 403, "not_granted", "viewer credential allows session signaling only")
 		return
 	}

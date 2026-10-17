@@ -9,8 +9,8 @@ import (
 	"io"
 	"strings"
 
-	"board"
-	boardhost "board/host"
+	"devicekit"
+	devicehost "devicekit/host"
 	"board/macoskeyboard"
 )
 
@@ -27,7 +27,7 @@ func keyboardPressCommand(args []string, stdout io.Writer) error {
 	if flags.NArg() != 0 || *pid <= 0 || strings.TrimSpace(*key) == "" {
 		return errors.New("keyboard-press requires --pid PID and --key KEY, with no other arguments")
 	}
-	return invokeKeyboard(*pid, board.KeyboardPress, map[string]string{"key": *key}, stdout)
+	return invokeKeyboard(*pid, devicekit.KeyboardPress, map[string]string{"key": *key}, stdout)
 }
 
 func keyboardTypeCommand(args []string, stdin io.Reader, stdout io.Writer) error {
@@ -54,24 +54,24 @@ func keyboardTypeCommand(args []string, stdin io.Reader, stdout io.Writer) error
 	if len(data) == 0 || len(data) > maxInputBytes {
 		return fmt.Errorf("keyboard-type needs 1 to %d bytes of UTF-8 text", maxInputBytes)
 	}
-	return invokeKeyboard(*pid, board.KeyboardType, map[string]string{"text": string(data)}, stdout)
+	return invokeKeyboard(*pid, devicekit.KeyboardType, map[string]string{"text": string(data)}, stdout)
 }
 
-func invokeKeyboard(pid int, capability board.Capability, input any, stdout io.Writer) error {
+func invokeKeyboard(pid int, capability devicekit.Capability, input any, stdout io.Writer) error {
 	ctx := context.Background()
 	keyboard, err := macoskeyboard.New(macoskeyboard.Options{ProviderID: keyboardProviderID, PID: pid})
 	if err != nil {
 		return err
 	}
-	devices, err := boardhost.NewRegistered(boardhost.Registration{Provider: keyboard})
+	devices, err := devicehost.NewRegistered(devicehost.Registration{Provider: keyboard})
 	if err != nil {
 		return err
 	}
 	defer devices.Close()
-	connection, err := devices.Attach(ctx, boardhost.Request{
-		Capabilities: []board.Capability{capability},
-	}, func(_ context.Context, _ board.Device, _ boardhost.Request) (boardhost.Decision, error) {
-		return boardhost.Decision{Capabilities: []board.Capability{capability}}, nil
+	connection, err := devices.Attach(ctx, devicehost.Request{
+		Capabilities: []devicekit.Capability{capability},
+	}, func(_ context.Context, _ devicekit.Device, _ devicehost.Request) (devicehost.Decision, error) {
+		return devicehost.Decision{Capabilities: []devicekit.Capability{capability}}, nil
 	})
 	if err != nil {
 		return err
@@ -81,7 +81,7 @@ func invokeKeyboard(pid int, capability board.Capability, input any, stdout io.W
 	if err != nil {
 		return err
 	}
-	result, err := connection.Invoke(ctx, board.Action{Capability: capability, Input: encoded})
+	result, err := connection.Invoke(ctx, devicekit.Action{Capability: capability, Input: encoded})
 	if err != nil {
 		return err
 	}

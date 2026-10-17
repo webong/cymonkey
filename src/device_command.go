@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"board"
+	"devicekit"
 	"cymonkey/src/devicebridge"
 	devicecli "cymonkey/src/devicecli"
 )
@@ -31,14 +31,14 @@ func runDevice(args []string, stdout, stderr io.Writer) error {
 		}
 		if args[0] == "adapter-devices" {
 			var response struct {
-				Devices []board.Device `json:"devices"`
+				Devices []devicekit.Device `json:"devices"`
 			}
 			if err := json.Unmarshal(libraryOutput.Bytes(), &response); err != nil {
 				return err
 			}
 			return json.NewEncoder(stdout).Encode(devicebridge.FromLibraryDevices(response.Devices))
 		}
-		var result board.Result
+		var result devicekit.Result
 		if err := json.Unmarshal(libraryOutput.Bytes(), &result); err != nil {
 			return err
 		}
@@ -50,7 +50,7 @@ func runDevice(args []string, stdout, stderr io.Writer) error {
 			return publicDeviceError(err)
 		}
 		var response struct {
-			Devices []board.Device `json:"devices"`
+			Devices []devicekit.Device `json:"devices"`
 		}
 		if err := json.Unmarshal(libraryOutput.Bytes(), &response); err != nil {
 			return err

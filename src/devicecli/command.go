@@ -7,13 +7,13 @@ import (
 	"io"
 	"strings"
 
-	"board"
+	"devicekit"
 )
 
 type CommandEngine struct {
 	Invocation string
 	Stdin      io.Reader
-	Providers  []board.Provider
+	Providers  []devicekit.Provider
 }
 
 // Run executes the device command handlers. Provider actions still pass

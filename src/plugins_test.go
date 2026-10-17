@@ -15,7 +15,7 @@ import (
 	"strings"
 	"testing"
 
-	"board"
+	"devicekit"
 	"cymonkey/src/internal/bridge"
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
@@ -180,7 +180,7 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	devices, err := board.NewRegistry(providers...)
+	devices, err := devicekit.NewRegistry(providers...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -188,12 +188,12 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 	if err != nil || len(listedDevices) != 1 {
 		t.Fatalf("Board plugin devices: %#v %v", listedDevices, err)
 	}
-	connection, err := devices.Open(context.Background(), board.OpenRequest{ProviderID: "device-fixture", DeviceID: "device", Grant: board.Grant{Capabilities: []board.Capability{board.DriveRead}, ResourceIDs: []string{"root"}}})
+	connection, err := devices.Open(context.Background(), devicekit.OpenRequest{ProviderID: "device-fixture", DeviceID: "device", Grant: devicekit.Grant{Capabilities: []devicekit.Capability{devicekit.DriveRead}, ResourceIDs: []string{"root"}}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	action := board.Action{Capability: board.DriveRead, ResourceID: "root", Input: json.RawMessage(`{}`)}
-	if _, err := connection.Stream(context.Background(), board.Action{Capability: board.DriveRead, ResourceID: "other"}); err == nil {
+	action := devicekit.Action{Capability: devicekit.DriveRead, ResourceID: "root", Input: json.RawMessage(`{}`)}
+	if _, err := connection.Stream(context.Background(), devicekit.Action{Capability: devicekit.DriveRead, ResourceID: "other"}); err == nil {
 		t.Fatal("Board plugin bypassed resource grant")
 	}
 	content, err := connection.Stream(context.Background(), action)

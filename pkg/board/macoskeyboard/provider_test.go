@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"board"
+	"devicekit"
 )
 
 type fakeNative struct {
@@ -50,7 +50,7 @@ func TestKeyboardGrantAndTargetIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	registry, err := board.NewRegistry(provider)
+	registry, err := devicekit.NewRegistry(provider)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,27 +58,27 @@ func TestKeyboardGrantAndTargetIdentity(t *testing.T) {
 	if err != nil || len(devices) != 1 || len(devices[0].Capabilities) != 2 {
 		t.Fatalf("keyboard discovery = %#v, %v", devices, err)
 	}
-	connection, err := registry.Open(ctx, board.OpenRequest{
+	connection, err := registry.Open(ctx, devicekit.OpenRequest{
 		ProviderID: provider.ID(), DeviceID: "keyboard",
-		Grant: board.Grant{Capabilities: []board.Capability{board.KeyboardPress}},
+		Grant: devicekit.Grant{Capabilities: []devicekit.Capability{devicekit.KeyboardPress}},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer connection.Close(ctx)
-	if _, err := connection.Invoke(ctx, board.Action{
-		Capability: board.KeyboardType, Input: json.RawMessage(`{"text":"secret"}`),
+	if _, err := connection.Invoke(ctx, devicekit.Action{
+		Capability: devicekit.KeyboardType, Input: json.RawMessage(`{"text":"secret"}`),
 	}); err == nil || fake.typed != "" {
 		t.Fatalf("ungranted typing reached target: %q, %v", fake.typed, err)
 	}
-	if _, err := connection.Invoke(ctx, board.Action{
-		Capability: board.KeyboardPress, Input: json.RawMessage(`{"key":"Command+O"}`),
+	if _, err := connection.Invoke(ctx, devicekit.Action{
+		Capability: devicekit.KeyboardPress, Input: json.RawMessage(`{"key":"Command+O"}`),
 	}); err != nil || fake.presses != 1 {
 		t.Fatalf("press = %d, %v", fake.presses, err)
 	}
 	fake.identityID.seconds++
-	if _, err := connection.Invoke(ctx, board.Action{
-		Capability: board.KeyboardPress, Input: json.RawMessage(`{"key":"Enter"}`),
+	if _, err := connection.Invoke(ctx, devicekit.Action{
+		Capability: devicekit.KeyboardPress, Input: json.RawMessage(`{"key":"Enter"}`),
 	}); !errors.Is(err, ErrTarget) || fake.presses != 1 {
 		t.Fatalf("reused PID was accepted: %d, %v", fake.presses, err)
 	}
@@ -91,7 +91,7 @@ func TestKeyboardTypeLimitsAndInputValidation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	session, err := provider.Open(ctx, "keyboard", board.Grant{Capabilities: []board.Capability{board.KeyboardType}})
+	session, err := provider.Open(ctx, "keyboard", devicekit.Grant{Capabilities: []devicekit.Capability{devicekit.KeyboardType}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,18 +100,18 @@ func TestKeyboardTypeLimitsAndInputValidation(t *testing.T) {
 		`{"text":""}`, `{"text":"abcde"}`, `{"text":"a\nb"}`,
 		`{"text":"ok","extra":true}`, `{"text":"ok"} {}`,
 	} {
-		if _, err := session.Invoke(ctx, board.Action{Capability: board.KeyboardType, Input: json.RawMessage(input)}); err == nil {
+		if _, err := session.Invoke(ctx, devicekit.Action{Capability: devicekit.KeyboardType, Input: json.RawMessage(input)}); err == nil {
 			t.Fatalf("invalid keyboard input %q was accepted", input)
 		}
 	}
-	if _, err := session.Invoke(ctx, board.Action{
-		Capability: board.KeyboardType, Input: json.RawMessage(`{"text":"okay"}`),
+	if _, err := session.Invoke(ctx, devicekit.Action{
+		Capability: devicekit.KeyboardType, Input: json.RawMessage(`{"text":"okay"}`),
 	}); err != nil || fake.typed != "okay" {
 		t.Fatalf("typed = %q, %v", fake.typed, err)
 	}
 	fake.permission = false
-	if _, err := session.Invoke(ctx, board.Action{
-		Capability: board.KeyboardType, Input: json.RawMessage(`{"text":"x"}`),
+	if _, err := session.Invoke(ctx, devicekit.Action{
+		Capability: devicekit.KeyboardType, Input: json.RawMessage(`{"text":"x"}`),
 	}); !errors.Is(err, ErrPermission) {
 		t.Fatalf("revoked permission = %v", err)
 	}

@@ -1,4 +1,4 @@
-package boardplugin
+package deviceplugin
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"board"
+	"devicekit"
 	extplugin "github.com/webong/ext/pkg/plugin-go/contract"
 )
 
@@ -57,8 +57,8 @@ func listPolicy() func(context.Context, extplugin.Request) error {
 // when they name a resource, one the grant covers. Board's connection layer
 // applies the same rule before it calls the session; this repeats it inside the
 // plugin process's own admission check.
-func sessionPolicy(grant board.Grant) func(context.Context, extplugin.Request) error {
-	capabilities := make(map[board.Capability]bool, len(grant.Capabilities))
+func sessionPolicy(grant devicekit.Grant) func(context.Context, extplugin.Request) error {
+	capabilities := make(map[devicekit.Capability]bool, len(grant.Capabilities))
 	for _, capability := range grant.Capabilities {
 		capabilities[capability] = true
 	}
@@ -73,15 +73,15 @@ func sessionPolicy(grant board.Grant) func(context.Context, extplugin.Request) e
 		if request.Operation != "invoke" && request.Operation != "stream.open" {
 			return nil
 		}
-		var action board.Action
+		var action devicekit.Action
 		if err := json.Unmarshal(request.Payload, &action); err != nil {
-			return fmt.Errorf("%w: unreadable action", board.ErrNotGranted)
+			return fmt.Errorf("%w: unreadable action", devicekit.ErrNotGranted)
 		}
 		if !capabilities[action.Capability] {
-			return fmt.Errorf("%w: capability %q", board.ErrNotGranted, action.Capability)
+			return fmt.Errorf("%w: capability %q", devicekit.ErrNotGranted, action.Capability)
 		}
 		if action.ResourceID != "" && !resources[action.ResourceID] {
-			return fmt.Errorf("%w: resource %q", board.ErrNotGranted, action.ResourceID)
+			return fmt.Errorf("%w: resource %q", devicekit.ErrNotGranted, action.ResourceID)
 		}
 		return nil
 	}

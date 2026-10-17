@@ -1,4 +1,4 @@
-package boardplugin
+package deviceplugin
 
 import (
 	"context"

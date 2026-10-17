@@ -1,7 +1,7 @@
 package main
 
 import (
-	"board"
+	"devicekit"
 	"board/rtc"
 	"bytes"
 	"crypto/rand"
@@ -21,7 +21,7 @@ import (
 
 type mobileTarget struct {
 	media    *rtc.MobileMedia
-	provider board.Provider
+	provider devicekit.Provider
 	hash     [32]byte
 	expires  time.Time
 	timer    *time.Timer

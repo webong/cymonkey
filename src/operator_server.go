@@ -15,7 +15,7 @@ import (
 	"strings"
 	"sync"
 
-	"board"
+	"devicekit"
 	"cymonkey/src/internal/engineprovider"
 	"cymonkey/src/internal/orchestrator"
 	"cymonkey/src/observation"
@@ -31,7 +31,7 @@ type operatorServer struct {
 	interpretationToken string
 	mu                  sync.Mutex
 	active              map[string]*operatorBrowserSession
-	deviceProviders     func() ([]board.Provider, error)
+	deviceProviders     func() ([]devicekit.Provider, error)
 	deviceSessions      map[string]*managedDeviceSession
 	deviceClosed        bool
 	mobileTargets       map[string]*mobileTarget

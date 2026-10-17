@@ -1,7 +1,7 @@
 package devices
 
 import (
-	"board"
+	"devicekit"
 	"board/displayaction"
 	"context"
 	"errors"
@@ -50,24 +50,24 @@ func TestDesktopGrantRecordingExpiryAndCleanup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	registry, err := board.NewRegistry(p)
+	registry, err := devicekit.NewRegistry(p)
 	if err != nil {
 		t.Fatal(err)
 	}
-	c, err := registry.Open(ctx, board.OpenRequest{ProviderID: "screen", DeviceID: "desktop", Grant: board.Grant{Capabilities: []board.Capability{board.DisplayCapture, board.RecordingStart, board.RecordingStop, RecordingRead}}})
+	c, err := registry.Open(ctx, devicekit.OpenRequest{ProviderID: "screen", DeviceID: "desktop", Grant: devicekit.Grant{Capabilities: []devicekit.Capability{devicekit.DisplayCapture, devicekit.RecordingStart, devicekit.RecordingStop, RecordingRead}}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer c.Close(ctx)
-	if _, err = c.Invoke(ctx, board.Action{Capability: board.KeyboardPress, Input: []byte(`{"key":"a"}`)}); !errors.Is(err, board.ErrNotGranted) {
+	if _, err = c.Invoke(ctx, devicekit.Action{Capability: devicekit.KeyboardPress, Input: []byte(`{"key":"a"}`)}); !errors.Is(err, devicekit.ErrNotGranted) {
 		t.Fatal(err)
 	}
-	image, err := c.Stream(ctx, board.Action{Capability: board.DisplayCapture})
+	image, err := c.Stream(ctx, devicekit.Action{Capability: devicekit.DisplayCapture})
 	if err != nil {
 		t.Fatal(err)
 	}
 	image.Close()
-	if _, err = c.Invoke(ctx, board.Action{Capability: board.RecordingStart, Input: []byte(`{"format":"webm"}`)}); err != nil {
+	if _, err = c.Invoke(ctx, devicekit.Action{Capability: devicekit.RecordingStart, Input: []byte(`{"format":"webm"}`)}); err != nil {
 		t.Fatal(err)
 	}
 	deadline := time.Now().Add(time.Second)
@@ -88,11 +88,11 @@ func TestDesktopGrantRecordingExpiryAndCleanup(t *testing.T) {
 		}
 		time.Sleep(time.Millisecond)
 	}
-	content, err := c.Stream(ctx, board.Action{Capability: RecordingRead})
+	content, err := c.Stream(ctx, devicekit.Action{Capability: RecordingRead})
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, err := board.ReadAll(content, 1024)
+	data, err := devicekit.ReadAll(content, 1024)
 	content.Close()
 	if err != nil || string(data) != "video" {
 		t.Fatalf("recording %q %v", data, err)
