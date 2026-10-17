@@ -1,6 +1,7 @@
 package endpoint
 
 import (
+	"contentkit"
 	"errors"
 	"fmt"
 	"math"
@@ -8,8 +9,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-
-	"blockade"
 )
 
 type Config struct {
@@ -93,17 +92,17 @@ func ParseConfig(settings map[string]string, options ParseOptions) (Config, erro
 	for _, modality := range modalities {
 		switch modality {
 		case "text":
-			capabilities = append(capabilities, blockade.CapabilityTextInterpret)
+			capabilities = append(capabilities, contentkit.CapabilityTextInterpret)
 		case "image":
-			capabilities = append(capabilities, blockade.CapabilityImageInterpret)
+			capabilities = append(capabilities, contentkit.CapabilityImageInterpret)
 		case "audio":
-			capabilities = append(capabilities, blockade.CapabilityAudioInterpret)
+			capabilities = append(capabilities, contentkit.CapabilityAudioInterpret)
 		case "video":
-			capabilities = append(capabilities, blockade.CapabilityVideoInterpret)
+			capabilities = append(capabilities, contentkit.CapabilityVideoInterpret)
 		}
 	}
 	if len(modalities) > 1 {
-		capabilities = append(capabilities, blockade.CapabilityMultimodalInterpret)
+		capabilities = append(capabilities, contentkit.CapabilityMultimodalInterpret)
 	}
 	return Config{
 		BaseURL: parsed, Model: model, Modalities: modalities,
@@ -117,10 +116,10 @@ func (c Config) URL(path string) string {
 	return copy.String()
 }
 
-func (c Config) ValidateRequest(request blockade.InterpretRequest) error {
+func (c Config) ValidateRequest(request contentkit.InterpretRequest) error {
 	for _, part := range request.Parts {
 		if !slices.Contains(c.Modalities, part.Kind) {
-			return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, fmt.Errorf("configured endpoint does not support %s input", part.Kind))
+			return contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidRequest, fmt.Errorf("configured endpoint does not support %s input", part.Kind))
 		}
 	}
 	return nil

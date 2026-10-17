@@ -1,6 +1,7 @@
 package contentcli
 
 import (
+	"contentkit"
 	"context"
 	"encoding/json"
 	"errors"
@@ -31,7 +32,7 @@ func DefaultConfigPath() (string, error) {
 	return filepath.Join(directory, "cymonkey", "content.yaml"), nil
 }
 
-func endpointCommand(args []string, stdout io.Writer, registry *blockade.ProviderAdapterRegistry, resolver blockade.SecretResolver, invocation, defaultConfig string) error {
+func endpointCommand(args []string, stdout io.Writer, registry *contentkit.ProviderAdapterRegistry, resolver contentkit.SecretResolver, invocation, defaultConfig string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("%s endpoint requires add, list, remove, or test", invocation)
 	}
@@ -110,12 +111,12 @@ func endpointAddCommand(args []string, stdout io.Writer, invocation, defaultConf
 		}
 		settings["temperature"] = value
 	}
-	configured := blockade.ProviderAdapterConfig{
+	configured := contentkit.ProviderAdapterConfig{
 		ID: strings.TrimSpace(*id), Provider: providerName, Workers: *workers,
 		Timeout: strings.TrimSpace(*timeout), MaxPayloadBytes: *maxPayloadBytes, Settings: settings,
 	}
 	if name := strings.TrimSpace(*apiKeyEnvironment); name != "" {
-		configured.Secrets = map[string]blockade.SecretReference{"apiKey": {Env: name}}
+		configured.Secrets = map[string]contentkit.SecretReference{"apiKey": {Env: name}}
 	}
 	config, err := loadConfigForEdit(*configPath)
 	if err != nil {
@@ -136,7 +137,7 @@ func endpointAddCommand(args []string, stdout io.Writer, invocation, defaultConf
 	if !replaced {
 		config.Providers = append(config.Providers, configured)
 	}
-	if err := blockade.SaveConfig(*configPath, config); err != nil {
+	if err := contentkit.SaveConfig(*configPath, config); err != nil {
 		return err
 	}
 	return json.NewEncoder(stdout).Encode(map[string]any{"config": *configPath, "endpoint": configured})
@@ -193,9 +194,9 @@ func endpointListCommand(args []string, stdout io.Writer, invocation, defaultCon
 	if flags.NArg() != 0 {
 		return fmt.Errorf("%s endpoint list accepts flags only", invocation)
 	}
-	config, err := blockade.LoadConfig(*configPath)
+	config, err := contentkit.LoadConfig(*configPath)
 	if errors.Is(err, os.ErrNotExist) {
-		return json.NewEncoder(stdout).Encode(map[string]any{"config": *configPath, "endpoints": []blockade.ProviderAdapterConfig{}})
+		return json.NewEncoder(stdout).Encode(map[string]any{"config": *configPath, "endpoints": []contentkit.ProviderAdapterConfig{}})
 	}
 	if err != nil {
 		return err
@@ -214,7 +215,7 @@ func endpointRemoveCommand(args []string, stdout io.Writer, invocation, defaultC
 	if flags.NArg() != 0 || strings.TrimSpace(*id) == "" {
 		return fmt.Errorf("%s endpoint remove requires --id", invocation)
 	}
-	config, err := blockade.LoadConfig(*configPath)
+	config, err := contentkit.LoadConfig(*configPath)
 	if err != nil {
 		return err
 	}
@@ -233,14 +234,14 @@ func endpointRemoveCommand(args []string, stdout io.Writer, invocation, defaultC
 		if err := os.Remove(*configPath); err != nil {
 			return err
 		}
-	} else if err := blockade.SaveConfig(*configPath, config); err != nil {
+	} else if err := contentkit.SaveConfig(*configPath, config); err != nil {
 		return err
 	}
 	_, err = fmt.Fprintf(stdout, "removed content endpoint %s\n", strings.TrimSpace(*id))
 	return err
 }
 
-func endpointTestCommand(args []string, stdout io.Writer, registry *blockade.ProviderAdapterRegistry, resolver blockade.SecretResolver, invocation, defaultConfig string) error {
+func endpointTestCommand(args []string, stdout io.Writer, registry *contentkit.ProviderAdapterRegistry, resolver contentkit.SecretResolver, invocation, defaultConfig string) error {
 	flags := flag.NewFlagSet(invocation+" endpoint test", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	configPath := flags.String("config", defaultConfig, "content YAML config")
@@ -252,7 +253,7 @@ func endpointTestCommand(args []string, stdout io.Writer, registry *blockade.Pro
 	if flags.NArg() != 0 {
 		return fmt.Errorf("%s endpoint test accepts flags only", invocation)
 	}
-	config, err := blockade.LoadConfig(*configPath)
+	config, err := contentkit.LoadConfig(*configPath)
 	if err != nil {
 		return err
 	}
@@ -260,20 +261,20 @@ func endpointTestCommand(args []string, stdout io.Writer, registry *blockade.Pro
 	if err != nil {
 		return err
 	}
-	engine, err := blockade.StartConfiguredInference(context.Background(), selected, registry, resolver)
+	engine, err := contentkit.StartConfiguredInference(context.Background(), selected, registry, resolver)
 	if err != nil {
 		return err
 	}
 	defer engine.Close()
-	health := blockade.EngineHealth{Ready: true}
-	if reporter, ok := engine.(blockade.EngineHealthReporter); ok {
+	health := contentkit.EngineHealth{Ready: true}
+	if reporter, ok := engine.(contentkit.EngineHealthReporter); ok {
 		health, err = reporter.Health(context.Background())
 		if err != nil {
 			return err
 		}
 	}
-	capabilities := []string{blockade.CapabilityImageObserve}
-	if reporter, ok := engine.(blockade.EngineCapabilities); ok {
+	capabilities := []string{contentkit.CapabilityImageObserve}
+	if reporter, ok := engine.(contentkit.EngineCapabilities); ok {
 		capabilities, err = reporter.Capabilities(context.Background())
 		if err != nil {
 			return err
@@ -284,9 +285,9 @@ func endpointTestCommand(args []string, stdout io.Writer, registry *blockade.Pro
 		result["detail"] = health.Detail
 	}
 	if text := strings.TrimSpace(*liveText); text != "" {
-		response, callErr := (blockade.Client{Engine: engine}).Interpret(context.Background(), blockade.InterpretRequest{
-			APIVersion: blockade.ContentAPIVersion,
-			Parts:      []blockade.ContentPart{{Kind: "text", Text: text}},
+		response, callErr := (blockade.Client{Engine: engine}).Interpret(context.Background(), contentkit.InterpretRequest{
+			APIVersion: contentkit.ContentAPIVersion,
+			Parts:      []contentkit.ContentPart{{Kind: "text", Text: text}},
 			Prompt:     "Return a concise finding confirming this endpoint is reachable.",
 		})
 		if callErr != nil {
@@ -297,10 +298,10 @@ func endpointTestCommand(args []string, stdout io.Writer, registry *blockade.Pro
 	return json.NewEncoder(stdout).Encode(result)
 }
 
-func loadConfigForEdit(path string) (blockade.Config, error) {
-	config, err := blockade.LoadConfig(path)
+func loadConfigForEdit(path string) (contentkit.Config, error) {
+	config, err := contentkit.LoadConfig(path)
 	if errors.Is(err, os.ErrNotExist) {
-		return blockade.Config{APIVersion: blockade.ConfigAPIVersion}, nil
+		return contentkit.Config{APIVersion: contentkit.ConfigAPIVersion}, nil
 	}
 	return config, err
 }

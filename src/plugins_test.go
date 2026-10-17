@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"contentkit"
 	"context"
 	"encoding/json"
 	"errors"
@@ -14,7 +15,6 @@ import (
 	"strings"
 	"testing"
 
-	"blockade"
 	"board"
 	"cymonkey/src/internal/bridge"
 	"cymonkey/src/internal/manifest"
@@ -118,35 +118,35 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := blockade.InspectConfiguredProviderModel(context.Background(), blockade.ProviderAdapterConfig{ID: "vision", Provider: "vision-fixture"}, blockade.InstalledModel{
-		Manifest: blockade.ModelManifest{
-			APIVersion: blockade.ModelManifestAPIVersion, Name: "fixture", Version: "1.0.0", Provider: "vision-fixture",
-			Capabilities: []string{blockade.CapabilityTextInterpret},
-			Artifacts:    []blockade.ModelArtifact{{Role: "weights", File: "weights.gguf", SHA256: strings.Repeat("0", 64)}},
+	if err := contentkit.InspectConfiguredProviderModel(context.Background(), contentkit.ProviderAdapterConfig{ID: "vision", Provider: "vision-fixture"}, contentkit.InstalledModel{
+		Manifest: contentkit.ModelManifest{
+			APIVersion: contentkit.ModelManifestAPIVersion, Name: "fixture", Version: "1.0.0", Provider: "vision-fixture",
+			Capabilities: []string{contentkit.CapabilityTextInterpret},
+			Artifacts:    []contentkit.ModelArtifact{{Role: "weights", File: "weights.gguf", SHA256: strings.Repeat("0", 64)}},
 		},
 		Directory: t.TempDir(),
-	}, vision, blockade.EnvironmentSecretResolver{}); err != nil {
+	}, vision, contentkit.EnvironmentSecretResolver{}); err != nil {
 		t.Fatalf("Blockade plugin model inspection before startup: %v", err)
 	}
-	backend, err := blockade.StartConfiguredProviderAdapter(context.Background(), blockade.ProviderAdapterConfig{ID: "vision", Provider: "vision-fixture"}, vision, blockade.EnvironmentSecretResolver{})
+	backend, err := contentkit.StartConfiguredProviderAdapter(context.Background(), contentkit.ProviderAdapterConfig{ID: "vision", Provider: "vision-fixture"}, vision, contentkit.EnvironmentSecretResolver{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	observed, err := backend.Observe(context.Background(), blockade.ObserveRequest{Image: []byte("image"), RequestID: "request-1"})
+	observed, err := backend.Observe(context.Background(), contentkit.ObserveRequest{Image: []byte("image"), RequestID: "request-1"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if observed.RequestID != "request-1" {
 		t.Fatalf("Blockade plugin request ID = %q", observed.RequestID)
 	}
-	interpreter, ok := backend.(blockade.ContentEngine)
+	interpreter, ok := backend.(contentkit.ContentEngine)
 	if !ok {
 		t.Fatal("Blockade plugin has no content interpretation interface")
 	}
-	for _, request := range []blockade.InterpretRequest{
-		{RequestID: "text-1", Parts: []blockade.ContentPart{{Kind: "text", Text: "Summarize this note"}}},
-		{RequestID: "image-1", Parts: []blockade.ContentPart{{Kind: "image", MediaType: "image/png", Data: []byte("image")}}},
-		{RequestID: "audio-1", Parts: []blockade.ContentPart{{Kind: "audio", MediaType: "audio/wav", Data: []byte("audio")}}},
+	for _, request := range []contentkit.InterpretRequest{
+		{RequestID: "text-1", Parts: []contentkit.ContentPart{{Kind: "text", Text: "Summarize this note"}}},
+		{RequestID: "image-1", Parts: []contentkit.ContentPart{{Kind: "image", MediaType: "image/png", Data: []byte("image")}}},
+		{RequestID: "audio-1", Parts: []contentkit.ContentPart{{Kind: "audio", MediaType: "audio/wav", Data: []byte("audio")}}},
 	} {
 		interpreted, err := interpreter.Interpret(context.Background(), request)
 		if err != nil || interpreted.RequestID != request.RequestID || len(interpreted.Findings) != 1 {
@@ -156,19 +156,19 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 	if err := backend.Close(); err != nil {
 		t.Fatal(err)
 	}
-	contentOnly, err := blockade.StartConfiguredProviderAdapter(context.Background(), blockade.ProviderAdapterConfig{ID: "content", Provider: "content-fixture"}, vision, blockade.EnvironmentSecretResolver{})
+	contentOnly, err := contentkit.StartConfiguredProviderAdapter(context.Background(), contentkit.ProviderAdapterConfig{ID: "content", Provider: "content-fixture"}, vision, contentkit.EnvironmentSecretResolver{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := contentOnly.Observe(context.Background(), blockade.ObserveRequest{Image: []byte("image")}); !errors.Is(err, blockade.ErrModalityUnsupported) {
+	if _, err := contentOnly.Observe(context.Background(), contentkit.ObserveRequest{Image: []byte("image")}); !errors.Is(err, contentkit.ErrModalityUnsupported) {
 		t.Fatalf("content-only plugin image call = %v", err)
 	}
-	contentInterpreter := contentOnly.(blockade.ContentEngine)
-	for _, part := range []blockade.ContentPart{
+	contentInterpreter := contentOnly.(contentkit.ContentEngine)
+	for _, part := range []contentkit.ContentPart{
 		{Kind: "text", Text: "Summarize"},
 		{Kind: "audio", MediaType: "audio/wav", Data: []byte("sound")},
 	} {
-		response, err := contentInterpreter.Interpret(context.Background(), blockade.InterpretRequest{Parts: []blockade.ContentPart{part}})
+		response, err := contentInterpreter.Interpret(context.Background(), contentkit.InterpretRequest{Parts: []contentkit.ContentPart{part}})
 		if err != nil || len(response.Findings) != 1 {
 			t.Fatalf("content-only plugin %s = %#v %v", part.Kind, response, err)
 		}
@@ -265,13 +265,13 @@ func TestStandaloneOnnxProviderUsesExecutableBoundary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	model := blockade.InstalledModel{Manifest: blockade.ModelManifest{
-		APIVersion: blockade.ModelManifestAPIVersion, Name: "detector", Version: "1.0.0", Provider: "onnx",
-		Capabilities: []string{blockade.CapabilityObjectDetect},
-		Artifacts:    []blockade.ModelArtifact{{Role: "yolo", File: "detector.gguf", SHA256: strings.Repeat("0", 64)}},
+	model := contentkit.InstalledModel{Manifest: contentkit.ModelManifest{
+		APIVersion: contentkit.ModelManifestAPIVersion, Name: "detector", Version: "1.0.0", Provider: "onnx",
+		Capabilities: []string{contentkit.CapabilityObjectDetect},
+		Artifacts:    []contentkit.ModelArtifact{{Role: "yolo", File: "detector.gguf", SHA256: strings.Repeat("0", 64)}},
 	}, Directory: t.TempDir()}
-	err = blockade.InspectConfiguredProviderModel(context.Background(), blockade.ProviderAdapterConfig{ID: "onnx", Provider: "onnx"}, model, registry, nil)
-	if kind, ok := blockade.ProviderAdapterErrorKindOf(err); !ok || kind != blockade.ProviderAdapterErrorInvalidRequest {
+	err = contentkit.InspectConfiguredProviderModel(context.Background(), contentkit.ProviderAdapterConfig{ID: "onnx", Provider: "onnx"}, model, registry, nil)
+	if kind, ok := contentkit.ProviderAdapterErrorKindOf(err); !ok || kind != contentkit.ProviderAdapterErrorInvalidRequest {
 		t.Fatalf("standalone ONNX provider inspection error = %v, kind = %q", err, kind)
 	}
 }

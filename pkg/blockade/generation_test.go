@@ -1,6 +1,7 @@
 package blockade
 
 import (
+	"contentkit"
 	"context"
 	"encoding/json"
 	"errors"
@@ -46,14 +47,14 @@ func TestModelCatalogAcceptsOnlyExplicitArbitraryBindings(t *testing.T) {
 	if provider.called != 1 || provider.request.Model != "vendor-model-that-core-does-not-know" {
 		t.Fatalf("wrong dispatch: %+v", provider)
 	}
-	if _, err := catalog.Stream(context.Background(), request, func(GenerationEvent) error { return nil }); !errors.Is(err, ErrGenerationUnsupported) {
+	if _, err := catalog.Stream(context.Background(), request, func(GenerationEvent) error { return nil }); !errors.Is(err, contentkit.ErrGenerationUnsupported) {
 		t.Fatalf("streaming must not be simulated: %v", err)
 	}
 }
 
 func TestGenerationRejectsMalformedProviderToolProposals(t *testing.T) {
 	response := GenerationResponse{Model: "private", Message: Message{Role: "assistant", ToolCalls: []ToolCall{{ID: "call-1", Name: "operation", Arguments: json.RawMessage(`[]`)}}}}
-	if !errors.Is(ValidateGenerationResponse(response), ErrInvalidGeneration) {
+	if !errors.Is(ValidateGenerationResponse(response), contentkit.ErrInvalidGeneration) {
 		t.Fatal("tool arguments must be objects")
 	}
 	response.Message.ToolCalls[0].Arguments = json.RawMessage(`{}`)

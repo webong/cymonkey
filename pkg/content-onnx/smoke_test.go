@@ -1,6 +1,7 @@
 package main
 
 import (
+	"contentkit"
 	"context"
 	"encoding/json"
 	"os"
@@ -8,8 +9,6 @@ import (
 	"runtime"
 	"testing"
 	"time"
-
-	"blockade"
 )
 
 func TestOnnxProviderFixtureSmoke(t *testing.T) {
@@ -51,14 +50,14 @@ func TestOnnxProviderFixtureSmoke(t *testing.T) {
 		t.Fatalf("start ONNX provider: %v", err)
 	}
 	defer engine.Close()
-	result, err := engine.Observe(ctx, blockade.ObserveRequest{RequestID: "onnx-smoke-1", Image: image})
+	result, err := engine.Observe(ctx, contentkit.ObserveRequest{RequestID: "onnx-smoke-1", Image: image})
 	if err != nil {
 		t.Fatalf("observe: %v", err)
 	}
 	if result.RequestID != "onnx-smoke-1" {
 		t.Fatalf("requestId = %q", result.RequestID)
 	}
-	if err := blockade.ValidateObserveResponse(result); err != nil {
+	if err := contentkit.ValidateObserveResponse(result); err != nil {
 		t.Fatalf("invalid response: %v", err)
 	}
 }

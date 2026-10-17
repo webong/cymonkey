@@ -1,8 +1,8 @@
 package main
 
 import (
-	"blockade"
 	"bytes"
+	"contentkit"
 	"cymonkey/src/contentbridge"
 	contentcli "cymonkey/src/contentcli"
 	"cymonkey/src/contracts"
@@ -65,7 +65,7 @@ func runContent(args []string, stdout, stderr io.Writer) error {
 		DefaultConfig: defaultConfig,
 		DefaultBind:   envOrDefault("CYMONKEY_CONTENT_BIND", "127.0.0.1:8091"),
 		Registry:      registry,
-		Resolver:      blockade.EnvironmentSecretResolver{},
+		Resolver:      contentkit.EnvironmentSecretResolver{},
 		Middleware:    contentServiceContract,
 	}
 	if len(publicArgs) > 0 && publicArgs[0] == "serve" {
@@ -218,7 +218,7 @@ func prepareLibraryContentConfig(args []string, publicPath string) ([]string, st
 				libraryConfig.Providers[index].ModelRoot = modelRoot
 			}
 		}
-		if err := blockade.SaveConfig(temporaryPath, libraryConfig); err != nil {
+		if err := contentkit.SaveConfig(temporaryPath, libraryConfig); err != nil {
 			cleanup()
 			return nil, "", nil, err
 		}
@@ -277,7 +277,7 @@ func validateContentConfig(args []string, path string, stdout io.Writer) error {
 }
 
 func persistContentEndpointMutation(args []string, publicPath, temporaryPath string) error {
-	config, err := blockade.LoadConfig(temporaryPath)
+	config, err := contentkit.LoadConfig(temporaryPath)
 	if errors.Is(err, os.ErrNotExist) && len(args) >= 2 && args[1] == "remove" {
 		if removeErr := os.Remove(publicPath); removeErr != nil && !errors.Is(removeErr, os.ErrNotExist) {
 			return removeErr
@@ -310,14 +310,14 @@ func writeContentEndpointMutationResult(args []string, configPath string, stdout
 
 func writePublicContentOutput(args []string, configPath string, output []byte, stdout io.Writer) error {
 	if len(args) > 0 && args[0] == "interpret" {
-		var response blockade.InterpretResponse
+		var response contentkit.InterpretResponse
 		if err := json.Unmarshal(output, &response); err != nil {
 			return err
 		}
 		return json.NewEncoder(stdout).Encode(contentbridge.FromLibraryResponse(response))
 	}
 	if len(args) > 0 && args[0] == "observe" {
-		var response blockade.ObserveResponse
+		var response contentkit.ObserveResponse
 		if err := json.Unmarshal(output, &response); err != nil {
 			return err
 		}
@@ -359,7 +359,7 @@ func publicContentJSON(value any) any {
 		}
 		return result
 	case string:
-		if value == blockade.ConfigAPIVersion {
+		if value == contentkit.ConfigAPIVersion {
 			return contracts.ContentConfigVersion
 		}
 		return value

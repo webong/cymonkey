@@ -1,13 +1,13 @@
 package main
 
 import (
+	"contentkit"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"blockade"
 	"cymonkey-content-plugin-endpoints/internal/providerexec"
 )
 
@@ -37,11 +37,11 @@ func TestGoogleCompatibleInterpret(t *testing.T) {
 	}}); err != nil {
 		t.Fatal(err)
 	}
-	result, err := provider.Interpret(context.Background(), blockade.ProviderAdapterInterpretRequest{
-		APIVersion: blockade.ProviderAdapterAPIVersion,
-		Request: blockade.InterpretRequest{
-			APIVersion: blockade.ContentAPIVersion, RequestID: "google-1",
-			Parts: []blockade.ContentPart{{Kind: "audio", MediaType: "audio/wav", Data: []byte("wav")}},
+	result, err := provider.Interpret(context.Background(), contentkit.ProviderAdapterInterpretRequest{
+		APIVersion: contentkit.ProviderAdapterAPIVersion,
+		Request: contentkit.InterpretRequest{
+			APIVersion: contentkit.ContentAPIVersion, RequestID: "google-1",
+			Parts: []contentkit.ContentPart{{Kind: "audio", MediaType: "audio/wav", Data: []byte("wav")}},
 		},
 	}, map[string]string{"apiKey": "secret"})
 	if err != nil {
@@ -67,11 +67,11 @@ func TestGoogleCompatibleEscapesModelAsOnePathSegment(t *testing.T) {
 	}}); err != nil {
 		t.Fatal(err)
 	}
-	_, err := provider.Interpret(context.Background(), blockade.ProviderAdapterInterpretRequest{
-		APIVersion: blockade.ProviderAdapterAPIVersion,
-		Request: blockade.InterpretRequest{
-			APIVersion: blockade.ContentAPIVersion,
-			Parts:      []blockade.ContentPart{{Kind: "text", Text: "hello"}},
+	_, err := provider.Interpret(context.Background(), contentkit.ProviderAdapterInterpretRequest{
+		APIVersion: contentkit.ProviderAdapterAPIVersion,
+		Request: contentkit.InterpretRequest{
+			APIVersion: contentkit.ContentAPIVersion,
+			Parts:      []contentkit.ContentPart{{Kind: "text", Text: "hello"}},
 		},
 	}, nil)
 	if err != nil {
@@ -100,11 +100,11 @@ func TestGoogleCompatibleEncodesVideoInline(t *testing.T) {
 	}}); err != nil {
 		t.Fatal(err)
 	}
-	result, err := provider.Interpret(context.Background(), blockade.ProviderAdapterInterpretRequest{
-		APIVersion: blockade.ProviderAdapterAPIVersion,
-		Request: blockade.InterpretRequest{
-			APIVersion: blockade.ContentAPIVersion,
-			Parts:      []blockade.ContentPart{{Kind: "video", MediaType: "video/mp4", Data: []byte("mp4")}},
+	result, err := provider.Interpret(context.Background(), contentkit.ProviderAdapterInterpretRequest{
+		APIVersion: contentkit.ProviderAdapterAPIVersion,
+		Request: contentkit.InterpretRequest{
+			APIVersion: contentkit.ContentAPIVersion,
+			Parts:      []contentkit.ContentPart{{Kind: "video", MediaType: "video/mp4", Data: []byte("mp4")}},
 		},
 	}, nil)
 	if err != nil {

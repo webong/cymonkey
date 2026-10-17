@@ -1,4 +1,4 @@
-package blockade
+package contentkit
 
 import (
 	"encoding/base64"

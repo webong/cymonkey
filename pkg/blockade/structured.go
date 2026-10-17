@@ -1,6 +1,7 @@
 package blockade
 
 import (
+	"contentkit"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -23,7 +24,7 @@ type StructuredEvent[T any] struct {
 func StreamStructuredOutput[T any](ctx context.Context, model StreamingGenerator, request GenerationRequest, emit func(StructuredEvent[T]) error) (T, GenerationResponse, error) {
 	var zero T
 	if model == nil || emit == nil || len(request.OutputSchema) == 0 {
-		return zero, GenerationResponse{}, fmt.Errorf("%w: structured streaming needs a model, schema and consumer", ErrInvalidGeneration)
+		return zero, GenerationResponse{}, fmt.Errorf("%w: structured streaming needs a model, schema and consumer", contentkit.ErrInvalidGeneration)
 	}
 	if err := ValidateGenerationRequest(request); err != nil {
 		return zero, GenerationResponse{}, err
@@ -42,7 +43,7 @@ func StreamStructuredOutput[T any](ctx context.Context, model StreamingGenerator
 			return nil
 		}
 		if text.Len()+len(event.Text) > 32<<20 {
-			return fmt.Errorf("%w: structured output exceeds byte ceiling", ErrInvalidGeneration)
+			return fmt.Errorf("%w: structured output exceeds byte ceiling", contentkit.ErrInvalidGeneration)
 		}
 		text.WriteString(event.Text)
 		if err := emit(StructuredEvent[T]{Kind: "text.delta", Text: event.Text}); err != nil {
@@ -94,7 +95,7 @@ func ValidateStructuredOutput(response GenerationResponse, schema json.RawMessag
 		}
 	}
 	if len(response.Message.ToolCalls) != 0 || !completed {
-		return fmt.Errorf("%w: response is not completed structured output", ErrInvalidGeneration)
+		return fmt.Errorf("%w: response is not completed structured output", contentkit.ErrInvalidGeneration)
 	}
 	return jsonschema.Validate(schema, json.RawMessage(response.Text()))
 }

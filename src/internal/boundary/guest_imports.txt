@@ -9,12 +9,7 @@ src/console_command.go console/mcp
 src/console_command.go cymonkey-content-plugin-endpoints/generation
 src/console_command.go jangolova/contract
 src/console_command.go jangolova/ui
-src/content_command.go blockade
-src/contentbridge/client.go blockade
-src/contentbridge/config.go blockade
-src/contentbridge/content.go blockade
 src/contentcli/command.go blockade
-src/contentcli/command_test.go blockade
 src/contentcli/endpoint.go blockade
 src/device_command.go board
 src/devicebridge/device.go board
@@ -42,10 +37,7 @@ src/operator_device_targets.go board/rtc
 src/operator_device_test.go board
 src/operator_device_viewer.go board
 src/operator_server.go board
-src/plugins.go blockade
-src/plugins.go blockade/plugin
 src/plugins.go board
 src/plugins.go board/config
 src/plugins.go board/plugin
-src/plugins_test.go blockade
 src/plugins_test.go board

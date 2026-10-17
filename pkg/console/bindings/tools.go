@@ -3,11 +3,11 @@
 package bindings
 
 import (
+	"contentkit"
 	"context"
 	"encoding/json"
 	"errors"
 
-	"blockade"
 	"board"
 	"console"
 	"jangolova/contract"
@@ -51,23 +51,23 @@ func Device(definition console.Definition, connection *board.Connection, capabil
 
 // Interpret binds a content engine. A host can expose several models as
 // distinct tools without giving tool callers access to provider credentials.
-func Interpret(definition console.Definition, engine blockade.ContentEngine) (console.Tool, error) {
+func Interpret(definition console.Definition, engine contentkit.ContentEngine) (console.Tool, error) {
 	if engine == nil {
 		return console.Tool{}, errors.New("content engine is required")
 	}
-	return console.NewJSONTool(definition, func(ctx context.Context, request blockade.InterpretRequest) (blockade.InterpretResponse, error) {
+	return console.NewJSONTool(definition, func(ctx context.Context, request contentkit.InterpretRequest) (contentkit.InterpretResponse, error) {
 		if request.APIVersion == "" {
-			request.APIVersion = blockade.ContentAPIVersion
+			request.APIVersion = contentkit.ContentAPIVersion
 		}
-		if err := blockade.ValidateInterpretRequest(request); err != nil {
-			return blockade.InterpretResponse{}, err
+		if err := contentkit.ValidateInterpretRequest(request); err != nil {
+			return contentkit.InterpretResponse{}, err
 		}
 		response, err := engine.Interpret(ctx, request)
 		if err != nil {
-			return blockade.InterpretResponse{}, err
+			return contentkit.InterpretResponse{}, err
 		}
-		if err := blockade.ValidateInterpretResponse(response, request); err != nil {
-			return blockade.InterpretResponse{}, err
+		if err := contentkit.ValidateInterpretResponse(response, request); err != nil {
+			return contentkit.InterpretResponse{}, err
 		}
 		return response, nil
 	})

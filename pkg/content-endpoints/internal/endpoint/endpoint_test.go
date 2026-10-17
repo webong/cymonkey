@@ -1,6 +1,7 @@
 package endpoint
 
 import (
+	"contentkit"
 	"context"
 	"errors"
 	"net/http"
@@ -8,8 +9,6 @@ import (
 	"slices"
 	"testing"
 	"time"
-
-	"blockade"
 )
 
 func TestParseConfigDerivesCapabilities(t *testing.T) {
@@ -25,7 +24,7 @@ func TestParseConfigDerivesCapabilities(t *testing.T) {
 	if config.Model != "vision-model" || config.MaxTokens != 2048 {
 		t.Fatalf("config = %#v", config)
 	}
-	for _, capability := range []string{blockade.CapabilityTextInterpret, blockade.CapabilityImageInterpret, blockade.CapabilityVideoInterpret, blockade.CapabilityMultimodalInterpret} {
+	for _, capability := range []string{contentkit.CapabilityTextInterpret, contentkit.CapabilityImageInterpret, contentkit.CapabilityVideoInterpret, contentkit.CapabilityMultimodalInterpret} {
 		if !slices.Contains(config.Capabilities, capability) {
 			t.Fatalf("capabilities = %#v", config.Capabilities)
 		}
@@ -44,9 +43,9 @@ func TestParseConfigRejectsNonFiniteTemperature(t *testing.T) {
 }
 
 func TestNormalizeAcceptsStructuredAndPlainModelOutput(t *testing.T) {
-	request := blockade.InterpretRequest{
-		APIVersion: blockade.ContentAPIVersion, RequestID: "request-1",
-		Parts: []blockade.ContentPart{{Kind: "text", Text: "hello"}},
+	request := contentkit.InterpretRequest{
+		APIVersion: contentkit.ContentAPIVersion, RequestID: "request-1",
+		Parts: []contentkit.ContentPart{{Kind: "text", Text: "hello"}},
 	}
 	structured, err := Normalize(`{"findings":[{"kind":"summary","text":"hello back","sourceParts":[0]}]}`, request)
 	if err != nil {
@@ -75,11 +74,11 @@ func TestDoJSONMapsRateLimitAndRetryAfter(t *testing.T) {
 		t.Fatal(err)
 	}
 	err = DoJSON(context.Background(), server.Client(), request, &map[string]any{})
-	var adapterError *blockade.ProviderAdapterError
+	var adapterError *contentkit.ProviderAdapterError
 	if !errors.As(err, &adapterError) {
 		t.Fatalf("error = %T %v", err, err)
 	}
-	if adapterError.Kind != blockade.ProviderAdapterErrorRateLimit || adapterError.RetryAfter != 2*time.Second {
+	if adapterError.Kind != contentkit.ProviderAdapterErrorRateLimit || adapterError.RetryAfter != 2*time.Second {
 		t.Fatalf("adapter error = %#v", adapterError)
 	}
 }

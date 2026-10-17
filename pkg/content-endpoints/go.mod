@@ -3,6 +3,7 @@ module cymonkey-content-plugin-endpoints
 go 1.26.5
 
 require (
+	contentkit v0.0.0
 	blockade v0.0.0
 	github.com/gorilla/websocket v1.5.3
 )
@@ -15,3 +16,4 @@ require (
 
 replace blockade => ../blockade
 
+replace contentkit => ../contentkit

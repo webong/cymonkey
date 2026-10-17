@@ -3,6 +3,7 @@
 package main
 
 import (
+	"contentkit"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -12,7 +13,6 @@ import (
 	"os"
 	"strings"
 
-	"blockade"
 	"cymonkey-content-plugin-endpoints/internal/endpoint"
 	"cymonkey-content-plugin-endpoints/internal/providerexec"
 )
@@ -88,7 +88,7 @@ func main() {
 
 func (p *provider) Start(_ context.Context, request providerexec.StartRequest) error {
 	if p.ready {
-		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, errors.New("provider is already started"))
+		return contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidRequest, errors.New("provider is already started"))
 	}
 	profile := strings.ToLower(strings.TrimSpace(request.Settings["profile"]))
 	if profile == "" {
@@ -96,7 +96,7 @@ func (p *provider) Start(_ context.Context, request providerexec.StartRequest) e
 	}
 	defaultBaseURL, ok := profileBaseURLs[profile]
 	if !ok {
-		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, fmt.Errorf("unknown OpenAI-compatible profile %q", profile))
+		return contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidRequest, fmt.Errorf("unknown OpenAI-compatible profile %q", profile))
 	}
 	config, err := endpoint.ParseConfig(request.Settings, endpoint.ParseOptions{
 		DefaultBaseURL: defaultBaseURL, DefaultModalities: []string{"text"},
@@ -104,14 +104,14 @@ func (p *provider) Start(_ context.Context, request providerexec.StartRequest) e
 		ExtraSettings:     []string{"profile", "responseFormat", "videoContentType"},
 	})
 	if err != nil {
-		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, err)
+		return contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidRequest, err)
 	}
 	format := strings.ToLower(strings.TrimSpace(request.Settings["responseFormat"]))
 	if format == "" {
 		format = "none"
 	}
 	if format != "none" && format != "json_object" {
-		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, errors.New("responseFormat must be none or json_object"))
+		return contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidRequest, errors.New("responseFormat must be none or json_object"))
 	}
 	videoContentType := strings.ToLower(strings.TrimSpace(request.Settings["videoContentType"]))
 	if videoContentType == "" {
@@ -121,7 +121,7 @@ func (p *provider) Start(_ context.Context, request providerexec.StartRequest) e
 		}
 	}
 	if videoContentType != "video_url" && videoContentType != "input_video" {
-		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, errors.New("videoContentType must be video_url or input_video"))
+		return contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidRequest, errors.New("videoContentType must be video_url or input_video"))
 	}
 	p.config = config
 	p.format = format
@@ -130,30 +130,30 @@ func (p *provider) Start(_ context.Context, request providerexec.StartRequest) e
 	return nil
 }
 
-func (p *provider) Capabilities(context.Context) (blockade.ProviderAdapterCapabilities, error) {
+func (p *provider) Capabilities(context.Context) (contentkit.ProviderAdapterCapabilities, error) {
 	if !p.ready {
-		return blockade.ProviderAdapterCapabilities{APIVersion: blockade.ProviderAdapterAPIVersion, Capabilities: []string{blockade.CapabilityTextInterpret}}, nil
+		return contentkit.ProviderAdapterCapabilities{APIVersion: contentkit.ProviderAdapterAPIVersion, Capabilities: []string{contentkit.CapabilityTextInterpret}}, nil
 	}
-	return blockade.ProviderAdapterCapabilities{APIVersion: blockade.ProviderAdapterAPIVersion, Capabilities: append([]string(nil), p.config.Capabilities...)}, nil
+	return contentkit.ProviderAdapterCapabilities{APIVersion: contentkit.ProviderAdapterAPIVersion, Capabilities: append([]string(nil), p.config.Capabilities...)}, nil
 }
 
-func (p *provider) Health(context.Context) (blockade.ProviderAdapterHealth, error) {
-	return blockade.ProviderAdapterHealth{APIVersion: blockade.ProviderAdapterAPIVersion, Ready: p.ready}, nil
+func (p *provider) Health(context.Context) (contentkit.ProviderAdapterHealth, error) {
+	return contentkit.ProviderAdapterHealth{APIVersion: contentkit.ProviderAdapterAPIVersion, Ready: p.ready}, nil
 }
 
-func (p *provider) Interpret(ctx context.Context, wrapped blockade.ProviderAdapterInterpretRequest, secrets map[string]string) (blockade.ProviderAdapterInterpretResponse, error) {
+func (p *provider) Interpret(ctx context.Context, wrapped contentkit.ProviderAdapterInterpretRequest, secrets map[string]string) (contentkit.ProviderAdapterInterpretResponse, error) {
 	if !p.ready {
-		return blockade.ProviderAdapterInterpretResponse{}, blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorUnavailable, errors.New("provider has not been started"))
+		return contentkit.ProviderAdapterInterpretResponse{}, contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorUnavailable, errors.New("provider has not been started"))
 	}
-	if wrapped.APIVersion != blockade.ProviderAdapterAPIVersion {
-		return blockade.ProviderAdapterInterpretResponse{}, blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, errors.New("unsupported provider adapter apiVersion"))
+	if wrapped.APIVersion != contentkit.ProviderAdapterAPIVersion {
+		return contentkit.ProviderAdapterInterpretResponse{}, contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidRequest, errors.New("unsupported provider adapter apiVersion"))
 	}
 	if err := p.config.ValidateRequest(wrapped.Request); err != nil {
-		return blockade.ProviderAdapterInterpretResponse{}, err
+		return contentkit.ProviderAdapterInterpretResponse{}, err
 	}
 	content, err := p.openAIContent(wrapped.Request)
 	if err != nil {
-		return blockade.ProviderAdapterInterpretResponse{}, err
+		return contentkit.ProviderAdapterInterpretResponse{}, err
 	}
 	body := chatRequest{
 		Model: p.config.Model, MaxTokens: p.config.MaxTokens, Temperature: p.config.Temperature,
@@ -167,7 +167,7 @@ func (p *provider) Interpret(ctx context.Context, wrapped blockade.ProviderAdapt
 	}
 	request, err := endpoint.NewJSONRequest(ctx, http.MethodPost, p.config.URL("chat/completions"), body)
 	if err != nil {
-		return blockade.ProviderAdapterInterpretResponse{}, err
+		return contentkit.ProviderAdapterInterpretResponse{}, err
 	}
 	if key := strings.TrimSpace(secrets["apiKey"]); key != "" {
 		request.Header.Set("Authorization", "Bearer "+key)
@@ -180,14 +180,14 @@ func (p *provider) Interpret(ctx context.Context, wrapped blockade.ProviderAdapt
 		} `json:"choices"`
 	}
 	if err := endpoint.DoJSON(ctx, p.client, request, &response); err != nil {
-		return blockade.ProviderAdapterInterpretResponse{}, err
+		return contentkit.ProviderAdapterInterpretResponse{}, err
 	}
 	if len(response.Choices) == 0 {
-		return blockade.ProviderAdapterInterpretResponse{}, blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidResponse, errors.New("endpoint returned no choices"))
+		return contentkit.ProviderAdapterInterpretResponse{}, contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidResponse, errors.New("endpoint returned no choices"))
 	}
 	text, err := openAIResponseText(response.Choices[0].Message.Content)
 	if err != nil {
-		return blockade.ProviderAdapterInterpretResponse{}, err
+		return contentkit.ProviderAdapterInterpretResponse{}, err
 	}
 	return endpoint.Normalize(text, wrapped.Request)
 }
@@ -197,7 +197,7 @@ func (p *provider) Close() error {
 	return nil
 }
 
-func (p *provider) openAIContent(request blockade.InterpretRequest) (any, error) {
+func (p *provider) openAIContent(request contentkit.InterpretRequest) (any, error) {
 	content := make([]chatContent, 0, len(request.Parts)+1)
 	if prompt := strings.TrimSpace(request.Prompt); prompt != "" {
 		content = append(content, chatContent{Type: "text", Text: "Task: " + prompt})
@@ -239,7 +239,7 @@ func openAIAudioFormat(mediaType string) (string, error) {
 	case "audio/mpeg", "audio/mp3":
 		return "mp3", nil
 	default:
-		return "", blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, fmt.Errorf("OpenAI-compatible audio input does not support media type %q", mediaType))
+		return "", contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidRequest, fmt.Errorf("OpenAI-compatible audio input does not support media type %q", mediaType))
 	}
 }
 
@@ -253,7 +253,7 @@ func openAIResponseText(raw json.RawMessage) (string, error) {
 		Text string `json:"text"`
 	}
 	if err := json.Unmarshal(raw, &parts); err != nil {
-		return "", blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidResponse, errors.New("endpoint returned unsupported message content"))
+		return "", contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidResponse, errors.New("endpoint returned unsupported message content"))
 	}
 	var builder strings.Builder
 	for _, part := range parts {

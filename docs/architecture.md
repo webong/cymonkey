@@ -244,7 +244,7 @@ src/internal/host/              Cymonkey host configuration and process supervis
 pkg/jangolova/                  standalone Jangolova library and host boundary
 pkg/jangolova/host/             Jangolova host service injection contract
 pkg/blockade/                   standalone Blockade inference library
-pkg/blockade/protocol/          Blockade schemas and fixtures
+pkg/contentkit/protocol/          content contract schemas and fixtures
 src/internal/targetconn/        caller-owned target connection helpers
 pkg/jangolova/contract/         public runtime wire contract
 pkg/jangolova/sdk/              public types and host-injection interfaces

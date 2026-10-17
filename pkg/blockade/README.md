@@ -1,14 +1,12 @@
-# Blockade library
+# Blockade content service
 
-Blockade is the content observation, interpretation, and model contract library. It
-defines Go contracts for text, image, audio, and video requests, validates
-provider output, selects configured adapters, and manages local model and
-runtime artifacts.
+Blockade is the content service: an HTTP handler and client for observation and
+interpretation, plus the generation, embedding, speech and transcription APIs.
+It builds on the content kit (`pkg/contentkit`), which holds the contracts and
+the provider host role, and it is a guest of the Cymonkey host.
 
-Blockade is independently embeddable. An application that imports it may use
-its native types and protocols. Cymonkey users work through `cymy content` and
-the `cymonkey.content/*` contracts documented in
-[`docs/content.md`](../../docs/content.md).
+Cymonkey users work through `cymy content` and the `content.*` contracts
+documented in [`docs/content.md`](../../docs/content.md).
 
 ## Library boundary
 

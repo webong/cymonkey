@@ -1,4 +1,4 @@
-package blockadeplugin
+package contentkitplugin
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"blockade"
+	"contentkit"
 	plugin "github.com/webong/ext/pkg/plugin-go/contract"
 	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
 	packagekit "github.com/webong/ext/pkg/plugin-go/contract/package"
@@ -23,15 +23,15 @@ import (
 
 func TestNormalizeProcessErrorPreservesBlockadeFailureKind(t *testing.T) {
 	err := normalizeProcessError(&plugin.RemoteError{
-		Code:                   string(blockade.ProviderAdapterErrorRateLimit),
+		Code:                   string(contentkit.ProviderAdapterErrorRateLimit),
 		Message:                "capacity exhausted",
 		RetryAfterMilliseconds: 1500,
 	})
-	var adapterError *blockade.ProviderAdapterError
+	var adapterError *contentkit.ProviderAdapterError
 	if !errors.As(err, &adapterError) {
 		t.Fatalf("error = %T %v", err, err)
 	}
-	if adapterError.Kind != blockade.ProviderAdapterErrorRateLimit || adapterError.RetryAfter != 1500*time.Millisecond {
+	if adapterError.Kind != contentkit.ProviderAdapterErrorRateLimit || adapterError.RetryAfter != 1500*time.Millisecond {
 		t.Fatalf("adapter error = %#v", adapterError)
 	}
 }
@@ -39,7 +39,7 @@ func TestNormalizeProcessErrorPreservesBlockadeFailureKind(t *testing.T) {
 // A standalone Blockade application can register its own provider packages
 // without importing or running Cymonkey.
 func TestRegisterInstalledSelectsOnlyBlockadeProviders(t *testing.T) {
-	registry := blockade.NewProviderAdapterRegistry()
+	registry := contentkit.NewProviderAdapterRegistry()
 	installed := []store.Installed{
 		testInstalled(t, "vision", ContractName, Operations),
 		testInstalled(t, "camera", "device.provider", []string{"list"}),
@@ -47,7 +47,7 @@ func TestRegisterInstalledSelectsOnlyBlockadeProviders(t *testing.T) {
 	if err := RegisterInstalled(registry, installed); err != nil {
 		t.Fatal(err)
 	}
-	placeholder := func(context.Context, blockade.ProviderAdapterRuntime) (blockade.ProviderAdapter, error) {
+	placeholder := func(context.Context, contentkit.ProviderAdapterRuntime) (contentkit.ProviderAdapter, error) {
 		return nil, nil
 	}
 	if err := registry.Register("vision", placeholder); err == nil {
@@ -109,16 +109,16 @@ func TestSourceProviderUsesBlockadeManagedRuntimeAndWorkerPool(t *testing.T) {
 		t.Fatal(err)
 	}
 	runtimeDigest := sha256.Sum256(launcher)
-	runtimeManifest := blockade.RuntimeManifest{
-		APIVersion: blockade.RuntimeManifestAPIVersion,
+	runtimeManifest := contentkit.RuntimeManifest{
+		APIVersion: contentkit.RuntimeManifestAPIVersion,
 		Name:       "python",
 		Version:    "3.12.8",
 		Platform:   runtime.GOOS + "-" + runtime.GOARCH,
 		Executable: "bin/python3",
-		Files:      []blockade.RuntimeFile{{Path: "bin/python3", SHA256: hex.EncodeToString(runtimeDigest[:]), Executable: true}},
+		Files:      []contentkit.RuntimeFile{{Path: "bin/python3", SHA256: hex.EncodeToString(runtimeDigest[:]), Executable: true}},
 	}
 	writeJSON(t, filepath.Join(runtimeSource, "runtime.json"), runtimeManifest)
-	if _, err := blockade.InstallRuntime(runtimeRoot, filepath.Join(runtimeSource, "runtime.json")); err != nil {
+	if _, err := contentkit.InstallRuntime(runtimeRoot, filepath.Join(runtimeSource, "runtime.json")); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("BLOCKADE_RUNTIME_DIR", runtimeRoot)
@@ -171,18 +171,18 @@ for line in sys.stdin:
 	if err != nil {
 		t.Fatal(err)
 	}
-	registry := blockade.NewProviderAdapterRegistry()
+	registry := contentkit.NewProviderAdapterRegistry()
 	if err := Register(registry, installed); err != nil {
 		t.Fatal(err)
 	}
-	engine, err := blockade.StartConfiguredProviderAdapter(context.Background(), blockade.ProviderAdapterConfig{ID: "source", Provider: "source-vision", Workers: 2}, registry, nil)
+	engine, err := contentkit.StartConfiguredProviderAdapter(context.Background(), contentkit.ProviderAdapterConfig{ID: "source", Provider: "source-vision", Workers: 2}, registry, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer engine.Close()
 	labels := map[string]bool{}
 	for index := range 2 {
-		response, err := engine.Observe(context.Background(), blockade.ObserveRequest{Image: []byte("image"), RequestID: fmt.Sprintf("request-%d", index)})
+		response, err := engine.Observe(context.Background(), contentkit.ObserveRequest{Image: []byte("image"), RequestID: fmt.Sprintf("request-%d", index)})
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -3,6 +3,7 @@ module console
 go 1.26.5
 
 require (
+	contentkit v0.0.0
 	blockade v0.0.0
 	board v0.0.0
 	jangolova v0.0.0
@@ -21,3 +22,5 @@ replace blockade => ../blockade
 replace board => ../board
 
 replace jangolova => ../jangolova
+
+replace contentkit => ../contentkit

@@ -3,6 +3,7 @@
 package main
 
 import (
+	"contentkit"
 	"context"
 	"encoding/json"
 	"errors"
@@ -11,7 +12,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"blockade"
 	webllmruntime "cymonkey-content-plugin-webllm/runtime"
 	plugin "github.com/webong/ext/pkg/plugin-go/contract"
 	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
@@ -26,7 +26,7 @@ const (
 
 type provider struct {
 	descriptor plugin.Descriptor
-	adapter    blockade.ProviderAdapter
+	adapter    contentkit.ProviderAdapter
 }
 
 func main() {
@@ -72,7 +72,7 @@ func (p *provider) call(ctx context.Context, method string, raw json.RawMessage)
 		if err := decodeParams(raw, &params); err != nil {
 			return nil, err
 		}
-		adapter, err := webllmruntime.New(ctx, blockade.ProviderAdapterRuntime{ID: params.ID, Settings: params.Settings})
+		adapter, err := webllmruntime.New(ctx, contentkit.ProviderAdapterRuntime{ID: params.ID, Settings: params.Settings})
 		if err != nil {
 			return nil, err
 		}
@@ -80,15 +80,15 @@ func (p *provider) call(ctx context.Context, method string, raw json.RawMessage)
 		return map[string]any{}, nil
 	case "content.provider.capabilities":
 		if p.adapter == nil {
-			return blockade.ProviderAdapterCapabilities{
-				APIVersion:   blockade.ProviderAdapterAPIVersion,
-				Capabilities: []string{blockade.CapabilityImageObserve, blockade.CapabilityVisionLanguage},
+			return contentkit.ProviderAdapterCapabilities{
+				APIVersion:   contentkit.ProviderAdapterAPIVersion,
+				Capabilities: []string{contentkit.CapabilityImageObserve, contentkit.CapabilityVisionLanguage},
 			}, nil
 		}
 		return p.adapter.Capabilities(ctx)
 	case "content.provider.health":
 		if p.adapter == nil {
-			return blockade.ProviderAdapterHealth{APIVersion: blockade.ProviderAdapterAPIVersion, Ready: false}, nil
+			return contentkit.ProviderAdapterHealth{APIVersion: contentkit.ProviderAdapterAPIVersion, Ready: false}, nil
 		}
 		return p.adapter.Health(ctx)
 	case "content.provider.observe":
@@ -96,7 +96,7 @@ func (p *provider) call(ctx context.Context, method string, raw json.RawMessage)
 			return nil, errors.New("provider has not been started")
 		}
 		var params struct {
-			Request blockade.ProviderAdapterObserveRequest `json:"request"`
+			Request contentkit.ProviderAdapterObserveRequest `json:"request"`
 			// Blockade sends the adapter's resolved secrets with every call. An
 			// image provider has none to use, but must still accept the field.
 			Secrets map[string]string `json:"secrets,omitempty"`

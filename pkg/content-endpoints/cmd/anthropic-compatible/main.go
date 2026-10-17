@@ -3,6 +3,7 @@
 package main
 
 import (
+	"contentkit"
 	"context"
 	"encoding/base64"
 	"errors"
@@ -11,7 +12,6 @@ import (
 	"os"
 	"strings"
 
-	"blockade"
 	"cymonkey-content-plugin-endpoints/internal/endpoint"
 	"cymonkey-content-plugin-endpoints/internal/providerexec"
 )
@@ -62,21 +62,21 @@ func main() {
 
 func (p *provider) Start(_ context.Context, request providerexec.StartRequest) error {
 	if p.ready {
-		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, errors.New("provider is already started"))
+		return contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidRequest, errors.New("provider is already started"))
 	}
 	config, err := endpoint.ParseConfig(request.Settings, endpoint.ParseOptions{
 		DefaultBaseURL: "https://api.anthropic.com", DefaultModalities: []string{"text"},
 		AllowedModalities: []string{"text", "image"}, ExtraSettings: []string{"anthropicVersion"},
 	})
 	if err != nil {
-		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, err)
+		return contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidRequest, err)
 	}
 	version := strings.TrimSpace(request.Settings["anthropicVersion"])
 	if version == "" {
 		version = "2023-06-01"
 	}
 	if len(version) > 64 {
-		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, errors.New("anthropicVersion is too long"))
+		return contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidRequest, errors.New("anthropicVersion is too long"))
 	}
 	p.config = config
 	p.apiVersion = version
@@ -84,27 +84,27 @@ func (p *provider) Start(_ context.Context, request providerexec.StartRequest) e
 	return nil
 }
 
-func (p *provider) Capabilities(context.Context) (blockade.ProviderAdapterCapabilities, error) {
-	capabilities := []string{blockade.CapabilityTextInterpret}
+func (p *provider) Capabilities(context.Context) (contentkit.ProviderAdapterCapabilities, error) {
+	capabilities := []string{contentkit.CapabilityTextInterpret}
 	if p.ready {
 		capabilities = append([]string(nil), p.config.Capabilities...)
 	}
-	return blockade.ProviderAdapterCapabilities{APIVersion: blockade.ProviderAdapterAPIVersion, Capabilities: capabilities}, nil
+	return contentkit.ProviderAdapterCapabilities{APIVersion: contentkit.ProviderAdapterAPIVersion, Capabilities: capabilities}, nil
 }
 
-func (p *provider) Health(context.Context) (blockade.ProviderAdapterHealth, error) {
-	return blockade.ProviderAdapterHealth{APIVersion: blockade.ProviderAdapterAPIVersion, Ready: p.ready}, nil
+func (p *provider) Health(context.Context) (contentkit.ProviderAdapterHealth, error) {
+	return contentkit.ProviderAdapterHealth{APIVersion: contentkit.ProviderAdapterAPIVersion, Ready: p.ready}, nil
 }
 
-func (p *provider) Interpret(ctx context.Context, wrapped blockade.ProviderAdapterInterpretRequest, secrets map[string]string) (blockade.ProviderAdapterInterpretResponse, error) {
+func (p *provider) Interpret(ctx context.Context, wrapped contentkit.ProviderAdapterInterpretRequest, secrets map[string]string) (contentkit.ProviderAdapterInterpretResponse, error) {
 	if !p.ready {
-		return blockade.ProviderAdapterInterpretResponse{}, blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorUnavailable, errors.New("provider has not been started"))
+		return contentkit.ProviderAdapterInterpretResponse{}, contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorUnavailable, errors.New("provider has not been started"))
 	}
-	if wrapped.APIVersion != blockade.ProviderAdapterAPIVersion {
-		return blockade.ProviderAdapterInterpretResponse{}, blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, errors.New("unsupported provider adapter apiVersion"))
+	if wrapped.APIVersion != contentkit.ProviderAdapterAPIVersion {
+		return contentkit.ProviderAdapterInterpretResponse{}, contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidRequest, errors.New("unsupported provider adapter apiVersion"))
 	}
 	if err := p.config.ValidateRequest(wrapped.Request); err != nil {
-		return blockade.ProviderAdapterInterpretResponse{}, err
+		return contentkit.ProviderAdapterInterpretResponse{}, err
 	}
 	blocks := make([]contentBlock, 0, len(wrapped.Request.Parts)+1)
 	if prompt := strings.TrimSpace(wrapped.Request.Prompt); prompt != "" {
@@ -126,7 +126,7 @@ func (p *provider) Interpret(ctx context.Context, wrapped blockade.ProviderAdapt
 	}
 	request, err := endpoint.NewJSONRequest(ctx, http.MethodPost, p.config.URL("v1/messages"), body)
 	if err != nil {
-		return blockade.ProviderAdapterInterpretResponse{}, err
+		return contentkit.ProviderAdapterInterpretResponse{}, err
 	}
 	request.Header.Set("anthropic-version", p.apiVersion)
 	if key := strings.TrimSpace(secrets["apiKey"]); key != "" {
@@ -139,7 +139,7 @@ func (p *provider) Interpret(ctx context.Context, wrapped blockade.ProviderAdapt
 		} `json:"content"`
 	}
 	if err := endpoint.DoJSON(ctx, p.client, request, &response); err != nil {
-		return blockade.ProviderAdapterInterpretResponse{}, err
+		return contentkit.ProviderAdapterInterpretResponse{}, err
 	}
 	var text strings.Builder
 	for _, block := range response.Content {

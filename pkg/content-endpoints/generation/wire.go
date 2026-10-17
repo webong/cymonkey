@@ -1,6 +1,7 @@
 package generation
 
 import (
+	"contentkit"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -58,7 +59,7 @@ func (c *Client) encode(request blockade.GenerationRequest, stream bool) ([]byte
 }
 
 func unsupported(feature string) error {
-	return fmt.Errorf("%w: %s", blockade.ErrGenerationUnsupported, feature)
+	return fmt.Errorf("%w: %s", contentkit.ErrGenerationUnsupported, feature)
 }
 func plainText(message blockade.Message) (string, error) {
 	var text strings.Builder

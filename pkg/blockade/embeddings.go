@@ -1,6 +1,7 @@
 package blockade
 
 import (
+	"contentkit"
 	"context"
 	"errors"
 	"fmt"
@@ -26,34 +27,34 @@ type Embedder interface {
 
 func ValidateEmbeddingRequest(r EmbeddingRequest) error {
 	if strings.TrimSpace(r.Model) == "" || r.Dimensions < 0 || r.Dimensions > 65536 || (len(r.Texts) == 0) == (len(r.Tokens) == 0) || len(r.Texts)+len(r.Tokens) > 2048 {
-		return fmt.Errorf("%w: embedding model, input or dimensions", ErrInvalidGeneration)
+		return fmt.Errorf("%w: embedding model, input or dimensions", contentkit.ErrInvalidGeneration)
 	}
 	size := 0
 	for _, text := range r.Texts {
 		if text == "" {
-			return fmt.Errorf("%w: empty embedding text", ErrInvalidGeneration)
+			return fmt.Errorf("%w: empty embedding text", contentkit.ErrInvalidGeneration)
 		}
 		size += len(text)
 		if size > 8<<20 {
-			return fmt.Errorf("%w: embedding input exceeds 8 MiB", ErrInvalidGeneration)
+			return fmt.Errorf("%w: embedding input exceeds 8 MiB", contentkit.ErrInvalidGeneration)
 		}
 	}
 	for _, tokens := range r.Tokens {
 		if len(tokens) == 0 {
-			return fmt.Errorf("%w: empty embedding tokens", ErrInvalidGeneration)
+			return fmt.Errorf("%w: empty embedding tokens", contentkit.ErrInvalidGeneration)
 		}
 		if len(tokens) > ((8<<20)-size)/8 {
-			return fmt.Errorf("%w: embedding input exceeds 8 MiB", ErrInvalidGeneration)
+			return fmt.Errorf("%w: embedding input exceeds 8 MiB", contentkit.ErrInvalidGeneration)
 		}
 		size += len(tokens) * 8
 		for _, token := range tokens {
 			if token < 0 {
-				return fmt.Errorf("%w: negative token", ErrInvalidGeneration)
+				return fmt.Errorf("%w: negative token", contentkit.ErrInvalidGeneration)
 			}
 		}
 	}
 	if size > 8<<20 {
-		return fmt.Errorf("%w: embedding input exceeds 8 MiB", ErrInvalidGeneration)
+		return fmt.Errorf("%w: embedding input exceeds 8 MiB", contentkit.ErrInvalidGeneration)
 	}
 	return nil
 }
@@ -63,22 +64,22 @@ func ValidateEmbeddingResponse(r EmbeddingResponse, request EmbeddingRequest) er
 		return err
 	}
 	if r.Model == "" || len(r.Vectors) != len(request.Texts)+len(request.Tokens) || r.Usage.Input < 0 || r.Usage.Output < 0 || r.Usage.Total < 0 {
-		return fmt.Errorf("%w: embedding response metadata", ErrInvalidGeneration)
+		return fmt.Errorf("%w: embedding response metadata", contentkit.ErrInvalidGeneration)
 	}
 	dim := request.Dimensions
 	if dim == 0 && len(r.Vectors) > 0 {
 		dim = len(r.Vectors[0])
 	}
 	if dim == 0 || dim > 65536 || dim*len(r.Vectors) > 4<<20 {
-		return fmt.Errorf("%w: embedding dimensions exceed bounds", ErrInvalidGeneration)
+		return fmt.Errorf("%w: embedding dimensions exceed bounds", contentkit.ErrInvalidGeneration)
 	}
 	for _, vector := range r.Vectors {
 		if len(vector) != dim {
-			return fmt.Errorf("%w: inconsistent embedding dimensions", ErrInvalidGeneration)
+			return fmt.Errorf("%w: inconsistent embedding dimensions", contentkit.ErrInvalidGeneration)
 		}
 		for _, v := range vector {
 			if math.IsNaN(v) || math.IsInf(v, 0) {
-				return fmt.Errorf("%w: non-finite embedding", ErrInvalidGeneration)
+				return fmt.Errorf("%w: non-finite embedding", contentkit.ErrInvalidGeneration)
 			}
 		}
 	}

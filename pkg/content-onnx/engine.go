@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"contentkit"
 	"context"
 	"fmt"
 	"image"
@@ -12,7 +13,6 @@ import (
 	"sync"
 	"time"
 
-	"blockade"
 	ort "github.com/yalue/onnxruntime_go"
 )
 
@@ -42,7 +42,7 @@ type engineConfig struct {
 	iou                float64
 }
 
-func engineConfigFrom(id string, model blockade.InstalledModel, providerName string, settings map[string]string) (engineConfig, error) {
+func engineConfigFrom(id string, model contentkit.InstalledModel, providerName string, settings map[string]string) (engineConfig, error) {
 	if strings.TrimSpace(id) == "" {
 		return engineConfig{}, fmt.Errorf("provider instance id is required")
 	}
@@ -196,29 +196,29 @@ func (e *onnxEngine) resolveLayout(input, output ort.InputOutputInfo) error {
 	return nil
 }
 
-func (e *onnxEngine) Observe(ctx context.Context, request blockade.ObserveRequest) (blockade.ObserveResponse, error) {
+func (e *onnxEngine) Observe(ctx context.Context, request contentkit.ObserveRequest) (contentkit.ObserveResponse, error) {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 	if e.session == nil {
-		return blockade.ObserveResponse{}, fmt.Errorf("ONNX provider %q is closed", e.id)
+		return contentkit.ObserveResponse{}, fmt.Errorf("ONNX provider %q is closed", e.id)
 	}
 	if request.RequestID == "" {
 		request.RequestID = fmt.Sprintf("content-onnx-%d", time.Now().UnixNano())
 	}
 	frame, _, err := image.Decode(bytes.NewReader(request.Image))
 	if err != nil {
-		return blockade.ObserveResponse{}, fmt.Errorf("decode observation image: %w", err)
+		return contentkit.ObserveResponse{}, fmt.Errorf("decode observation image: %w", err)
 	}
 	bounds := frame.Bounds()
 	tensorData, letterbox := rasterize(frame, int(e.inputWidth), int(e.inputHeight))
 	inputTensor, err := ort.NewTensor(ort.NewShape(1, 3, e.inputHeight, e.inputWidth), tensorData)
 	if err != nil {
-		return blockade.ObserveResponse{}, fmt.Errorf("build ONNX input tensor: %w", err)
+		return contentkit.ObserveResponse{}, fmt.Errorf("build ONNX input tensor: %w", err)
 	}
 	defer inputTensor.Destroy()
 	channels := int64(e.numClasses + 4)
 	if err := ctx.Err(); err != nil {
-		return blockade.ObserveResponse{}, err
+		return contentkit.ObserveResponse{}, err
 	}
 	var data []float32
 	if e.candidateCap > 0 {
@@ -230,11 +230,11 @@ func (e *onnxEngine) Observe(ctx context.Context, request blockade.ObserveReques
 		}
 		outputTensor, err := ort.NewTensor(outShape, make([]float32, channels*e.candidateCap))
 		if err != nil {
-			return blockade.ObserveResponse{}, fmt.Errorf("allocate ONNX output tensor: %w", err)
+			return contentkit.ObserveResponse{}, fmt.Errorf("allocate ONNX output tensor: %w", err)
 		}
 		defer outputTensor.Destroy()
 		if err := e.session.Run([]ort.Value{inputTensor}, []ort.Value{outputTensor}); err != nil {
-			return blockade.ObserveResponse{}, fmt.Errorf("run ONNX inference: %w", err)
+			return contentkit.ObserveResponse{}, fmt.Errorf("run ONNX inference: %w", err)
 		}
 		data = outputTensor.GetData()
 	} else {
@@ -242,20 +242,20 @@ func (e *onnxEngine) Observe(ctx context.Context, request blockade.ObserveReques
 		// allocates the output and we read its length.
 		outputs := []ort.Value{nil}
 		if err := e.session.Run([]ort.Value{inputTensor}, outputs); err != nil {
-			return blockade.ObserveResponse{}, fmt.Errorf("run ONNX inference: %w", err)
+			return contentkit.ObserveResponse{}, fmt.Errorf("run ONNX inference: %w", err)
 		}
 		defer outputs[0].Destroy()
 		tensor, ok := outputs[0].(*ort.Tensor[float32])
 		if !ok {
-			return blockade.ObserveResponse{}, fmt.Errorf("ONNX output is not a float32 tensor")
+			return contentkit.ObserveResponse{}, fmt.Errorf("ONNX output is not a float32 tensor")
 		}
 		data = tensor.GetData()
 		if len(data) == 0 || int64(len(data))%channels != 0 {
-			return blockade.ObserveResponse{}, fmt.Errorf("ONNX output length %d does not fit %d channels", len(data), channels)
+			return contentkit.ObserveResponse{}, fmt.Errorf("ONNX output length %d does not fit %d channels", len(data), channels)
 		}
 	}
 	observations := observationsFromDetections(data, e.outputLayout, e.numClasses, letterbox, bounds, e.confidence, e.iou, e.evidence)
-	return blockade.ObserveResponse{APIVersion: blockade.APIVersion, RequestID: request.RequestID, Observations: observations}, nil
+	return contentkit.ObserveResponse{APIVersion: contentkit.APIVersion, RequestID: request.RequestID, Observations: observations}, nil
 }
 
 func (e *onnxEngine) Close() error {

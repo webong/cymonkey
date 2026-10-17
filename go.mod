@@ -3,6 +3,7 @@ module cymonkey
 go 1.26.5
 
 require (
+	contentkit v0.0.0
 	blockade v0.0.0
 	board v0.0.0
 	console v0.0.0
@@ -48,3 +49,5 @@ require (
 	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 )
+
+replace contentkit => ./pkg/contentkit

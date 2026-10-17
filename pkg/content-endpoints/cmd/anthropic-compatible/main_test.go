@@ -1,13 +1,13 @@
 package main
 
 import (
+	"contentkit"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"blockade"
 	"cymonkey-content-plugin-endpoints/internal/providerexec"
 )
 
@@ -37,11 +37,11 @@ func TestAnthropicCompatibleInterpret(t *testing.T) {
 	}}); err != nil {
 		t.Fatal(err)
 	}
-	result, err := provider.Interpret(context.Background(), blockade.ProviderAdapterInterpretRequest{
-		APIVersion: blockade.ProviderAdapterAPIVersion,
-		Request: blockade.InterpretRequest{
-			APIVersion: blockade.ContentAPIVersion, RequestID: "anthropic-1",
-			Parts: []blockade.ContentPart{{Kind: "image", MediaType: "image/jpeg", Data: []byte("jpeg")}},
+	result, err := provider.Interpret(context.Background(), contentkit.ProviderAdapterInterpretRequest{
+		APIVersion: contentkit.ProviderAdapterAPIVersion,
+		Request: contentkit.InterpretRequest{
+			APIVersion: contentkit.ContentAPIVersion, RequestID: "anthropic-1",
+			Parts: []contentkit.ContentPart{{Kind: "image", MediaType: "image/jpeg", Data: []byte("jpeg")}},
 		},
 	}, map[string]string{"apiKey": "secret"})
 	if err != nil {

@@ -1,22 +1,22 @@
 package main
 
 import (
+	"contentkit"
 	"context"
 	"encoding/json"
 	"strings"
 	"testing"
 
-	"blockade"
 	plugin "github.com/webong/ext/pkg/plugin-go/contract"
 )
 
 func TestModelInspectionRejectsWrongArtifactWithoutStarting(t *testing.T) {
 	p := &provider{descriptor: plugin.Descriptor{Identity: plugin.Identity{ID: "onnx"}}}
-	model := blockade.InstalledModel{Manifest: blockade.ModelManifest{
-		APIVersion: blockade.ModelManifestAPIVersion,
+	model := contentkit.InstalledModel{Manifest: contentkit.ModelManifest{
+		APIVersion: contentkit.ModelManifestAPIVersion,
 		Name:       "detector", Version: "1.0.0", Provider: "onnx",
-		Capabilities: []string{blockade.CapabilityObjectDetect},
-		Artifacts:    []blockade.ModelArtifact{{Role: "yolo", File: "detector.gguf", SHA256: strings.Repeat("0", 64)}},
+		Capabilities: []string{contentkit.CapabilityObjectDetect},
+		Artifacts:    []contentkit.ModelArtifact{{Role: "yolo", File: "detector.gguf", SHA256: strings.Repeat("0", 64)}},
 	}, Directory: t.TempDir()}
 	params, err := json.Marshal(map[string]any{"model": model})
 	if err != nil {

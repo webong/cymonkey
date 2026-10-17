@@ -1,6 +1,6 @@
-// Package blockadeplugin adapts an installed provider package to Blockade's
-// provider interface. Blockade still validates every normalized response.
-package blockadeplugin
+// Package contentkitplugin adapts an installed content.provider package to the
+// kit's provider interface. The kit still validates every normalized response.
+package contentkitplugin
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"blockade"
+	"contentkit"
 	plugin "github.com/webong/ext/pkg/plugin-go/contract"
 	"github.com/webong/ext/pkg/plugin-go/contract/host"
 	"github.com/webong/ext/pkg/plugin-go/contract/host/process"
@@ -45,11 +45,11 @@ type Protocol struct {
 
 func nativeProtocol() Protocol {
 	return Protocol{
-		MethodPrefix: ContractName, AdapterAPIVersion: blockade.ProviderAdapterAPIVersion,
-		ObservationRequestAPI: blockade.APIVersion, ObservationAPIVersion: blockade.APIVersion,
-		ContentAPIVersion: blockade.ContentAPIVersion,
-		ModelAPIVersion:   blockade.ModelManifestAPIVersion, ManifestEnvironment: "PLUGIN_MANIFEST",
-		DescriptorFile: "content.json", DescriptorAPIVersion: blockade.ProviderPackageAPIVersion,
+		MethodPrefix: ContractName, AdapterAPIVersion: contentkit.ProviderAdapterAPIVersion,
+		ObservationRequestAPI: contentkit.APIVersion, ObservationAPIVersion: contentkit.APIVersion,
+		ContentAPIVersion: contentkit.ContentAPIVersion,
+		ModelAPIVersion:   contentkit.ModelManifestAPIVersion, ManifestEnvironment: "PLUGIN_MANIFEST",
+		DescriptorFile: "content.json", DescriptorAPIVersion: contentkit.ProviderPackageAPIVersion,
 	}
 }
 
@@ -92,7 +92,7 @@ func (p Protocol) method(name string) string { return p.MethodPrefix + "." + nam
 const Kind = ContractName
 
 // RegisterInstalled selects Blockade adapters from a shared installation inventory.
-func RegisterInstalled(registry *blockade.ProviderAdapterRegistry, installed []store.Installed) error {
+func RegisterInstalled(registry *contentkit.ProviderAdapterRegistry, installed []store.Installed) error {
 	for _, item := range installed {
 		if item.Supports(ContractName, ContractVersion) {
 			if err := Register(registry, item); err != nil {
@@ -103,25 +103,25 @@ func RegisterInstalled(registry *blockade.ProviderAdapterRegistry, installed []s
 	return nil
 }
 
-func Register(registry *blockade.ProviderAdapterRegistry, installed store.Installed) error {
+func Register(registry *contentkit.ProviderAdapterRegistry, installed store.Installed) error {
 	return RegisterWithProtocol(registry, installed, nativeProtocol())
 }
 
 // RegisterWithRuntimeRoot registers a package whose managed runtimes live under
 // root instead of Blockade's default runtime directory.
-func RegisterWithRuntimeRoot(registry *blockade.ProviderAdapterRegistry, installed store.Installed, root string) error {
+func RegisterWithRuntimeRoot(registry *contentkit.ProviderAdapterRegistry, installed store.Installed, root string) error {
 	protocol := nativeProtocol()
 	protocol.RuntimeRoot = root
 	return RegisterWithProtocol(registry, installed, protocol)
 }
 
-func RegisterWithProtocol(registry *blockade.ProviderAdapterRegistry, installed store.Installed, protocol Protocol) error {
+func RegisterWithProtocol(registry *contentkit.ProviderAdapterRegistry, installed store.Installed, protocol Protocol) error {
 	protocol = protocol.normalized()
 	launch, err := newLaunchPlan(installed, protocol)
 	if err != nil {
 		return err
 	}
-	factory := func(ctx context.Context, runtime blockade.ProviderAdapterRuntime) (blockade.ProviderAdapter, error) {
+	factory := func(ctx context.Context, runtime contentkit.ProviderAdapterRuntime) (contentkit.ProviderAdapter, error) {
 		pool := &processPool{}
 		workers := runtime.Workers
 		if workers == 0 {
@@ -150,15 +150,15 @@ func RegisterWithProtocol(registry *blockade.ProviderAdapterRegistry, installed 
 			_ = pool.Close()
 			return nil, err
 		}
-		image := slices.Contains(reported.Capabilities, blockade.CapabilityImageObserve) ||
-			slices.Contains(reported.Capabilities, blockade.CapabilityObjectDetect) ||
-			slices.Contains(reported.Capabilities, blockade.CapabilityObjectSegment) ||
-			slices.Contains(reported.Capabilities, blockade.CapabilityVisionLanguage)
-		content := slices.Contains(reported.Capabilities, blockade.CapabilityTextInterpret) ||
-			slices.Contains(reported.Capabilities, blockade.CapabilityAudioInterpret) ||
-			slices.Contains(reported.Capabilities, blockade.CapabilityImageInterpret) ||
-			slices.Contains(reported.Capabilities, blockade.CapabilityVideoInterpret) ||
-			slices.Contains(reported.Capabilities, blockade.CapabilityMultimodalInterpret)
+		image := slices.Contains(reported.Capabilities, contentkit.CapabilityImageObserve) ||
+			slices.Contains(reported.Capabilities, contentkit.CapabilityObjectDetect) ||
+			slices.Contains(reported.Capabilities, contentkit.CapabilityObjectSegment) ||
+			slices.Contains(reported.Capabilities, contentkit.CapabilityVisionLanguage)
+		content := slices.Contains(reported.Capabilities, contentkit.CapabilityTextInterpret) ||
+			slices.Contains(reported.Capabilities, contentkit.CapabilityAudioInterpret) ||
+			slices.Contains(reported.Capabilities, contentkit.CapabilityImageInterpret) ||
+			slices.Contains(reported.Capabilities, contentkit.CapabilityVideoInterpret) ||
+			slices.Contains(reported.Capabilities, contentkit.CapabilityMultimodalInterpret)
 		switch {
 		case image && content:
 			return &multiAdapter{base}, nil
@@ -168,11 +168,11 @@ func RegisterWithProtocol(registry *blockade.ProviderAdapterRegistry, installed 
 			return &contentAdapter{base}, nil
 		default:
 			// Older image providers may advertise their own capability names.
-			// They used blockade.observe before the content contract existed.
+			// They used contentkit.observe before the content contract existed.
 			return &imageAdapter{base}, nil
 		}
 	}
-	inspect := func(ctx context.Context, runtime blockade.ProviderAdapterRuntime, model blockade.InstalledModel) error {
+	inspect := func(ctx context.Context, runtime contentkit.ProviderAdapterRuntime, model contentkit.InstalledModel) error {
 		proc, err := launch.open(ctx, protocol, inspectPolicy())
 		if err != nil {
 			return err
@@ -223,7 +223,7 @@ func packageFile(installed store.Installed, relative string) (string, error) {
 
 type launchPlan struct {
 	installed  store.Installed
-	descriptor *blockade.ProviderPackage
+	descriptor *contentkit.ProviderPackage
 }
 
 func newLaunchPlan(installed store.Installed, protocol Protocol) (launchPlan, error) {
@@ -237,7 +237,7 @@ func newLaunchPlan(installed store.Installed, protocol Protocol) (launchPlan, er
 	if err != nil {
 		return launchPlan{}, fmt.Errorf("source plugin descriptor: %w", err)
 	}
-	descriptor, err := blockade.LoadProviderPackageWithAPIVersion(descriptorPath, protocol.DescriptorAPIVersion)
+	descriptor, err := contentkit.LoadProviderPackageWithAPIVersion(descriptorPath, protocol.DescriptorAPIVersion)
 	if err != nil {
 		return launchPlan{}, err
 	}
@@ -255,12 +255,12 @@ func (p launchPlan) open(ctx context.Context, protocol Protocol, authorize func(
 	root := protocol.RuntimeRoot
 	if root == "" {
 		var err error
-		root, err = blockade.DefaultRuntimeRoot()
+		root, err = contentkit.DefaultRuntimeRoot()
 		if err != nil {
 			return nil, err
 		}
 	}
-	runtime, err := blockade.ResolveInstalledRuntime(root, p.descriptor.Runtime.Name, p.descriptor.Runtime.Version)
+	runtime, err := contentkit.ResolveInstalledRuntime(root, p.descriptor.Runtime.Name, p.descriptor.Runtime.Version)
 	if err != nil {
 		return nil, fmt.Errorf("resolve Blockade runtime %s@%s: %w", p.descriptor.Runtime.Name, p.descriptor.Runtime.Version, err)
 	}
@@ -300,16 +300,16 @@ func normalizeProcessError(err error) error {
 	if !errors.As(err, &remote) {
 		return err
 	}
-	kind := blockade.ProviderAdapterErrorKind(remote.Code)
+	kind := contentkit.ProviderAdapterErrorKind(remote.Code)
 	switch kind {
-	case blockade.ProviderAdapterErrorAuthentication,
-		blockade.ProviderAdapterErrorRateLimit,
-		blockade.ProviderAdapterErrorTimeout,
-		blockade.ProviderAdapterErrorCanceled,
-		blockade.ProviderAdapterErrorUnavailable,
-		blockade.ProviderAdapterErrorInvalidRequest,
-		blockade.ProviderAdapterErrorInvalidResponse:
-		mapped := blockade.NewProviderAdapterError(kind, errors.New(remote.Message))
+	case contentkit.ProviderAdapterErrorAuthentication,
+		contentkit.ProviderAdapterErrorRateLimit,
+		contentkit.ProviderAdapterErrorTimeout,
+		contentkit.ProviderAdapterErrorCanceled,
+		contentkit.ProviderAdapterErrorUnavailable,
+		contentkit.ProviderAdapterErrorInvalidRequest,
+		contentkit.ProviderAdapterErrorInvalidResponse:
+		mapped := contentkit.NewProviderAdapterError(kind, errors.New(remote.Message))
 		mapped.RetryAfter = time.Duration(remote.RetryAfterMilliseconds) * time.Millisecond
 		return mapped
 	default:
@@ -331,40 +331,40 @@ func (p *processPool) Close() error {
 
 type adapter struct {
 	pool     *processPool
-	runtime  blockade.ProviderAdapterRuntime
+	runtime  contentkit.ProviderAdapterRuntime
 	protocol Protocol
 }
 
-func (a *adapter) observe(ctx context.Context, request blockade.ProviderAdapterObserveRequest) (blockade.ProviderAdapterObserveResponse, error) {
+func (a *adapter) observe(ctx context.Context, request contentkit.ProviderAdapterObserveRequest) (contentkit.ProviderAdapterObserveResponse, error) {
 	secrets := make(map[string]string, len(a.runtime.SecretNames))
 	for _, name := range a.runtime.SecretNames {
 		value, err := a.runtime.Secrets.Resolve(ctx, name)
 		if err != nil {
-			return blockade.ProviderAdapterObserveResponse{}, err
+			return contentkit.ProviderAdapterObserveResponse{}, err
 		}
 		secrets[name] = value
 	}
 	request.APIVersion = a.protocol.AdapterAPIVersion
 	request.Request.APIVersion = a.protocol.ObservationRequestAPI
-	var result blockade.ProviderAdapterObserveResponse
+	var result contentkit.ProviderAdapterObserveResponse
 	err := a.pool.Call(ctx, a.protocol.method("observe"), map[string]any{"request": request, "secrets": secrets}, &result)
 	if err == nil {
 		err = normalizeObserveResponse(&result, a.protocol)
 	}
 	return result, err
 }
-func (a *adapter) interpret(ctx context.Context, request blockade.ProviderAdapterInterpretRequest) (blockade.ProviderAdapterInterpretResponse, error) {
+func (a *adapter) interpret(ctx context.Context, request contentkit.ProviderAdapterInterpretRequest) (contentkit.ProviderAdapterInterpretResponse, error) {
 	secrets := make(map[string]string, len(a.runtime.SecretNames))
 	for _, name := range a.runtime.SecretNames {
 		value, err := a.runtime.Secrets.Resolve(ctx, name)
 		if err != nil {
-			return blockade.ProviderAdapterInterpretResponse{}, err
+			return contentkit.ProviderAdapterInterpretResponse{}, err
 		}
 		secrets[name] = value
 	}
 	request.APIVersion = a.protocol.AdapterAPIVersion
 	request.Request.APIVersion = a.protocol.ContentAPIVersion
-	var result blockade.ProviderAdapterInterpretResponse
+	var result contentkit.ProviderAdapterInterpretResponse
 	err := a.pool.Call(ctx, a.protocol.method("interpret"), map[string]any{"request": request, "secrets": secrets}, &result)
 	if err == nil {
 		err = normalizeInterpretResponse(&result, a.protocol)
@@ -372,7 +372,7 @@ func (a *adapter) interpret(ctx context.Context, request blockade.ProviderAdapte
 	return result, err
 }
 
-func inspectModel(ctx context.Context, proc *host.Process, settings map[string]string, model blockade.InstalledModel, protocol Protocol) error {
+func inspectModel(ctx context.Context, proc *host.Process, settings map[string]string, model contentkit.InstalledModel, protocol Protocol) error {
 	var result struct {
 		APIVersion string `json:"apiVersion"`
 		Compatible bool   `json:"compatible"`
@@ -382,51 +382,51 @@ func inspectModel(ctx context.Context, proc *host.Process, settings map[string]s
 		return err
 	}
 	if result.APIVersion != protocol.AdapterAPIVersion {
-		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidResponse, fmt.Errorf("model inspection returned unsupported apiVersion %q", result.APIVersion))
+		return contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidResponse, fmt.Errorf("model inspection returned unsupported apiVersion %q", result.APIVersion))
 	}
 	if !result.Compatible {
 		if result.Detail == "" {
-			return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, fmt.Errorf("model inspection rejected by provider"))
+			return contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidRequest, fmt.Errorf("model inspection rejected by provider"))
 		}
-		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, fmt.Errorf("model inspection rejected by provider: %s", result.Detail))
+		return contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidRequest, fmt.Errorf("model inspection rejected by provider: %s", result.Detail))
 	}
 	return nil
 }
 
 type imageAdapter struct{ *adapter }
 
-func (a *imageAdapter) Observe(ctx context.Context, request blockade.ProviderAdapterObserveRequest) (blockade.ProviderAdapterObserveResponse, error) {
+func (a *imageAdapter) Observe(ctx context.Context, request contentkit.ProviderAdapterObserveRequest) (contentkit.ProviderAdapterObserveResponse, error) {
 	return a.observe(ctx, request)
 }
 
 type contentAdapter struct{ *adapter }
 
-func (a *contentAdapter) Observe(context.Context, blockade.ProviderAdapterObserveRequest) (blockade.ProviderAdapterObserveResponse, error) {
-	return blockade.ProviderAdapterObserveResponse{}, blockade.ErrModalityUnsupported
+func (a *contentAdapter) Observe(context.Context, contentkit.ProviderAdapterObserveRequest) (contentkit.ProviderAdapterObserveResponse, error) {
+	return contentkit.ProviderAdapterObserveResponse{}, contentkit.ErrModalityUnsupported
 }
 
-func (a *contentAdapter) Interpret(ctx context.Context, request blockade.ProviderAdapterInterpretRequest) (blockade.ProviderAdapterInterpretResponse, error) {
+func (a *contentAdapter) Interpret(ctx context.Context, request contentkit.ProviderAdapterInterpretRequest) (contentkit.ProviderAdapterInterpretResponse, error) {
 	return a.interpret(ctx, request)
 }
 
 type multiAdapter struct{ *adapter }
 
-func (a *multiAdapter) Observe(ctx context.Context, request blockade.ProviderAdapterObserveRequest) (blockade.ProviderAdapterObserveResponse, error) {
+func (a *multiAdapter) Observe(ctx context.Context, request contentkit.ProviderAdapterObserveRequest) (contentkit.ProviderAdapterObserveResponse, error) {
 	return a.observe(ctx, request)
 }
-func (a *multiAdapter) Interpret(ctx context.Context, request blockade.ProviderAdapterInterpretRequest) (blockade.ProviderAdapterInterpretResponse, error) {
+func (a *multiAdapter) Interpret(ctx context.Context, request contentkit.ProviderAdapterInterpretRequest) (contentkit.ProviderAdapterInterpretResponse, error) {
 	return a.interpret(ctx, request)
 }
-func (a *adapter) Capabilities(ctx context.Context) (blockade.ProviderAdapterCapabilities, error) {
-	var value blockade.ProviderAdapterCapabilities
+func (a *adapter) Capabilities(ctx context.Context) (contentkit.ProviderAdapterCapabilities, error) {
+	var value contentkit.ProviderAdapterCapabilities
 	err := a.pool.Call(ctx, a.protocol.method("capabilities"), nil, &value)
 	if err == nil {
 		err = normalizeAdapterVersion(&value.APIVersion, a.protocol)
 	}
 	return value, err
 }
-func (a *adapter) Health(ctx context.Context) (blockade.ProviderAdapterHealth, error) {
-	var value blockade.ProviderAdapterHealth
+func (a *adapter) Health(ctx context.Context) (contentkit.ProviderAdapterHealth, error) {
+	var value contentkit.ProviderAdapterHealth
 	err := a.pool.Call(ctx, a.protocol.method("health"), nil, &value)
 	if err == nil {
 		err = normalizeAdapterVersion(&value.APIVersion, a.protocol)
@@ -444,35 +444,35 @@ func (a *adapter) Close() error {
 
 func normalizeAdapterVersion(value *string, protocol Protocol) error {
 	if *value != protocol.AdapterAPIVersion {
-		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidResponse, fmt.Errorf("adapter returned unsupported apiVersion %q", *value))
+		return contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidResponse, fmt.Errorf("adapter returned unsupported apiVersion %q", *value))
 	}
-	*value = blockade.ProviderAdapterAPIVersion
+	*value = contentkit.ProviderAdapterAPIVersion
 	return nil
 }
 
-func normalizeObserveResponse(result *blockade.ProviderAdapterObserveResponse, protocol Protocol) error {
+func normalizeObserveResponse(result *contentkit.ProviderAdapterObserveResponse, protocol Protocol) error {
 	if err := normalizeAdapterVersion(&result.APIVersion, protocol); err != nil {
 		return err
 	}
 	if result.Response.APIVersion != protocol.ObservationAPIVersion {
-		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidResponse, fmt.Errorf("observation returned unsupported apiVersion %q", result.Response.APIVersion))
+		return contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidResponse, fmt.Errorf("observation returned unsupported apiVersion %q", result.Response.APIVersion))
 	}
-	result.Response.APIVersion = blockade.APIVersion
+	result.Response.APIVersion = contentkit.APIVersion
 	return nil
 }
 
-func normalizeInterpretResponse(result *blockade.ProviderAdapterInterpretResponse, protocol Protocol) error {
+func normalizeInterpretResponse(result *contentkit.ProviderAdapterInterpretResponse, protocol Protocol) error {
 	if err := normalizeAdapterVersion(&result.APIVersion, protocol); err != nil {
 		return err
 	}
 	if result.Response.APIVersion != protocol.ContentAPIVersion {
-		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidResponse, fmt.Errorf("content result returned unsupported apiVersion %q", result.Response.APIVersion))
+		return contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidResponse, fmt.Errorf("content result returned unsupported apiVersion %q", result.Response.APIVersion))
 	}
-	result.Response.APIVersion = blockade.ContentAPIVersion
+	result.Response.APIVersion = contentkit.ContentAPIVersion
 	return nil
 }
 
-func wireModel(model blockade.InstalledModel, protocol Protocol) map[string]any {
+func wireModel(model contentkit.InstalledModel, protocol Protocol) map[string]any {
 	return map[string]any{
 		"manifest": map[string]any{
 			"apiVersion": protocol.ModelAPIVersion,

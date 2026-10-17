@@ -3,24 +3,24 @@
 package contentbridge
 
 import (
-	"blockade"
+	"contentkit"
 	"cymonkey/src/contracts"
 )
 
-func ToLibraryRequest(request contracts.ContentRequest) blockade.InterpretRequest {
-	parts := make([]blockade.ContentPart, len(request.Parts))
+func ToLibraryRequest(request contracts.ContentRequest) contentkit.InterpretRequest {
+	parts := make([]contentkit.ContentPart, len(request.Parts))
 	for index, part := range request.Parts {
-		parts[index] = blockade.ContentPart{Kind: part.Kind, Text: part.Text, MediaType: part.MediaType, Data: part.Data}
+		parts[index] = contentkit.ContentPart{Kind: part.Kind, Text: part.Text, MediaType: part.MediaType, Data: part.Data}
 	}
-	return blockade.InterpretRequest{
-		APIVersion: blockade.ContentAPIVersion,
+	return contentkit.InterpretRequest{
+		APIVersion: contentkit.ContentAPIVersion,
 		RequestID:  request.RequestID,
 		Parts:      parts,
 		Prompt:     request.Prompt,
 	}
 }
 
-func FromLibraryResponse(response blockade.InterpretResponse) contracts.ContentResponse {
+func FromLibraryResponse(response contentkit.InterpretResponse) contracts.ContentResponse {
 	findings := make([]contracts.ContentFinding, len(response.Findings))
 	for index, finding := range response.Findings {
 		findings[index] = contracts.ContentFinding{
@@ -35,7 +35,7 @@ func FromLibraryResponse(response blockade.InterpretResponse) contracts.ContentR
 	}
 }
 
-func FromLibraryObservation(response blockade.ObserveResponse) contracts.ObservationResult {
+func FromLibraryObservation(response contentkit.ObserveResponse) contracts.ObservationResult {
 	observations := make([]contracts.Observation, len(response.Observations))
 	for index, observation := range response.Observations {
 		observations[index] = contracts.Observation{

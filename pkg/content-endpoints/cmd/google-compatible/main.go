@@ -3,6 +3,7 @@
 package main
 
 import (
+	"contentkit"
 	"context"
 	"encoding/base64"
 	"errors"
@@ -12,7 +13,6 @@ import (
 	"os"
 	"strings"
 
-	"blockade"
 	"cymonkey-content-plugin-endpoints/internal/endpoint"
 	"cymonkey-content-plugin-endpoints/internal/providerexec"
 )
@@ -63,41 +63,41 @@ func main() {
 
 func (p *provider) Start(_ context.Context, request providerexec.StartRequest) error {
 	if p.ready {
-		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, errors.New("provider is already started"))
+		return contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidRequest, errors.New("provider is already started"))
 	}
 	config, err := endpoint.ParseConfig(request.Settings, endpoint.ParseOptions{
 		DefaultBaseURL:    "https://generativelanguage.googleapis.com/v1beta",
 		DefaultModalities: []string{"text"}, AllowedModalities: []string{"text", "image", "audio", "video"},
 	})
 	if err != nil {
-		return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, err)
+		return contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidRequest, err)
 	}
 	p.config = config
 	p.ready = true
 	return nil
 }
 
-func (p *provider) Capabilities(context.Context) (blockade.ProviderAdapterCapabilities, error) {
-	capabilities := []string{blockade.CapabilityTextInterpret}
+func (p *provider) Capabilities(context.Context) (contentkit.ProviderAdapterCapabilities, error) {
+	capabilities := []string{contentkit.CapabilityTextInterpret}
 	if p.ready {
 		capabilities = append([]string(nil), p.config.Capabilities...)
 	}
-	return blockade.ProviderAdapterCapabilities{APIVersion: blockade.ProviderAdapterAPIVersion, Capabilities: capabilities}, nil
+	return contentkit.ProviderAdapterCapabilities{APIVersion: contentkit.ProviderAdapterAPIVersion, Capabilities: capabilities}, nil
 }
 
-func (p *provider) Health(context.Context) (blockade.ProviderAdapterHealth, error) {
-	return blockade.ProviderAdapterHealth{APIVersion: blockade.ProviderAdapterAPIVersion, Ready: p.ready}, nil
+func (p *provider) Health(context.Context) (contentkit.ProviderAdapterHealth, error) {
+	return contentkit.ProviderAdapterHealth{APIVersion: contentkit.ProviderAdapterAPIVersion, Ready: p.ready}, nil
 }
 
-func (p *provider) Interpret(ctx context.Context, wrapped blockade.ProviderAdapterInterpretRequest, secrets map[string]string) (blockade.ProviderAdapterInterpretResponse, error) {
+func (p *provider) Interpret(ctx context.Context, wrapped contentkit.ProviderAdapterInterpretRequest, secrets map[string]string) (contentkit.ProviderAdapterInterpretResponse, error) {
 	if !p.ready {
-		return blockade.ProviderAdapterInterpretResponse{}, blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorUnavailable, errors.New("provider has not been started"))
+		return contentkit.ProviderAdapterInterpretResponse{}, contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorUnavailable, errors.New("provider has not been started"))
 	}
-	if wrapped.APIVersion != blockade.ProviderAdapterAPIVersion {
-		return blockade.ProviderAdapterInterpretResponse{}, blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, errors.New("unsupported provider adapter apiVersion"))
+	if wrapped.APIVersion != contentkit.ProviderAdapterAPIVersion {
+		return contentkit.ProviderAdapterInterpretResponse{}, contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidRequest, errors.New("unsupported provider adapter apiVersion"))
 	}
 	if err := p.config.ValidateRequest(wrapped.Request); err != nil {
-		return blockade.ProviderAdapterInterpretResponse{}, err
+		return contentkit.ProviderAdapterInterpretResponse{}, err
 	}
 	parts := make([]part, 0, len(wrapped.Request.Parts)+1)
 	if prompt := strings.TrimSpace(wrapped.Request.Prompt); prompt != "" {
@@ -120,7 +120,7 @@ func (p *provider) Interpret(ctx context.Context, wrapped blockade.ProviderAdapt
 	target := strings.TrimRight(p.config.BaseURL.String(), "/") + "/models/" + url.PathEscape(p.config.Model) + ":generateContent"
 	request, err := endpoint.NewJSONRequest(ctx, http.MethodPost, target, body)
 	if err != nil {
-		return blockade.ProviderAdapterInterpretResponse{}, err
+		return contentkit.ProviderAdapterInterpretResponse{}, err
 	}
 	if key := strings.TrimSpace(secrets["apiKey"]); key != "" {
 		request.Header.Set("x-goog-api-key", key)
@@ -135,10 +135,10 @@ func (p *provider) Interpret(ctx context.Context, wrapped blockade.ProviderAdapt
 		} `json:"candidates"`
 	}
 	if err := endpoint.DoJSON(ctx, p.client, request, &response); err != nil {
-		return blockade.ProviderAdapterInterpretResponse{}, err
+		return contentkit.ProviderAdapterInterpretResponse{}, err
 	}
 	if len(response.Candidates) == 0 {
-		return blockade.ProviderAdapterInterpretResponse{}, blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidResponse, errors.New("endpoint returned no candidates"))
+		return contentkit.ProviderAdapterInterpretResponse{}, contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidResponse, errors.New("endpoint returned no candidates"))
 	}
 	var text strings.Builder
 	for _, part := range response.Candidates[0].Content.Parts {

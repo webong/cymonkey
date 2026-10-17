@@ -4,6 +4,7 @@ package generation
 
 import (
 	"bytes"
+	"contentkit"
 	"context"
 	"errors"
 	"fmt"
@@ -87,22 +88,22 @@ func (e *Error) Error() string {
 }
 
 func (e *Error) Unwrap() error {
-	kind := blockade.ErrorUnavailable
+	kind := contentkit.ErrorUnavailable
 	switch e.Kind {
 	case "authentication":
-		kind = blockade.ErrorAuthentication
+		kind = contentkit.ErrorAuthentication
 	case "rate_limit":
-		kind = blockade.ErrorRateLimit
+		kind = contentkit.ErrorRateLimit
 	case "invalid_request", "not_found":
-		kind = blockade.ErrorInvalidInput
+		kind = contentkit.ErrorInvalidInput
 	}
-	return &blockade.ModelError{Kind: kind, Operation: "http", Retryable: e.Status == 429 || e.Status >= 500, RetryAfter: e.RetryAfter}
+	return &contentkit.ModelError{Kind: kind, Operation: "http", Retryable: e.Status == 429 || e.Status >= 500, RetryAfter: e.RetryAfter}
 }
 
 func (c *Client) do(ctx context.Context, method, path, contentType string, body io.Reader, stream bool) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, method, c.config.BaseURL+path, body)
 	if err != nil {
-		return nil, &blockade.ModelError{Kind: blockade.ClassifyModelError(err), Operation: "http", Cause: err}
+		return nil, &contentkit.ModelError{Kind: contentkit.ClassifyModelError(err), Operation: "http", Cause: err}
 	}
 	if contentType != "" {
 		req.Header.Set("Content-Type", contentType)
@@ -129,7 +130,7 @@ func (c *Client) do(ctx context.Context, method, path, contentType string, body 
 	}
 	resp, err := c.config.HTTPClient.Do(req)
 	if err != nil {
-		return nil, &blockade.ModelError{Kind: blockade.ErrorTransport, Operation: "request", Cause: err}
+		return nil, &contentkit.ModelError{Kind: contentkit.ErrorTransport, Operation: "request", Cause: err}
 	}
 	if resp.StatusCode/100 != 2 {
 		resp.Body.Close()
@@ -184,13 +185,13 @@ func (c *Client) Generate(ctx context.Context, request blockade.GenerationReques
 	}
 	result, err := c.decode(data, request.Model)
 	if err != nil {
-		if errors.Is(err, blockade.ErrGenerationUnsupported) {
+		if errors.Is(err, contentkit.ErrGenerationUnsupported) {
 			return blockade.GenerationResponse{}, err
 		}
-		return blockade.GenerationResponse{}, &blockade.ModelError{Kind: blockade.ErrorInvalidResponse, Operation: "generate", Cause: err}
+		return blockade.GenerationResponse{}, &contentkit.ModelError{Kind: contentkit.ErrorInvalidResponse, Operation: "generate", Cause: err}
 	}
 	if err := blockade.ValidateGenerationResult(result, request); err != nil {
-		return blockade.GenerationResponse{}, &blockade.ModelError{Kind: blockade.ErrorInvalidResponse, Operation: "generate", Cause: err}
+		return blockade.GenerationResponse{}, &contentkit.ModelError{Kind: contentkit.ErrorInvalidResponse, Operation: "generate", Cause: err}
 	}
 	return result, nil
 }

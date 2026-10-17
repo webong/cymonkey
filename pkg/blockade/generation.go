@@ -1,6 +1,7 @@
 package blockade
 
 import (
+	"contentkit"
 	"context"
 	"encoding/json"
 	"errors"
@@ -117,9 +118,6 @@ type StreamingGenerator interface {
 	Stream(context.Context, GenerationRequest, func(GenerationEvent) error) (GenerationResponse, error)
 }
 
-var ErrGenerationUnsupported = errors.New("generation feature is unsupported")
-var ErrInvalidGeneration = errors.New("invalid generation contract")
-
 func TextMessage(role, text string) Message {
 	return Message{Role: role, Parts: []MessagePart{{Kind: "text", Text: text}}}
 }
@@ -128,28 +126,28 @@ func TextMessage(role, text string) Message {
 // compatibility. Each provider rejects unsupported modalities/options explicitly.
 func ValidateGenerationRequest(request GenerationRequest) error {
 	if strings.TrimSpace(request.Model) == "" || len(request.Messages) == 0 || len(request.Messages) > 4096 || request.MaxOutputTokens < 0 {
-		return fmt.Errorf("%w: model, messages, or token limit", ErrInvalidGeneration)
+		return fmt.Errorf("%w: model, messages, or token limit", contentkit.ErrInvalidGeneration)
 	}
 	if t := request.Temperature; t != nil && (math.IsNaN(*t) || math.IsInf(*t, 0) || *t < 0 || *t > 2) {
-		return fmt.Errorf("%w: temperature outside [0,2]", ErrInvalidGeneration)
+		return fmt.Errorf("%w: temperature outside [0,2]", contentkit.ErrInvalidGeneration)
 	}
 	seen := map[string]bool{}
 	for _, tool := range request.Tools {
 		if strings.TrimSpace(tool.Name) == "" || seen[tool.Name] || !jsonObject(tool.InputSchema) {
-			return fmt.Errorf("%w: tool definition", ErrInvalidGeneration)
+			return fmt.Errorf("%w: tool definition", contentkit.ErrInvalidGeneration)
 		}
 		seen[tool.Name] = true
 	}
 	if len(request.OutputSchema) != 0 && !jsonObject(request.OutputSchema) {
-		return fmt.Errorf("%w: output schema", ErrInvalidGeneration)
+		return fmt.Errorf("%w: output schema", contentkit.ErrInvalidGeneration)
 	}
 	if len(request.OutputSchema) != 0 {
 		if _, err := jsonschema.Compile(request.OutputSchema); err != nil {
-			return fmt.Errorf("%w: %w", ErrInvalidGeneration, err)
+			return fmt.Errorf("%w: %w", contentkit.ErrInvalidGeneration, err)
 		}
 	}
 	if len(request.Options) != 0 && !jsonObject(request.Options) {
-		return fmt.Errorf("%w: adapter options must be an object", ErrInvalidGeneration)
+		return fmt.Errorf("%w: adapter options must be an object", contentkit.ErrInvalidGeneration)
 	}
 	for _, message := range request.Messages {
 		if err := validateMessage(message); err != nil {
@@ -158,7 +156,7 @@ func ValidateGenerationRequest(request GenerationRequest) error {
 	}
 	encoded, err := json.Marshal(request)
 	if err != nil || len(encoded) > 32<<20 {
-		return fmt.Errorf("%w: request exceeds 32 MiB or cannot be encoded", ErrInvalidGeneration)
+		return fmt.Errorf("%w: request exceeds 32 MiB or cannot be encoded", contentkit.ErrInvalidGeneration)
 	}
 	return nil
 }
@@ -167,61 +165,61 @@ func validateMessage(message Message) error {
 	switch message.Role {
 	case "system", "user", "assistant", "tool":
 	default:
-		return fmt.Errorf("%w: message role", ErrInvalidGeneration)
+		return fmt.Errorf("%w: message role", contentkit.ErrInvalidGeneration)
 	}
 	if message.Role == "tool" && message.ToolCallID == "" {
-		return fmt.Errorf("%w: tool result needs a call ID", ErrInvalidGeneration)
+		return fmt.Errorf("%w: tool result needs a call ID", contentkit.ErrInvalidGeneration)
 	}
 	if message.ToolError && message.Role != "tool" {
-		return fmt.Errorf("%w: failure flag belongs to a tool result", ErrInvalidGeneration)
+		return fmt.Errorf("%w: failure flag belongs to a tool result", contentkit.ErrInvalidGeneration)
 	}
 	if len(message.ToolCalls) > 0 && message.Role != "assistant" {
-		return fmt.Errorf("%w: only assistant messages contain tool calls", ErrInvalidGeneration)
+		return fmt.Errorf("%w: only assistant messages contain tool calls", contentkit.ErrInvalidGeneration)
 	}
 	if len(message.Parts) == 0 && len(message.ToolCalls) == 0 {
-		return fmt.Errorf("%w: empty message", ErrInvalidGeneration)
+		return fmt.Errorf("%w: empty message", contentkit.ErrInvalidGeneration)
 	}
 	for _, part := range message.Parts {
 		if len(part.ProviderData) > 0 && !json.Valid(part.ProviderData) {
-			return fmt.Errorf("%w: provider context", ErrInvalidGeneration)
+			return fmt.Errorf("%w: provider context", contentkit.ErrInvalidGeneration)
 		}
 		switch part.Kind {
 		case "context":
 			if message.Role != "assistant" || len(part.ProviderData) == 0 || part.Text != "" || part.MediaType != "" || len(part.Data) != 0 || part.Reference != nil {
-				return fmt.Errorf("%w: opaque model context", ErrInvalidGeneration)
+				return fmt.Errorf("%w: opaque model context", contentkit.ErrInvalidGeneration)
 			}
 		case "text", "reasoning", "refusal":
 			if part.MediaType != "" || len(part.Data) != 0 || part.Reference != nil || part.Kind != "text" && message.Role != "assistant" {
-				return fmt.Errorf("%w: mixed text/binary part", ErrInvalidGeneration)
+				return fmt.Errorf("%w: mixed text/binary part", contentkit.ErrInvalidGeneration)
 			}
 		case "image", "audio", "video", "file":
 			_, _, mediaErr := mime.ParseMediaType(part.MediaType)
 			if part.Text != "" || (len(part.Data) == 0) == (part.Reference == nil) || mediaErr != nil || !strings.Contains(part.MediaType, "/") {
-				return fmt.Errorf("%w: binary part", ErrInvalidGeneration)
+				return fmt.Errorf("%w: binary part", contentkit.ErrInvalidGeneration)
 			}
 			if ref := part.Reference; ref != nil {
 				if ref.URI == "" || len(ref.URI) > 8192 {
-					return fmt.Errorf("%w: media reference", ErrInvalidGeneration)
+					return fmt.Errorf("%w: media reference", contentkit.ErrInvalidGeneration)
 				}
 				switch ref.Kind {
 				case "url":
 					u, err := url.Parse(ref.URI)
 					if err != nil || u.Host == "" || u.Scheme != "https" || u.User != nil || u.Fragment != "" {
-						return fmt.Errorf("%w: media URL must use HTTPS", ErrInvalidGeneration)
+						return fmt.Errorf("%w: media URL must use HTTPS", contentkit.ErrInvalidGeneration)
 					}
 				case "file":
 				default:
-					return fmt.Errorf("%w: media reference kind", ErrInvalidGeneration)
+					return fmt.Errorf("%w: media reference kind", contentkit.ErrInvalidGeneration)
 				}
 			}
 		default:
-			return fmt.Errorf("%w: part kind", ErrInvalidGeneration)
+			return fmt.Errorf("%w: part kind", contentkit.ErrInvalidGeneration)
 		}
 	}
 	ids := map[string]bool{}
 	for _, call := range message.ToolCalls {
 		if call.ID == "" || strings.TrimSpace(call.Name) == "" || ids[call.ID] || !jsonObject(call.Arguments) || len(call.ProviderData) > 0 && !json.Valid(call.ProviderData) {
-			return fmt.Errorf("%w: tool call", ErrInvalidGeneration)
+			return fmt.Errorf("%w: tool call", contentkit.ErrInvalidGeneration)
 		}
 		ids[call.ID] = true
 	}
@@ -230,7 +228,7 @@ func validateMessage(message Message) error {
 
 func ValidateGenerationResponse(response GenerationResponse) error {
 	if response.Model == "" || response.Message.Role != "assistant" || response.Usage.Input < 0 || response.Usage.Output < 0 || response.Usage.Total < 0 || response.Usage.CachedInput < 0 || response.Usage.Reasoning < 0 {
-		return fmt.Errorf("%w: response metadata", ErrInvalidGeneration)
+		return fmt.Errorf("%w: response metadata", contentkit.ErrInvalidGeneration)
 	}
 	return validateMessage(response.Message)
 }
@@ -363,7 +361,7 @@ func (c *ModelCatalog) Stream(ctx context.Context, request GenerationRequest, em
 	}
 	provider, ok := binding.generator.(StreamingGenerator)
 	if !ok {
-		return GenerationResponse{}, ErrGenerationUnsupported
+		return GenerationResponse{}, contentkit.ErrGenerationUnsupported
 	}
 	if binding.info.Model != "" {
 		request.Model = binding.info.Model

@@ -1,6 +1,7 @@
 package blockade
 
 import (
+	"contentkit"
 	"context"
 	"encoding/json"
 	"errors"
@@ -13,39 +14,39 @@ import (
 
 type contentAdapterFixture struct {
 	capabilities []string
-	request      ProviderAdapterInterpretRequest
-	response     func(ProviderAdapterInterpretRequest) ProviderAdapterInterpretResponse
+	request      contentkit.ProviderAdapterInterpretRequest
+	response     func(contentkit.ProviderAdapterInterpretRequest) contentkit.ProviderAdapterInterpretResponse
 }
 
-func (*contentAdapterFixture) Observe(context.Context, ProviderAdapterObserveRequest) (ProviderAdapterObserveResponse, error) {
-	return ProviderAdapterObserveResponse{}, ErrModalityUnsupported
+func (*contentAdapterFixture) Observe(context.Context, contentkit.ProviderAdapterObserveRequest) (contentkit.ProviderAdapterObserveResponse, error) {
+	return contentkit.ProviderAdapterObserveResponse{}, contentkit.ErrModalityUnsupported
 }
-func (a *contentAdapterFixture) Interpret(_ context.Context, request ProviderAdapterInterpretRequest) (ProviderAdapterInterpretResponse, error) {
+func (a *contentAdapterFixture) Interpret(_ context.Context, request contentkit.ProviderAdapterInterpretRequest) (contentkit.ProviderAdapterInterpretResponse, error) {
 	a.request = request
 	if a.response != nil {
 		return a.response(request), nil
 	}
-	return ProviderAdapterInterpretResponse{APIVersion: ProviderAdapterAPIVersion,
-		Response: InterpretResponse{APIVersion: ContentAPIVersion, RequestID: request.Request.RequestID,
-			Findings: []ContentFinding{{Kind: "summary", Text: "a short summary", SourceParts: []int{0, 1}}}}}, nil
+	return contentkit.ProviderAdapterInterpretResponse{APIVersion: contentkit.ProviderAdapterAPIVersion,
+		Response: contentkit.InterpretResponse{APIVersion: contentkit.ContentAPIVersion, RequestID: request.Request.RequestID,
+			Findings: []contentkit.ContentFinding{{Kind: "summary", Text: "a short summary", SourceParts: []int{0, 1}}}}}, nil
 }
-func (a *contentAdapterFixture) Capabilities(context.Context) (ProviderAdapterCapabilities, error) {
-	return ProviderAdapterCapabilities{APIVersion: ProviderAdapterAPIVersion, Capabilities: a.capabilities}, nil
+func (a *contentAdapterFixture) Capabilities(context.Context) (contentkit.ProviderAdapterCapabilities, error) {
+	return contentkit.ProviderAdapterCapabilities{APIVersion: contentkit.ProviderAdapterAPIVersion, Capabilities: a.capabilities}, nil
 }
-func (*contentAdapterFixture) Health(context.Context) (ProviderAdapterHealth, error) {
-	return ProviderAdapterHealth{APIVersion: ProviderAdapterAPIVersion, Ready: true}, nil
+func (*contentAdapterFixture) Health(context.Context) (contentkit.ProviderAdapterHealth, error) {
+	return contentkit.ProviderAdapterHealth{APIVersion: contentkit.ProviderAdapterAPIVersion, Ready: true}, nil
 }
 func (*contentAdapterFixture) Close() error { return nil }
 
-func startContentFixture(t *testing.T, adapter *contentAdapterFixture) Engine {
+func startContentFixture(t *testing.T, adapter *contentAdapterFixture) contentkit.Engine {
 	t.Helper()
-	registry := NewProviderAdapterRegistry()
-	if err := registry.Register("fixture", func(context.Context, ProviderAdapterRuntime) (ProviderAdapter, error) {
+	registry := contentkit.NewProviderAdapterRegistry()
+	if err := registry.Register("fixture", func(context.Context, contentkit.ProviderAdapterRuntime) (contentkit.ProviderAdapter, error) {
 		return adapter, nil
 	}); err != nil {
 		t.Fatal(err)
 	}
-	engine, err := StartConfiguredProviderAdapter(context.Background(), ProviderAdapterConfig{ID: "fixture", Provider: "fixture", MaxPayloadBytes: 1024}, registry, nil)
+	engine, err := contentkit.StartConfiguredProviderAdapter(context.Background(), contentkit.ProviderAdapterConfig{ID: "fixture", Provider: "fixture", MaxPayloadBytes: 1024}, registry, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +55,7 @@ func startContentFixture(t *testing.T, adapter *contentAdapterFixture) Engine {
 }
 
 func TestContentInterpretationAcrossHTTPAndProvider(t *testing.T) {
-	adapter := &contentAdapterFixture{capabilities: []string{CapabilityMultimodalInterpret}}
+	adapter := &contentAdapterFixture{capabilities: []string{contentkit.CapabilityMultimodalInterpret}}
 	engine := startContentFixture(t, adapter)
 	server, err := NewHTTPServer(engine, "fixture")
 	if err != nil {
@@ -62,7 +63,7 @@ func TestContentInterpretationAcrossHTTPAndProvider(t *testing.T) {
 	}
 	httpServer := httptest.NewServer(server.Routes())
 	defer httpServer.Close()
-	request := InterpretRequest{RequestID: "request-1", Prompt: "Summarize and transcribe", Parts: []ContentPart{
+	request := contentkit.InterpretRequest{RequestID: "request-1", Prompt: "Summarize and transcribe", Parts: []contentkit.ContentPart{
 		{Kind: "text", Text: "Meeting notes"},
 		{Kind: "audio", MediaType: "audio/wav", Data: []byte("audio bytes")},
 	}}
@@ -70,14 +71,14 @@ func TestContentInterpretationAcrossHTTPAndProvider(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := ValidateInterpretResponse(result, request); err != nil {
+	if err := contentkit.ValidateInterpretResponse(result, request); err != nil {
 		t.Fatal(err)
 	}
-	if adapter.request.APIVersion != ProviderAdapterAPIVersion || adapter.request.Request.APIVersion != ContentAPIVersion || !reflect.DeepEqual(adapter.request.Request.Parts, request.Parts) {
+	if adapter.request.APIVersion != contentkit.ProviderAdapterAPIVersion || adapter.request.Request.APIVersion != contentkit.ContentAPIVersion || !reflect.DeepEqual(adapter.request.Request.Parts, request.Parts) {
 		t.Fatalf("provider request = %#v", adapter.request)
 	}
-	capabilities, err := engine.(EngineCapabilities).Capabilities(context.Background())
-	if err != nil || !reflect.DeepEqual(capabilities, []string{CapabilityMultimodalInterpret}) {
+	capabilities, err := engine.(contentkit.EngineCapabilities).Capabilities(context.Background())
+	if err != nil || !reflect.DeepEqual(capabilities, []string{contentkit.CapabilityMultimodalInterpret}) {
 		t.Fatalf("capabilities = %v, %v", capabilities, err)
 	}
 	image := httptest.NewRecorder()
@@ -88,31 +89,31 @@ func TestContentInterpretationAcrossHTTPAndProvider(t *testing.T) {
 }
 
 func TestContentInterpretationRejectsUnsupportedAndInvalidOutput(t *testing.T) {
-	adapter := &contentAdapterFixture{capabilities: []string{CapabilityTextInterpret}}
+	adapter := &contentAdapterFixture{capabilities: []string{contentkit.CapabilityTextInterpret}}
 	engine := startContentFixture(t, adapter)
-	request := InterpretRequest{Parts: []ContentPart{{Kind: "audio", MediaType: "audio/wav", Data: []byte("sound")}}}
-	if _, err := engine.(ContentEngine).Interpret(context.Background(), request); !errors.Is(err, ErrModalityUnsupported) {
+	request := contentkit.InterpretRequest{Parts: []contentkit.ContentPart{{Kind: "audio", MediaType: "audio/wav", Data: []byte("sound")}}}
+	if _, err := engine.(contentkit.ContentEngine).Interpret(context.Background(), request); !errors.Is(err, contentkit.ErrModalityUnsupported) {
 		t.Fatalf("audio without capability = %v", err)
 	}
-	adapter.response = func(request ProviderAdapterInterpretRequest) ProviderAdapterInterpretResponse {
-		return ProviderAdapterInterpretResponse{APIVersion: ProviderAdapterAPIVersion,
-			Response: InterpretResponse{APIVersion: ContentAPIVersion, RequestID: request.Request.RequestID,
-				Findings: []ContentFinding{{Kind: "summary", Text: "bad", SourceParts: []int{2}}}}}
+	adapter.response = func(request contentkit.ProviderAdapterInterpretRequest) contentkit.ProviderAdapterInterpretResponse {
+		return contentkit.ProviderAdapterInterpretResponse{APIVersion: contentkit.ProviderAdapterAPIVersion,
+			Response: contentkit.InterpretResponse{APIVersion: contentkit.ContentAPIVersion, RequestID: request.Request.RequestID,
+				Findings: []contentkit.ContentFinding{{Kind: "summary", Text: "bad", SourceParts: []int{2}}}}}
 	}
-	_, err := engine.(ContentEngine).Interpret(context.Background(), InterpretRequest{Parts: []ContentPart{{Kind: "text", Text: "hello"}}})
-	if kind, ok := ProviderAdapterErrorKindOf(err); !ok || kind != ProviderAdapterErrorInvalidResponse {
+	_, err := engine.(contentkit.ContentEngine).Interpret(context.Background(), contentkit.InterpretRequest{Parts: []contentkit.ContentPart{{Kind: "text", Text: "hello"}}})
+	if kind, ok := contentkit.ProviderAdapterErrorKindOf(err); !ok || kind != contentkit.ProviderAdapterErrorInvalidResponse {
 		t.Fatalf("invalid source index = %v", err)
 	}
 }
 
 func TestContentRequestValidation(t *testing.T) {
-	for _, request := range []InterpretRequest{
-		{APIVersion: ContentAPIVersion, Parts: []ContentPart{{Kind: "text", Text: " "}}},
-		{APIVersion: ContentAPIVersion, Parts: []ContentPart{{Kind: "audio", Data: []byte("sound")}}},
-		{APIVersion: ContentAPIVersion, Parts: []ContentPart{{Kind: "image", Text: "not bytes", MediaType: "image/png"}}},
-		{APIVersion: ContentAPIVersion, Parts: []ContentPart{{Kind: "video", MediaType: "application/octet-stream", Data: []byte("video")}}},
+	for _, request := range []contentkit.InterpretRequest{
+		{APIVersion: contentkit.ContentAPIVersion, Parts: []contentkit.ContentPart{{Kind: "text", Text: " "}}},
+		{APIVersion: contentkit.ContentAPIVersion, Parts: []contentkit.ContentPart{{Kind: "audio", Data: []byte("sound")}}},
+		{APIVersion: contentkit.ContentAPIVersion, Parts: []contentkit.ContentPart{{Kind: "image", Text: "not bytes", MediaType: "image/png"}}},
+		{APIVersion: contentkit.ContentAPIVersion, Parts: []contentkit.ContentPart{{Kind: "video", MediaType: "application/octet-stream", Data: []byte("video")}}},
 	} {
-		if err := ValidateInterpretRequest(request); err == nil {
+		if err := contentkit.ValidateInterpretRequest(request); err == nil {
 			t.Fatalf("accepted invalid content request: %#v", request)
 		}
 	}
@@ -129,15 +130,5 @@ func TestContentRequestValidation(t *testing.T) {
 	var body map[string]string
 	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil || body["error"] == "" {
 		t.Fatalf("unsupported response = %s, %v", response.Body.String(), err)
-	}
-}
-
-func TestVideoContentRequiresVideoCapability(t *testing.T) {
-	request := InterpretRequest{APIVersion: ContentAPIVersion, Parts: []ContentPart{{Kind: "video", MediaType: "video/mp4", Data: []byte("video")}}}
-	if err := ValidateInterpretRequest(request); err != nil {
-		t.Fatal(err)
-	}
-	if capability := requiredContentCapability(request.Parts); capability != CapabilityVideoInterpret {
-		t.Fatalf("required capability = %q", capability)
 	}
 }

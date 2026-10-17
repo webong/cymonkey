@@ -1,4 +1,4 @@
-package blockadeplugin
+package contentkitplugin
 
 import (
 	"context"

@@ -1,13 +1,12 @@
 package webllmruntime
 
 import (
+	"contentkit"
 	"context"
 	"os"
 	"strings"
 	"testing"
 	"time"
-
-	"blockade"
 )
 
 // TestWebLLMRuntimeBootProbe verifies the browser/runtime bridge and pinned ES
@@ -29,7 +28,7 @@ func TestWebLLMRuntimeBootProbe(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
-	provider, err := New(ctx, blockade.ProviderAdapterRuntime{ID: "webllm-boot-probe", Settings: settings})
+	provider, err := New(ctx, contentkit.ProviderAdapterRuntime{ID: "webllm-boot-probe", Settings: settings})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +76,7 @@ func TestWebLLMFixtureSmoke(t *testing.T) {
 	}
 	startupCtx, cancelStartup := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancelStartup()
-	provider, err := New(startupCtx, blockade.ProviderAdapterRuntime{ID: "webllm-smoke", Settings: settings})
+	provider, err := New(startupCtx, contentkit.ProviderAdapterRuntime{ID: "webllm-smoke", Settings: settings})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,20 +112,20 @@ func TestWebLLMFixtureSmoke(t *testing.T) {
 	}
 	observeCtx, cancelObserve := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancelObserve()
-	response, err := provider.Observe(observeCtx, blockade.ProviderAdapterObserveRequest{
-		APIVersion: blockade.ProviderAdapterAPIVersion,
-		Request: blockade.ObserveRequest{
-			APIVersion: blockade.APIVersion, RequestID: "webllm-smoke-1",
+	response, err := provider.Observe(observeCtx, contentkit.ProviderAdapterObserveRequest{
+		APIVersion: contentkit.ProviderAdapterAPIVersion,
+		Request: contentkit.ObserveRequest{
+			APIVersion: contentkit.APIVersion, RequestID: "webllm-smoke-1",
 			Image: image, Prompt: "Describe the most important visible item.",
 		},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if response.APIVersion != blockade.ProviderAdapterAPIVersion {
+	if response.APIVersion != contentkit.ProviderAdapterAPIVersion {
 		t.Fatalf("adapter apiVersion = %q", response.APIVersion)
 	}
-	if err := blockade.ValidateObserveResponse(response.Response); err != nil {
+	if err := contentkit.ValidateObserveResponse(response.Response); err != nil {
 		t.Fatal(err)
 	}
 	if len(response.Response.Observations) == 0 {

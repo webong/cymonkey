@@ -2,6 +2,7 @@ package webllmruntime
 
 import (
 	"bytes"
+	"contentkit"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -9,8 +10,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"blockade"
 )
 
 func newProtocolTestAdapter(state string) *Adapter {
@@ -27,10 +26,10 @@ func newProtocolTestAdapter(state string) *Adapter {
 }
 func TestRuntimeBridgeRoundTrip(t *testing.T) {
 	adapter := newProtocolTestAdapter("ready")
-	request := blockade.ProviderAdapterObserveRequest{
-		APIVersion: blockade.ProviderAdapterAPIVersion,
-		Request: blockade.ObserveRequest{
-			APIVersion: blockade.APIVersion, RequestID: "observation-1",
+	request := contentkit.ProviderAdapterObserveRequest{
+		APIVersion: contentkit.ProviderAdapterAPIVersion,
+		Request: contentkit.ObserveRequest{
+			APIVersion: contentkit.APIVersion, RequestID: "observation-1",
 			Image: []byte("png-bytes"), Prompt: "find controls",
 		},
 	}
@@ -55,13 +54,13 @@ func TestRuntimeBridgeRoundTrip(t *testing.T) {
 
 	completion := runtimeCompletion{
 		ID: call.ID,
-		Result: &blockade.ProviderAdapterObserveResponse{
-			APIVersion: blockade.ProviderAdapterAPIVersion,
-			Response: blockade.ObserveResponse{
-				APIVersion: blockade.APIVersion, RequestID: request.Request.RequestID,
-				Observations: []blockade.Observation{{
+		Result: &contentkit.ProviderAdapterObserveResponse{
+			APIVersion: contentkit.ProviderAdapterAPIVersion,
+			Response: contentkit.ObserveResponse{
+				APIVersion: contentkit.APIVersion, RequestID: request.Request.RequestID,
+				Observations: []contentkit.Observation{{
 					Kind: "control", Label: "submit", Confidence: 0.91,
-					Region:   blockade.Region{X: 10, Y: 20, Width: 80, Height: 30},
+					Region:   contentkit.Region{X: 10, Y: 20, Width: 80, Height: 30},
 					Evidence: "webllm:fixture",
 				}},
 			},
@@ -82,7 +81,7 @@ func TestRuntimeBridgeRoundTrip(t *testing.T) {
 		if result.Err != nil {
 			t.Fatal(result.Err)
 		}
-		if err := blockade.ValidateObserveResponse(result.Response.Response); err != nil {
+		if err := contentkit.ValidateObserveResponse(result.Response.Response); err != nil {
 			t.Fatal(err)
 		}
 		if result.Response.Response.Observations[0].Evidence != "webllm:fixture" {
@@ -97,7 +96,7 @@ func TestRuntimeFailureRemainsTyped(t *testing.T) {
 	adapter := newProtocolTestAdapter("ready")
 	resultChannel := make(chan error, 1)
 	go func() {
-		_, err := adapter.Observe(context.Background(), blockade.ProviderAdapterObserveRequest{})
+		_, err := adapter.Observe(context.Background(), contentkit.ProviderAdapterObserveRequest{})
 		resultChannel <- err
 	}()
 	nextRecorder := httptest.NewRecorder()
@@ -107,12 +106,12 @@ func TestRuntimeFailureRemainsTyped(t *testing.T) {
 		t.Fatal(err)
 	}
 	document, _ := json.Marshal(runtimeCompletion{ID: call.ID, Error: &runtimeFailure{
-		Kind: blockade.ProviderAdapterErrorInvalidResponse, Message: "bad model JSON",
+		Kind: contentkit.ProviderAdapterErrorInvalidResponse, Message: "bad model JSON",
 	}})
 	completeRecorder := httptest.NewRecorder()
 	adapter.routes().ServeHTTP(completeRecorder, httptest.NewRequest(http.MethodPost, "/complete?token=test-token", bytes.NewReader(document)))
 	err := <-resultChannel
-	if kind, ok := blockade.ProviderAdapterErrorKindOf(err); !ok || kind != blockade.ProviderAdapterErrorInvalidResponse {
+	if kind, ok := contentkit.ProviderAdapterErrorKindOf(err); !ok || kind != contentkit.ProviderAdapterErrorInvalidResponse {
 		t.Fatalf("error = %v, kind = %q", err, kind)
 	}
 }
@@ -122,7 +121,7 @@ func TestCanceledRequestInterruptsTheBrowserCall(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	resultChannel := make(chan error, 1)
 	go func() {
-		_, err := adapter.Observe(ctx, blockade.ProviderAdapterObserveRequest{})
+		_, err := adapter.Observe(ctx, contentkit.ProviderAdapterObserveRequest{})
 		resultChannel <- err
 	}()
 	nextRecorder := httptest.NewRecorder()
@@ -236,7 +235,7 @@ func TestCapabilitiesReportVisionLanguage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if capabilities.APIVersion != blockade.ProviderAdapterAPIVersion || len(capabilities.Capabilities) != 2 || capabilities.Capabilities[0] != blockade.CapabilityImageObserve || capabilities.Capabilities[1] != blockade.CapabilityVisionLanguage {
+	if capabilities.APIVersion != contentkit.ProviderAdapterAPIVersion || len(capabilities.Capabilities) != 2 || capabilities.Capabilities[0] != contentkit.CapabilityImageObserve || capabilities.Capabilities[1] != contentkit.CapabilityVisionLanguage {
 		t.Fatalf("capabilities = %#v", capabilities)
 	}
 }

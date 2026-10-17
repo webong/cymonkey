@@ -2,6 +2,7 @@ package contentcli
 
 import (
 	"bytes"
+	"contentkit"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -11,22 +12,20 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"blockade"
 )
 
 type cliProviderAdapter struct {
-	request   blockade.ProviderAdapterObserveRequest
-	inspected *blockade.InstalledModel
+	request   contentkit.ProviderAdapterObserveRequest
+	inspected *contentkit.InstalledModel
 }
 
-func RunWithProviderAdapters(args []string, stdout, stderr io.Writer, registry *blockade.ProviderAdapterRegistry, resolver blockade.SecretResolver) error {
+func RunWithProviderAdapters(args []string, stdout, stderr io.Writer, registry *contentkit.ProviderAdapterRegistry, resolver contentkit.SecretResolver) error {
 	return (CommandEngine{Invocation: "cymy content", Registry: registry, Resolver: resolver}).Run(args, stdout, stderr)
 }
 
 func TestCommandEngineUsesHostInvocation(t *testing.T) {
 	var output bytes.Buffer
-	if err := (CommandEngine{Invocation: "host content", Registry: blockade.NewProviderAdapterRegistry()}).Run([]string{"help"}, io.Discard, &output); err != nil {
+	if err := (CommandEngine{Invocation: "host content", Registry: contentkit.NewProviderAdapterRegistry()}).Run([]string{"help"}, io.Discard, &output); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(output.String(), "Usage: host content <command>") {
@@ -37,30 +36,30 @@ func TestCommandEngineUsesHostInvocation(t *testing.T) {
 	}
 }
 
-func (a *cliProviderAdapter) Observe(_ context.Context, request blockade.ProviderAdapterObserveRequest) (blockade.ProviderAdapterObserveResponse, error) {
+func (a *cliProviderAdapter) Observe(_ context.Context, request contentkit.ProviderAdapterObserveRequest) (contentkit.ProviderAdapterObserveResponse, error) {
 	a.request = request
-	return blockade.ProviderAdapterObserveResponse{
-		APIVersion: blockade.ProviderAdapterAPIVersion,
-		Response: blockade.ObserveResponse{
-			APIVersion: blockade.APIVersion,
+	return contentkit.ProviderAdapterObserveResponse{
+		APIVersion: contentkit.ProviderAdapterAPIVersion,
+		Response: contentkit.ObserveResponse{
+			APIVersion: contentkit.APIVersion,
 			RequestID:  request.Request.RequestID,
-			Observations: []blockade.Observation{{
+			Observations: []contentkit.Observation{{
 				Kind: "description", Label: "fixture description", Confidence: 0.8,
-				Region: blockade.Region{Width: 10, Height: 10},
+				Region: contentkit.Region{Width: 10, Height: 10},
 			}},
 		},
 	}, nil
 }
 
-func (*cliProviderAdapter) Capabilities(context.Context) (blockade.ProviderAdapterCapabilities, error) {
-	return blockade.ProviderAdapterCapabilities{
-		APIVersion:   blockade.ProviderAdapterAPIVersion,
+func (*cliProviderAdapter) Capabilities(context.Context) (contentkit.ProviderAdapterCapabilities, error) {
+	return contentkit.ProviderAdapterCapabilities{
+		APIVersion:   contentkit.ProviderAdapterAPIVersion,
 		Capabilities: []string{"image.describe"},
 	}, nil
 }
 
-func (*cliProviderAdapter) Health(context.Context) (blockade.ProviderAdapterHealth, error) {
-	return blockade.ProviderAdapterHealth{APIVersion: blockade.ProviderAdapterAPIVersion, Ready: true}, nil
+func (*cliProviderAdapter) Health(context.Context) (contentkit.ProviderAdapterHealth, error) {
+	return contentkit.ProviderAdapterHealth{APIVersion: contentkit.ProviderAdapterAPIVersion, Ready: true}, nil
 }
 
 func (*cliProviderAdapter) Close() error { return nil }
@@ -79,8 +78,8 @@ func TestObserveCommandUsesConfiguredProviderAdapter(t *testing.T) {
 	}
 
 	adapter := &cliProviderAdapter{}
-	registry := blockade.NewProviderAdapterRegistry()
-	if err := registry.Register("fixture", func(context.Context, blockade.ProviderAdapterRuntime) (blockade.ProviderAdapter, error) {
+	registry := contentkit.NewProviderAdapterRegistry()
+	if err := registry.Register("fixture", func(context.Context, contentkit.ProviderAdapterRuntime) (contentkit.ProviderAdapter, error) {
 		return adapter, nil
 	}); err != nil {
 		t.Fatal(err)
@@ -88,14 +87,14 @@ func TestObserveCommandUsesConfiguredProviderAdapter(t *testing.T) {
 	var stdout bytes.Buffer
 	if err := RunWithProviderAdapters([]string{
 		"observe", "--config", configPath, "--inference", "hosted-fixture", "--image", imagePath, "--prompt", "describe",
-	}, &stdout, &bytes.Buffer{}, registry, blockade.EnvironmentSecretResolver{}); err != nil {
+	}, &stdout, &bytes.Buffer{}, registry, contentkit.EnvironmentSecretResolver{}); err != nil {
 		t.Fatal(err)
 	}
-	var response blockade.ObserveResponse
+	var response contentkit.ObserveResponse
 	if err := json.Unmarshal(stdout.Bytes(), &response); err != nil {
 		t.Fatal(err)
 	}
-	if err := blockade.ValidateObserveResponse(response); err != nil {
+	if err := contentkit.ValidateObserveResponse(response); err != nil {
 		t.Fatal(err)
 	}
 	if adapter.request.Request.Prompt != "describe" || string(adapter.request.Request.Image) != string(image) {
@@ -104,7 +103,7 @@ func TestObserveCommandUsesConfiguredProviderAdapter(t *testing.T) {
 }
 
 func TestSelectProviderByID(t *testing.T) {
-	config := blockade.Config{APIVersion: blockade.ConfigAPIVersion, Providers: []blockade.ProviderAdapterConfig{{ID: "fixture", Provider: "fixture"}}}
+	config := contentkit.Config{APIVersion: contentkit.ConfigAPIVersion, Providers: []contentkit.ProviderAdapterConfig{{ID: "fixture", Provider: "fixture"}}}
 	selected, err := selectProvider(config, "fixture")
 	if err != nil || selected.ID != "fixture" {
 		t.Fatalf("selected = %#v, err = %v", selected, err)
@@ -122,10 +121,10 @@ func TestModelInstallUsesProviderInspectionAndStartsWithInstalledModel(t *testin
 	if err := os.WriteFile(filepath.Join(modelSource, "weights.gguf"), weights, 0600); err != nil {
 		t.Fatal(err)
 	}
-	manifest := blockade.ModelManifest{
-		APIVersion: blockade.ModelManifestAPIVersion, Name: "fixture-model", Version: "1.0.0", Provider: "fixture",
-		Capabilities: []string{blockade.CapabilityTextInterpret},
-		Artifacts:    []blockade.ModelArtifact{{Role: "weights", File: "weights.gguf", SHA256: hex.EncodeToString(digest[:])}},
+	manifest := contentkit.ModelManifest{
+		APIVersion: contentkit.ModelManifestAPIVersion, Name: "fixture-model", Version: "1.0.0", Provider: "fixture",
+		Capabilities: []string{contentkit.CapabilityTextInterpret},
+		Artifacts:    []contentkit.ModelArtifact{{Role: "weights", File: "weights.gguf", SHA256: hex.EncodeToString(digest[:])}},
 	}
 	manifestData, _ := json.Marshal(manifest)
 	manifestPath := filepath.Join(modelSource, "model.json")
@@ -138,14 +137,14 @@ func TestModelInstallUsesProviderInspectionAndStartsWithInstalledModel(t *testin
 	}
 	modelRoot := filepath.Join(dir, "models")
 	adapter := &cliProviderAdapter{}
-	var runtime blockade.ProviderAdapterRuntime
+	var runtime contentkit.ProviderAdapterRuntime
 	startCalls := 0
-	registry := blockade.NewProviderAdapterRegistry()
-	if err := registry.RegisterWithModelInspector("fixture", func(_ context.Context, value blockade.ProviderAdapterRuntime) (blockade.ProviderAdapter, error) {
+	registry := contentkit.NewProviderAdapterRegistry()
+	if err := registry.RegisterWithModelInspector("fixture", func(_ context.Context, value contentkit.ProviderAdapterRuntime) (contentkit.ProviderAdapter, error) {
 		startCalls++
 		runtime = value
 		return adapter, nil
-	}, func(_ context.Context, _ blockade.ProviderAdapterRuntime, model blockade.InstalledModel) error {
+	}, func(_ context.Context, _ contentkit.ProviderAdapterRuntime, model contentkit.InstalledModel) error {
 		adapter.inspected = &model
 		return nil
 	}); err != nil {
@@ -161,7 +160,7 @@ func TestModelInstallUsesProviderInspectionAndStartsWithInstalledModel(t *testin
 	if startCalls != 0 {
 		t.Fatalf("model inspection started the inference provider %d time(s)", startCalls)
 	}
-	engine, err := blockade.StartConfiguredProviderAdapter(context.Background(), blockade.ProviderAdapterConfig{
+	engine, err := contentkit.StartConfiguredProviderAdapter(context.Background(), contentkit.ProviderAdapterConfig{
 		ID: "fixture", Provider: "fixture", Model: "fixture-model@1.0.0", ModelRoot: modelRoot,
 	}, registry, nil)
 	if err != nil {
@@ -203,7 +202,7 @@ func TestRuntimeManifestInstallListAndRemove(t *testing.T) {
 	}
 	manifestPath := filepath.Join(source, "runtime.json")
 	runtimeRoot := filepath.Join(dir, "installed")
-	registry := blockade.NewProviderAdapterRegistry()
+	registry := contentkit.NewProviderAdapterRegistry()
 	var output bytes.Buffer
 	if err := RunWithProviderAdapters([]string{
 		"runtime", "manifest", "--source", source, "--name", "python", "--version", "3.12.8",
@@ -211,7 +210,7 @@ func TestRuntimeManifestInstallListAndRemove(t *testing.T) {
 	}, &output, &bytes.Buffer{}, registry, nil); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := blockade.LoadRuntimeManifest(manifestPath); err != nil {
+	if _, err := contentkit.LoadRuntimeManifest(manifestPath); err != nil {
 		t.Fatal(err)
 	}
 	output.Reset()
@@ -229,7 +228,7 @@ func TestRuntimeManifestInstallListAndRemove(t *testing.T) {
 	if err := RunWithProviderAdapters([]string{"runtime", "remove", "--name", "python", "--version", "3.12.8", "--root", runtimeRoot}, &output, &bytes.Buffer{}, registry, nil); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := blockade.ResolveInstalledRuntime(runtimeRoot, "python", "3.12.8"); !os.IsNotExist(err) {
+	if _, err := contentkit.ResolveInstalledRuntime(runtimeRoot, "python", "3.12.8"); !os.IsNotExist(err) {
 		t.Fatalf("removed runtime resolution = %v", err)
 	}
 }
@@ -244,23 +243,23 @@ func mustReadFile(t *testing.T, path string) []byte {
 }
 
 type cliContentAdapter struct {
-	request blockade.ProviderAdapterInterpretRequest
+	request contentkit.ProviderAdapterInterpretRequest
 }
 
-func (*cliContentAdapter) Observe(context.Context, blockade.ProviderAdapterObserveRequest) (blockade.ProviderAdapterObserveResponse, error) {
-	return blockade.ProviderAdapterObserveResponse{}, blockade.ErrModalityUnsupported
+func (*cliContentAdapter) Observe(context.Context, contentkit.ProviderAdapterObserveRequest) (contentkit.ProviderAdapterObserveResponse, error) {
+	return contentkit.ProviderAdapterObserveResponse{}, contentkit.ErrModalityUnsupported
 }
-func (a *cliContentAdapter) Interpret(_ context.Context, request blockade.ProviderAdapterInterpretRequest) (blockade.ProviderAdapterInterpretResponse, error) {
+func (a *cliContentAdapter) Interpret(_ context.Context, request contentkit.ProviderAdapterInterpretRequest) (contentkit.ProviderAdapterInterpretResponse, error) {
 	a.request = request
-	return blockade.ProviderAdapterInterpretResponse{APIVersion: blockade.ProviderAdapterAPIVersion,
-		Response: blockade.InterpretResponse{APIVersion: blockade.ContentAPIVersion, RequestID: request.Request.RequestID,
-			Findings: []blockade.ContentFinding{{Kind: "summary", Text: "fixture interpretation", SourceParts: []int{0, 1}}}}}, nil
+	return contentkit.ProviderAdapterInterpretResponse{APIVersion: contentkit.ProviderAdapterAPIVersion,
+		Response: contentkit.InterpretResponse{APIVersion: contentkit.ContentAPIVersion, RequestID: request.Request.RequestID,
+			Findings: []contentkit.ContentFinding{{Kind: "summary", Text: "fixture interpretation", SourceParts: []int{0, 1}}}}}, nil
 }
-func (*cliContentAdapter) Capabilities(context.Context) (blockade.ProviderAdapterCapabilities, error) {
-	return blockade.ProviderAdapterCapabilities{APIVersion: blockade.ProviderAdapterAPIVersion, Capabilities: []string{blockade.CapabilityMultimodalInterpret}}, nil
+func (*cliContentAdapter) Capabilities(context.Context) (contentkit.ProviderAdapterCapabilities, error) {
+	return contentkit.ProviderAdapterCapabilities{APIVersion: contentkit.ProviderAdapterAPIVersion, Capabilities: []string{contentkit.CapabilityMultimodalInterpret}}, nil
 }
-func (*cliContentAdapter) Health(context.Context) (blockade.ProviderAdapterHealth, error) {
-	return blockade.ProviderAdapterHealth{APIVersion: blockade.ProviderAdapterAPIVersion, Ready: true}, nil
+func (*cliContentAdapter) Health(context.Context) (contentkit.ProviderAdapterHealth, error) {
+	return contentkit.ProviderAdapterHealth{APIVersion: contentkit.ProviderAdapterAPIVersion, Ready: true}, nil
 }
 func (*cliContentAdapter) Close() error { return nil }
 
@@ -275,8 +274,8 @@ func TestInterpretCommandPassesTextAndAudioToProvider(t *testing.T) {
 		t.Fatal(err)
 	}
 	adapter := &cliContentAdapter{}
-	registry := blockade.NewProviderAdapterRegistry()
-	if err := registry.Register("fixture", func(context.Context, blockade.ProviderAdapterRuntime) (blockade.ProviderAdapter, error) {
+	registry := contentkit.NewProviderAdapterRegistry()
+	if err := registry.Register("fixture", func(context.Context, contentkit.ProviderAdapterRuntime) (contentkit.ProviderAdapter, error) {
 		return adapter, nil
 	}); err != nil {
 		t.Fatal(err)
@@ -285,7 +284,7 @@ func TestInterpretCommandPassesTextAndAudioToProvider(t *testing.T) {
 	if err := RunWithProviderAdapters([]string{"interpret", "--config", configPath, "--text", "Agenda", "--audio", audioPath, "--audio-type", "audio/wav"}, &output, &bytes.Buffer{}, registry, nil); err != nil {
 		t.Fatal(err)
 	}
-	var response blockade.InterpretResponse
+	var response contentkit.InterpretResponse
 	if err := json.Unmarshal(output.Bytes(), &response); err != nil {
 		t.Fatal(err)
 	}
@@ -305,8 +304,8 @@ func TestInterpretCommandPassesVideoToProvider(t *testing.T) {
 		t.Fatal(err)
 	}
 	adapter := &cliContentAdapter{}
-	registry := blockade.NewProviderAdapterRegistry()
-	if err := registry.Register("fixture", func(context.Context, blockade.ProviderAdapterRuntime) (blockade.ProviderAdapter, error) {
+	registry := contentkit.NewProviderAdapterRegistry()
+	if err := registry.Register("fixture", func(context.Context, contentkit.ProviderAdapterRuntime) (contentkit.ProviderAdapter, error) {
 		return adapter, nil
 	}); err != nil {
 		t.Fatal(err)
@@ -325,8 +324,8 @@ func TestEndpointAddTestListAndRemove(t *testing.T) {
 	configPath := filepath.Join(directory, "blockade.yaml")
 	t.Setenv("CYMONKEY_CONTENT_CONFIG", configPath)
 	adapter := &cliContentAdapter{}
-	registry := blockade.NewProviderAdapterRegistry()
-	if err := registry.Register("fixture", func(context.Context, blockade.ProviderAdapterRuntime) (blockade.ProviderAdapter, error) {
+	registry := contentkit.NewProviderAdapterRegistry()
+	if err := registry.Register("fixture", func(context.Context, contentkit.ProviderAdapterRuntime) (contentkit.ProviderAdapter, error) {
 		return adapter, nil
 	}); err != nil {
 		t.Fatal(err)
@@ -337,7 +336,7 @@ func TestEndpointAddTestListAndRemove(t *testing.T) {
 	}, &output, io.Discard, registry, nil); err != nil {
 		t.Fatal(err)
 	}
-	config, err := blockade.LoadConfig(configPath)
+	config, err := contentkit.LoadConfig(configPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -368,13 +367,13 @@ func TestEndpointAddTestListAndRemove(t *testing.T) {
 
 func TestEndpointProfileCreatesCompatibleProviderConfig(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "blockade.yaml")
-	registry := blockade.NewProviderAdapterRegistry()
+	registry := contentkit.NewProviderAdapterRegistry()
 	if err := RunWithProviderAdapters([]string{
 		"endpoint", "add", "--config", configPath, "--id", "ollama", "--profile", "ollama", "--model", "qwen3-vl", "--url", "http://127.0.0.1:11434/v1",
 	}, io.Discard, io.Discard, registry, nil); err != nil {
 		t.Fatal(err)
 	}
-	config, err := blockade.LoadConfig(configPath)
+	config, err := contentkit.LoadConfig(configPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -385,7 +384,7 @@ func TestEndpointProfileCreatesCompatibleProviderConfig(t *testing.T) {
 }
 
 func TestServeRequiresAuthenticationAndTLSOutsideLoopback(t *testing.T) {
-	registry := blockade.NewProviderAdapterRegistry()
+	registry := contentkit.NewProviderAdapterRegistry()
 	err := RunWithProviderAdapters([]string{"serve", "--bind", "0.0.0.0:8091", "--config", filepath.Join(t.TempDir(), "missing.yaml")}, io.Discard, io.Discard, registry, nil)
 	if err == nil || !strings.Contains(err.Error(), "non-loopback") {
 		t.Fatalf("serve error = %v", err)

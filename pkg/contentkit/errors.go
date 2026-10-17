@@ -1,4 +1,4 @@
-package blockade
+package contentkit
 
 import (
 	"context"
@@ -55,3 +55,8 @@ func ClassifyModelError(err error) ErrorKind {
 	}
 	return ErrorTransport
 }
+
+// ErrGenerationUnsupported and ErrInvalidGeneration classify generation
+// failures reported by the service layer.
+var ErrGenerationUnsupported = errors.New("generation feature is unsupported")
+var ErrInvalidGeneration = errors.New("invalid generation contract")

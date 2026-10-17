@@ -3,6 +3,7 @@
 package httpapi
 
 import (
+	"contentkit"
 	"encoding/json"
 	"errors"
 	"io"
@@ -115,7 +116,7 @@ func code(err error) string {
 	case errors.Is(err, console.ErrInvalidResult):
 		return "invalid_result"
 	}
-	return string(blockade.ClassifyModelError(err))
+	return string(contentkit.ClassifyModelError(err))
 }
 func reply(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")

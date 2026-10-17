@@ -1,6 +1,7 @@
 package blockade
 
 import (
+	"contentkit"
 	"context"
 	"encoding/base64"
 	"errors"
@@ -21,7 +22,7 @@ func TestClientObserve(t *testing.T) {
 		}
 		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(`{"apiVersion":"content.observation/v1","requestId":"req-1","observations":[{"kind":"object","label":"button","confidence":0.9,"region":{"x":1,"y":2,"width":3,"height":4}}]}`)), Header: make(http.Header)}, nil
 	})
-	result, err := (Client{BaseURL: "http://blockade.test", HTTPClient: &http.Client{Transport: transport}, BearerToken: "secret"}).Observe(context.Background(), ObserveRequest{
+	result, err := (Client{BaseURL: "http://blockade.test", HTTPClient: &http.Client{Transport: transport}, BearerToken: "secret"}).Observe(context.Background(), contentkit.ObserveRequest{
 		RequestID: "req-1", Image: []byte("image"), Prompt: "find controls",
 	})
 	if err != nil {
@@ -42,11 +43,11 @@ func TestClientObservePreservesProviderAdapterErrorKind(t *testing.T) {
 			Header:     header,
 		}, nil
 	})
-	_, err := (Client{BaseURL: "http://blockade.test", HTTPClient: &http.Client{Transport: transport}}).Observe(context.Background(), ObserveRequest{Image: []byte("image")})
-	if kind, ok := ProviderAdapterErrorKindOf(err); !ok || kind != ProviderAdapterErrorRateLimit {
+	_, err := (Client{BaseURL: "http://blockade.test", HTTPClient: &http.Client{Transport: transport}}).Observe(context.Background(), contentkit.ObserveRequest{Image: []byte("image")})
+	if kind, ok := contentkit.ProviderAdapterErrorKindOf(err); !ok || kind != contentkit.ProviderAdapterErrorRateLimit {
 		t.Fatalf("error = %v, kind = %q", err, kind)
 	}
-	var adapterError *ProviderAdapterError
+	var adapterError *contentkit.ProviderAdapterError
 	if !errors.As(err, &adapterError) || adapterError.RetryAfter != 3*time.Second {
 		t.Fatalf("adapter error = %#v", adapterError)
 	}
@@ -69,7 +70,7 @@ func TestClientReadsAuthenticatedServiceHealthAndCapabilities(t *testing.T) {
 		t.Fatalf("health = %#v, %v", health, err)
 	}
 	capabilities, err := client.Capabilities(context.Background())
-	if err != nil || len(capabilities.Capabilities) != 1 || capabilities.Capabilities[0] != CapabilityTextInterpret {
+	if err != nil || len(capabilities.Capabilities) != 1 || capabilities.Capabilities[0] != contentkit.CapabilityTextInterpret {
 		t.Fatalf("capabilities = %#v, %v", capabilities, err)
 	}
 }

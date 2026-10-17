@@ -1,4 +1,4 @@
-package blockade
+package contentkit
 
 import (
 	"context"
@@ -266,7 +266,7 @@ func ProviderAdapterErrorKindOf(err error) (ProviderAdapterErrorKind, bool) {
 	return adapterErr.Kind, true
 }
 
-func validProviderAdapterErrorKind(kind ProviderAdapterErrorKind) bool {
+func ValidProviderAdapterErrorKind(kind ProviderAdapterErrorKind) bool {
 	switch kind {
 	case ProviderAdapterErrorAuthentication,
 		ProviderAdapterErrorRateLimit,

@@ -3,6 +3,7 @@
 package main
 
 import (
+	"contentkit"
 	"context"
 	"encoding/json"
 	"errors"
@@ -12,7 +13,6 @@ import (
 	"slices"
 	"strings"
 
-	"blockade"
 	plugin "github.com/webong/ext/pkg/plugin-go/contract"
 	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
 	packagekit "github.com/webong/ext/pkg/plugin-go/contract/package"
@@ -63,15 +63,15 @@ func (p *provider) call(ctx context.Context, method string, raw json.RawMessage)
 	switch method {
 	case "content.provider.model.inspect":
 		var params struct {
-			Settings map[string]string       `json:"settings,omitempty"`
-			Model    blockade.InstalledModel `json:"model"`
+			Settings map[string]string         `json:"settings,omitempty"`
+			Model    contentkit.InstalledModel `json:"model"`
 		}
 		if err := decodeParams(raw, &params); err != nil {
 			return nil, err
 		}
 		err := inspectInstalledModel(params.Model, p.descriptor.Identity.ID, params.Settings, true)
 		result := map[string]any{
-			"apiVersion": blockade.ProviderAdapterAPIVersion,
+			"apiVersion": contentkit.ProviderAdapterAPIVersion,
 			"compatible": err == nil,
 		}
 		if err != nil {
@@ -83,9 +83,9 @@ func (p *provider) call(ctx context.Context, method string, raw json.RawMessage)
 			return nil, errors.New("provider is already started")
 		}
 		var params struct {
-			ID       string                   `json:"id"`
-			Settings map[string]string        `json:"settings,omitempty"`
-			Model    *blockade.InstalledModel `json:"model"`
+			ID       string                     `json:"id"`
+			Settings map[string]string          `json:"settings,omitempty"`
+			Model    *contentkit.InstalledModel `json:"model"`
 		}
 		if err := decodeParams(raw, &params); err != nil {
 			return nil, err
@@ -104,13 +104,13 @@ func (p *provider) call(ctx context.Context, method string, raw json.RawMessage)
 		p.engine = engine
 		return map[string]any{}, nil
 	case "content.provider.capabilities":
-		return blockade.ProviderAdapterCapabilities{
-			APIVersion:   blockade.ProviderAdapterAPIVersion,
-			Capabilities: []string{blockade.CapabilityImageObserve, blockade.CapabilityObjectDetect},
+		return contentkit.ProviderAdapterCapabilities{
+			APIVersion:   contentkit.ProviderAdapterAPIVersion,
+			Capabilities: []string{contentkit.CapabilityImageObserve, contentkit.CapabilityObjectDetect},
 		}, nil
 	case "content.provider.health":
-		return blockade.ProviderAdapterHealth{
-			APIVersion: blockade.ProviderAdapterAPIVersion,
+		return contentkit.ProviderAdapterHealth{
+			APIVersion: contentkit.ProviderAdapterAPIVersion,
 			Ready:      p.engine != nil,
 		}, nil
 	case "content.provider.observe":
@@ -118,7 +118,7 @@ func (p *provider) call(ctx context.Context, method string, raw json.RawMessage)
 			return nil, errors.New("provider has not been started")
 		}
 		var params struct {
-			Request blockade.ProviderAdapterObserveRequest `json:"request"`
+			Request contentkit.ProviderAdapterObserveRequest `json:"request"`
 			// Blockade sends the adapter's resolved secrets with every call. An
 			// image provider has none to use, but must still accept the field.
 			Secrets map[string]string `json:"secrets,omitempty"`
@@ -130,8 +130,8 @@ func (p *provider) call(ctx context.Context, method string, raw json.RawMessage)
 		if err != nil {
 			return nil, err
 		}
-		return blockade.ProviderAdapterObserveResponse{
-			APIVersion: blockade.ProviderAdapterAPIVersion,
+		return contentkit.ProviderAdapterObserveResponse{
+			APIVersion: contentkit.ProviderAdapterAPIVersion,
 			Response:   response,
 		}, nil
 	case "content.provider.close":
@@ -159,14 +159,14 @@ func (p *provider) close() error {
 	return err
 }
 
-func inspectInstalledModel(model blockade.InstalledModel, providerName string, settings map[string]string, inspectRuntime bool) error {
+func inspectInstalledModel(model contentkit.InstalledModel, providerName string, settings map[string]string, inspectRuntime bool) error {
 	if err := model.Manifest.Validate(); err != nil {
 		return err
 	}
 	if model.Manifest.Provider != providerName {
 		return fmt.Errorf("model provider %q does not match %q", model.Manifest.Provider, providerName)
 	}
-	if !slices.Contains(model.Manifest.Capabilities, blockade.CapabilityObjectDetect) {
+	if !slices.Contains(model.Manifest.Capabilities, contentkit.CapabilityObjectDetect) {
 		return errors.New("ONNX model must declare object.detect")
 	}
 	path, err := modelArtifactPath(model, "yolo", ".onnx")
@@ -186,7 +186,7 @@ func inspectInstalledModel(model blockade.InstalledModel, providerName string, s
 	return inspectOnnxModel(path)
 }
 
-func modelArtifactPath(model blockade.InstalledModel, role, extension string) (string, error) {
+func modelArtifactPath(model contentkit.InstalledModel, role, extension string) (string, error) {
 	var matches []string
 	for _, artifact := range model.Manifest.Artifacts {
 		if artifact.Role == role {

@@ -4,6 +4,7 @@
 package webllmruntime
 
 import (
+	"contentkit"
 	"context"
 	"crypto/rand"
 	_ "embed"
@@ -24,8 +25,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"blockade"
 )
 
 //go:embed runtime.js
@@ -73,26 +72,26 @@ type runtimeConfig struct {
 }
 
 type runtimeCall struct {
-	ID       string                                 `json:"id"`
-	Request  blockade.ProviderAdapterObserveRequest `json:"request"`
-	Result   chan runtimeResult                     `json:"-"`
-	Canceled chan struct{}                          `json:"-"`
+	ID       string                                   `json:"id"`
+	Request  contentkit.ProviderAdapterObserveRequest `json:"request"`
+	Result   chan runtimeResult                       `json:"-"`
+	Canceled chan struct{}                            `json:"-"`
 }
 
 type runtimeResult struct {
-	Response blockade.ProviderAdapterObserveResponse
+	Response contentkit.ProviderAdapterObserveResponse
 	Err      error
 }
 
 type runtimeFailure struct {
-	Kind    blockade.ProviderAdapterErrorKind `json:"kind"`
-	Message string                            `json:"message,omitempty"`
+	Kind    contentkit.ProviderAdapterErrorKind `json:"kind"`
+	Message string                              `json:"message,omitempty"`
 }
 
 type runtimeCompletion struct {
-	ID     string                                   `json:"id"`
-	Result *blockade.ProviderAdapterObserveResponse `json:"result,omitempty"`
-	Error  *runtimeFailure                          `json:"error,omitempty"`
+	ID     string                                     `json:"id"`
+	Result *contentkit.ProviderAdapterObserveResponse `json:"result,omitempty"`
+	Error  *runtimeFailure                            `json:"error,omitempty"`
 }
 
 type Adapter struct {
@@ -120,34 +119,34 @@ type Adapter struct {
 }
 
 // Register adds WebLLM to a Blockade provider registry.
-func Register(registry *blockade.ProviderAdapterRegistry) error {
+func Register(registry *contentkit.ProviderAdapterRegistry) error {
 	return registry.Register(Kind, New)
 }
 
 // New starts a dedicated browser-local WebLLM runtime.
-func New(ctx context.Context, providerRuntime blockade.ProviderAdapterRuntime) (blockade.ProviderAdapter, error) {
+func New(ctx context.Context, providerRuntime contentkit.ProviderAdapterRuntime) (contentkit.ProviderAdapter, error) {
 	config, err := parseConfig(providerRuntime.Settings)
 	if err != nil {
-		return nil, blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, err)
+		return nil, contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidRequest, err)
 	}
 	browserExecutable, err := resolveBrowserExecutable(config.browserExecutable)
 	if err != nil {
-		return nil, blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorUnavailable, err)
+		return nil, contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorUnavailable, err)
 	}
 	token, err := randomToken()
 	if err != nil {
-		return nil, blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorUnavailable, err)
+		return nil, contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorUnavailable, err)
 	}
 	profile, temporaryProfile, err := prepareProfileDirectory(config.cacheDirectory, providerRuntime.ID)
 	if err != nil {
-		return nil, blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorUnavailable, err)
+		return nil, contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorUnavailable, err)
 	}
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		if temporaryProfile {
 			_ = os.RemoveAll(profile)
 		}
-		return nil, blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorUnavailable, fmt.Errorf("listen for WebLLM runtime: %w", err))
+		return nil, contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorUnavailable, fmt.Errorf("listen for WebLLM runtime: %w", err))
 	}
 	adapterCtx, cancel := context.WithCancel(ctx)
 	a := &Adapter{
@@ -184,7 +183,7 @@ func New(ctx context.Context, providerRuntime blockade.ProviderAdapterRuntime) (
 	if err := a.browser.Start(); err != nil {
 		close(a.browserDone)
 		_ = a.Close()
-		return nil, blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorUnavailable, fmt.Errorf("start WebLLM browser: %w", err))
+		return nil, contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorUnavailable, fmt.Errorf("start WebLLM browser: %w", err))
 	}
 	go func() {
 		defer close(a.browserDone)
@@ -341,9 +340,9 @@ func randomToken() (string, error) {
 	return hex.EncodeToString(value), nil
 }
 
-func (a *Adapter) Observe(ctx context.Context, request blockade.ProviderAdapterObserveRequest) (blockade.ProviderAdapterObserveResponse, error) {
+func (a *Adapter) Observe(ctx context.Context, request contentkit.ProviderAdapterObserveRequest) (contentkit.ProviderAdapterObserveResponse, error) {
 	if err := a.waitReady(ctx); err != nil {
-		return blockade.ProviderAdapterObserveResponse{}, err
+		return contentkit.ProviderAdapterObserveResponse{}, err
 	}
 	id := fmt.Sprintf("webllm-%d", a.nextID.Add(1))
 	call := &runtimeCall{ID: id, Request: request, Result: make(chan runtimeResult, 1), Canceled: make(chan struct{})}
@@ -354,38 +353,38 @@ func (a *Adapter) Observe(ctx context.Context, request blockade.ProviderAdapterO
 	select {
 	case a.queue <- call:
 	case <-ctx.Done():
-		return blockade.ProviderAdapterObserveResponse{}, ctx.Err()
+		return contentkit.ProviderAdapterObserveResponse{}, ctx.Err()
 	case <-a.done:
-		return blockade.ProviderAdapterObserveResponse{}, blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorUnavailable, errors.New("WebLLM runtime is closed"))
+		return contentkit.ProviderAdapterObserveResponse{}, contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorUnavailable, errors.New("WebLLM runtime is closed"))
 	}
 	select {
 	case result := <-call.Result:
 		return result.Response, result.Err
 	case <-ctx.Done():
-		return blockade.ProviderAdapterObserveResponse{}, ctx.Err()
+		return contentkit.ProviderAdapterObserveResponse{}, ctx.Err()
 	case <-a.done:
-		return blockade.ProviderAdapterObserveResponse{}, blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorUnavailable, errors.New("WebLLM runtime is closed"))
+		return contentkit.ProviderAdapterObserveResponse{}, contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorUnavailable, errors.New("WebLLM runtime is closed"))
 	}
 }
 
-func (a *Adapter) Capabilities(ctx context.Context) (blockade.ProviderAdapterCapabilities, error) {
+func (a *Adapter) Capabilities(ctx context.Context) (contentkit.ProviderAdapterCapabilities, error) {
 	if err := ctx.Err(); err != nil {
-		return blockade.ProviderAdapterCapabilities{}, err
+		return contentkit.ProviderAdapterCapabilities{}, err
 	}
-	return blockade.ProviderAdapterCapabilities{
-		APIVersion:   blockade.ProviderAdapterAPIVersion,
-		Capabilities: []string{blockade.CapabilityImageObserve, blockade.CapabilityVisionLanguage},
+	return contentkit.ProviderAdapterCapabilities{
+		APIVersion:   contentkit.ProviderAdapterAPIVersion,
+		Capabilities: []string{contentkit.CapabilityImageObserve, contentkit.CapabilityVisionLanguage},
 	}, nil
 }
 
-func (a *Adapter) Health(ctx context.Context) (blockade.ProviderAdapterHealth, error) {
+func (a *Adapter) Health(ctx context.Context) (contentkit.ProviderAdapterHealth, error) {
 	if err := ctx.Err(); err != nil {
-		return blockade.ProviderAdapterHealth{}, err
+		return contentkit.ProviderAdapterHealth{}, err
 	}
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	return blockade.ProviderAdapterHealth{
-		APIVersion: blockade.ProviderAdapterAPIVersion,
+	return contentkit.ProviderAdapterHealth{
+		APIVersion: contentkit.ProviderAdapterAPIVersion,
 		Ready:      a.state == "ready", Detail: a.detail,
 	}, nil
 }
@@ -433,14 +432,14 @@ func (a *Adapter) waitReady(ctx context.Context) error {
 		case "ready":
 			return nil
 		case "error", "closed":
-			return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorUnavailable, errors.New(detail))
+			return contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorUnavailable, errors.New(detail))
 		}
 		select {
 		case <-changed:
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-a.done:
-			return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorUnavailable, errors.New("WebLLM runtime is closed"))
+			return contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorUnavailable, errors.New("WebLLM runtime is closed"))
 		}
 	}
 }
@@ -577,9 +576,9 @@ func (a *Adapter) handleComplete(w http.ResponseWriter, r *http.Request) {
 	if completion.Error != nil {
 		kind := completion.Error.Kind
 		if !validFailureKind(kind) {
-			kind = blockade.ProviderAdapterErrorUnavailable
+			kind = contentkit.ProviderAdapterErrorUnavailable
 		}
-		result.Err = blockade.NewProviderAdapterError(kind, errors.New(completion.Error.Message))
+		result.Err = contentkit.NewProviderAdapterError(kind, errors.New(completion.Error.Message))
 	} else {
 		result.Response = *completion.Result
 	}
@@ -604,15 +603,15 @@ func decodeRuntimeJSON(r *http.Request, target any) error {
 	return nil
 }
 
-func validFailureKind(kind blockade.ProviderAdapterErrorKind) bool {
+func validFailureKind(kind contentkit.ProviderAdapterErrorKind) bool {
 	switch kind {
-	case blockade.ProviderAdapterErrorAuthentication,
-		blockade.ProviderAdapterErrorRateLimit,
-		blockade.ProviderAdapterErrorTimeout,
-		blockade.ProviderAdapterErrorCanceled,
-		blockade.ProviderAdapterErrorUnavailable,
-		blockade.ProviderAdapterErrorInvalidRequest,
-		blockade.ProviderAdapterErrorInvalidResponse:
+	case contentkit.ProviderAdapterErrorAuthentication,
+		contentkit.ProviderAdapterErrorRateLimit,
+		contentkit.ProviderAdapterErrorTimeout,
+		contentkit.ProviderAdapterErrorCanceled,
+		contentkit.ProviderAdapterErrorUnavailable,
+		contentkit.ProviderAdapterErrorInvalidRequest,
+		contentkit.ProviderAdapterErrorInvalidResponse:
 		return true
 	default:
 		return false

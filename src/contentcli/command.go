@@ -1,6 +1,7 @@
 package contentcli
 
 import (
+	"contentkit"
 	"context"
 	"encoding/json"
 	"errors"
@@ -24,8 +25,8 @@ type CommandEngine struct {
 	Invocation    string
 	DefaultConfig string
 	DefaultBind   string
-	Registry      *blockade.ProviderAdapterRegistry
-	Resolver      blockade.SecretResolver
+	Registry      *contentkit.ProviderAdapterRegistry
+	Resolver      contentkit.SecretResolver
 	Middleware    func(http.Handler) http.Handler
 }
 
@@ -49,12 +50,12 @@ func (engine CommandEngine) Run(args []string, stdout, stderr io.Writer) error {
 	}
 	registry := engine.Registry
 	if registry == nil {
-		registry = blockade.NewProviderAdapterRegistry()
+		registry = contentkit.NewProviderAdapterRegistry()
 	}
 	return run(args, stdout, stderr, registry, engine.Resolver, invocation, defaultConfig, defaultBind, engine.Middleware)
 }
 
-func run(args []string, stdout, stderr io.Writer, registry *blockade.ProviderAdapterRegistry, resolver blockade.SecretResolver, invocation, defaultConfig, defaultBind string, middleware func(http.Handler) http.Handler) error {
+func run(args []string, stdout, stderr io.Writer, registry *contentkit.ProviderAdapterRegistry, resolver contentkit.SecretResolver, invocation, defaultConfig, defaultBind string, middleware func(http.Handler) http.Handler) error {
 	if len(args) == 0 {
 		return fmt.Errorf("%s requires endpoint, model, runtime, validate, observe, interpret, or serve", invocation)
 	}
@@ -113,7 +114,7 @@ func runtimeCommand(args []string, stdout io.Writer, invocation string) error {
 		if flags.NArg() != 0 || strings.TrimSpace(*source) == "" || strings.TrimSpace(*name) == "" || strings.TrimSpace(*version) == "" || strings.TrimSpace(*executable) == "" || strings.TrimSpace(*output) == "" {
 			return fmt.Errorf("%s runtime manifest requires --source, --name, --version, --executable, and --output", invocation)
 		}
-		manifest, err := blockade.BuildRuntimeManifest(*source, strings.TrimSpace(*name), strings.TrimSpace(*version), strings.TrimSpace(*executable))
+		manifest, err := contentkit.BuildRuntimeManifest(*source, strings.TrimSpace(*name), strings.TrimSpace(*version), strings.TrimSpace(*executable))
 		if err != nil {
 			return err
 		}
@@ -140,12 +141,12 @@ func runtimeCommand(args []string, stdout io.Writer, invocation string) error {
 		root := strings.TrimSpace(*runtimeRoot)
 		var err error
 		if root == "" {
-			root, err = blockade.DefaultRuntimeRoot()
+			root, err = contentkit.DefaultRuntimeRoot()
 			if err != nil {
 				return err
 			}
 		}
-		installed, err := blockade.InstallRuntime(root, *manifestPath)
+		installed, err := contentkit.InstallRuntime(root, *manifestPath)
 		if err != nil {
 			return err
 		}
@@ -163,12 +164,12 @@ func runtimeCommand(args []string, stdout io.Writer, invocation string) error {
 		root := strings.TrimSpace(*runtimeRoot)
 		var err error
 		if root == "" {
-			root, err = blockade.DefaultRuntimeRoot()
+			root, err = contentkit.DefaultRuntimeRoot()
 			if err != nil {
 				return err
 			}
 		}
-		runtimes, err := blockade.ListInstalledRuntimes(root)
+		runtimes, err := contentkit.ListInstalledRuntimes(root)
 		if err != nil {
 			return err
 		}
@@ -188,12 +189,12 @@ func runtimeCommand(args []string, stdout io.Writer, invocation string) error {
 		root := strings.TrimSpace(*runtimeRoot)
 		var err error
 		if root == "" {
-			root, err = blockade.DefaultRuntimeRoot()
+			root, err = contentkit.DefaultRuntimeRoot()
 			if err != nil {
 				return err
 			}
 		}
-		if err := blockade.RemoveInstalledRuntime(root, strings.TrimSpace(*name), strings.TrimSpace(*version)); err != nil {
+		if err := contentkit.RemoveInstalledRuntime(root, strings.TrimSpace(*name), strings.TrimSpace(*version)); err != nil {
 			return err
 		}
 		_, err = fmt.Fprintf(stdout, "removed runtime %s@%s\n", strings.TrimSpace(*name), strings.TrimSpace(*version))
@@ -203,7 +204,7 @@ func runtimeCommand(args []string, stdout io.Writer, invocation string) error {
 	}
 }
 
-func modelCommand(args []string, stdout io.Writer, registry *blockade.ProviderAdapterRegistry, resolver blockade.SecretResolver, invocation, defaultConfig string) error {
+func modelCommand(args []string, stdout io.Writer, registry *contentkit.ProviderAdapterRegistry, resolver contentkit.SecretResolver, invocation, defaultConfig string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("%s model requires install, list, or remove", invocation)
 	}
@@ -221,11 +222,11 @@ func modelCommand(args []string, stdout io.Writer, registry *blockade.ProviderAd
 		if flags.NArg() != 0 || strings.TrimSpace(*manifestPath) == "" {
 			return fmt.Errorf("%s model install requires --manifest", invocation)
 		}
-		manifest, err := blockade.LoadModelManifest(*manifestPath)
+		manifest, err := contentkit.LoadModelManifest(*manifestPath)
 		if err != nil {
 			return err
 		}
-		config, err := blockade.LoadConfig(*configPath)
+		config, err := contentkit.LoadConfig(*configPath)
 		if err != nil {
 			return err
 		}
@@ -235,13 +236,13 @@ func modelCommand(args []string, stdout io.Writer, registry *blockade.ProviderAd
 		}
 		root := strings.TrimSpace(*modelRoot)
 		if root == "" {
-			root, err = blockade.DefaultModelRoot()
+			root, err = contentkit.DefaultModelRoot()
 			if err != nil {
 				return err
 			}
 		}
-		installed, err := blockade.InstallModel(context.Background(), root, *manifestPath, func(ctx context.Context, model blockade.InstalledModel) error {
-			return blockade.InspectConfiguredProviderModel(ctx, provider, model, registry, resolver)
+		installed, err := contentkit.InstallModel(context.Background(), root, *manifestPath, func(ctx context.Context, model contentkit.InstalledModel) error {
+			return contentkit.InspectConfiguredProviderModel(ctx, provider, model, registry, resolver)
 		})
 		if err != nil {
 			return err
@@ -260,12 +261,12 @@ func modelCommand(args []string, stdout io.Writer, registry *blockade.ProviderAd
 		root := strings.TrimSpace(*modelRoot)
 		var err error
 		if root == "" {
-			root, err = blockade.DefaultModelRoot()
+			root, err = contentkit.DefaultModelRoot()
 			if err != nil {
 				return err
 			}
 		}
-		models, err := blockade.ListInstalledModels(root)
+		models, err := contentkit.ListInstalledModels(root)
 		if err != nil {
 			return err
 		}
@@ -285,12 +286,12 @@ func modelCommand(args []string, stdout io.Writer, registry *blockade.ProviderAd
 		root := strings.TrimSpace(*modelRoot)
 		var err error
 		if root == "" {
-			root, err = blockade.DefaultModelRoot()
+			root, err = contentkit.DefaultModelRoot()
 			if err != nil {
 				return err
 			}
 		}
-		if err := blockade.RemoveInstalledModel(root, strings.TrimSpace(*provider), strings.TrimSpace(*model)); err != nil {
+		if err := contentkit.RemoveInstalledModel(root, strings.TrimSpace(*provider), strings.TrimSpace(*model)); err != nil {
 			return err
 		}
 		_, err = fmt.Fprintf(stdout, "removed model %s/%s\n", strings.TrimSpace(*provider), strings.TrimSpace(*model))
@@ -300,9 +301,9 @@ func modelCommand(args []string, stdout io.Writer, registry *blockade.ProviderAd
 	}
 }
 
-func selectModelProvider(config blockade.Config, providerName, id string) (blockade.ProviderAdapterConfig, error) {
+func selectModelProvider(config contentkit.Config, providerName, id string) (contentkit.ProviderAdapterConfig, error) {
 	id = strings.TrimSpace(id)
-	var matches []blockade.ProviderAdapterConfig
+	var matches []contentkit.ProviderAdapterConfig
 	for _, provider := range config.Providers {
 		if id != "" && provider.ID != id {
 			continue
@@ -315,15 +316,15 @@ func selectModelProvider(config blockade.Config, providerName, id string) (block
 		return matches[0], nil
 	}
 	if id != "" {
-		return blockade.ProviderAdapterConfig{}, fmt.Errorf("provider %q does not use model provider %q", id, providerName)
+		return contentkit.ProviderAdapterConfig{}, fmt.Errorf("provider %q does not use model provider %q", id, providerName)
 	}
 	if len(matches) == 0 {
-		return blockade.ProviderAdapterConfig{}, fmt.Errorf("config has no provider package named %q", providerName)
+		return contentkit.ProviderAdapterConfig{}, fmt.Errorf("config has no provider package named %q", providerName)
 	}
-	return blockade.ProviderAdapterConfig{}, fmt.Errorf("config has multiple providers using %q; select one with --provider", providerName)
+	return contentkit.ProviderAdapterConfig{}, fmt.Errorf("config has multiple providers using %q; select one with --provider", providerName)
 }
 
-func interpretCommand(args []string, stdout io.Writer, registry *blockade.ProviderAdapterRegistry, resolver blockade.SecretResolver, invocation, defaultConfig string) error {
+func interpretCommand(args []string, stdout io.Writer, registry *contentkit.ProviderAdapterRegistry, resolver contentkit.SecretResolver, invocation, defaultConfig string) error {
 	flags := flag.NewFlagSet(invocation+" interpret", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	configPath := flags.String("config", defaultConfig, "content YAML config")
@@ -342,23 +343,23 @@ func interpretCommand(args []string, stdout io.Writer, registry *blockade.Provid
 	if flags.NArg() != 0 {
 		return fmt.Errorf("%s interpret accepts flags only", invocation)
 	}
-	parts := make([]blockade.ContentPart, 0, 4)
+	parts := make([]contentkit.ContentPart, 0, 4)
 	if *text != "" {
-		parts = append(parts, blockade.ContentPart{Kind: "text", Text: *text})
+		parts = append(parts, contentkit.ContentPart{Kind: "text", Text: *text})
 	}
 	if *textFile != "" {
 		data, err := readInterpretFile(*textFile)
 		if err != nil {
 			return err
 		}
-		parts = append(parts, blockade.ContentPart{Kind: "text", Text: string(data)})
+		parts = append(parts, contentkit.ContentPart{Kind: "text", Text: string(data)})
 	}
 	if *imagePath != "" {
 		data, err := readInterpretFile(*imagePath)
 		if err != nil {
 			return err
 		}
-		parts = append(parts, blockade.ContentPart{Kind: "image", MediaType: http.DetectContentType(data), Data: data})
+		parts = append(parts, contentkit.ContentPart{Kind: "image", MediaType: http.DetectContentType(data), Data: data})
 	}
 	if *audioPath != "" {
 		if *audioType == "" {
@@ -368,7 +369,7 @@ func interpretCommand(args []string, stdout io.Writer, registry *blockade.Provid
 		if err != nil {
 			return err
 		}
-		parts = append(parts, blockade.ContentPart{Kind: "audio", MediaType: *audioType, Data: data})
+		parts = append(parts, contentkit.ContentPart{Kind: "audio", MediaType: *audioType, Data: data})
 	}
 	if *videoPath != "" {
 		if *videoType == "" {
@@ -378,13 +379,13 @@ func interpretCommand(args []string, stdout io.Writer, registry *blockade.Provid
 		if err != nil {
 			return err
 		}
-		parts = append(parts, blockade.ContentPart{Kind: "video", MediaType: *videoType, Data: data})
+		parts = append(parts, contentkit.ContentPart{Kind: "video", MediaType: *videoType, Data: data})
 	}
-	request := blockade.InterpretRequest{APIVersion: blockade.ContentAPIVersion, Parts: parts, Prompt: *prompt}
-	if err := blockade.ValidateInterpretRequest(request); err != nil {
+	request := contentkit.InterpretRequest{APIVersion: contentkit.ContentAPIVersion, Parts: parts, Prompt: *prompt}
+	if err := contentkit.ValidateInterpretRequest(request); err != nil {
 		return err
 	}
-	config, err := blockade.LoadConfig(*configPath)
+	config, err := contentkit.LoadConfig(*configPath)
 	if err != nil {
 		return err
 	}
@@ -392,7 +393,7 @@ func interpretCommand(args []string, stdout io.Writer, registry *blockade.Provid
 	if err != nil {
 		return err
 	}
-	started, err := blockade.StartConfiguredInference(context.Background(), selected, registry, resolver)
+	started, err := contentkit.StartConfiguredInference(context.Background(), selected, registry, resolver)
 	if err != nil {
 		return err
 	}
@@ -431,7 +432,7 @@ func validateCommand(args []string, stdout io.Writer, invocation, defaultConfig 
 	if flags.NArg() != 0 {
 		return fmt.Errorf("%s validate accepts flags only", invocation)
 	}
-	config, err := blockade.LoadConfig(*configPath)
+	config, err := contentkit.LoadConfig(*configPath)
 	if err != nil {
 		return err
 	}
@@ -444,7 +445,7 @@ func validateCommand(args []string, stdout io.Writer, invocation, defaultConfig 
 	return err
 }
 
-func observeCommand(args []string, stdout io.Writer, registry *blockade.ProviderAdapterRegistry, resolver blockade.SecretResolver, invocation, defaultConfig string) error {
+func observeCommand(args []string, stdout io.Writer, registry *contentkit.ProviderAdapterRegistry, resolver contentkit.SecretResolver, invocation, defaultConfig string) error {
 	flags := flag.NewFlagSet(invocation+" observe", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	configPath := flags.String("config", defaultConfig, "content YAML config")
@@ -460,7 +461,7 @@ func observeCommand(args []string, stdout io.Writer, registry *blockade.Provider
 	if strings.TrimSpace(*imagePath) == "" {
 		return errors.New("--image is required")
 	}
-	config, err := blockade.LoadConfig(*configPath)
+	config, err := contentkit.LoadConfig(*configPath)
 	if err != nil {
 		return err
 	}
@@ -468,7 +469,7 @@ func observeCommand(args []string, stdout io.Writer, registry *blockade.Provider
 	if err != nil {
 		return err
 	}
-	started, err := blockade.StartConfiguredInference(context.Background(), selected, registry, resolver)
+	started, err := contentkit.StartConfiguredInference(context.Background(), selected, registry, resolver)
 	if err != nil {
 		return err
 	}
@@ -477,14 +478,14 @@ func observeCommand(args []string, stdout io.Writer, registry *blockade.Provider
 	if err != nil {
 		return err
 	}
-	result, err := (blockade.Client{Engine: started}).Observe(context.Background(), blockade.ObserveRequest{Image: image, Prompt: *prompt})
+	result, err := (blockade.Client{Engine: started}).Observe(context.Background(), contentkit.ObserveRequest{Image: image, Prompt: *prompt})
 	if err != nil {
 		return err
 	}
 	return json.NewEncoder(stdout).Encode(result)
 }
 
-func serveCommand(args []string, stderr io.Writer, registry *blockade.ProviderAdapterRegistry, resolver blockade.SecretResolver, invocation, defaultConfig, defaultBind string, middleware func(http.Handler) http.Handler) error {
+func serveCommand(args []string, stderr io.Writer, registry *contentkit.ProviderAdapterRegistry, resolver contentkit.SecretResolver, invocation, defaultConfig, defaultBind string, middleware func(http.Handler) http.Handler) error {
 	flags := flag.NewFlagSet(invocation+" serve", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	configPath := flags.String("config", defaultConfig, "content YAML config")
@@ -506,7 +507,7 @@ func serveCommand(args []string, stderr io.Writer, registry *blockade.ProviderAd
 	if !loopbackHost(bindHost) && (strings.TrimSpace(*tokenEnvironment) == "" || *tlsCertificate == "" || *tlsKey == "") {
 		return errors.New("non-loopback content service requires --token-env, --tls-cert, and --tls-key")
 	}
-	config, err := blockade.LoadConfig(*configPath)
+	config, err := contentkit.LoadConfig(*configPath)
 	if err != nil {
 		return err
 	}
@@ -516,7 +517,7 @@ func serveCommand(args []string, stderr io.Writer, registry *blockade.ProviderAd
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	engine, err := blockade.StartConfiguredInference(ctx, selected, registry, resolver)
+	engine, err := contentkit.StartConfiguredInference(ctx, selected, registry, resolver)
 	if err != nil {
 		return err
 	}
@@ -563,18 +564,18 @@ func serveCommand(args []string, stderr io.Writer, registry *blockade.ProviderAd
 	return nil
 }
 
-func selectProvider(config blockade.Config, inferenceID string) (blockade.ProviderAdapterConfig, error) {
+func selectProvider(config contentkit.Config, inferenceID string) (contentkit.ProviderAdapterConfig, error) {
 	inferenceID = strings.TrimSpace(inferenceID)
 	if inferenceID == "" {
 		selected, ok := config.DefaultProvider()
 		if !ok {
-			return blockade.ProviderAdapterConfig{}, errors.New("content config has no adapter")
+			return contentkit.ProviderAdapterConfig{}, errors.New("content config has no adapter")
 		}
 		return selected, nil
 	}
 	selected, ok := config.Provider(inferenceID)
 	if !ok {
-		return blockade.ProviderAdapterConfig{}, fmt.Errorf("content adapter %q is not configured", inferenceID)
+		return contentkit.ProviderAdapterConfig{}, fmt.Errorf("content adapter %q is not configured", inferenceID)
 	}
 	return selected, nil
 }

@@ -1,13 +1,9 @@
-package blockade
+package contentkit
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
 	"strings"
 	"sync"
 	"testing"
@@ -256,64 +252,6 @@ func TestProviderAdapterSecretDoesNotAppearInError(t *testing.T) {
 	}
 	if kind, ok := ProviderAdapterErrorKindOf(err); !ok || kind != ProviderAdapterErrorAuthentication {
 		t.Fatalf("error = %v, kind = %q", err, kind)
-	}
-}
-
-func TestProviderAdapterHTTPReportsCapabilitiesHealthAndTypedError(t *testing.T) {
-	adapter := readyFakeProvider()
-	adapter.observe = func(context.Context, ProviderAdapterObserveRequest) (ProviderAdapterObserveResponse, error) {
-		err := NewProviderAdapterError(ProviderAdapterErrorRateLimit, errors.New("quota"))
-		err.RetryAfter = 1500 * time.Millisecond
-		return ProviderAdapterObserveResponse{}, err
-	}
-	engine := startFakeProvider(t, ProviderAdapterConfig{ID: "fixture", Provider: "fixture"}, adapter, nil)
-	defer engine.Close()
-	server, err := NewHTTPServer(engine, "fixture")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	for path := range map[string]bool{"/healthz": true, "/capabilities": true} {
-		recorder := httptest.NewRecorder()
-		server.Routes().ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, path, nil))
-		if recorder.Code != http.StatusOK {
-			t.Fatalf("%s status = %d, body = %s", path, recorder.Code, recorder.Body.String())
-		}
-	}
-
-	image := base64.StdEncoding.EncodeToString([]byte("image"))
-	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, "/v1/observe", strings.NewReader(`{"requestId":"request-1","image":"`+image+`"}`))
-	server.Routes().ServeHTTP(recorder, request)
-	if recorder.Code != http.StatusTooManyRequests {
-		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
-	}
-	if recorder.Header().Get("Retry-After") != "2" {
-		t.Fatalf("Retry-After = %q", recorder.Header().Get("Retry-After"))
-	}
-	var body map[string]string
-	if err := json.Unmarshal(recorder.Body.Bytes(), &body); err != nil {
-		t.Fatal(err)
-	}
-	if body["kind"] != string(ProviderAdapterErrorRateLimit) {
-		t.Fatalf("body = %#v", body)
-	}
-}
-
-func TestProviderAdapterHTTPHealthNotReady(t *testing.T) {
-	adapter := readyFakeProvider()
-	adapter.health.Ready = false
-	adapter.health.Detail = "provider unavailable"
-	engine := startFakeProvider(t, ProviderAdapterConfig{ID: "fixture", Provider: "fixture"}, adapter, nil)
-	defer engine.Close()
-	server, err := NewHTTPServer(engine, "fixture")
-	if err != nil {
-		t.Fatal(err)
-	}
-	recorder := httptest.NewRecorder()
-	server.Routes().ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/healthz", nil))
-	if recorder.Code != http.StatusServiceUnavailable || strings.Contains(recorder.Body.String(), adapter.health.Detail) {
-		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
 	}
 }
 

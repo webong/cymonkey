@@ -1,14 +1,13 @@
 package main
 
 import (
+	"contentkit"
 	"image"
 	"image/color"
 	"image/draw"
 	"math"
 	"sort"
 	"strconv"
-
-	"blockade"
 )
 
 var cocoClassNames = []string{
@@ -73,7 +72,7 @@ type rawDetection struct {
 	classIndex int
 }
 
-func observationsFromDetections(data []float32, layout outputLayout, numClasses int, letterbox letterboxScale, bounds image.Rectangle, confidenceThreshold, iouThreshold float64, evidence string) []blockade.Observation {
+func observationsFromDetections(data []float32, layout outputLayout, numClasses int, letterbox letterboxScale, bounds image.Rectangle, confidenceThreshold, iouThreshold float64, evidence string) []contentkit.Observation {
 	channels := numClasses + 4
 	candidates := len(data) / channels
 	detections := make([]rawDetection, 0, candidates)
@@ -117,10 +116,10 @@ func observationsFromDetections(data []float32, layout outputLayout, numClasses 
 	}
 	sort.SliceStable(detections, func(i, j int) bool { return detections[i].score > detections[j].score })
 	kept := nonMaxSuppression(detections, iouThreshold)
-	observations := make([]blockade.Observation, 0, len(kept))
+	observations := make([]contentkit.Observation, 0, len(kept))
 	for _, index := range kept {
 		box := detections[index]
-		observations = append(observations, blockade.Observation{
+		observations = append(observations, contentkit.Observation{
 			Kind: "object", Label: className(box.classIndex), Confidence: clamp01(box.score),
 			Region: regionFromLetterboxed(box.xyxy, letterbox, bounds), Evidence: evidence,
 		})
@@ -160,13 +159,13 @@ func intersectionOverUnion(a, b [4]float64) float64 {
 	return intersection / union
 }
 
-func regionFromLetterboxed(xyxy [4]float64, letterbox letterboxScale, bounds image.Rectangle) blockade.Region {
+func regionFromLetterboxed(xyxy [4]float64, letterbox letterboxScale, bounds image.Rectangle) contentkit.Region {
 	width, height := float64(bounds.Dx()), float64(bounds.Dy())
 	x1 := clampFloat((xyxy[0]-letterbox.padX)/letterbox.scale, 0, width)
 	y1 := clampFloat((xyxy[1]-letterbox.padY)/letterbox.scale, 0, height)
 	x2 := clampFloat((xyxy[2]-letterbox.padX)/letterbox.scale, 0, width)
 	y2 := clampFloat((xyxy[3]-letterbox.padY)/letterbox.scale, 0, height)
-	return blockade.Region{X: x1, Y: y1, Width: math.Max(x2-x1, 0), Height: math.Max(y2-y1, 0)}
+	return contentkit.Region{X: x1, Y: y1, Width: math.Max(x2-x1, 0), Height: math.Max(y2-y1, 0)}
 }
 
 func className(index int) string {

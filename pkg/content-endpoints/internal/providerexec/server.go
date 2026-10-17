@@ -1,6 +1,7 @@
 package providerexec
 
 import (
+	"contentkit"
 	"context"
 	"encoding/json"
 	"errors"
@@ -8,23 +9,22 @@ import (
 	"io"
 	"strings"
 
-	"blockade"
 	plugin "github.com/webong/ext/pkg/plugin-go/contract"
 	packagekit "github.com/webong/ext/pkg/plugin-go/contract/package"
 	"github.com/webong/ext/pkg/plugin-go/contract/transport/jsonline"
 )
 
 type StartRequest struct {
-	ID       string                   `json:"id"`
-	Settings map[string]string        `json:"settings,omitempty"`
-	Model    *blockade.InstalledModel `json:"model,omitempty"`
+	ID       string                     `json:"id"`
+	Settings map[string]string          `json:"settings,omitempty"`
+	Model    *contentkit.InstalledModel `json:"model,omitempty"`
 }
 
 type Provider interface {
 	Start(context.Context, StartRequest) error
-	Interpret(context.Context, blockade.ProviderAdapterInterpretRequest, map[string]string) (blockade.ProviderAdapterInterpretResponse, error)
-	Capabilities(context.Context) (blockade.ProviderAdapterCapabilities, error)
-	Health(context.Context) (blockade.ProviderAdapterHealth, error)
+	Interpret(context.Context, contentkit.ProviderAdapterInterpretRequest, map[string]string) (contentkit.ProviderAdapterInterpretResponse, error)
+	Capabilities(context.Context) (contentkit.ProviderAdapterCapabilities, error)
+	Health(context.Context) (contentkit.ProviderAdapterHealth, error)
 	Close() error
 }
 
@@ -61,16 +61,16 @@ func call(ctx context.Context, provider Provider, method string, raw json.RawMes
 		return provider.Health(ctx)
 	case "content.provider.interpret":
 		var params struct {
-			Request blockade.ProviderAdapterInterpretRequest `json:"request"`
-			Secrets map[string]string                        `json:"secrets,omitempty"`
+			Request contentkit.ProviderAdapterInterpretRequest `json:"request"`
+			Secrets map[string]string                          `json:"secrets,omitempty"`
 		}
 		if err := decodeParams(raw, &params); err != nil {
 			return nil, invalidRequest(err)
 		}
-		if params.Request.APIVersion != blockade.ProviderAdapterAPIVersion {
+		if params.Request.APIVersion != contentkit.ProviderAdapterAPIVersion {
 			return nil, invalidRequest(errors.New("unsupported provider adapter apiVersion"))
 		}
-		if err := blockade.ValidateInterpretRequest(params.Request.Request); err != nil {
+		if err := contentkit.ValidateInterpretRequest(params.Request.Request); err != nil {
 			return nil, invalidRequest(err)
 		}
 		return provider.Interpret(ctx, params.Request, params.Secrets)
@@ -98,12 +98,12 @@ func decodeParams(raw json.RawMessage, destination any) error {
 }
 
 func invalidRequest(err error) error {
-	return blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidRequest, err)
+	return contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidRequest, err)
 }
 
 func encodeFailure(err error) *plugin.RemoteError {
-	result := &plugin.RemoteError{Code: string(blockade.ProviderAdapterErrorUnavailable), Message: "provider failed"}
-	var adapterError *blockade.ProviderAdapterError
+	result := &plugin.RemoteError{Code: string(contentkit.ProviderAdapterErrorUnavailable), Message: "provider failed"}
+	var adapterError *contentkit.ProviderAdapterError
 	if !errors.As(err, &adapterError) {
 		return result
 	}

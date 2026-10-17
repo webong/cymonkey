@@ -1,7 +1,7 @@
 # Cymonkey
 
-Cymonkey is the operating and extension layer for AI systems that need to work
-with real interfaces. It gives agents and applications a way to use and extend
+Cymonkey is the operating and extension layer for agent systems that need to work
+with real interfaces. It gives a way to use and extend
 its submodules through structured capabilities, policy, and caller-owned
 targets.
 

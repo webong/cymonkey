@@ -1,8 +1,8 @@
 package main
 
 import (
-	"blockade"
-	blockadeplugin "blockade/plugin"
+	"contentkit"
+	contentplugin "contentkit/plugin"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -29,7 +29,7 @@ import (
 
 const (
 	displayPluginContract = displayplugin.ContractName
-	contentPluginContract = blockadeplugin.ContractName
+	contentPluginContract = contentplugin.ContractName
 	devicePluginContract  = boardplugin.ContractName
 	pluginContractVersion = "v1"
 )
@@ -38,7 +38,7 @@ const (
 // serve, which ext requires every package to declare.
 var pluginOperations = map[string][]string{
 	displayPluginContract: displayplugin.Operations,
-	contentPluginContract: blockadeplugin.Operations,
+	contentPluginContract: contentplugin.Operations,
 	devicePluginContract:  boardplugin.Operations,
 }
 
@@ -171,12 +171,12 @@ func devicePluginAdapters() ([]board.Provider, error) {
 	return providers, nil
 }
 
-func contentPluginRegistry() (*blockade.ProviderAdapterRegistry, error) {
+func contentPluginRegistry() (*contentkit.ProviderAdapterRegistry, error) {
 	installed, err := installedPlugins()
 	if err != nil {
 		return nil, err
 	}
-	registry := blockade.NewProviderAdapterRegistry()
+	registry := contentkit.NewProviderAdapterRegistry()
 	runtimeRoot, err := defaultContentRuntimeRoot()
 	if err != nil {
 		return nil, err
@@ -185,7 +185,7 @@ func contentPluginRegistry() (*blockade.ProviderAdapterRegistry, error) {
 		if !item.Supports(contentPluginContract, pluginContractVersion) {
 			continue
 		}
-		if err := blockadeplugin.RegisterWithRuntimeRoot(registry, item, runtimeRoot); err != nil {
+		if err := contentplugin.RegisterWithRuntimeRoot(registry, item, runtimeRoot); err != nil {
 			return nil, err
 		}
 	}

@@ -3,6 +3,7 @@ module cymonkey-content-plugin-onnx
 go 1.26.5
 
 require (
+	contentkit v0.0.0
 	blockade v0.0.0
 	github.com/yalue/onnxruntime_go v1.35.0
 )
@@ -15,3 +16,4 @@ require (
 
 replace blockade => ../blockade
 
+replace contentkit => ../contentkit

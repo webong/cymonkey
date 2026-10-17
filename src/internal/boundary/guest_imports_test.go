@@ -21,6 +21,11 @@ import (
 // Regenerate it after removing imports with GUEST_IMPORTS_UPDATE=1.
 const guestImportsFile = "guest_imports.txt"
 
+// hostKits are modules under pkg that hold contracts and the host role for one
+// domain (registries, launch, admission) with no engine or product behind
+// them. A host may embed a kit, and so may a guest that hosts other plugins.
+var hostKits = map[string]bool{"contentkit": true}
+
 func TestHostImportsOnlyListedGuests(t *testing.T) {
 	_, current, _, ok := runtime.Caller(0)
 	if !ok {
@@ -122,7 +127,9 @@ func guestModules(t *testing.T, root string) []string {
 		}
 		for _, line := range strings.Split(string(data), "\n") {
 			if rest, ok := strings.CutPrefix(strings.TrimSpace(line), "module "); ok {
-				modules = append(modules, strings.Trim(strings.TrimSpace(rest), `"`))
+				if name := strings.Trim(strings.TrimSpace(rest), `"`); !hostKits[name] {
+					modules = append(modules, name)
+				}
 				break
 			}
 		}

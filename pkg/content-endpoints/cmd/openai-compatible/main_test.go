@@ -1,6 +1,7 @@
 package main
 
 import (
+	"contentkit"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -8,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"blockade"
 	"cymonkey-content-plugin-endpoints/internal/providerexec"
 )
 
@@ -38,11 +38,11 @@ func TestOpenAICompatibleInterpret(t *testing.T) {
 	}}); err != nil {
 		t.Fatal(err)
 	}
-	result, err := provider.Interpret(context.Background(), blockade.ProviderAdapterInterpretRequest{
-		APIVersion: blockade.ProviderAdapterAPIVersion,
-		Request: blockade.InterpretRequest{
-			APIVersion: blockade.ContentAPIVersion, RequestID: "openai-1",
-			Parts: []blockade.ContentPart{{Kind: "image", MediaType: "image/png", Data: []byte("png")}},
+	result, err := provider.Interpret(context.Background(), contentkit.ProviderAdapterInterpretRequest{
+		APIVersion: contentkit.ProviderAdapterAPIVersion,
+		Request: contentkit.InterpretRequest{
+			APIVersion: contentkit.ContentAPIVersion, RequestID: "openai-1",
+			Parts: []contentkit.ContentPart{{Kind: "image", MediaType: "image/png", Data: []byte("png")}},
 		},
 	}, map[string]string{"apiKey": "secret"})
 	if err != nil {
@@ -88,8 +88,8 @@ func TestOpenAICompatibleVideoContentTypes(t *testing.T) {
 			}}); err != nil {
 				t.Fatal(err)
 			}
-			content, err := provider.openAIContent(blockade.InterpretRequest{
-				Parts: []blockade.ContentPart{{Kind: "video", MediaType: "video/mp4", Data: []byte("mp4")}},
+			content, err := provider.openAIContent(contentkit.InterpretRequest{
+				Parts: []contentkit.ContentPart{{Kind: "video", MediaType: "video/mp4", Data: []byte("mp4")}},
 			})
 			if err != nil {
 				t.Fatal(err)
@@ -110,7 +110,7 @@ func TestOpenAICompatibleVideoContentTypes(t *testing.T) {
 			}
 			found := false
 			for _, capability := range capabilities.Capabilities {
-				found = found || capability == blockade.CapabilityVideoInterpret
+				found = found || capability == contentkit.CapabilityVideoInterpret
 			}
 			if !found {
 				t.Fatalf("capabilities = %#v", capabilities.Capabilities)

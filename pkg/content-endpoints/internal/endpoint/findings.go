@@ -1,51 +1,50 @@
 package endpoint
 
 import (
+	"contentkit"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
-
-	"blockade"
 )
 
 const ResponseInstruction = `Return only a JSON object with a "findings" array. Each finding must contain "kind", "text", and "sourceParts". sourceParts contains zero-based indexes of the supplied content parts. Optional confidence is a number from 0 to 1.`
 
-func Normalize(content string, request blockade.InterpretRequest) (blockade.ProviderAdapterInterpretResponse, error) {
+func Normalize(content string, request contentkit.InterpretRequest) (contentkit.ProviderAdapterInterpretResponse, error) {
 	content = stripCodeFence(strings.TrimSpace(content))
 	if content == "" {
-		return blockade.ProviderAdapterInterpretResponse{}, blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidResponse, errors.New("endpoint returned empty model content"))
+		return contentkit.ProviderAdapterInterpretResponse{}, contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidResponse, errors.New("endpoint returned empty model content"))
 	}
 	var envelope struct {
-		Findings []blockade.ContentFinding `json:"findings"`
+		Findings []contentkit.ContentFinding `json:"findings"`
 	}
 	if json.Unmarshal([]byte(content), &envelope) == nil && envelope.Findings != nil {
-		response := blockade.InterpretResponse{
-			APIVersion: blockade.ContentAPIVersion,
+		response := contentkit.InterpretResponse{
+			APIVersion: contentkit.ContentAPIVersion,
 			RequestID:  request.RequestID,
 			Findings:   envelope.Findings,
 		}
-		if err := blockade.ValidateInterpretResponse(response, request); err != nil {
-			return blockade.ProviderAdapterInterpretResponse{}, blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidResponse, fmt.Errorf("endpoint findings: %w", err))
+		if err := contentkit.ValidateInterpretResponse(response, request); err != nil {
+			return contentkit.ProviderAdapterInterpretResponse{}, contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidResponse, fmt.Errorf("endpoint findings: %w", err))
 		}
-		return blockade.ProviderAdapterInterpretResponse{APIVersion: blockade.ProviderAdapterAPIVersion, Response: response}, nil
+		return contentkit.ProviderAdapterInterpretResponse{APIVersion: contentkit.ProviderAdapterAPIVersion, Response: response}, nil
 	}
 
 	sources := make([]int, len(request.Parts))
 	for index := range sources {
 		sources[index] = index
 	}
-	response := blockade.InterpretResponse{
-		APIVersion: blockade.ContentAPIVersion,
+	response := contentkit.InterpretResponse{
+		APIVersion: contentkit.ContentAPIVersion,
 		RequestID:  request.RequestID,
-		Findings: []blockade.ContentFinding{{
+		Findings: []contentkit.ContentFinding{{
 			Kind: "response", Text: content, SourceParts: sources,
 		}},
 	}
-	if err := blockade.ValidateInterpretResponse(response, request); err != nil {
-		return blockade.ProviderAdapterInterpretResponse{}, blockade.NewProviderAdapterError(blockade.ProviderAdapterErrorInvalidResponse, err)
+	if err := contentkit.ValidateInterpretResponse(response, request); err != nil {
+		return contentkit.ProviderAdapterInterpretResponse{}, contentkit.NewProviderAdapterError(contentkit.ProviderAdapterErrorInvalidResponse, err)
 	}
-	return blockade.ProviderAdapterInterpretResponse{APIVersion: blockade.ProviderAdapterAPIVersion, Response: response}, nil
+	return contentkit.ProviderAdapterInterpretResponse{APIVersion: contentkit.ProviderAdapterAPIVersion, Response: response}, nil
 }
 
 func stripCodeFence(value string) string {

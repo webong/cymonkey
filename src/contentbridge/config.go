@@ -1,8 +1,8 @@
 package contentbridge
 
 import (
-	"blockade"
 	"bytes"
+	"contentkit"
 	"cymonkey/src/contracts"
 	"errors"
 	"fmt"
@@ -16,24 +16,24 @@ import (
 
 const maxConfigBytes = 1 << 20
 
-func ToLibraryConfig(config contracts.ContentConfig) blockade.Config {
-	adapters := make([]blockade.ProviderAdapterConfig, len(config.Adapters))
+func ToLibraryConfig(config contracts.ContentConfig) contentkit.Config {
+	adapters := make([]contentkit.ProviderAdapterConfig, len(config.Adapters))
 	for index, adapter := range config.Adapters {
-		secrets := make(map[string]blockade.SecretReference, len(adapter.Secrets))
+		secrets := make(map[string]contentkit.SecretReference, len(adapter.Secrets))
 		for name, reference := range adapter.Secrets {
-			secrets[name] = blockade.SecretReference{Env: reference.Env}
+			secrets[name] = contentkit.SecretReference{Env: reference.Env}
 		}
-		adapters[index] = blockade.ProviderAdapterConfig{
+		adapters[index] = contentkit.ProviderAdapterConfig{
 			ID: adapter.ID, Provider: adapter.Plugin, Model: adapter.Model,
 			ModelRoot: adapter.ModelRoot, Workers: adapter.Workers,
 			Timeout: adapter.Timeout, MaxPayloadBytes: adapter.MaxPayloadBytes,
 			Settings: cloneStrings(adapter.Settings), Secrets: secrets,
 		}
 	}
-	return blockade.Config{APIVersion: blockade.ConfigAPIVersion, Providers: adapters}
+	return contentkit.Config{APIVersion: contentkit.ConfigAPIVersion, Providers: adapters}
 }
 
-func FromLibraryConfig(config blockade.Config) contracts.ContentConfig {
+func FromLibraryConfig(config contentkit.Config) contracts.ContentConfig {
 	adapters := make([]contracts.ContentAdapterConfig, len(config.Providers))
 	for index, adapter := range config.Providers {
 		secrets := make(map[string]contracts.SecretReference, len(adapter.Secrets))

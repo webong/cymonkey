@@ -1,6 +1,7 @@
 package console
 
 import (
+	"contentkit"
 	"context"
 	"encoding/json"
 	"errors"
@@ -60,7 +61,7 @@ func (m ModelTools) Stream(ctx context.Context, request blockade.GenerationReque
 	}
 	model, ok := m.Model.(blockade.StreamingGenerator)
 	if !ok {
-		return blockade.GenerationResponse{}, blockade.ErrGenerationUnsupported
+		return blockade.GenerationResponse{}, contentkit.ErrGenerationUnsupported
 	}
 	response, err := model.Stream(ctx, request, emit)
 	if err != nil {

@@ -2,6 +2,7 @@ package contentbridge
 
 import (
 	"bytes"
+	"contentkit"
 	"context"
 	"cymonkey/src/contracts"
 	"encoding/json"
@@ -11,8 +12,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
-	"blockade"
 )
 
 var ErrModalityUnsupported = errors.New("requested content modality is unsupported")
@@ -41,7 +40,7 @@ func ValidateRequest(request contracts.ContentRequest) error {
 	if request.APIVersion != contracts.ContentAPIVersion {
 		return fmt.Errorf("content apiVersion must be %q", contracts.ContentAPIVersion)
 	}
-	if err := blockade.ValidateInterpretRequest(ToLibraryRequest(request)); err != nil {
+	if err := contentkit.ValidateInterpretRequest(ToLibraryRequest(request)); err != nil {
 		return publicError(err)
 	}
 	return nil

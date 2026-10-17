@@ -4,6 +4,7 @@ use (
 	.
 	./pkg/blockade
 	./pkg/board
+	./pkg/contentkit
 	./pkg/console
 	./pkg/jangolova
 	./pkg/content-endpoints
