@@ -17,7 +17,7 @@ or control of the Windows secure desktop.
 Build on a Windows machine or cross-compile from the repository root:
 
 ```powershell
-go build -o cymonkey-windows-helper.exe ./pkg/windows-helper
+go build -o cymonkey-windows-helper.exe ./src/windowshelper
 ```
 
 Set these launch variables; do not put them in the JSON configuration:
@@ -81,7 +81,7 @@ extension directory must remain available because WebView2 does not copy its
 contents into the profile. Extension installation persists in that WebView2
 profile; it does not install into Microsoft Edge or another browser profile.
 Build the library on Windows with `dotnet build
-pkg/windows-helper/WebView2/Cymonkey.Windows.WebView2.csproj`.
+lib/windows-helper/WebView2/Cymonkey.Windows.WebView2.csproj`.
 
 The existing Go executable remains a desktop-window helper. It does not
 attach to another app's WebView2 or expose these APIs through its WebSocket

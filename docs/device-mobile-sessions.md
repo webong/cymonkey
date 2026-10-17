@@ -3,7 +3,7 @@
 Cymonkey now includes a native-to-Board media bridge for iOS and Android.
 The source adapters send bounded JPEG/PCM frames over an authenticated WebSocket;
 Board converts them to VP8/PCMU and exposes the same WebRTC peer contract used by
-the browser viewer. Mobile viewers use `pkg/device-viewer` independently.
+the browser viewer. Mobile viewers use `lib/device-viewer` independently.
 
 This implementation has compiler/build evidence, not live-device certification.
 The embedding app owns OS consent, visible capture UI, foreground-service or

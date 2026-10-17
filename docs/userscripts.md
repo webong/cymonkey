@@ -8,7 +8,7 @@ Cymonkey treats the declared features as requirements rather than treating a
 manager name as a compatibility guarantee. In particular, an omitted `@grant`
 is distinct from `@grant none`.
 
-The [Android WebView SDK](../pkg/android-helper/README.md) can inspect any
+The [Android WebView SDK](../lib/android-helper/README.md) can inspect any
 imported userscript and return a compatibility report before approval. Its
 current execution backend supports explicit `@grant none`, bounded HTTPS
 `@match`/`@exclude-match` and `@include`/`@exclude` rules. On WebViews with

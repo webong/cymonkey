@@ -72,8 +72,8 @@ adapters through `cymy cookies`, not by this package. The earlier
 ## Build and test
 
 ```sh
-swift build --package-path pkg/macos-helper
-swift test --package-path pkg/macos-helper
+swift build --package-path lib/macos-helper
+swift test --package-path lib/macos-helper
 ```
 
 The resulting command-line executable is intentionally unsigned in repository
@@ -91,7 +91,7 @@ release binary with:
 
 ```sh
 CODESIGN_IDENTITY="Developer ID Application: Example Corp (TEAMID)" \
-  pkg/macos-helper/scripts/build-and-sign.sh /owner/output/cymonkey-macos-helper
+  lib/macos-helper/scripts/build-and-sign.sh /owner/output/cymonkey-macos-helper
 ```
 
 Set `CYMONKEY_ENTITLEMENTS` only when the chosen distribution model requires a

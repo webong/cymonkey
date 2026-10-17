@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const packageRoot = new URL("../pkg/godot/", import.meta.url);
+const packageRoot = new URL("../lib/godot/", import.meta.url);
 const registry = await readFile(new URL("addons/jangolova_cymonkey/cymonkey_registry.gd", packageRoot), "utf8");
 const protocol = await readFile(new URL("addons/jangolova_cymonkey/cymonkey_protocol.gd", packageRoot), "utf8");
 const host = await readFile(new URL("addons/jangolova_cymonkey/cymonkey_websocket_host.gd", packageRoot), "utf8");

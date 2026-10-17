@@ -74,7 +74,7 @@ local store and Jangolova's CDP/BiDi attachment provide extension-free
 registration. Integrators can use the browser helper's userscript APIs in their
 own extensions, and the macOS helper supplies source-free catalog data.
 
-`pkg/macos-helper` includes a reusable Swift catalog and managed-runtime
+`lib/macos-helper` includes a reusable Swift catalog and managed-runtime
 controller. A caller-owned macOS app can import it and provide its own UI and
 Safari extension if desired. It owns only its helper connection, never the
 target applications it augments.
@@ -255,8 +255,8 @@ src/protocol/cymonkey/          canonical versioned Cymonkey schemas
 src/protocol/browser-extension/ schema, recorded exchanges, and generated binding source
 tests/cymonkey-core-conformance.mjs  portable Cymonkey contract checks
 pkg/browser-helper/             browser API, extension management, and userscript library
-pkg/macos-helper/       Swift native binding, userscript catalog, and managed-runtime controller
-pkg/threejs/            explicit-registration Three.js runtime
+lib/macos-helper/       Swift native binding, userscript catalog, and managed-runtime controller
+lib/threejs/            explicit-registration Three.js runtime
 pkg/                             distributable Godot, Unity, and Unreal Cymonkey packages
 tests/godot-cymonkey-fixture/    license-free Godot conformance project
 tests/unreal-cymonkey-fixture/   caller-owned Unreal conformance project

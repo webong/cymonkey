@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const root = new URL(
-  "../pkg/unity/com.jangolova.bridge/",
+  "../lib/unity/com.jangolova.bridge/",
   import.meta.url,
 );
 const manifest = JSON.parse(await readFile(new URL("package.json", root)));

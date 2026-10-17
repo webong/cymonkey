@@ -90,7 +90,7 @@ header, so the helper cannot return cookie attributes such as expiry or
 SameSite. The host should handle returned values as sensitive. This does not
 read another app's private browser data.
 
-This is an Android library module under `pkg/android-helper`. An embedding app
+This is an Android library module under `lib/android-helper`. An embedding app
 can include it as a Gradle project dependency and owns its signing, lifecycle,
 network transport, and approval flow. The module itself requests no Android
 permissions. Device-wide capture or Accessibility integration is a separate

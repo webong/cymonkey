@@ -4,7 +4,7 @@ FROM ${UNITY_EDITOR_IMAGE}
 ARG UNITY_CONTAINER_USER=root
 USER root
 WORKDIR /workspace
-COPY pkg/unity ./pkg/unity
+COPY lib/unity ./lib/unity
 COPY tests/unity-cymonkey-fixture ./tests/unity-cymonkey-fixture
 COPY scripts/deploy/unity-cymonkey/unity-cymonkey-gpu/run-fixture.sh /usr/local/bin/run-unity-cymonkey-gpu
 

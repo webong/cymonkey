@@ -91,10 +91,10 @@ the attachment driver remains `macos-cooperative`.
 
 | Library | Runtime | Driver | Transport |
 | --- | --- | --- | --- |
-| [`pkg/ios-helper`](../pkg/ios-helper/README.md) | `render/browser-dom` | `ios-wkwebview` | caller-owned app transport |
-| [`pkg/android-helper`](../pkg/android-helper/README.md) | `render/browser-dom` | `android-webview` | caller-owned app transport |
-| [`pkg/macos-helper` WebKit product](../pkg/macos-helper/README.md#app-owned-wkwebview-scripts) | `render/browser-dom` | `macos-wkwebview` | caller-owned app transport |
-| [`pkg/windows-helper` WebView2 product](../pkg/windows-helper/README.md#app-owned-webview2-scripts-and-extensions) | `render/browser-dom` | `windows-webview2` | caller-owned app transport |
+| [`lib/ios-helper`](../lib/ios-helper/README.md) | `render/browser-dom` | `ios-wkwebview` | caller-owned app transport |
+| [`lib/android-helper`](../lib/android-helper/README.md) | `render/browser-dom` | `android-webview` | caller-owned app transport |
+| [`lib/macos-helper` WebKit product](../lib/macos-helper/README.md#app-owned-wkwebview-scripts) | `render/browser-dom` | `macos-wkwebview` | caller-owned app transport |
+| [`lib/windows-helper` WebView2 product](../lib/windows-helper/README.md#app-owned-webview2-scripts-and-extensions) | `render/browser-dom` | `windows-webview2` | caller-owned app transport |
 
 The iOS and Android web-view helpers implement the five operations in-process,
 but are not automatically mounted as built-in operator modules. A mobile host

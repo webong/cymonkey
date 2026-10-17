@@ -66,7 +66,7 @@ broadcast extension. Broadcast playback is deliberately not implemented here.
 Follow [mobile target registration](../../docs/device-mobile-sessions.md).
 The trusted harness registers video plus independently enabled audio flags,
 passes only the producer URL/token to the phone, and opens a viewer session on
-the returned adapter. Use `pkg/device-viewer` in Safari/Chrome on the viewer
+the returned adapter. Use `lib/device-viewer` in Safari/Chrome on the viewer
 phone or desktop; no second native viewer implementation is needed.
 
 Use an operator served over trusted HTTPS, with the viewer on the same origin.

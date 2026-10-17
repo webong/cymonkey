@@ -154,7 +154,7 @@ generic record and validation; it does not need to recognize
 `cymonkey.webextension-cookies/v1`. Cross-platform JavaScript browser-source
 discovery, local cookie readers, and format conversion belong in Cymonkey's
 JavaScript packages. A native macOS cookie reader belongs in
-[`pkg/macos-helper`](../pkg/macos-helper/README.md). If CTX's public contract
+[`lib/macos-helper`](../lib/macos-helper/README.md). If CTX's public contract
 cannot represent a source field without changing its meaning, the integration
 must retain the raw scope and report the handoff as unsupported. It must not
 drop scope fields to make generic parsing succeed.

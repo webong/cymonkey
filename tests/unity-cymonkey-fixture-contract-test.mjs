@@ -9,7 +9,7 @@ const fixture = await readFile(new URL("Assets/Editor/HeadlessCymonkeyFixture.cs
 const container = await readFile(new URL("../scripts/deploy/unity-cymonkey/Containerfile", import.meta.url), "utf8");
 const runner = await readFile(new URL("../scripts/deploy/unity-cymonkey/run-fixture.sh", import.meta.url), "utf8");
 
-assert.equal(manifest.dependencies["com.cymonkey.jangolova"], "file:../../../pkg/unity");
+assert.equal(manifest.dependencies["com.cymonkey.jangolova"], "file:../../../lib/unity");
 assert.match(projectVersion, /m_EditorVersion: 2022\.3\./);
 assert.equal(assembly.name, "Jangolova.CymonkeyFixture.Editor");
 assert.ok(assembly.references.includes("Jangolova.Cymonkey"));

@@ -4,7 +4,7 @@ options:
     iOS: '15.0'
 packages:
   CymonkeyIOSHelper:
-    path: ../../../pkg/ios-helper
+    path: ../../../lib/ios-helper
 settings:
   base:
     SWIFT_VERSION: '5.0'

@@ -47,6 +47,6 @@ in an app and route authenticated requests to `handle`. Safari integration,
 if desired by another product, requires that product's own iOS app containing
 a Safari Web Extension and the user's Safari enablement and site permissions.
 
-Run `swift test --package-path pkg/ios-helper` on macOS for the protocol and
+Run `swift test --package-path lib/ios-helper` on macOS for the protocol and
 policy tests. The package also declares an iOS deployment target; device and
 simulator validation belong to the embedding app.

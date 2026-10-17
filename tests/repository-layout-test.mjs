@@ -17,9 +17,9 @@ test('all affected engine Containerfile local COPY inputs exist, including runne
 });
 
 test('COPY input extraction excludes stage outputs and rejects unsupported syntax', () => {
-  assert.deepEqual(localCopySources('COPY pkg/godot tests/godot-cymonkey-fixture /workspace/\nCOPY --from=builder /out /app'),
-    ['pkg/godot', 'tests/godot-cymonkey-fixture']);
-  for (const invalid of ['COPY ["pkg/godot", "/app"]', 'COPY $SOURCE /app', 'COPY ../outside /app', 'COPY /absolute /app']) {
+  assert.deepEqual(localCopySources('COPY lib/godot tests/godot-cymonkey-fixture /workspace/\nCOPY --from=builder /out /app'),
+    ['lib/godot', 'tests/godot-cymonkey-fixture']);
+  for (const invalid of ['COPY ["lib/godot", "/app"]', 'COPY $SOURCE /app', 'COPY ../outside /app', 'COPY /absolute /app']) {
     assert.throws(() => localCopySources(invalid));
   }
 });
@@ -62,11 +62,11 @@ test('engine container package sources and Unity local dependencies exist', asyn
 });
 
 test('macOS helper exposes native and browser host APIs from one Swift package', async () => {
-  const manifest = await read('pkg/macos-helper/Package.swift');
+  const manifest = await read('lib/macos-helper/Package.swift');
   assert.match(manifest, /\.library\(name: "CymonkeyMacOSRuntime"/);
   assert.match(manifest, /\.executable\(name: "cymonkey-macos-helper"/);
   for (const file of ['ManagedRuntime.swift', 'BrowserModels.swift', 'UserscriptCatalog.swift']) {
-    await exists(`pkg/macos-helper/Sources/CymonkeyMacOSRuntime/${file}`);
+    await exists(`lib/macos-helper/Sources/CymonkeyMacOSRuntime/${file}`);
   }
 });
 

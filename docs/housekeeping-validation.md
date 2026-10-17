@@ -1,8 +1,8 @@
 # Skill and runtime directory validation — 2026-09-29
 
 This records validation performed on 2026-09-29. The Swift catalog and
-managed-runtime controller are now part of `pkg/macos-helper`; run
-`swift test --package-path pkg/macos-helper` for the current package.
+managed-runtime controller are now part of `lib/macos-helper`; run
+`swift test --package-path lib/macos-helper` for the current package.
 
 ## Completion checklist
 
@@ -53,12 +53,12 @@ paths to `COPY scripts/deploy/...` and added local-input regression coverage.
 - Focused Node runtime/fixture suite: 17 passing checks, including two Three.js
   browser-bundle checks. Three.js typechecking and Camera Kit builds pass.
 - The Swift catalog's three tests passed in its then-current package. They now
-  run within `pkg/macos-helper`.
+  run within `lib/macos-helper`.
 - `npm run test:cymonkey:macos-helper`: seven Swift tests and two contract checks
   pass. The moved helper's generated `.build` cache retained old absolute PCH
-  paths; `swift package --package-path pkg/macos-helper clean` removed that
+  paths; `swift package --package-path lib/macos-helper clean` removed that
   rebuildable cache before a successful rebuild. No source was removed.
-- `go test ./pkg/effect-house ./pkg/lens-studio ./pkg/windows-helper`: all three
+- `go test ./pkg/effect-house ./pkg/lens-studio ./src/windowshelper`: all three
   packages pass on macOS. This does not validate Windows-only execution.
 - No stale references to the nine old `pkg/` paths remain in repository sources.
   `git diff --check` passes.

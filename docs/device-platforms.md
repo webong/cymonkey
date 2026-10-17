@@ -33,7 +33,7 @@ and drop old video frames under backpressure. Do not retain unbounded buffers.
   `DevicePlayback` accepts PCM16 little-endian stereo 48 kHz in packets up to
   20 ms with at most 12 queued packets. Serialize playback calls. Explicitly stop
   capture when its host session ends.
-- Windows: reference `pkg/windows-helper/Media/Cymonkey.Windows.Media.csproj`.
+- Windows: reference `lib/windows-helper/Media/Cymonkey.Windows.Media.csproj`.
   `DeviceAudio.Endpoints()` lists endpoints; select an ID locally before opening
   `Capture` or `Playback`. Capture delivers its actual `WaveFormat`, requiring
   normalization before encoding. Playback requires PCM16 stereo 48 kHz, with a
@@ -92,13 +92,13 @@ for the registration protocol, lifecycle responsibilities and configuration.
 Build the macOS executable:
 
 ```sh
-swift build --package-path pkg/macos-helper --product cymonkey-device-audio
+swift build --package-path lib/macos-helper --product cymonkey-device-audio
 ```
 
 On a Windows .NET 8 build host:
 
 ```sh
-dotnet publish pkg/windows-helper/Media/Cymonkey.Windows.Media.csproj -c Release -r win-x64 --self-contained true
+dotnet publish lib/windows-helper/Media/Cymonkey.Windows.Media.csproj -c Release -r win-x64 --self-contained true
 ```
 
 Install the executable at a host-owned absolute path and provide `ffmpeg` on the

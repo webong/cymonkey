@@ -7,15 +7,15 @@ const source = (path) => readFile(new URL(path, root), 'utf8');
 
 test('Camera Kit capability lifetime conforms to the shared protocol', async () => {
   const schema = JSON.parse(await source('src/protocol/cymonkey/v1alpha2/protocol.schema.json'));
-  const implementation = await source('pkg/snapchat-camera-kit/dist/index.js');
+  const implementation = await source('lib/snapchat-camera/dist/index.js');
   const lifetime = implementation.match(/lifetime: ['"]([^'"]+)['"]/)?.[1];
   assert.ok(schema.$defs.capability.properties.lifetime.enum.includes(lifetime), `unsupported capability lifetime: ${lifetime}`);
 });
 
 test('Camera Kit declares a target-owned Cymonkey runtime with explicit user consent', async () => {
   const [declaration, implementation] = await Promise.all([
-    source('pkg/snapchat-camera-kit/dist/index.d.ts'),
-    source('pkg/snapchat-camera-kit/dist/index.js'),
+    source('lib/snapchat-camera/dist/index.d.ts'),
+    source('lib/snapchat-camera/dist/index.js'),
   ]);
   assert.match(declaration, /class CameraKitCymonkey/);
   assert.match(implementation, /CAMERA_KIT_RUNTIME = 'snapchat-camera-kit'/);
@@ -31,10 +31,10 @@ test('Camera Kit declares a target-owned Cymonkey runtime with explicit user con
 
 test('Camera Kit remains a caller-owned library and browser package', async () => {
   const [packageReadme, packageSource, sandboxSource, tsconfig] = await Promise.all([
-    source('pkg/snapchat-camera-kit/README.md'),
-    source('pkg/snapchat-camera-kit/src/index.ts'),
-    source('pkg/snapchat-camera-kit/src/sandbox.ts'),
-    source('pkg/snapchat-camera-kit/tsconfig.json'),
+    source('lib/snapchat-camera/README.md'),
+    source('lib/snapchat-camera/src/index.ts'),
+    source('lib/snapchat-camera/src/sandbox.ts'),
+    source('lib/snapchat-camera/tsconfig.json'),
   ]);
   assert.match(packageReadme, /consuming extension can bundle this package/);
   assert.match(packageSource, /Start camera/);

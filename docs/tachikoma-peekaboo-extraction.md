@@ -22,7 +22,7 @@ model or desktop acceptance. Full upstream feature parity is not claimed.
 | `pkg/board/audio` | Device interfaces and finite PCM16/WAV conversion |
 | `github.com/webong/ext/pkg/plugin/jsonschema` | Shared bounded offline schema validation (ext) |
 | `pkg/content-endpoints` | Explicitly selected HTTP/WebSocket protocols, credentials and native model options |
-| `pkg/macos-helper` | Native AX, capture, targeted input and clipboard implementation |
+| `lib/macos-helper` | Native AX, capture, targeted input and clipboard implementation |
 | `src/console_command.go` | Host configuration, borrowed operator resources, CLI, listener/authentication and artifact destinations |
 
 Blockade has no built-in providers, endpoint defaults, model catalog or

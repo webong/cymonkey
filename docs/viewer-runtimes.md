@@ -64,7 +64,7 @@ fallback.
 
 ## macOS mapping
 
-`pkg/macos-helper` is the reference application helper. It already
+`lib/macos-helper` is the reference application helper. It already
 maps allowlisted Apple Event commands and bounded Accessibility calls. Its
 viewer extension uses Screen Recording permission for `display.capture` and
 Accessibility permission for input injection. Screen capture and input are
@@ -76,7 +76,7 @@ application it augments.
 
 ## Windows mapping
 
-`pkg/windows-helper` is the reference Windows helper. It is a
+`lib/windows-helper` holds the reference Windows helper's .NET parts and its documentation; the Go helper itself is `src/windowshelper`. It is a
 per-user desktop application/helper, not a service: Windows services cannot
 reliably or safely interact with the user's interactive desktop. It maps:
 

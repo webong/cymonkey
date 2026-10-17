@@ -111,7 +111,7 @@ display ownership remain external.
 ## Unity
 
 The installable Unity package lives at
-`pkg/unity`. It uses `ClientWebSocket` to connect
+`lib/unity`. It uses `ClientWebSocket` to connect
 outward to the native bridge and dispatches protocol calls onto Unity's main
 thread before touching scene objects.
 
