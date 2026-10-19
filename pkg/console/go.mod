@@ -4,7 +4,7 @@ go 1.26.5
 
 require board v0.0.0
 
-require github.com/webong/ext/pkg/plugin-go/contract v0.4.0
+require github.com/webong/ext/pkg/plugin-go/contract v0.5.0
 
 require (
 	github.com/gorilla/websocket v1.5.3 // indirect
