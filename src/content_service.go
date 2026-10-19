@@ -3,27 +3,19 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strings"
 	"syscall"
-	"time"
 
 	plugin "github.com/webong/ext/pkg/plugin-go/contract"
-	"github.com/webong/ext/pkg/plugin-go/contract/host"
-	"github.com/webong/ext/pkg/plugin-go/contract/host/process"
 	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
 	"gopkg.in/yaml.v3"
+	commandrun "jangolova/commandkit/run"
 	"jangolova/contentkit/service"
 )
-
-// contentCommandTimeout bounds one content command. Model and runtime installs
-// download large files and serve runs until it is stopped, so the bound is long;
-// an interrupt cancels the call at any time.
-const contentCommandTimeout = 7 * 24 * time.Hour
 
 // contentPassthroughEnvironment names the host variables the content engine
 // needs to find its configuration and storage. ext starts a plugin with a
@@ -53,61 +45,12 @@ func runContentContext(ctx context.Context, args []string, stdout, stderr io.Wri
 	if err != nil {
 		return err
 	}
-	executable, err := installed.Executable()
-	if err != nil {
-		return err
-	}
-	proc, err := host.Open(ctx, installed, host.Options{
-		Launch:    &process.Command{Path: executable, Env: contentLaunchEnvironment(args)},
-		Authorize: contentServicePolicy,
-		Timeout:   contentCommandTimeout,
-	})
-	if err != nil {
-		return err
-	}
-	defer proc.Close()
-	var result service.CommandResult
-	err = proc.CallProgress(ctx, service.ContractName+".command", service.CommandRequest{Args: args}, &result, logPrinter(stderr))
-	if err != nil {
-		if ctx.Err() != nil {
-			return nil // the command was interrupted
-		}
-		return err
-	}
-	if _, err := stdout.Write(result.Stdout); err != nil {
-		return err
-	}
-	if _, err := stderr.Write(result.Stderr); err != nil {
-		return err
-	}
-	if result.Truncated {
-		fmt.Fprintln(stderr, "content command output was truncated")
-	}
-	if result.Error != "" {
-		return errors.New(result.Error)
-	}
-	return nil
-}
-
-// logPrinter prints a command's streamed log lines as they arrive. A line the
-// host's rate limit dropped is reported as a count, so a gap is never silent.
-func logPrinter(stderr io.Writer) func(plugin.Progress) {
-	return func(event plugin.Progress) {
-		if event.Dropped > 0 {
-			fmt.Fprintf(stderr, "[%d log lines were dropped]\n", event.Dropped)
-		}
-		if event.Kind == "log" && (event.Text != "" || event.Dropped == 0) {
-			fmt.Fprintln(stderr, event.Text)
-		}
-	}
+	return commandrun.Command(ctx, installed, service.ContractName, args, nil, contentLaunchEnvironment(args), stdout, stderr)
 }
 
 // contentServicePolicy admits the one operation the content service serves.
-func contentServicePolicy(_ context.Context, request plugin.Request) error {
-	if request.Operation != "command" {
-		return fmt.Errorf("content service operation %q is not allowed", request.Operation)
-	}
-	return nil
+func contentServicePolicy(ctx context.Context, request plugin.Request) error {
+	return commandrun.Policy(ctx, request)
 }
 
 // contentServicePackage returns the installed package that serves

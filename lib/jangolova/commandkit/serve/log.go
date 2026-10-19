@@ -1,8 +1,9 @@
-package main
+package serve
 
 import (
 	"bytes"
 	"errors"
+	"jangolova/commandkit"
 	"sync"
 	"unicode/utf8"
 
@@ -87,7 +88,7 @@ func (l *logStream) emit(line []byte) {
 }
 
 func (l *logStream) keep(text string) {
-	room := maxKept - l.kept.Len()
+	room := commandkit.MaxOutputBytes - l.kept.Len()
 	if len(text) > room {
 		l.over = true
 		text = text[:max(room, 0)]
