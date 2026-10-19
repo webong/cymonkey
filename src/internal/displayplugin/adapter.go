@@ -12,7 +12,9 @@ import (
 
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
+	plugin "github.com/webong/ext/pkg/plugin-go/contract"
 	"github.com/webong/ext/pkg/plugin-go/contract/host"
+	"github.com/webong/ext/pkg/plugin-go/contract/host/process"
 	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
 	"jangolova/displaykit"
 )
@@ -28,10 +30,111 @@ const (
 // Operations lists every method a display.engine package serves.
 var Operations = displaykit.Operations
 
+// Policy is the host's endpoint and credential policy. The engine package asks
+// for it through the display.host reverse contract instead of carrying its own
+// copy, so there is one definition of what an endpoint may be and of which
+// strings are secret.
+type Policy interface {
+	ValidateEndpoint(orchestrator.TargetEndpoint) error
+	WorkerEnvironment(endpoint orchestrator.TargetEndpoint, environment []string) ([]string, error)
+	Redact(message string, target orchestrator.EngineTarget) string
+}
+
 // Adapter runs one installed package as a display engine. Each Connect starts
-// its own process, so sessions never share plugin state.
+// its own process, so sessions never share plugin state. Without a Policy the
+// package is offered no host services.
 type Adapter struct {
 	Installed store.Installed
+	Policy    Policy
+	// Environment adds "NAME=value" entries to the package's scrubbed launch
+	// environment, for example the path of the browser worker script.
+	Environment []string
+}
+
+// launch returns how to start the package, or nil to use its default.
+func (a Adapter) launch() (*process.Command, error) {
+	if len(a.Environment) == 0 {
+		return nil, nil
+	}
+	executable, err := a.Installed.Executable()
+	if err != nil {
+		return nil, err
+	}
+	return &process.Command{Path: executable, Env: a.Environment}, nil
+}
+
+// maxRedactBytes bounds a message the engine asks the host to redact.
+const maxRedactBytes = 64 << 10
+
+// reverseOptions serves the display.host contract for one connected target. It
+// admits only the declared operations, and answers from the host's own copy of
+// the target, so a request can name an endpoint but never supply its material.
+func reverseOptions(policy Policy, target orchestrator.EngineTarget) *host.ReverseOptions {
+	if policy == nil {
+		return nil
+	}
+	find := func(requested displaykit.Endpoint) (orchestrator.TargetEndpoint, error) {
+		for _, endpoint := range target.Endpoints {
+			if endpoint.Name == requested.Name && endpoint.Protocol == requested.Protocol && endpoint.URL == requested.URL {
+				return endpoint, nil
+			}
+		}
+		return orchestrator.TargetEndpoint{}, errors.New("endpoint is not part of the connected target")
+	}
+	refuse := func(err error) error {
+		return &plugin.RemoteError{Code: "policy", Message: policy.Redact(err.Error(), target)}
+	}
+	return &host.ReverseOptions{
+		Authorize: func(_ context.Context, request plugin.Request) error {
+			if request.Contract.Name != displaykit.HostContractName || request.Contract.Version != displaykit.HostContractVersion {
+				return plugin.ErrDenied
+			}
+			for _, operation := range displaykit.HostOperations {
+				if request.Operation == operation {
+					return nil
+				}
+			}
+			return plugin.ErrDenied
+		},
+		Handle: func(_ context.Context, request plugin.Request) (json.RawMessage, error) {
+			switch request.Operation {
+			case "validate_endpoint":
+				var body displaykit.EndpointRequest
+				if err := json.Unmarshal(request.Payload, &body); err != nil {
+					return nil, errors.New("decode validate_endpoint")
+				}
+				endpoint, err := find(body.Endpoint)
+				if err != nil {
+					return nil, refuse(err)
+				}
+				if err := policy.ValidateEndpoint(endpoint); err != nil {
+					return nil, refuse(err)
+				}
+				return json.RawMessage(`{}`), nil
+			case "worker_environment":
+				var body displaykit.EnvironmentRequest
+				if err := json.Unmarshal(request.Payload, &body); err != nil {
+					return nil, errors.New("decode worker_environment")
+				}
+				endpoint, err := find(body.Endpoint)
+				if err != nil {
+					return nil, refuse(err)
+				}
+				environment, err := policy.WorkerEnvironment(endpoint, body.Environment)
+				if err != nil {
+					return nil, refuse(err)
+				}
+				return json.Marshal(displaykit.EnvironmentResult{Environment: environment})
+			case "redact":
+				var body displaykit.RedactRequest
+				if err := json.Unmarshal(request.Payload, &body); err != nil || len(body.Message) > maxRedactBytes {
+					return nil, errors.New("decode redact")
+				}
+				return json.Marshal(displaykit.RedactResult{Message: policy.Redact(body.Message, target)})
+			}
+			return nil, plugin.ErrDenied
+		},
+	}
 }
 
 func method(name string) string { return ContractName + "." + name }
@@ -55,7 +158,6 @@ func wireConnection(snapshot orchestrator.EndpointConnectionSnapshot) displaykit
 	connection := displaykit.Connection{
 		Headers: snapshot.Headers, ExpiresAt: snapshot.ExpiresAt, Revision: snapshot.Revision,
 		CredentialRevision: snapshot.CredentialRevision, TLSRevision: snapshot.TLSRevision,
-		SecretValues: snapshot.SecretValues,
 	}
 	if snapshot.TLS != nil {
 		connection.TLS = &displaykit.TLS{
@@ -66,9 +168,9 @@ func wireConnection(snapshot orchestrator.EndpointConnectionSnapshot) displaykit
 	return connection
 }
 
-// wireEndpointOf carries an endpoint with its prepared material. Headers and the
-// redaction list in the material are sensitive: they are what the engine needs
-// to reach the target and to keep credentials out of what it reports.
+// wireEndpointOf carries an endpoint with its prepared material. The headers
+// are sensitive: they are what the engine presents to the target. The list of
+// secrets to redact stays with the host; the engine asks for redaction.
 func wireEndpointOf(endpoint orchestrator.TargetEndpoint) displaykit.Endpoint {
 	wire := displaykit.Endpoint{
 		Name: endpoint.Name, Protocol: endpoint.Protocol, URL: endpoint.URL,
@@ -84,7 +186,11 @@ func wireEndpointOf(endpoint orchestrator.TargetEndpoint) displaykit.Endpoint {
 
 // Connect starts the package and opens an engine session on target.
 func (a Adapter) Connect(ctx context.Context, spec manifest.EngineSpec, target orchestrator.EngineTarget) (orchestrator.EngineInstance, error) {
-	proc, err := host.Open(ctx, a.Installed, host.Options{Authorize: sessionPolicy()})
+	launch, err := a.launch()
+	if err != nil {
+		return nil, err
+	}
+	proc, err := host.Open(ctx, a.Installed, host.Options{Authorize: sessionPolicy(), Reverse: reverseOptions(a.Policy, target), Launch: launch})
 	if err != nil {
 		return nil, err
 	}

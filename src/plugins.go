@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"jangolova/contentkit"
 	"jangolova/contentkit/service"
+	"jangolova/displaykit"
 	"os"
 	"path/filepath"
 	"sort"
@@ -117,7 +118,7 @@ func registerDisplayPlugins(registry *orchestrator.Registry) error {
 		if !item.Supports(displayPluginContract, pluginContractVersion) {
 			continue
 		}
-		if err := registry.RegisterEngine(item.Name(), displayplugin.Adapter{Installed: item}); err != nil {
+		if err := registry.RegisterEngine(item.Name(), displayplugin.Adapter{Installed: item, Policy: displayPolicy{}, Environment: displayLaunchEnvironment()}); err != nil {
 			return err
 		}
 	}
@@ -263,6 +264,13 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 		}
 		if err != nil {
 			return err
+		}
+		if contract == displayPluginContract {
+			// A display engine asks the host for endpoint policy, the worker
+			// environment and redaction, so its package declares those calls.
+			if manifest, err = manifest.WithReverse([]plugin.Contract{displaykit.HostContract()}); err != nil {
+				return err
+			}
 		}
 		outputPath := strings.TrimSpace(*output)
 		if outputPath == "" {

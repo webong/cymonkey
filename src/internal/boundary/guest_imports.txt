@@ -6,7 +6,6 @@ src/console_command.go console/httpapi
 src/console_command.go console/mcp
 src/console_command.go cymonkey-content-plugin-endpoints/generation
 src/devicecli/gateway.go board/vncgateway
-src/display_registry.go board/display
 src/operator_device_sessions_test.go board/devices
 src/operator_device_sessions_test.go board/volumearchive
 src/operator_device_targets.go board/rtc

@@ -60,3 +60,11 @@ func (m *material) update(connection displaykit.Connection) {
 	default:
 	}
 }
+
+// connection returns the current prepared material, including its TLS file
+// names, which a snapshot for the library does not carry.
+func (m *material) connection() displaykit.Connection {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.current
+}

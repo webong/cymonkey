@@ -60,23 +60,38 @@ manifests with `cymy plugins manifest`.
 
 ## Display engine package
 
-Board's display engine can run as an ext package that serves `display.engine`.
-The host resolves credentials, prepares the connection material (headers, TLS
-file paths, the redaction list) and sends it with the target; the engine reaches
-the target and its cooperative helpers itself and reports events back by
-cursor.
+Board's display engine runs as an ext package that serves `display.engine`. It
+replaces the engine that used to be linked into `cymy`: the host no longer
+registers `playwright`, `puppeteer` or `cymonkey` itself.
+
+The package is installed once per engine name it serves, and the package name is
+the engine name. `playwright` and `puppeteer` pin the backend to that driver;
+any other name uses the generic engine:
 
 ```sh
 go build -o display ./pkg/board/cmd/display
-cymy plugins manifest --type display --name display-engine --version 1.0.0 --command ./display
-cymy plugins install --manifest ./plugin.json
+for engine in playwright puppeteer cymonkey; do
+  cymy plugins manifest --type display --name $engine --version 1.0.0 --command ./display
+  cymy plugins install --manifest ./plugin.json
+done
 ```
 
-Today the package serves the cooperative targets (macOS and Windows helpers,
-which connect back to the engine with the launch variables it returns). Targets
-that need the host's endpoint policy or credential handling, such as browser and
-CDP endpoints, are refused with a clear error until ext offers guest-to-host
-calls, so the in-process engine still serves those.
+`cymy plugins manifest --type display` declares the `display.host` reverse
+contract in the package, so the engine can ask the host while a session is
+connected. The host owns endpoint policy and credentials, so the engine asks for
+three things instead of carrying its own copies: `validate_endpoint`,
+`worker_environment` (the environment for a browser worker that will connect to
+an authenticated endpoint) and `redact` (removing the target's secrets from a
+message). The host answers from its own copy of the target, and a request can
+name an endpoint but never supply its credentials. The engine keeps the
+connection headers it was sent so it can reach the target, and the redaction
+list never leaves the host.
+
+The package serves cooperative targets (macOS and Windows helpers, which connect
+back to the engine with the launch variables it returns) and browser and CDP
+targets through a Node worker; the host passes it the worker script path when it
+launches it. The Safari bridge is a separate host engine, `safari-mcp`, and is
+not offered through this package.
 
 ## Lifecycle
 

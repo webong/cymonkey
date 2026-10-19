@@ -43,9 +43,9 @@ type TLS struct {
 }
 
 // Connection is the prepared material for one endpoint at one revision. Headers
-// and SecretValues are sensitive: Headers carry the credentials the engine
-// presents to the target, and SecretValues lists strings the engine must remove
-// from anything it reports.
+// are sensitive: they carry the credentials the engine presents to the target.
+// The engine removes secrets from what it reports by asking the host (see the
+// display.host contract), so no redaction list is sent.
 type Connection struct {
 	Headers            map[string]string `json:"headers,omitempty"`
 	TLS                *TLS              `json:"tls,omitempty"`
@@ -53,7 +53,6 @@ type Connection struct {
 	Revision           uint64            `json:"revision,omitempty"`
 	CredentialRevision uint64            `json:"credentialRevision,omitempty"`
 	TLSRevision        uint64            `json:"tlsRevision,omitempty"`
-	SecretValues       []string          `json:"secretValues,omitempty"`
 }
 
 // Endpoint is one coordinate of a target with its prepared material.

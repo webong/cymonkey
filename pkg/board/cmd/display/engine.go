@@ -9,19 +9,18 @@ import (
 	"time"
 
 	"board/display"
+	plugin "github.com/webong/ext/pkg/plugin-go/contract"
 	"jangolova/displaykit"
 	"jangolova/displaykit/sdk"
 	"jangolova/displaykit/serve"
 )
 
-type engine struct{ adapter display.Adapter }
+type engine struct{}
 
-func newEngine() engine {
-	return engine{adapter: display.Adapter{Host: guestServices()}}
-}
+func newEngine() engine { return engine{} }
 
 func (e engine) Inspect(ctx context.Context) displaykit.Inspection {
-	result := e.adapter.InspectEngine(ctx)
+	result := display.Adapter{Host: guestServices(nil)}.InspectEngine(ctx)
 	return displaykit.Inspection{Available: result.Available, Capabilities: result.Capabilities, Message: result.Message}
 }
 
@@ -43,13 +42,31 @@ func (e engine) Connect(ctx context.Context, spec displaykit.Spec, target displa
 		}
 		libraryTarget.Endpoints = append(libraryTarget.Endpoints, converted)
 	}
-	instance, err := e.adapter.Connect(ctx, sdk.EngineSpec{
+	// The session-scoped caller outlives this call, so the engine's background
+	// work can ask the host for services too.
+	services := guestServices(plugin.SessionReverseFrom(ctx))
+	adapter, err := adapterFor(spec.Adapter, services)
+	if err != nil {
+		return nil, err
+	}
+	instance, err := adapter.Connect(ctx, sdk.EngineSpec{
 		Adapter: spec.Adapter, RequiredCapabilities: spec.RequiredCapabilities, Source: spec.Source, Options: spec.Options,
 	}, libraryTarget)
 	if err != nil {
 		return nil, err
 	}
 	return newSession(instance, materials), nil
+}
+
+// adapterFor chooses the library adapter for the engine name the host selected.
+// The package is installed once per engine name it serves: a driver name pins the
+// backend to that driver, and any other name uses the generic adapter.
+func adapterFor(name string, services sdk.Host) (sdk.EngineAdapter, error) {
+	switch name {
+	case "playwright", "puppeteer", "cdp", "bidi":
+		return display.WithDriver(name, services)
+	}
+	return display.Adapter{Host: services}, nil
 }
 
 // session adapts a library engine instance to the wire session. The library

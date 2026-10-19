@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 
-	displaylib "board/display"
 	"cymonkey/src/adapters/displayinteraction"
 	"cymonkey/src/adapters/safarimcp"
 	"cymonkey/src/adapters/webdriverclassic"
@@ -13,23 +12,6 @@ import (
 
 func engineRegistry() (*orchestrator.Registry, error) {
 	registry := orchestrator.NewRegistry()
-	playwright, err := displaylib.WithDriver("playwright", displayLibraryServices())
-	if err != nil {
-		return nil, fmt.Errorf("configure Cymonkey Playwright control plane: %w", err)
-	}
-	if err := registry.RegisterEngine("playwright", wrapDisplayLibrary(playwright)); err != nil {
-		return nil, fmt.Errorf("register Playwright control-plane engine: %w", err)
-	}
-	puppeteer, err := displaylib.WithDriver("puppeteer", displayLibraryServices())
-	if err != nil {
-		return nil, fmt.Errorf("configure Cymonkey Puppeteer control plane: %w", err)
-	}
-	if err := registry.RegisterEngine("puppeteer", wrapDisplayLibrary(puppeteer)); err != nil {
-		return nil, fmt.Errorf("register Puppeteer control-plane engine: %w", err)
-	}
-	if err := registry.RegisterEngine("cymonkey", wrapDisplayLibrary(displaylib.Adapter{Host: displayLibraryServices()})); err != nil {
-		return nil, fmt.Errorf("register Cymonkey augmented-browsing engine: %w", err)
-	}
 	if err := registry.RegisterEngine("webdriver-classic", webdriverclassic.Generic()); err != nil {
 		return nil, fmt.Errorf("register WebDriver Classic interaction engine: %w", err)
 	}
