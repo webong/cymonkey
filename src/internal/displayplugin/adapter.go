@@ -66,6 +66,23 @@ func (a Adapter) launch() (*process.Command, error) {
 // maxRedactBytes bounds a message the engine asks the host to redact.
 const maxRedactBytes = 64 << 10
 
+// maxRefusalBytes keeps a refusal well under the protocol's message limit. A
+// reverse handler's error that breaks the limit can end the plugin connection in
+// ext v0.5.0, so no host text goes out unbounded.
+const maxRefusalBytes = 2048
+
+// boundedMessage cuts text to maxRefusalBytes without splitting a character.
+func boundedMessage(text string) string {
+	if len(text) <= maxRefusalBytes {
+		return text
+	}
+	cut := maxRefusalBytes
+	for cut > 0 && text[cut]&0xC0 == 0x80 {
+		cut--
+	}
+	return text[:cut]
+}
+
 // reverseOptions serves the display.host contract for one connected target. It
 // admits only the declared operations, and answers from the host's own copy of
 // the target, so a request can name an endpoint but never supply its material.
@@ -82,7 +99,7 @@ func reverseOptions(policy Policy, target orchestrator.EngineTarget) *host.Rever
 		return orchestrator.TargetEndpoint{}, errors.New("endpoint is not part of the connected target")
 	}
 	refuse := func(err error) error {
-		return &plugin.RemoteError{Code: "policy", Message: policy.Redact(err.Error(), target)}
+		return &plugin.RemoteError{Code: "policy", Message: boundedMessage(policy.Redact(err.Error(), target))}
 	}
 	return &host.ReverseOptions{
 		Authorize: func(_ context.Context, request plugin.Request) error {

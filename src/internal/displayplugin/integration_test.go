@@ -13,6 +13,7 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
@@ -321,5 +322,24 @@ func TestDisplayEngineRunsABrowserSessionThroughHostPolicy(t *testing.T) {
 	}
 	if policy.environments == 0 {
 		t.Fatal("the host did not prepare the worker environment")
+	}
+}
+
+func TestRefusalMessagesAreBoundedAndKeepTheirCharacters(t *testing.T) {
+	policy := &recordingPolicy{refuse: strings.Repeat("é", 5000)}
+	target := browserTarget()
+	options := reverseOptions(policy, target)
+	known := displaykit.Endpoint{Name: "cdp", Protocol: "cdp", URL: target.Endpoints[0].URL}
+	encoded, _ := json.Marshal(displaykit.EndpointRequest{Endpoint: known})
+	_, err := options.Handle(context.Background(), plugin.Request{
+		Contract:  plugin.ContractRef{Name: displaykit.HostContractName, Version: displaykit.HostContractVersion},
+		Operation: "validate_endpoint", Payload: encoded,
+	})
+	var remote *plugin.RemoteError
+	if !errors.As(err, &remote) || remote.Code != "policy" {
+		t.Fatalf("refusal = %v", err)
+	}
+	if len(remote.Message) > maxRefusalBytes || !utf8.ValidString(remote.Message) || remote.Message == "" {
+		t.Fatalf("refusal message is %d bytes, valid UTF-8 %v", len(remote.Message), utf8.ValidString(remote.Message))
 	}
 }
