@@ -1,10 +1,10 @@
 src/console_audio.go console/bindings
-src/console_command.go board/capture
 src/console_command.go console
 src/console_command.go console/bindings
+src/console_command.go console/capture
+src/console_command.go console/generation
 src/console_command.go console/httpapi
 src/console_command.go console/mcp
-src/console_command.go cymonkey-content-plugin-endpoints/generation
 src/devicecli/gateway.go board/vncgateway
 src/operator_device_sessions_test.go board/devices
 src/operator_device_sessions_test.go board/volumearchive

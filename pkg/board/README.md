@@ -202,7 +202,7 @@ Cymonkey nor Jangolova nor Blockade; a dependency-graph test enforces that. Run
 
 ## Capture and clipboard SDKs
 
-`board/capture` provides bounded PNG processing and read-only sampling over a
+`console/capture` provides bounded PNG processing and read-only sampling over a
 caller-supplied source: digest/metadata manifests, changed-region detection,
 heartbeat retention, crop, element-box annotation and contact sheets.
 `SampleVideo` accepts explicit offsets and a borrowed decoder. `Bridge` borrows

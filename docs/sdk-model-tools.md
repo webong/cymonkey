@@ -49,8 +49,8 @@ with a scripted local generator. No remote model or device is needed.
 - [`pkg/console`](../pkg/console/README.md): tool composition, SDK bindings, MCP.
 - [`pkg/board`](../pkg/board/README.md): existing device providers and audio channels.
 - [`pkg/board/display`](../pkg/board/display/README.md): existing semantic interaction SDK.
-- [`pkg/content-endpoints/generation`](../pkg/content-endpoints/generation/README.md): optional HTTP API dialects.
-- [`pkg/content-endpoints/realtime`](../pkg/content-endpoints/realtime/README.md): optional explicit model WebSocket session.
+- [`pkg/console/generation`](../pkg/console/generation/README.md): optional HTTP API dialects.
+- [`pkg/console/realtime`](../pkg/console/realtime/README.md): optional explicit model WebSocket session.
 
 This adds native Go embedding surfaces. It does not imply every Tachikoma
 provider/model feature is supported or add generation/speech routes to Cymonkey's

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"board/capture"
+	"console/capture"
 	"console"
 	"jangolova/displaykit/ui"
 )
