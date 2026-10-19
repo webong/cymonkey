@@ -14,9 +14,9 @@ const maxEventText = plugin.MaxProgressTextBytes
 
 // logStream turns what a command writes to a stream into log events, one line
 // per event. The host rate limits events, so a stream that writes faster than
-// the limit loses lines; the host is told how many. When the host did not ask
-// for progress (or cannot receive it), the text is kept so it can be returned
-// with the final result instead.
+// the limit loses lines; the host is told how many. If ext reports that no
+// event will ever flow (the operation did not declare progress), the text is
+// kept so it can be returned with the final result instead.
 type logStream struct {
 	report func(plugin.Progress) error
 	stream string
@@ -74,11 +74,12 @@ func (l *logStream) emit(line []byte) {
 		switch {
 		case err == nil, errors.Is(err, plugin.ErrProgressDropped):
 		case errors.Is(err, plugin.ErrUnsupported):
+			// No event will ever flow for this operation; stop reporting.
 			l.off = true
 			l.keep(text + "\n")
 		default:
-			// The call is ending or the host stopped listening; keep the text
-			// for the final result.
+			// The call is over or the connection is failing; keep the text for
+			// the final result.
 			l.off = true
 			l.keep(text + "\n")
 		}
