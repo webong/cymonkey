@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	displayengine "board/display"
-	contract "board/display/contract"
-	"board/display/sdk"
+	contract "jangolova/displaykit/contract"
+	"jangolova/displaykit/sdk"
 )
 
 type staticConnection struct{ headers map[string]string }

@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"board/capture"
-	"board/display/ui"
 	"console"
+	"jangolova/displaykit/ui"
 )
 
 type SeeResult struct {

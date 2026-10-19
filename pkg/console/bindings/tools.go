@@ -8,10 +8,10 @@ import (
 	"errors"
 	"jangolova/contentkit"
 
-	"board/display/contract"
-	"board/display/sdk"
 	"console"
 	"jangolova/devicekit"
+	"jangolova/displaykit/contract"
+	"jangolova/displaykit/sdk"
 )
 
 // Display binds one semantic action on a caller-owned Jangolova connection.

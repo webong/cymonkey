@@ -22,9 +22,9 @@ import (
 	"time"
 
 	displayengine "board/display"
-	"board/display/registry"
-	"board/display/sdk"
 	"github.com/gorilla/websocket"
+	"jangolova/displaykit/registry"
+	"jangolova/displaykit/sdk"
 )
 
 func main() {
