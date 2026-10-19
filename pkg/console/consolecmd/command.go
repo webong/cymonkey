@@ -1,4 +1,4 @@
-package main
+package consolecmd
 
 import (
 	"bytes"
@@ -19,12 +19,12 @@ import (
 	"syscall"
 	"time"
 
-	"console/capture"
 	"console"
 	"console/bindings"
+	"console/capture"
+	endpointmodels "console/generation"
 	"console/httpapi"
 	"console/mcp"
-	endpointmodels "console/generation"
 	"jangolova/displaykit/contract"
 	"jangolova/displaykit/ui"
 	"jangolova/generationkit"
@@ -383,6 +383,14 @@ func (c consoleDisplayCaller) Call(ctx context.Context, method string, params js
 	return reply.Result, nil
 }
 
+func loopbackHost(host string) bool {
+	if host == "localhost" {
+		return true
+	}
+	address := net.ParseIP(host)
+	return address != nil && address.IsLoopback()
+}
+
 func consoleDecode(reader io.Reader, value any) error {
 	decoder := json.NewDecoder(reader)
 	decoder.DisallowUnknownFields()
@@ -395,7 +403,10 @@ func consoleDecode(reader io.Reader, value any) error {
 	}
 	return nil
 }
-func consoleCommand(args []string, stdout, stderr io.Writer) (err error) {
+
+// Run runs one `cymy console` command. stdin carries the request for commands
+// that read one (call, generate, stream, mcp).
+func Run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.Writer) (err error) {
 	if len(args) == 0 {
 		return errors.New("console requires tools, models, call, generate, stream, serve, or mcp")
 	}
@@ -417,7 +428,7 @@ func consoleCommand(args []string, stdout, stderr io.Writer) (err error) {
 	if flags.NArg() != 0 || *path == "" {
 		return errors.New("--config is required; positional arguments are unsupported")
 	}
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	host, err := loadConsole(ctx, *path)
 	if err != nil {
@@ -434,7 +445,7 @@ func consoleCommand(args []string, stdout, stderr io.Writer) (err error) {
 		if host.config.MCPProtocolVersion == "" {
 			return errors.New("mcpProtocolVersion is required for MCP serving")
 		}
-		return mcpServer.ServeIO(ctx, os.Stdin, stdout)
+		return mcpServer.ServeIO(ctx, stdin, stdout)
 	case "serve":
 		address, _, e := net.SplitHostPort(*bind)
 		if e != nil || !loopbackHost(address) {
@@ -489,7 +500,7 @@ func consoleCommand(args []string, stdout, stderr io.Writer) (err error) {
 		}
 		return err
 	}
-	var reader io.Reader = os.Stdin
+	var reader io.Reader = stdin
 	if *input != "-" {
 		file, e := os.Open(*input)
 		if e != nil {

@@ -40,8 +40,14 @@ func Command(ctx context.Context, installed store.Installed, contract string, ar
 	if err != nil {
 		return err
 	}
+	// The command runs where the user ran it, so a relative path in its
+	// arguments means what the user expects, not a path in the package.
+	dir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
 	proc, err := host.Open(ctx, installed, host.Options{
-		Launch:    &process.Command{Path: executable, Env: env},
+		Launch:    &process.Command{Path: executable, Dir: dir, Env: env},
 		Authorize: Policy,
 		Timeout:   Timeout,
 	})
@@ -85,7 +91,9 @@ func Exec(ctx context.Context, installed store.Installed, args []string, env []s
 		return err
 	}
 	command := exec.CommandContext(ctx, executable, args...)
-	command.Dir = installed.Directory
+	if dir, err := os.Getwd(); err == nil {
+		command.Dir = dir
+	}
 	command.Env = append([]string{"PATH=" + os.Getenv("PATH")}, env...)
 	command.Stdin, command.Stdout, command.Stderr = stdin, stdout, stderr
 	if err := command.Run(); err != nil && ctx.Err() == nil {

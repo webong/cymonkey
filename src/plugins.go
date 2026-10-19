@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	consoleservice "jangolova/consolekit/service"
 	"jangolova/contentkit"
 	"jangolova/contentkit/service"
 	"jangolova/displaykit"
@@ -31,6 +32,7 @@ const (
 	displayPluginContract  = displayplugin.ContractName
 	contentPluginContract  = contentkit.ProviderContract
 	contentServiceContract = service.ContractName
+	consoleServiceContract = consoleservice.ContractName
 	devicePluginContract   = deviceplugin.ContractName
 	pluginContractVersion  = "v1"
 )
@@ -41,6 +43,7 @@ var pluginOperations = map[string][]string{
 	displayPluginContract:  displayplugin.Operations,
 	contentPluginContract:  contentkit.ProviderOperations,
 	contentServiceContract: service.Operations,
+	consoleServiceContract: consoleservice.Operations,
 	devicePluginContract:   deviceplugin.Operations,
 }
 
@@ -73,6 +76,9 @@ func installedPlugins() ([]store.Installed, error) {
 func pluginContract(name string) plugin.Contract {
 	if name == contentServiceContract {
 		return service.Contract() // its command operation reports progress
+	}
+	if name == consoleServiceContract {
+		return consoleservice.Contract()
 	}
 	operations := make([]plugin.Operation, 0, len(pluginOperations[name]))
 	for _, operation := range pluginOperations[name] {
@@ -227,11 +233,12 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 			"display":         displayPluginContract,
 			"content":         contentPluginContract,
 			"content-service": contentServiceContract,
+			"console-service": consoleServiceContract,
 			"device":          devicePluginContract,
 		}[strings.TrimSpace(*pluginType)]
 		source := strings.TrimSpace(*root) != ""
 		if flags.NArg() != 0 || !ok || strings.TrimSpace(*name) == "" || strings.TrimSpace(*version) == "" || (strings.TrimSpace(*command) == "") == !source {
-			return errors.New("plugins manifest requires --type display|content|content-service|device, --name, --version, and either --command or --root with --file/--dir")
+			return errors.New("plugins manifest requires --type display|content|content-service|console-service|device, --name, --version, and either --command or --root with --file/--dir")
 		}
 		var manifest packagekit.Manifest
 		var err error

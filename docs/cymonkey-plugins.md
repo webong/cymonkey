@@ -93,6 +93,29 @@ targets through a Node worker; the host passes it the worker script path when it
 launches it. The Safari bridge is a separate host engine, `safari-mcp`, and is
 not offered through this package.
 
+## Console service package
+
+`cymy console` runs in the console, which is an ext package that serves
+`console.service`. Like the content service it is a command service: the host
+forwards the command, its stdout comes back whole, and its log lines stream as
+progress. Build and install it once:
+
+```sh
+go build -o console ./pkg/console/cmd/console
+cymy plugins manifest --type console-service --name console --version 1.0.0 --command ./console
+cymy plugins install --manifest ./plugin.json
+```
+
+The package starts with a scrubbed environment, so the host passes only the
+variables the console configuration refers to by name (the operator or MCP token,
+a model API key) and a command's `--token-env`. A command runs in the directory
+it was started from, so relative paths in its arguments mean what you typed.
+`call` and `generate` read their request from standard input; the host reads it
+(up to 1 MiB) and sends it with the call. The commands that speak a stdio
+protocol of their own, `mcp` and `stream`, cannot be a single call, so the host
+runs the package's verified executable as a child with the same restricted
+environment and your terminal's input and output.
+
 ## Lifecycle
 
 ```sh
