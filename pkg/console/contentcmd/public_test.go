@@ -59,7 +59,6 @@ func TestContentCommandPersistsCymonkeyConfig(t *testing.T) {
 	}
 }
 
-
 func TestContentRuntimeManifestUsesCymonkeyContract(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("CYMONKEY_PLUGIN_DIR", filepath.Join(root, "plugins"))
@@ -91,7 +90,6 @@ func TestContentRuntimeManifestUsesCymonkeyContract(t *testing.T) {
 		t.Fatalf("public runtime install output = %s", output.String())
 	}
 }
-
 
 func TestContentModelManifestIsTranslatedOnlyAtBoundary(t *testing.T) {
 	manifest := filepath.Join(t.TempDir(), "model.json")
@@ -127,7 +125,6 @@ func TestContentModelManifestIsTranslatedOnlyAtBoundary(t *testing.T) {
 		t.Fatalf("public model manifest changed = %s", publicData)
 	}
 }
-
 
 func TestContentServiceTranslatesPublicHTTPContract(t *testing.T) {
 	internal := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

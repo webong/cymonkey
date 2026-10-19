@@ -4,6 +4,8 @@
 // content providers itself.
 package service
 
+import plugin "github.com/webong/ext/pkg/plugin-go/contract"
+
 const (
 	ContractName    = "content.service"
 	ContractVersion = "v1"
@@ -14,6 +16,16 @@ const (
 
 // Operations lists every method a content.service package serves.
 var Operations = []string{"command"}
+
+// Contract is the content.service contract a package declares. The command
+// operation reports progress: a command's log lines stream to the host while it
+// runs.
+func Contract() plugin.Contract {
+	return plugin.Contract{
+		ContractRef: plugin.ContractRef{Name: ContractName, Version: ContractVersion},
+		Operations:  []plugin.Operation{{Name: "command", Progress: true}},
+	}
+}
 
 // CommandRequest runs one `cymy content` command. Args are the arguments after
 // "content".

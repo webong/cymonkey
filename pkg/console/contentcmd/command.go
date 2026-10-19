@@ -4,6 +4,7 @@ import (
 	"bytes"
 	contentcli "console/contentcli"
 	"console/contentengine"
+	"context"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -19,6 +20,12 @@ import (
 // Run adapts Cymonkey's public content command and data contracts to
 // the internal interpretation library. No library contract is exposed here.
 func Run(args []string, stdout, stderr io.Writer) error {
+	return RunContext(context.Background(), args, stdout, stderr)
+}
+
+// RunContext is Run with a context that ends a long-running command such as
+// serve when it is canceled.
+func RunContext(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	if len(args) > 0 && args[0] == "service" {
 		return runContentService(args[1:], stdout)
 	}
@@ -67,6 +74,7 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		Registry:      registry,
 		Resolver:      contentengine.EnvironmentSecretResolver{},
 		Middleware:    contentServiceContract,
+		Context:       ctx,
 	}
 	if len(publicArgs) > 0 && publicArgs[0] == "serve" {
 		return publicContentError(engine.Run(libraryArgs, stdout, contentLogWriter{writer: stderr}))

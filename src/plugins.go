@@ -71,6 +71,9 @@ func installedPlugins() ([]store.Installed, error) {
 // pluginContract declares a Cymonkey contract with the operations its
 // libraries serve, which ext requires every package to list.
 func pluginContract(name string) plugin.Contract {
+	if name == contentServiceContract {
+		return service.Contract() // its command operation reports progress
+	}
 	operations := make([]plugin.Operation, 0, len(pluginOperations[name]))
 	for _, operation := range pluginOperations[name] {
 		operations = append(operations, plugin.Operation{Name: operation})

@@ -5,11 +5,15 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	plugin "github.com/webong/ext/pkg/plugin-go/contract"
 	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
@@ -86,5 +90,113 @@ func TestContentLaunchEnvironmentPassesOnlyNamedVariables(t *testing.T) {
 	}
 	if strings.Contains(environment, "UNRELATED_SECRET") {
 		t.Errorf("an unnamed variable was passed:\n%s", environment)
+	}
+}
+
+// lockedBuffer collects streamed log lines that arrive on another goroutine.
+type lockedBuffer struct {
+	mu   sync.Mutex
+	text strings.Builder
+}
+
+func (b *lockedBuffer) Write(data []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.text.Write(data)
+}
+
+func (b *lockedBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.text.String()
+}
+
+func TestContentServeStreamsItsLogsAndStopsWhenCanceled(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("CYMONKEY_PLUGIN_DIR", filepath.Join(root, "installed"))
+	t.Setenv("CYMONKEY_CONTENT_CONFIG", "")
+	build := func(importPath, name string) string {
+		out := filepath.Join(root, name)
+		cmd := exec.Command("go", "build", "-o", out, importPath)
+		cmd.Dir = filepath.Dir(filepath.Dir(fixtureSourcePath(t)))
+		if output, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("build %s: %v\n%s", importPath, err, output)
+		}
+		return out
+	}
+	install := func(name, program, contract string) {
+		source := filepath.Join(root, "source-"+name)
+		if err := os.Mkdir(source, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		data, err := os.ReadFile(program)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(source, "provider"), data, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		manifest, err := packagekit.ExecutableManifest(name, "1.0.0", []plugin.Contract{pluginContract(contract)}, filepath.Join(source, "provider"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		encoded, _ := json.Marshal(manifest)
+		manifestPath := filepath.Join(source, store.ManifestName)
+		if err := os.WriteFile(manifestPath, encoded, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if err := pluginsCommand([]string{"install", "--manifest", manifestPath}, io.Discard, io.Discard); err != nil {
+			t.Fatal(err)
+		}
+	}
+	install("content", build("console/cmd/content", "content"), contentServiceContract)
+	install("vision-fixture", build("cymonkey/tests/plugin-fixture", "fixture"), contentPluginContract)
+
+	configPath := filepath.Join(root, "content.yaml")
+	if err := os.WriteFile(configPath, []byte("apiVersion: cymonkey.content-config/v1alpha1\nadapters:\n  - id: vision\n    plugin: vision-fixture\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	address := listener.Addr().String()
+	listener.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var stdout bytes.Buffer
+	var logs lockedBuffer
+	done := make(chan error, 1)
+	go func() {
+		done <- runContentContext(ctx, []string{"serve", "--config", configPath, "--bind", address}, &stdout, &logs)
+	}()
+
+	// The log line the engine prints once it listens reaches the host while the
+	// command is still running.
+	deadline := time.Now().Add(20 * time.Second)
+	for !strings.Contains(logs.String(), "listening on") {
+		if time.Now().After(deadline) {
+			t.Fatalf("no streamed log line; logs = %q", logs.String())
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
+	response, err := http.Get("http://" + address + "/healthz")
+	if err != nil {
+		t.Fatalf("the served content engine does not answer: %v", err)
+	}
+	response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("healthz status = %d", response.StatusCode)
+	}
+
+	cancel()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("serve returned %v after cancellation", err)
+		}
+	case <-time.After(20 * time.Second):
+		t.Fatal("serve did not stop when canceled")
 	}
 }

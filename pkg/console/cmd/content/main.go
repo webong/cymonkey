@@ -1,8 +1,9 @@
 // content serves the content engine as an ext package that speaks the
 // content.service contract. The host sends a public content command; the engine
-// runs it, hosting the content providers it needs. Started with arguments
-// instead of by a host, it runs the command directly with the process's own
-// input and output, which is how long-running commands such as serve run.
+// runs it, hosting the content providers it needs. What the command prints to
+// stdout is returned with the call; what it logs to stderr streams to the host as
+// progress events while it runs, which is how long-running commands such as
+// serve report.
 package main
 
 import (
@@ -14,22 +15,23 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 
 	"console/contentcmd"
+	plugin "github.com/webong/ext/pkg/plugin-go/contract"
 	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
 	packagekit "github.com/webong/ext/pkg/plugin-go/contract/package"
 	"github.com/webong/ext/pkg/plugin-go/contract/transport/jsonline"
 	"jangolova/contentkit/service"
 )
 
+// maxCommandDuration is the guest-owned bound on one command.
+const maxCommandDuration = 7 * 24 * time.Hour
+
+// maxKept bounds the stderr text returned with a result.
+const maxKept = service.MaxOutputBytes
+
 func main() {
-	if len(os.Args) > 1 {
-		if err := contentcmd.Run(os.Args[1:], os.Stdout, os.Stderr); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		return
-	}
 	if err := serve(context.Background()); err != nil {
 		fmt.Fprintln(os.Stderr, "content:", err)
 		os.Exit(1)
@@ -44,10 +46,12 @@ func serve(ctx context.Context) error {
 	if !(packagekit.Manifest{Descriptor: descriptor}).Supports(service.ContractName, service.ContractVersion) {
 		return errors.New("plugin manifest does not declare the content.service contract")
 	}
-	return jsonline.ServeFunc(ctx, descriptor, call, jsonline.FuncOptions{})
+	// A command can run for a long time (a model install, the serve loop), so the
+	// guest's own bound is generous; the host bounds each call it makes.
+	return jsonline.ServeFunc(ctx, descriptor, call, jsonline.FuncOptions{MaxCallDuration: maxCommandDuration})
 }
 
-func call(_ context.Context, method string, raw json.RawMessage) (any, error) {
+func call(ctx context.Context, method string, raw json.RawMessage) (any, error) {
 	if method != service.ContractName+".command" {
 		return nil, fmt.Errorf("unsupported method %q", method)
 	}
@@ -55,9 +59,14 @@ func call(_ context.Context, method string, raw json.RawMessage) (any, error) {
 	if len(raw) == 0 || json.Unmarshal(raw, &request) != nil {
 		return nil, errors.New("decode content command")
 	}
-	var stdout, stderr bounded
-	err := contentcmd.Run(request.Args, &stdout, &stderr)
-	result := service.CommandResult{Stdout: stdout.buffer.Bytes(), Stderr: stderr.buffer.Bytes(), Truncated: stdout.over || stderr.over}
+	// What a command prints to stdout is its result and must arrive whole, so it
+	// is returned with the call. What it logs to stderr streams to the host as it
+	// happens; if the host cannot receive events, it is returned instead.
+	var stdout bounded
+	logs := newLogStream(plugin.ProgressFrom(ctx).Report, "err")
+	err := contentcmd.RunContext(ctx, request.Args, &stdout, logs)
+	logs.flush()
+	result := service.CommandResult{Stdout: stdout.buffer.Bytes(), Stderr: logs.returned(), Truncated: stdout.over || logs.over}
 	if err != nil {
 		result.Error = err.Error()
 	}

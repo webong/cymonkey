@@ -27,6 +27,9 @@ type CommandEngine struct {
 	Registry      *contentengine.ProviderAdapterRegistry
 	Resolver      contentengine.SecretResolver
 	Middleware    func(http.Handler) http.Handler
+	// Context, when set, ends a long-running command such as serve when it is
+	// canceled. Without it serve stops on an interrupt or SIGTERM.
+	Context context.Context
 }
 
 // Run executes a content subcommand through Cymonkey's public invocation.
@@ -51,10 +54,10 @@ func (engine CommandEngine) Run(args []string, stdout, stderr io.Writer) error {
 	if registry == nil {
 		registry = contentengine.NewProviderAdapterRegistry()
 	}
-	return run(args, stdout, stderr, registry, engine.Resolver, invocation, defaultConfig, defaultBind, engine.Middleware)
+	return run(engine.Context, args, stdout, stderr, registry, engine.Resolver, invocation, defaultConfig, defaultBind, engine.Middleware)
 }
 
-func run(args []string, stdout, stderr io.Writer, registry *contentengine.ProviderAdapterRegistry, resolver contentengine.SecretResolver, invocation, defaultConfig, defaultBind string, middleware func(http.Handler) http.Handler) error {
+func run(ctx context.Context, args []string, stdout, stderr io.Writer, registry *contentengine.ProviderAdapterRegistry, resolver contentengine.SecretResolver, invocation, defaultConfig, defaultBind string, middleware func(http.Handler) http.Handler) error {
 	if len(args) == 0 {
 		return fmt.Errorf("%s requires endpoint, model, runtime, validate, observe, interpret, or serve", invocation)
 	}
@@ -72,7 +75,7 @@ func run(args []string, stdout, stderr io.Writer, registry *contentengine.Provid
 	case "interpret":
 		return interpretCommand(args[1:], stdout, registry, resolver, invocation, defaultConfig)
 	case "serve":
-		return serveCommand(args[1:], stderr, registry, resolver, invocation, defaultConfig, defaultBind, middleware)
+		return serveCommand(ctx, args[1:], stderr, registry, resolver, invocation, defaultConfig, defaultBind, middleware)
 	case "help", "-h", "--help":
 		printUsage(stderr, invocation)
 		return nil
@@ -484,7 +487,7 @@ func observeCommand(args []string, stdout io.Writer, registry *contentengine.Pro
 	return json.NewEncoder(stdout).Encode(result)
 }
 
-func serveCommand(args []string, stderr io.Writer, registry *contentengine.ProviderAdapterRegistry, resolver contentengine.SecretResolver, invocation, defaultConfig, defaultBind string, middleware func(http.Handler) http.Handler) error {
+func serveCommand(parent context.Context, args []string, stderr io.Writer, registry *contentengine.ProviderAdapterRegistry, resolver contentengine.SecretResolver, invocation, defaultConfig, defaultBind string, middleware func(http.Handler) http.Handler) error {
 	flags := flag.NewFlagSet(invocation+" serve", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	configPath := flags.String("config", defaultConfig, "content YAML config")
@@ -514,7 +517,11 @@ func serveCommand(args []string, stderr io.Writer, registry *contentengine.Provi
 	if err != nil {
 		return err
 	}
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	base := context.Background()
+	if parent != nil {
+		base = parent
+	}
+	ctx, stop := signal.NotifyContext(base, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	engine, err := contentengine.StartConfiguredInference(ctx, selected, registry, resolver)
 	if err != nil {

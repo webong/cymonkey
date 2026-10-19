@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	plugin "github.com/webong/ext/pkg/plugin-go/contract"
@@ -20,8 +21,9 @@ import (
 )
 
 // contentCommandTimeout bounds one content command. Model and runtime installs
-// download large files, so the bound is generous.
-const contentCommandTimeout = 2 * time.Hour
+// download large files and serve runs until it is stopped, so the bound is long;
+// an interrupt cancels the call at any time.
+const contentCommandTimeout = 7 * 24 * time.Hour
 
 // contentPassthroughEnvironment names the host variables the content engine
 // needs to find its configuration and storage. ext starts a plugin with a
@@ -37,22 +39,26 @@ var contentPassthroughEnvironment = []string{
 
 // runContent runs a public `cymy content` command in the installed content
 // service package. The host decides which operations the package may serve; the
-// package hosts the content providers.
+// package hosts the content providers. The command's log lines stream back as it
+// runs, and an interrupt cancels it.
 func runContent(args []string, stdout, stderr io.Writer) error {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	return runContentContext(ctx, args, stdout, stderr)
+}
+
+// runContentContext is runContent with the context that cancels the command.
+func runContentContext(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	installed, err := contentServicePackage()
 	if err != nil {
 		return err
 	}
-	environment := contentLaunchEnvironment(args)
 	executable, err := installed.Executable()
 	if err != nil {
 		return err
 	}
-	if len(args) > 0 && args[0] == "serve" {
-		return runContentServe(installed, executable, args, environment, stdout, stderr)
-	}
-	proc, err := host.Open(context.Background(), installed, host.Options{
-		Launch:    &process.Command{Path: executable, Env: environment},
+	proc, err := host.Open(ctx, installed, host.Options{
+		Launch:    &process.Command{Path: executable, Env: contentLaunchEnvironment(args)},
 		Authorize: contentServicePolicy,
 		Timeout:   contentCommandTimeout,
 	})
@@ -61,7 +67,11 @@ func runContent(args []string, stdout, stderr io.Writer) error {
 	}
 	defer proc.Close()
 	var result service.CommandResult
-	if err := proc.Call(context.Background(), service.ContractName+".command", service.CommandRequest{Args: args}, &result); err != nil {
+	err = proc.CallProgress(ctx, service.ContractName+".command", service.CommandRequest{Args: args}, &result, logPrinter(stderr))
+	if err != nil {
+		if ctx.Err() != nil {
+			return nil // the command was interrupted
+		}
 		return err
 	}
 	if _, err := stdout.Write(result.Stdout); err != nil {
@@ -79,26 +89,25 @@ func runContent(args []string, stdout, stderr io.Writer) error {
 	return nil
 }
 
+// logPrinter prints a command's streamed log lines as they arrive. A line the
+// host's rate limit dropped is reported as a count, so a gap is never silent.
+func logPrinter(stderr io.Writer) func(plugin.Progress) {
+	return func(event plugin.Progress) {
+		if event.Dropped > 0 {
+			fmt.Fprintf(stderr, "[%d log lines were dropped]\n", event.Dropped)
+		}
+		if event.Kind == "log" && (event.Text != "" || event.Dropped == 0) {
+			fmt.Fprintln(stderr, event.Text)
+		}
+	}
+}
+
 // contentServicePolicy admits the one operation the content service serves.
 func contentServicePolicy(_ context.Context, request plugin.Request) error {
 	if request.Operation != "command" {
 		return fmt.Errorf("content service operation %q is not allowed", request.Operation)
 	}
 	return nil
-}
-
-// runContentServe runs the long-lived HTTP service. It cannot return its
-// output at the end of a call, so the verified executable runs as a child with
-// this process's input and output and the same scrubbed environment.
-func runContentServe(installed store.Installed, executable string, args, environment []string, stdout, stderr io.Writer) error {
-	if err := installed.Verify(); err != nil {
-		return err
-	}
-	command := exec.Command(executable, args...)
-	command.Dir = installed.Directory
-	command.Env = append([]string{"PATH=" + os.Getenv("PATH")}, environment...)
-	command.Stdin, command.Stdout, command.Stderr = os.Stdin, stdout, stderr
-	return command.Run()
 }
 
 // contentServicePackage returns the installed package that serves

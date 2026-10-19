@@ -54,13 +54,18 @@ cymy plugins install --manifest ./plugin.json
 ```
 
 The host forwards each command to the package and prints what it wrote, and it
-admits only the `command` operation. The package starts with a scrubbed
-environment, so the host passes it only the variables the engine needs to find
-its configuration and storage, plus any variable a command or the content
-configuration names (a `--token-env` value, or an adapter secret's `env`).
-`cymy content serve` is long-lived, so the host runs the verified executable as a
-child with the same environment instead of one call. The providers
-(`content.provider` packages) are hosted by the engine, not by `cymy`.
+admits only the `command` operation. A command's stdout is its result and comes
+back whole with the call; its log lines (stderr) stream to the host as progress
+events while it runs, so a model install or `cymy content serve` shows output as
+it happens. Events are rate limited by ext, so a command that logs faster than
+the limit loses lines, and the host prints how many were dropped. An interrupt
+cancels the call and stops `serve`.
+
+The package starts with a scrubbed environment, so the host passes it only the
+variables the engine needs to find its configuration and storage, plus any
+variable a command or the content configuration names (a `--token-env` value, or
+an adapter secret's `env`). The providers (`content.provider` packages) are
+hosted by the engine, not by `cymy`.
 
 ## Local models and runtimes
 
