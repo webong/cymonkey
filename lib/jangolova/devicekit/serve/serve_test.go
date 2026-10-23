@@ -8,6 +8,7 @@ import (
 	"io"
 	"strings"
 	"testing"
+	"time"
 
 	"jangolova/devicekit"
 )
@@ -169,4 +170,54 @@ func TestUnsupportedMethodIsRejected(t *testing.T) {
 	if _, err := h.Call(context.Background(), "device.provider.reboot", nil); err == nil {
 		t.Fatal("an unknown operation was served")
 	}
+}
+
+type eventSession struct {
+	fakeSession
+	events chan devicekit.Event
+}
+
+func (s *eventSession) Events() <-chan devicekit.Event { return s.events }
+
+type eventProvider struct {
+	fakeProvider
+	session *eventSession
+}
+
+func (p *eventProvider) Open(context.Context, string, devicekit.Grant) (devicekit.Session, error) {
+	return p.session, nil
+}
+
+func TestEventsReportSessionEventsAfterACursor(t *testing.T) {
+	session := &eventSession{events: make(chan devicekit.Event, 4)}
+	provider := &eventProvider{fakeProvider: fakeProvider{id: "evt", devices: []devicekit.Device{device("e1")}}, session: session}
+	h := NewHandler(func(context.Context, map[string]string) ([]devicekit.Provider, error) {
+		return []devicekit.Provider{provider}, nil
+	})
+	var empty devicekit.EventBatch
+	if err := json.Unmarshal(call(t, h, "events", nil), &empty); err != nil || len(empty.Events) != 0 {
+		t.Fatalf("events before open = %+v, %v", empty, err)
+	}
+	call(t, h, "open", map[string]any{"deviceId": "e1", "grant": devicekit.Grant{Capabilities: []devicekit.Capability{"test.read"}}})
+	session.events <- devicekit.Event{Type: "peer.connected"}
+	session.events <- devicekit.Event{Type: "peer.closed"}
+	var batch devicekit.EventBatch
+	deadline := time.Now().Add(2 * time.Second)
+	for len(batch.Events) < 2 {
+		if time.Now().After(deadline) {
+			t.Fatalf("events = %+v", batch)
+		}
+		time.Sleep(5 * time.Millisecond)
+		if err := json.Unmarshal(call(t, h, "events", map[string]any{"after": 0}), &batch); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if batch.Events[0].Type != "peer.connected" || batch.Events[1].Cursor != batch.Cursor {
+		t.Fatalf("batch = %+v", batch)
+	}
+	var later devicekit.EventBatch
+	if err := json.Unmarshal(call(t, h, "events", map[string]any{"after": batch.Events[0].Cursor}), &later); err != nil || len(later.Events) != 1 || later.Events[0].Type != "peer.closed" {
+		t.Fatalf("later = %+v, %v", later, err)
+	}
+	call(t, h, "close", nil)
 }

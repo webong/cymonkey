@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
 	packagekit "github.com/webong/ext/pkg/plugin-go/contract/package"
@@ -57,7 +58,17 @@ type Handler struct {
 	session   devicekit.Session
 	streams   map[string]devicekit.Content
 	next      int
+
+	// The event log has its own lock so a poll never waits behind a long call.
+	eventMu     sync.Mutex
+	eventItems  []devicekit.Event
+	eventCursor uint64
+	eventStop   context.CancelFunc
 }
+
+// maxEvents bounds the log; a poller that falls this far behind loses the
+// oldest events, never memory.
+const maxEvents = 256
 
 func NewHandler(factory Factory) *Handler {
 	return &Handler{factory: factory, streams: map[string]devicekit.Content{}}
@@ -70,6 +81,15 @@ type selector struct {
 
 // Call dispatches one device.provider operation.
 func (h *Handler) Call(ctx context.Context, method string, raw json.RawMessage) (any, error) {
+	if method == contract+".events" {
+		var params struct {
+			After uint64 `json:"after"`
+		}
+		if err := decode(raw, &params, false); err != nil {
+			return nil, err
+		}
+		return h.eventsAfter(params.After), nil
+	}
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	switch method {
@@ -212,7 +232,57 @@ func (h *Handler) open(ctx context.Context, params selector, deviceID string, gr
 		return errors.New("provider returned a nil session")
 	}
 	h.session = session
+	if source, ok := session.(devicekit.EventSource); ok {
+		h.watch(source.Events())
+	}
 	return nil
+}
+
+// watch copies a session's events into the log until the session closes.
+func (h *Handler) watch(events <-chan devicekit.Event) {
+	ctx, stop := context.WithCancel(context.Background())
+	h.eventStop = stop
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case event, open := <-events:
+				if !open {
+					return
+				}
+				h.record(event)
+			}
+		}
+	}()
+}
+
+func (h *Handler) record(event devicekit.Event) {
+	h.eventMu.Lock()
+	defer h.eventMu.Unlock()
+	h.eventCursor++
+	event.Cursor = h.eventCursor
+	if event.At.IsZero() {
+		event.At = time.Now().UTC()
+	}
+	if len(h.eventItems) == maxEvents {
+		copy(h.eventItems, h.eventItems[1:])
+		h.eventItems = h.eventItems[:maxEvents-1]
+	}
+	h.eventItems = append(h.eventItems, event)
+}
+
+// eventsAfter returns the logged events newer than the cursor.
+func (h *Handler) eventsAfter(after uint64) devicekit.EventBatch {
+	h.eventMu.Lock()
+	defer h.eventMu.Unlock()
+	batch := devicekit.EventBatch{Cursor: h.eventCursor, Events: []devicekit.Event{}}
+	for _, event := range h.eventItems {
+		if event.Cursor > after {
+			batch.Events = append(batch.Events, event)
+		}
+	}
+	return batch
 }
 
 func (h *Handler) streamOpen(ctx context.Context, action devicekit.Action) (any, error) {
@@ -280,6 +350,10 @@ func (h *Handler) close(ctx context.Context) error {
 	var errs []error
 	for id := range h.streams {
 		errs = append(errs, h.streamClose(id))
+	}
+	if h.eventStop != nil {
+		h.eventStop()
+		h.eventStop = nil
 	}
 	if h.session != nil {
 		errs = append(errs, h.session.Close(ctx))

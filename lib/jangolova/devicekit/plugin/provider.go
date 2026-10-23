@@ -30,7 +30,33 @@ const ContractName = "device.provider"
 const ContractVersion = "v1"
 
 // Operations lists every method a Board device provider package serves.
-var Operations = []string{"list", "open", "invoke", "stream.open", "stream.read", "stream.close", "close"}
+//
+// events is additive to v1: a package that declares it reports the session's
+// lifecycle events, and one that does not is served exactly as before.
+var Operations = []string{"list", "open", "invoke", "stream.open", "stream.read", "stream.close", "close", "events"}
+
+// eventPollInterval is how often the adapter asks a session for new events.
+const eventPollInterval = 250 * time.Millisecond
+
+// declaresEvents reports whether an installed package serves the optional
+// events operation of the device contract.
+func declaresEvents(installed store.Installed, prefix string) bool {
+	name := prefix
+	if name == "" {
+		name = ContractName
+	}
+	for _, c := range installed.Manifest.Descriptor.Contracts {
+		if c.Name != name || c.Version != ContractVersion {
+			continue
+		}
+		for _, operation := range c.Operations {
+			if operation.Name == "events" {
+				return true
+			}
+		}
+	}
+	return false
+}
 
 func (p Provider) method(name string) string {
 	prefix := p.MethodPrefix
@@ -128,7 +154,11 @@ func (p Provider) Open(ctx context.Context, deviceID string, grant devicekit.Gra
 		_ = proc.Close()
 		return nil, err
 	}
-	return &session{proc: proc, methodPrefix: p.MethodPrefix}, nil
+	s := &session{proc: proc, methodPrefix: p.MethodPrefix}
+	if declaresEvents(p.Installed, p.MethodPrefix) {
+		s.startEvents()
+	}
+	return s, nil
 }
 
 type session struct {
@@ -137,6 +167,50 @@ type session struct {
 	mu           sync.Mutex
 	closed       bool
 	streams      map[*content]struct{}
+	events       chan devicekit.Event
+	stopEvents   chan struct{}
+	eventsDone   sync.WaitGroup
+}
+
+// Events implements devicekit.EventSource when the package reports events.
+// The channel is nil otherwise, and a nil channel never delivers.
+func (s *session) Events() <-chan devicekit.Event { return s.events }
+
+func (s *session) startEvents() {
+	s.events = make(chan devicekit.Event, 64)
+	s.stopEvents = make(chan struct{})
+	s.eventsDone.Add(1)
+	go s.pollEvents()
+}
+
+func (s *session) pollEvents() {
+	defer s.eventsDone.Done()
+	defer close(s.events)
+	ticker := time.NewTicker(eventPollInterval)
+	defer ticker.Stop()
+	var cursor uint64
+	for {
+		select {
+		case <-s.stopEvents:
+			return
+		case <-ticker.C:
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		var batch devicekit.EventBatch
+		err := s.proc.Call(ctx, s.method("events"), map[string]any{"after": cursor}, &batch)
+		cancel()
+		if err != nil {
+			return
+		}
+		cursor = batch.Cursor
+		for _, event := range batch.Events {
+			select {
+			case s.events <- event:
+			case <-s.stopEvents:
+				return
+			}
+		}
+	}
 }
 
 func (s *session) method(name string) string {
@@ -204,6 +278,9 @@ func (s *session) Close(ctx context.Context) error {
 		return nil
 	}
 	s.closed = true
+	if s.stopEvents != nil {
+		close(s.stopEvents)
+	}
 	streams := make([]*content, 0, len(s.streams))
 	for c := range s.streams {
 		streams = append(streams, c)
@@ -212,6 +289,7 @@ func (s *session) Close(ctx context.Context) error {
 	for _, c := range streams {
 		_ = c.Close()
 	}
+	s.eventsDone.Wait()
 	callCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	_ = s.proc.Call(callCtx, s.method("close"), nil, nil)

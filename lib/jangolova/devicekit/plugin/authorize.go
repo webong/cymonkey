@@ -67,7 +67,7 @@ func sessionPolicy(grant devicekit.Grant) func(context.Context, extplugin.Reques
 		resources[resource] = true
 	}
 	s := &sequence{first: "open", after: map[string]bool{
-		"invoke": true, "stream.open": true, "stream.read": true, "stream.close": true, "close": true,
+		"invoke": true, "stream.open": true, "stream.read": true, "stream.close": true, "close": true, "events": true,
 	}}
 	s.check = func(request extplugin.Request) error {
 		if request.Operation != "invoke" && request.Operation != "stream.open" {
