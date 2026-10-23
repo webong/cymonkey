@@ -32,12 +32,12 @@ override it.
 Build the executable that matches the package name:
 
 ```sh
-go build -o /path/to/openai-compatible/provider \
-  ./pkg/content-endpoints/cmd/openai-compatible
-go build -o /path/to/anthropic-compatible/provider \
-  ./pkg/content-endpoints/cmd/anthropic-compatible
-go build -o /path/to/google-compatible/provider \
-  ./pkg/content-endpoints/cmd/google-compatible
+go -C pkg/content-endpoints build -o /path/to/openai-compatible/provider \
+  ./cmd/openai-compatible
+go -C pkg/content-endpoints build -o /path/to/anthropic-compatible/provider \
+  ./cmd/anthropic-compatible
+go -C pkg/content-endpoints build -o /path/to/google-compatible/provider \
+  ./cmd/google-compatible
 ```
 
 Each binary needs a `plugin.json` beside it. The package name must be

@@ -26,7 +26,7 @@ API.
 Build the plugin and generate `plugin.json` beside it with Cymy:
 
 ```sh
-go build -o /tmp/webllm-provider ./pkg/content-webllm
+go -C pkg/content-webllm build -o /tmp/webllm-provider .
 cymy plugins manifest --type content --name webllm --version 1.0.0 \
   --command /tmp/webllm-provider
 cymy plugins install --manifest /tmp/plugin.json

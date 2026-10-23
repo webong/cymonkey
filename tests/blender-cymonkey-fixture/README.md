@@ -9,7 +9,7 @@ On a Linux Docker host, from the repository root:
 ```sh
 docker build -f tests/blender-cymonkey-fixture/Containerfile \
   -t jangolova/blender-sdk-fixture:debian13 .
-go run ./tests/jangolova-blender-live --root .
+(cd tests/jangolova-blender-live && go run . --root ../..)
 ```
 
 The caller fixture starts an isolated container, binds its port only to host

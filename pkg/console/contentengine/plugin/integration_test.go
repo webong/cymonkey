@@ -16,13 +16,15 @@ import (
 	"jangolova/contentkit"
 )
 
-// buildProgram compiles a program of this workspace by import path.
-func buildProgram(t *testing.T, importPath string) string {
+// buildProgram compiles a program in its own module: dir is the module's
+// directory from the repository root and pattern the package within it.
+func buildProgram(t *testing.T, dir, pattern string) string {
 	t.Helper()
 	output := filepath.Join(t.TempDir(), "program")
-	build := exec.Command("go", "build", "-o", output, importPath)
+	build := exec.Command("go", "build", "-o", output, pattern)
+	build.Dir = filepath.Join("..", "..", "..", "..", dir)
 	if combined, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build %s: %v\n%s", importPath, err, combined)
+		t.Fatalf("build %s: %v\n%s", filepath.Join(dir, pattern), err, combined)
 	}
 	return output
 }
@@ -74,7 +76,7 @@ func TestFixtureProvidersServeObservationAndInterpretation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fixture := buildProgram(t, "cymonkey/tests/plugin-fixture")
+	fixture := buildProgram(t, ".", "./tests/plugin-fixture")
 	registry := registryFor(t,
 		installProgram(t, packages, "vision-fixture", fixture),
 		installProgram(t, packages, "content-fixture", fixture))
@@ -144,7 +146,7 @@ func TestStandaloneOnnxProviderRejectsAWrongModelBeforeStarting(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	registry := registryFor(t, installProgram(t, packages, "onnx", buildProgram(t, "cymonkey-content-plugin-onnx")))
+	registry := registryFor(t, installProgram(t, packages, "onnx", buildProgram(t, "pkg/content-onnx", ".")))
 	model := contentkit.InstalledModel{Manifest: contentkit.ModelManifest{
 		APIVersion: contentkit.ModelManifestAPIVersion, Name: "detector", Version: "1.0.0", Provider: "onnx",
 		Capabilities: []string{contentkit.CapabilityObjectDetect},

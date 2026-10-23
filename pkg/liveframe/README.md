@@ -67,19 +67,17 @@ unavailable browser processes, and missing workspace directories.
 ## Verification
 
 ```sh
-GOWORK=off go test ./pkg/liveframe ./src/internal/engineprovider ./src/adapters/webpresentation
+go test ./pkg/liveframe ./src/internal/engineprovider ./src/adapters/webpresentation
 
 # Optional macOS live test; starts/stops only a temporary Canvas session.
-GOWORK=off LIVEFRAME_CHROME_BIN='/Applications/Chrome.app/Contents/MacOS/Google Chrome' \
+LIVEFRAME_CHROME_BIN='/Applications/Chrome.app/Contents/MacOS/Google Chrome' \
   go test -tags=liveframe_live ./src/adapters/webpresentation \
   -run '^TestLiveframeCanvasRoundTrip$' -v -count=1
 ```
 
 The live test checks bridge conformance, semantic write, PNG capture, Canvas
 file auto-reload, and that detaching leaves Canvas running. It uses a short
-private state path because macOS limits Unix socket path length. The current
-root `go.work` references unrelated provider modules that are absent in some
-checkouts; `GOWORK=off` runs these focused tests through the root module.
+private state path because macOS limits Unix socket path length.
 
 Liveframe is not an existing-tab augmentation backend. For an existing site,
 use Cymonkey's browser targets/userscripts instead; Canvas currently controls

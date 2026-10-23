@@ -79,9 +79,9 @@ See [reproduction instructions](../tests/blender-cymonkey-fixture/README.md).
 Passed focused race checks:
 
 ```sh
-go test -race ./pkg/board/display ./pkg/board/display/... \
-  ./src ./src/internal/engineprovider \
-  ./src/internal/provider ./pkg/lens-studio
+(cd pkg/board && go test -race ./display/...)
+(cd pkg/lens-studio && go test .)
+go test -race ./src ./src/internal/engineprovider ./src/internal/provider
 ```
 
 Includes public dependency enforcement, external backend registration, explicit

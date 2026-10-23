@@ -78,7 +78,7 @@ Board's device implementations reach the host as an ext package that serves
 `device.provider`. Build and install it once:
 
 ```sh
-go build -o board-provider ./pkg/board/cmd/provider
+go -C pkg/board build -o "$PWD/board-provider" ./cmd/provider
 cymy plugins manifest --type device --name board --version 1.0.0 --command ./board-provider
 cymy plugins install --manifest ./plugin.json
 ```

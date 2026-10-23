@@ -107,7 +107,7 @@ the replacement to fail rather than overwrite it.
 Run the deterministic fixture:
 
 ```sh
-go test ./pkg/effect-house
+cd pkg/effect-house && go test ./...
 ```
 
 It verifies contract conformance, explicit resource visibility, stale-write

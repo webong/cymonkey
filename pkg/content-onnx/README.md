@@ -11,7 +11,7 @@ mapping into Cymonkey observations.
 ## Build and package
 
 ```sh
-go build -o /path/to/package/provider ./pkg/content-onnx
+go -C pkg/content-onnx build -o /path/to/package/provider .
 ```
 
 Generate `plugin.json` beside the binary, then install it:

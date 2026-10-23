@@ -193,10 +193,11 @@ engine), `console`, the content providers and the platform products, and
 it reaches them through the ext plugin system
 (`github.com/webong/ext/pkg/plugin-go/contract`). Until the cut is complete,
 `src/internal/boundary/guest_imports_test.go` fails on any new import of a
-guest Go module and lists the ones that remain. `tests/` is the conformance and
-fixture surface. `board`, `console` and `jangolova` are separate Go modules
-joined through `go.work` and local replacements while the host still imports
-guests.
+guest Go module; the list of exceptions is empty. `tests/` is the conformance
+and fixture surface. `board`, `console`, the content providers and `jangolova`
+are separate Go modules. There is no `go.work`: the host's module requires only
+`jangolova` (through a local replacement) and cannot resolve a guest module, and
+each guest builds in its own module.
 Each library's plugin adapter selects the native executable contracts it understands;
 ext checks package structure and integrity without enumerating libraries. Cymonkey owns the command handlers, shared plugin directory, and
 public `cymonkey.*` wire contracts. Its composition adapters translate to the

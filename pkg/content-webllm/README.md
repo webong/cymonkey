@@ -4,7 +4,7 @@ This executable implements `content.provider@v1` with WebLLM in a
 plugin owned Chromium process and dedicated Web Worker.
 
 ```sh
-go build -o /path/to/package/provider ./pkg/content-webllm
+go -C pkg/content-webllm build -o /path/to/package/provider .
 ```
 
 Run `cymy plugins manifest --type content --name webllm --version 1.0.0 --command <binary>`

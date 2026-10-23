@@ -103,7 +103,7 @@ write and for preview execution.
 Run the deterministic MCP fixture tests:
 
 ```sh
-go test ./pkg/lens-studio
+cd pkg/lens-studio && go test ./...
 ```
 
 The fixture covers the Streamable HTTP initialization sequence, session reuse,
