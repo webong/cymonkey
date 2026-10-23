@@ -58,6 +58,17 @@ func listPolicy() func(context.Context, extplugin.Request) error {
 // applies the same rule before it calls the session; this repeats it inside the
 // plugin process's own admission check.
 func sessionPolicy(grant devicekit.Grant) func(context.Context, extplugin.Request) error {
+	s := &sequence{first: "open", after: map[string]bool{
+		"invoke": true, "stream.open": true, "stream.read": true, "stream.close": true, "close": true, "events": true,
+	}}
+	s.check = grantCheck(grant)
+	return s.authorize
+}
+
+// grantCheck admits invoke and stream.open only for a capability the grant
+// allows and, when the action names a resource, one the grant covers. Other
+// operations pass.
+func grantCheck(grant devicekit.Grant) func(extplugin.Request) error {
 	capabilities := make(map[devicekit.Capability]bool, len(grant.Capabilities))
 	for _, capability := range grant.Capabilities {
 		capabilities[capability] = true
@@ -66,10 +77,7 @@ func sessionPolicy(grant devicekit.Grant) func(context.Context, extplugin.Reques
 	for _, resource := range grant.ResourceIDs {
 		resources[resource] = true
 	}
-	s := &sequence{first: "open", after: map[string]bool{
-		"invoke": true, "stream.open": true, "stream.read": true, "stream.close": true, "close": true, "events": true,
-	}}
-	s.check = func(request extplugin.Request) error {
+	return func(request extplugin.Request) error {
 		if request.Operation != "invoke" && request.Operation != "stream.open" {
 			return nil
 		}
@@ -85,5 +93,55 @@ func sessionPolicy(grant devicekit.Grant) func(context.Context, extplugin.Reques
 		}
 		return nil
 	}
-	return s.authorize
+}
+
+// ViewerPolicy is the admission policy for a long-lived process whose viewer
+// sessions come and go: list is always admitted, open at any time (the process
+// itself refuses a second concurrent session), and invoke and stream.open only
+// for what the most recent open's grant allows, and only while that session is
+// open. The caller composes it with the policy for the operations of its own
+// contract.
+func ViewerPolicy() func(context.Context, extplugin.Request) error {
+	p := &viewerPolicy{}
+	return p.authorize
+}
+
+type viewerPolicy struct {
+	mu         sync.Mutex
+	open       bool
+	checkGrant func(extplugin.Request) error
+}
+
+func (p *viewerPolicy) authorize(_ context.Context, request extplugin.Request) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	switch request.Operation {
+	case "list", "events":
+		return nil
+	case "open":
+		var params struct {
+			Grant devicekit.Grant `json:"grant"`
+		}
+		if err := json.Unmarshal(request.Payload, &params); err != nil {
+			return fmt.Errorf("%w: unreadable grant", devicekit.ErrNotGranted)
+		}
+		p.open = true
+		p.checkGrant = grantCheck(params.Grant)
+		return nil
+	case "close":
+		p.open = false
+		p.checkGrant = nil
+		return nil
+	case "stream.read", "stream.close":
+		if !p.open {
+			return fmt.Errorf("plugin operation %q needs an open session", request.Operation)
+		}
+		return nil
+	case "invoke", "stream.open":
+		if !p.open {
+			return fmt.Errorf("plugin operation %q needs an open session", request.Operation)
+		}
+		return p.checkGrant(request)
+	}
+	return fmt.Errorf("plugin operation %q is not allowed here", request.Operation)
 }

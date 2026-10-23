@@ -76,3 +76,40 @@ func TestSessionProcessEnforcesTheGrant(t *testing.T) {
 		t.Fatalf("unreadable action error = %v", err)
 	}
 }
+
+func TestViewerPolicyFollowsTheLatestGrant(t *testing.T) {
+	policy := ViewerPolicy()
+	ask := func(operation, payload string) error {
+		return policy(context.Background(), extplugin.Request{Operation: operation, Payload: json.RawMessage(payload)})
+	}
+	if err := ask("list", ""); err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if err := ask("invoke", `{"capability":"webrtc.poll"}`); err == nil {
+		t.Fatal("invoke was admitted before any open")
+	}
+	if err := ask("open", `{"deviceId":"peer","grant":{"capabilities":["webrtc.poll"]}}`); err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	if err := ask("invoke", `{"capability":"webrtc.poll"}`); err != nil {
+		t.Fatalf("granted invoke: %v", err)
+	}
+	if err := ask("invoke", `{"capability":"webrtc.signal"}`); !errors.Is(err, devicekit.ErrNotGranted) {
+		t.Fatalf("ungranted invoke = %v", err)
+	}
+	if err := ask("close", ""); err != nil {
+		t.Fatalf("close: %v", err)
+	}
+	if err := ask("invoke", `{"capability":"webrtc.poll"}`); err == nil {
+		t.Fatal("invoke was admitted after close")
+	}
+	if err := ask("open", `{"deviceId":"peer","grant":{"capabilities":["webrtc.signal"]}}`); err != nil {
+		t.Fatalf("second open: %v", err)
+	}
+	if err := ask("invoke", `{"capability":"webrtc.signal"}`); err != nil {
+		t.Fatalf("second session invoke: %v", err)
+	}
+	if err := ask("reboot", ""); err == nil {
+		t.Fatal("an unknown operation was admitted")
+	}
+}

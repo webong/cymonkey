@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	extplugin "github.com/webong/ext/pkg/plugin-go/contract"
 	"github.com/webong/ext/pkg/plugin-go/contract/host"
 	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
 	"jangolova/devicekit"
@@ -38,15 +39,14 @@ var Operations = []string{"list", "open", "invoke", "stream.open", "stream.read"
 // eventPollInterval is how often the adapter asks a session for new events.
 const eventPollInterval = 250 * time.Millisecond
 
-// declaresEvents reports whether an installed package serves the optional
-// events operation of the device contract.
-func declaresEvents(installed store.Installed, prefix string) bool {
-	name := prefix
-	if name == "" {
-		name = ContractName
+// declaresEvents reports whether a package's descriptor serves the optional
+// events operation under the given contract name.
+func declaresEvents(descriptor extplugin.Descriptor, contract string) bool {
+	if contract == "" {
+		contract = ContractName
 	}
-	for _, c := range installed.Manifest.Descriptor.Contracts {
-		if c.Name != name || c.Version != ContractVersion {
+	for _, c := range descriptor.Contracts {
+		if c.Name != contract || c.Version != ContractVersion {
 			continue
 		}
 		for _, operation := range c.Operations {
@@ -155,7 +155,44 @@ func (p Provider) Open(ctx context.Context, deviceID string, grant devicekit.Gra
 		return nil, err
 	}
 	s := &session{proc: proc, methodPrefix: p.MethodPrefix}
-	if declaresEvents(p.Installed, p.MethodPrefix) {
+	if declaresEvents(proc.Descriptor(), p.MethodPrefix) {
+		s.startEvents()
+	}
+	return s, nil
+}
+
+// Live serves the viewer half of a package whose process the caller already
+// runs and owns. Every session opens against that one process and closing a
+// session leaves the process running; the caller closes it. The process's
+// admission policy must admit the device operations (see ViewerPolicy).
+// MethodPrefix names the contract the package serves them under.
+func Live(proc *host.Process, id, methodPrefix string) devicekit.Provider {
+	return live{proc: proc, id: id, prefix: methodPrefix}
+}
+
+type live struct {
+	proc   *host.Process
+	id     string
+	prefix string
+}
+
+func (l live) ID() string { return l.id }
+
+func (l live) List(ctx context.Context) ([]devicekit.Device, error) {
+	var devices []devicekit.Device
+	if err := l.proc.Call(ctx, Provider{MethodPrefix: l.prefix}.method("list"), nil, &devices); err != nil {
+		return nil, err
+	}
+	return devices, nil
+}
+
+func (l live) Open(ctx context.Context, deviceID string, grant devicekit.Grant) (devicekit.Session, error) {
+	method := Provider{MethodPrefix: l.prefix}.method("open")
+	if err := l.proc.Call(ctx, method, map[string]any{"deviceId": deviceID, "grant": grant}, nil); err != nil {
+		return nil, err
+	}
+	s := &session{proc: l.proc, methodPrefix: l.prefix, shared: true}
+	if declaresEvents(l.proc.Descriptor(), l.prefix) {
 		s.startEvents()
 	}
 	return s, nil
@@ -167,6 +204,7 @@ type session struct {
 	mu           sync.Mutex
 	closed       bool
 	streams      map[*content]struct{}
+	shared       bool // the process belongs to the caller; Close leaves it running
 	events       chan devicekit.Event
 	stopEvents   chan struct{}
 	eventsDone   sync.WaitGroup
@@ -292,7 +330,10 @@ func (s *session) Close(ctx context.Context) error {
 	s.eventsDone.Wait()
 	callCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	_ = s.proc.Call(callCtx, s.method("close"), nil, nil)
+	err := s.proc.Call(callCtx, s.method("close"), nil, nil)
+	if s.shared {
+		return err
+	}
 	return s.proc.Close()
 }
 
