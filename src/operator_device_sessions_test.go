@@ -1,36 +1,24 @@
 package main
 
 import (
-	"board/devices"
-	"board/volumearchive"
-	"bytes"
 	"context"
 	"cymonkey/src/internal/orchestrator"
 	"encoding/json"
 	"github.com/gorilla/websocket"
+	"io"
 	"jangolova/devicekit"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
 
 func TestOperatorDevicePersistentUploadAndRestore(t *testing.T) {
-	source, destination := t.TempDir(), t.TempDir()
-	if err := os.WriteFile(filepath.Join(source, "file"), []byte("transferred"), 0600); err != nil {
-		t.Fatal(err)
-	}
-	var archive bytes.Buffer
-	if err := volumearchive.Export(context.Background(), &archive, source); err != nil {
-		t.Fatal(err)
-	}
-	provider, err := devices.Storage(devices.StorageOptions{ID: "storage", Path: destination, RootID: "root", AllowRestore: true})
-	if err != nil {
-		t.Fatal(err)
-	}
+	state := &storageState{}
+	provider := operatorStorageFixture{state: state}
+	archive := []byte("transferred")
 	server, err := newOperatorServer(orchestrator.NewRegistry(), "secret", t.TempDir(), "")
 	if err != nil {
 		t.Fatal(err)
@@ -67,7 +55,7 @@ func TestOperatorDevicePersistentUploadAndRestore(t *testing.T) {
 	if err = ws.ReadJSON(&ack); err != nil || !ack["opened"] {
 		t.Fatalf("open ack %+v %v", ack, err)
 	}
-	if err = ws.WriteMessage(websocket.BinaryMessage, archive.Bytes()); err != nil {
+	if err = ws.WriteMessage(websocket.BinaryMessage, archive); err != nil {
 		t.Fatal(err)
 	}
 	if err = ws.WriteJSON(map[string]bool{"close": true}); err != nil {
@@ -81,9 +69,8 @@ func TestOperatorDevicePersistentUploadAndRestore(t *testing.T) {
 	if restored.Code != 200 {
 		t.Fatalf("restore %d %s", restored.Code, restored.Body.String())
 	}
-	data, err := os.ReadFile(filepath.Join(destination, "file"))
-	if err != nil || string(data) != "transferred" {
-		t.Fatalf("file %q %v", data, err)
+	if got := state.restoredBytes(); string(got) != "transferred" {
+		t.Fatalf("restored %q", got)
 	}
 	events := operatorTestRequest(server, "secret", http.MethodGet, path+"/events", "")
 	if events.Code != 200 || !strings.Contains(events.Body.String(), "stream.closed") {
@@ -125,10 +112,7 @@ func TestOperatorDeviceSessionExpiry(t *testing.T) {
 }
 
 func TestOperatorDeviceRevocationClosesWriteOnlyChannel(t *testing.T) {
-	provider, err := devices.Storage(devices.StorageOptions{ID: "storage", Path: t.TempDir(), RootID: "root", AllowRestore: true})
-	if err != nil {
-		t.Fatal(err)
-	}
+	provider := operatorStorageFixture{state: &storageState{}}
 	server, err := newOperatorServer(orchestrator.NewRegistry(), "secret", t.TempDir(), "")
 	if err != nil {
 		t.Fatal(err)
@@ -176,4 +160,80 @@ func TestOperatorDeviceRevocationClosesWriteOnlyChannel(t *testing.T) {
 	if strings.Contains(err.Error(), "timeout") {
 		t.Fatalf("channel waited for deadline rather than revocation: %v", err)
 	}
+}
+
+// operatorStorageFixture is a storage device that accepts an uploaded archive on
+// a channel and restores it on request, in memory. It stands in for a real
+// storage provider so the operator's session handling is tested on its own.
+type operatorStorageFixture struct{ state *storageState }
+
+type storageState struct {
+	mu       sync.Mutex
+	uploaded []byte
+	restored []byte
+}
+
+func (s *storageState) restoredBytes() []byte {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]byte(nil), s.restored...)
+}
+
+func (operatorStorageFixture) ID() string { return "storage" }
+func (operatorStorageFixture) List(context.Context) ([]devicekit.Device, error) {
+	capability := func(name devicekit.Capability) devicekit.CapabilityDescriptor {
+		return devicekit.CapabilityDescriptor{Name: name, ResourceRequired: true, InputSchema: json.RawMessage(`{"type":"object"}`)}
+	}
+	return []devicekit.Device{{ID: "volume", Kind: "storage", Capabilities: []devicekit.CapabilityDescriptor{
+		capability("storage.upload"), capability("storage.restore"), capability("storage.export"),
+	}}}, nil
+}
+func (p operatorStorageFixture) Open(context.Context, string, devicekit.Grant) (devicekit.Session, error) {
+	return operatorStorageSession{state: p.state}, nil
+}
+
+type operatorStorageSession struct{ state *storageState }
+
+func (s operatorStorageSession) Invoke(_ context.Context, action devicekit.Action) (devicekit.Result, error) {
+	if action.Capability != "storage.restore" {
+		return devicekit.Result{}, devicekit.ErrNotGranted
+	}
+	s.state.mu.Lock()
+	defer s.state.mu.Unlock()
+	s.state.restored = append([]byte(nil), s.state.uploaded...)
+	return devicekit.Result{Output: json.RawMessage(`{"restored":true}`)}, nil
+}
+func (s operatorStorageSession) OpenChannel(_ context.Context, action devicekit.Action, _ devicekit.ChannelLimits) (io.ReadWriteCloser, error) {
+	if action.Capability != "storage.upload" {
+		return nil, devicekit.ErrNotGranted
+	}
+	return &storageUpload{state: s.state, closed: make(chan struct{})}, nil
+}
+func (operatorStorageSession) Close(context.Context) error { return nil }
+
+// storageUpload collects what is written and unblocks Read when it is closed.
+type storageUpload struct {
+	state  *storageState
+	closed chan struct{}
+	once   sync.Once
+}
+
+func (u *storageUpload) Write(data []byte) (int, error) {
+	select {
+	case <-u.closed:
+		return 0, io.ErrClosedPipe
+	default:
+	}
+	u.state.mu.Lock()
+	defer u.state.mu.Unlock()
+	u.state.uploaded = append(u.state.uploaded, data...)
+	return len(data), nil
+}
+func (u *storageUpload) Read([]byte) (int, error) {
+	<-u.closed
+	return 0, io.EOF
+}
+func (u *storageUpload) Close() error {
+	u.once.Do(func() { close(u.closed) })
+	return nil
 }

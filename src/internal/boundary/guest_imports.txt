@@ -1,4 +1,1 @@
-src/devicecli/gateway.go board/vncgateway
-src/operator_device_sessions_test.go board/devices
-src/operator_device_sessions_test.go board/volumearchive
 src/operator_device_targets.go board/rtc

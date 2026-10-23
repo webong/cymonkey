@@ -116,6 +116,23 @@ protocol of their own, `mcp` and `stream`, cannot be a single call, so the host
 runs the package's verified executable as a child with the same restricted
 environment and your terminal's input and output.
 
+## Display gateway package
+
+`cymy device gateway serve` runs in the display gateway, an ext package that
+serves `gateway.service` and relays a viewer's WebSocket to one private display
+endpoint. It is a command service like the content and console services, and a
+long call: its "listening" line streams back, and an interrupt stops it.
+
+```sh
+go build -o gateway ./pkg/board/cmd/gateway
+cymy plugins manifest --type gateway-service --name gateway --version 1.0.0 --command ./gateway
+cymy plugins install --manifest ./plugin.json
+```
+
+The package is given only the token variable named by `--token-env` (default
+`CYMONKEY_DEVICE_GATEWAY_TOKEN`) and the defaults the command reads
+(`CYMONKEY_DEVICE_GATEWAY_BIND`, `CYMONKEY_DISPLAY_UPSTREAM`).
+
 ## Lifecycle
 
 ```sh

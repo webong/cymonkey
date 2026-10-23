@@ -1,4 +1,6 @@
-package devicecli
+// Package gatewaycmd runs the authenticated display byte gateway: it relays a
+// viewer's WebSocket to one caller-configured private display endpoint.
+package gatewaycmd
 
 import (
 	"context"
@@ -16,7 +18,8 @@ import (
 	"board/vncgateway"
 )
 
-func gatewayCommand(args []string, stderr io.Writer) error {
+// Run serves the gateway until ctx is canceled or the process is interrupted.
+func Run(ctx context.Context, args []string, stderr io.Writer) error {
 	if len(args) == 0 || args[0] != "serve" {
 		return errors.New("cymy device gateway requires serve")
 	}
@@ -41,7 +44,7 @@ func gatewayCommand(args []string, stderr io.Writer) error {
 		Handler:           (vncgateway.Server{Token: token, Upstream: strings.TrimSpace(*upstream)}).Handler(),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	go func() {
 		<-ctx.Done()

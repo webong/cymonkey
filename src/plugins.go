@@ -12,6 +12,7 @@ import (
 	"jangolova/contentkit"
 	"jangolova/contentkit/service"
 	"jangolova/displaykit"
+	gatewayservice "jangolova/gatewaykit/service"
 	"os"
 	"path/filepath"
 	"sort"
@@ -33,6 +34,7 @@ const (
 	contentPluginContract  = contentkit.ProviderContract
 	contentServiceContract = service.ContractName
 	consoleServiceContract = consoleservice.ContractName
+	gatewayServiceContract = gatewayservice.ContractName
 	devicePluginContract   = deviceplugin.ContractName
 	pluginContractVersion  = "v1"
 )
@@ -44,6 +46,7 @@ var pluginOperations = map[string][]string{
 	contentPluginContract:  contentkit.ProviderOperations,
 	contentServiceContract: service.Operations,
 	consoleServiceContract: consoleservice.Operations,
+	gatewayServiceContract: gatewayservice.Operations,
 	devicePluginContract:   deviceplugin.Operations,
 }
 
@@ -79,6 +82,9 @@ func pluginContract(name string) plugin.Contract {
 	}
 	if name == consoleServiceContract {
 		return consoleservice.Contract()
+	}
+	if name == gatewayServiceContract {
+		return gatewayservice.Contract()
 	}
 	operations := make([]plugin.Operation, 0, len(pluginOperations[name]))
 	for _, operation := range pluginOperations[name] {
@@ -234,11 +240,12 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 			"content":         contentPluginContract,
 			"content-service": contentServiceContract,
 			"console-service": consoleServiceContract,
+			"gateway-service": gatewayServiceContract,
 			"device":          devicePluginContract,
 		}[strings.TrimSpace(*pluginType)]
 		source := strings.TrimSpace(*root) != ""
 		if flags.NArg() != 0 || !ok || strings.TrimSpace(*name) == "" || strings.TrimSpace(*version) == "" || (strings.TrimSpace(*command) == "") == !source {
-			return errors.New("plugins manifest requires --type display|content|content-service|console-service|device, --name, --version, and either --command or --root with --file/--dir")
+			return errors.New("plugins manifest requires --type display|content|content-service|console-service|gateway-service|device, --name, --version, and either --command or --root with --file/--dir")
 		}
 		var manifest packagekit.Manifest
 		var err error

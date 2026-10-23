@@ -17,6 +17,9 @@ type CommandEngine struct {
 	// Keyboard returns the macOS keyboard provider bound to one process ID. The
 	// host supplies it, so the CLI never links a device implementation.
 	Keyboard func(pid int) (devicekit.Provider, error)
+	// Gateway runs the display byte gateway command. The host supplies it, so
+	// the CLI never links the gateway.
+	Gateway func(args []string, stdout, stderr io.Writer) error
 }
 
 // Run executes the device command handlers. Provider actions still pass
@@ -43,7 +46,10 @@ func (engine CommandEngine) Run(args []string, stdout, stderr io.Writer) error {
 	case "adapter-devices", "adapter-invoke", "adapter-stream":
 		return providerCommand(args[0], args[1:], stdout, engine.Providers)
 	case "gateway":
-		return gatewayCommand(args[1:], stderr)
+		if engine.Gateway == nil {
+			return errors.New("this host has no display gateway")
+		}
+		return engine.Gateway(args[1:], stdout, stderr)
 	case "help", "-h", "--help":
 		return usage(stderr, invocation)
 	default:
