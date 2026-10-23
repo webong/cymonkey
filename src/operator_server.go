@@ -20,6 +20,7 @@ import (
 	"cymonkey/src/observation"
 	userscripts "github.com/webong/ext/res/web/userscript"
 	"jangolova/devicekit"
+	"jangolova/mobilekit"
 )
 
 type operatorServer struct {
@@ -35,6 +36,7 @@ type operatorServer struct {
 	deviceSessions      map[string]*managedDeviceSession
 	deviceClosed        bool
 	mobileTargets       map[string]*mobileTarget
+	mobileStart         func(mobilekit.StartRequest) (mobileBackend, error) // set by tests
 }
 
 type operatorBrowserSession struct {

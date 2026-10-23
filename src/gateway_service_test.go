@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -34,11 +33,7 @@ func TestDisplayGatewayServesAsAnInstalledPackageAndStopsWhenCanceled(t *testing
 		t.Fatal(err)
 	}
 	executable := filepath.Join(source, "gateway")
-	build := exec.Command("go", "build", "-o", executable, "board/cmd/gateway")
-	build.Dir = filepath.Dir(filepath.Dir(fixtureSourcePath(t)))
-	if output, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build gateway: %v\n%s", err, output)
-	}
+	buildGuest(t, executable, "pkg/board/cmd/gateway")
 	manifest, err := packagekit.ExecutableManifest("gateway", "1.0.0", []plugin.Contract{pluginContract(gatewayServiceContract)}, executable)
 	if err != nil {
 		t.Fatal(err)

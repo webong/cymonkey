@@ -13,6 +13,7 @@ import (
 	"jangolova/contentkit/service"
 	"jangolova/displaykit"
 	gatewayservice "jangolova/gatewaykit/service"
+	"jangolova/mobilekit"
 	"os"
 	"path/filepath"
 	"sort"
@@ -36,6 +37,7 @@ const (
 	consoleServiceContract = consoleservice.ContractName
 	gatewayServiceContract = gatewayservice.ContractName
 	devicePluginContract   = deviceplugin.ContractName
+	mobileTargetContract   = mobilekit.Contract
 	pluginContractVersion  = "v1"
 )
 
@@ -48,6 +50,9 @@ var pluginOperations = map[string][]string{
 	consoleServiceContract: consoleservice.Operations,
 	gatewayServiceContract: gatewayservice.Operations,
 	devicePluginContract:   deviceplugin.Operations,
+	// A mobile target serves its own start and stop plus the device operations
+	// of its viewer half, under one contract.
+	mobileTargetContract: append(append([]string(nil), mobilekit.ControlOperations...), deviceplugin.Operations...),
 }
 
 // installedPlugins lists the installed packages from their manifests alone.
@@ -222,7 +227,7 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 	case "manifest":
 		flags := flag.NewFlagSet("plugins manifest", flag.ContinueOnError)
 		flags.SetOutput(io.Discard)
-		pluginType := flags.String("type", "", "display, content, or device")
+		pluginType := flags.String("type", "", "display, content, content-service, console-service, gateway-service, device, or mobile-target")
 		name := flags.String("name", "", "plugin package name")
 		version := flags.String("version", "", "plugin semantic version")
 		command := flags.String("command", "", "plugin executable path (executable package)")
@@ -242,10 +247,11 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 			"console-service": consoleServiceContract,
 			"gateway-service": gatewayServiceContract,
 			"device":          devicePluginContract,
+			"mobile-target":   mobileTargetContract,
 		}[strings.TrimSpace(*pluginType)]
 		source := strings.TrimSpace(*root) != ""
 		if flags.NArg() != 0 || !ok || strings.TrimSpace(*name) == "" || strings.TrimSpace(*version) == "" || (strings.TrimSpace(*command) == "") == !source {
-			return errors.New("plugins manifest requires --type display|content|content-service|console-service|gateway-service|device, --name, --version, and either --command or --root with --file/--dir")
+			return errors.New("plugins manifest requires --type display|content|content-service|console-service|gateway-service|device|mobile-target, --name, --version, and either --command or --root with --file/--dir")
 		}
 		var manifest packagekit.Manifest
 		var err error

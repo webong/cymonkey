@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -23,11 +22,7 @@ func installDisplayEngines(t *testing.T, names ...string) {
 	root := t.TempDir()
 	t.Setenv("CYMONKEY_PLUGIN_DIR", filepath.Join(root, "installed"))
 	program := filepath.Join(root, "display")
-	build := exec.Command("go", "build", "-o", program, "board/cmd/display")
-	build.Dir = filepath.Dir(filepath.Dir(fixtureSourcePath(t)))
-	if output, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build display engine: %v\n%s", err, output)
-	}
+	buildGuest(t, program, "pkg/board/cmd/display")
 	data, err := os.ReadFile(program)
 	if err != nil {
 		t.Fatal(err)

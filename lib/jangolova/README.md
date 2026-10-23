@@ -10,6 +10,7 @@ plugins whether that process is the host or a guest that hosts others.
 | `jangolova/contentkit` | `content.provider` | the shared content contract: documents and schemas, validation, provider adapter types and errors, model manifest types. The engine that runs providers is `pkg/console/contentengine` |
 | `jangolova/devicekit` | `device.provider` | device contract, `Registry` grant gate, `host`, provider builder `device`, `plugin/` ext adapter |
 | `jangolova/displaykit` | `display.engine` | the display contracts: the runtime wire `contract`, the `sdk` types and host-service interfaces, the module `registry`, `ui` observation helpers and `host` service injection; the `display.engine` session wire (target, prepared connection material, events) and guest `serve` helper; and the shared `bridge` and `nodeworker` packages |
+| `jangolova/mobilekit` | `mobile.target` | the mobile target contract: start/stop wire types, the frame checks the host and guest share, and the host half (start the package, admit its declared endpoint, serve the viewer sessions from its live process) |
 | `jangolova/generationkit` | generation | messages, streaming, structured output, embeddings, speech, transcription, model catalog |
 
 Implementations live elsewhere (`pkg/board`, `pkg/content-*`, `pkg/board/display`)

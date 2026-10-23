@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -32,11 +31,7 @@ func installConsoleService(t *testing.T) store.Installed {
 		t.Fatal(err)
 	}
 	executable := filepath.Join(source, "console")
-	build := exec.Command("go", "build", "-o", executable, "console/cmd/console")
-	build.Dir = filepath.Dir(filepath.Dir(fixtureSourcePath(t)))
-	if output, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build console service: %v\n%s", err, output)
-	}
+	buildGuest(t, executable, "pkg/console/cmd/console")
 	manifest, err := packagekit.ExecutableManifest("console", "1.0.0", []plugin.Contract{pluginContract(consoleServiceContract)}, executable)
 	if err != nil {
 		t.Fatal(err)

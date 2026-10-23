@@ -54,6 +54,7 @@ Current contracts are:
 | `content.provider@v1` | Content observation and interpretation plugin |
 | `content.service@v1` | The content engine itself: runs `cymy content` commands and hosts the content providers |
 | `device.provider@v1` | Input and output device plugin |
+| `mobile.target@v1` | One mobile target (app media bridge): `start`, `stop` and the viewer's device operations, plus `events` |
 
 The original `plugin.json` format and its `kind` field are gone. Rebuild
 manifests with `cymy plugins manifest`.
@@ -69,7 +70,7 @@ the engine name. `playwright` and `puppeteer` pin the backend to that driver;
 any other name uses the generic engine:
 
 ```sh
-go build -o display ./pkg/board/cmd/display
+go -C pkg/board build -o "$PWD/display" ./cmd/display
 for engine in playwright puppeteer cymonkey; do
   cymy plugins manifest --type display --name $engine --version 1.0.0 --command ./display
   cymy plugins install --manifest ./plugin.json
@@ -101,7 +102,7 @@ forwards the command, its stdout comes back whole, and its log lines stream as
 progress. Build and install it once:
 
 ```sh
-go build -o console ./pkg/console/cmd/console
+go -C pkg/console build -o "$PWD/console" ./cmd/console
 cymy plugins manifest --type console-service --name console --version 1.0.0 --command ./console
 cymy plugins install --manifest ./plugin.json
 ```
@@ -124,7 +125,7 @@ endpoint. It is a command service like the content and console services, and a
 long call: its "listening" line streams back, and an interrupt stops it.
 
 ```sh
-go build -o gateway ./pkg/board/cmd/gateway
+go -C pkg/board build -o "$PWD/gateway" ./cmd/gateway
 cymy plugins manifest --type gateway-service --name gateway --version 1.0.0 --command ./gateway
 cymy plugins install --manifest ./plugin.json
 ```
@@ -132,6 +133,20 @@ cymy plugins install --manifest ./plugin.json
 The package is given only the token variable named by `--token-env` (default
 `CYMONKEY_DEVICE_GATEWAY_TOKEN`) and the defaults the command reads
 (`CYMONKEY_DEVICE_GATEWAY_BIND`, `CYMONKEY_DISPLAY_UPSTREAM`).
+
+## Mobile target package
+
+`POST /v1/device-targets` starts one process per target from a `mobile-target`
+package. Install it once (see [mobile target sessions](device-mobile-sessions.md)):
+
+```sh
+go -C pkg/board build -o "$PWD/mobile" ./cmd/mobile
+cymy plugins manifest --type mobile-target --name mobile --version 1.0.0 --command ./mobile
+cymy plugins install --manifest ./plugin.json
+```
+
+The package declares a loopback `ws` endpoint for the phone's frames; the host
+admits it with `endpoint.Admit` and relays the phone's socket to it.
 
 ## Lifecycle
 
@@ -177,7 +192,8 @@ After the handshake, operations belong to the declared Cymonkey domain:
 | --- | --- |
 | Display | `inspect`, `connect`, `authorize`, `call`, `health`, `events`, `material`, `disconnect` |
 | Content | `start`, `model.inspect`, `observe`, `interpret`, `health`, `capabilities`, `close` |
-| Device | `list`, `open`, `invoke`, `stream.open`, `stream.read`, `stream.close`, `close` |
+| Device | `list`, `open`, `invoke`, `stream.open`, `stream.read`, `stream.close`, `close`, and optional `events` (a session's lifecycle events; the host polls it only for packages that declare it) |
+| Mobile target | `start`, `stop`, and the device operations above |
 
 A structured failure retains a stable category:
 
@@ -205,6 +221,7 @@ the order the protocol defines:
 | Blockade | model inspection | `model.inspect` only |
 | Board | device list | `list` only |
 | Board | device session | `open` once, first; then `invoke`, `stream.open`, `stream.read`, `stream.close`, `close`. `invoke` and `stream.open` must name a capability the grant allows and, if they name a resource, one the grant covers. |
+| Host (`mobilekit`) | mobile target | `start` once, first; `stop` once; between them the viewer operations, where `open` may repeat after `close` and `invoke` and `stream.open` follow the latest grant |
 | Host (`src/internal/displayplugin`) | display probe | `inspect` only |
 | Host (`src/internal/displayplugin`) | display engine session | `connect` once, first; then `call`, `authorize`, `health`, `events`, `material`, `disconnect` |
 

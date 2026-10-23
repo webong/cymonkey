@@ -35,11 +35,7 @@ func TestContentCommandsRunInTheInstalledContentService(t *testing.T) {
 		t.Fatal(err)
 	}
 	executable := filepath.Join(source, "content")
-	build := exec.Command("go", "build", "-o", executable, "console/cmd/content")
-	build.Dir = filepath.Dir(filepath.Dir(fixtureSourcePath(t)))
-	if output, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build content service: %v\n%s", err, output)
-	}
+	buildGuest(t, executable, "pkg/console/cmd/content")
 	manifest, err := packagekit.ExecutableManifest("content", "1.0.0", []plugin.Contract{pluginContract(contentServiceContract)}, executable)
 	if err != nil {
 		t.Fatal(err)
@@ -115,13 +111,18 @@ func TestContentServeStreamsItsLogsAndStopsWhenCanceled(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("CYMONKEY_PLUGIN_DIR", filepath.Join(root, "installed"))
 	t.Setenv("CYMONKEY_CONTENT_CONFIG", "")
-	build := func(importPath, name string) string {
+	build := func(program, name string) string {
 		out := filepath.Join(root, name)
-		cmd := exec.Command("go", "build", "-o", out, importPath)
-		cmd.Dir = filepath.Dir(filepath.Dir(fixtureSourcePath(t)))
-		if output, err := cmd.CombinedOutput(); err != nil {
-			t.Fatalf("build %s: %v\n%s", importPath, err, output)
+		if program == "tests/plugin-fixture" {
+			// The fixture belongs to the host's module.
+			cmd := exec.Command("go", "build", "-o", out, "./"+program)
+			cmd.Dir = filepath.Dir(filepath.Dir(fixtureSourcePath(t)))
+			if output, err := cmd.CombinedOutput(); err != nil {
+				t.Fatalf("build %s: %v\n%s", program, err, output)
+			}
+			return out
 		}
+		buildGuest(t, out, program)
 		return out
 	}
 	install := func(name, program, contract string) {
@@ -149,8 +150,8 @@ func TestContentServeStreamsItsLogsAndStopsWhenCanceled(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	install("content", build("console/cmd/content", "content"), contentServiceContract)
-	install("vision-fixture", build("cymonkey/tests/plugin-fixture", "fixture"), contentPluginContract)
+	install("content", build("pkg/console/cmd/content", "content"), contentServiceContract)
+	install("vision-fixture", build("tests/plugin-fixture", "fixture"), contentPluginContract)
 
 	configPath := filepath.Join(root, "content.yaml")
 	if err := os.WriteFile(configPath, []byte("apiVersion: cymonkey.content-config/v1alpha1\nadapters:\n  - id: vision\n    plugin: vision-fixture\n"), 0o600); err != nil {

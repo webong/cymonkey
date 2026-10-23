@@ -10,6 +10,27 @@ The embedding app owns OS consent, visible capture UI, foreground-service or
 broadcast-extension packaging, signing, and credentials obtained from its host.
 No system-wide mobile input injection is exposed.
 
+## Install the mobile-target package
+
+The host does not link the WebRTC or media code. Each target runs in its own
+process from the `mobile-target` ext package, which the host starts when the
+target is created and stops when the target ends. Build and install it once:
+
+```sh
+go -C pkg/board build -o "$PWD/mobile" ./cmd/mobile
+cymy plugins manifest --type mobile-target --name mobile --version 1.0.0 --command ./mobile
+cymy plugins install --manifest ./plugin.json
+```
+
+Without it `POST /v1/device-targets` answers 503 `mobile_target_unavailable`;
+without ffmpeg it answers 503 `converter_unavailable`. The package serves the
+`mobile.target` contract (`start`, `stop`) and the viewer's device operations under
+it, so `device.provider` discovery never launches it. The host still terminates
+the phone's WebSocket, authenticates it and checks every frame, then relays the
+frames to a loopback endpoint the package declares for that target (see
+[design](design-mobile-targets.md)). If the package process dies the target is
+removed and the phone is disconnected.
+
 ## Host-controlled lifecycle
 
 1. The trusted host calls `POST /v1/device-targets` with its operator bearer:

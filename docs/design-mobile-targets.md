@@ -1,9 +1,12 @@
 # Design: mobile targets as a guest
 
-Status: proposal, not implemented. This is the last place the `cymy` host links a
-guest module: `src/operator_device_targets.go` imports `board/rtc`. When this is
-done the root module no longer requires `board`, `console` or the endpoints
-module, and `go.work` no longer lists them.
+Status: implemented. It was the last place the `cymy` host linked a guest
+module (`src/operator_device_targets.go` imported `board/rtc`). The root module
+no longer requires `board`, `console` or the endpoints module and there is no
+`go.work`. Two details differ from the text below: the package serves the device
+operations under `mobile.target` itself (rather than a second `device.provider`
+contract) so that device discovery does not launch it, and `events` polling is
+only done for packages whose manifest declares it.
 
 ## What the host does today
 
