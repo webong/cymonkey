@@ -97,7 +97,7 @@ session access through a trusted bridge, not the operator's inventory-wide token
 
 ## Mobile reference hosts
 
-[Reference apps and acceptance procedure](../examples/device-hosts/README.md) provide
+[Reference apps and acceptance procedure](../etc/device-hosts/README.md) provide
 an iOS app/broadcast extension and an Android projection service using the helper
 libraries. They belong to Cymonkey as integration fixtures. Consuming products own
 their own app packaging, signing, policy and deployment. The evidence template

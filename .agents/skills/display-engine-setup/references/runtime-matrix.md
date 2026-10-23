@@ -8,5 +8,5 @@
 
 All images target Linux `amd64`, expose TCP `8090`, and support an Xvfb fallback. Use `--gpus all` only with a compatible NVIDIA runtime; Xvfb alone is off-screen display emulation.
 
-For Unreal integration, install the reviewed `pkg/unreal` package in the
+For Unreal integration, install the reviewed `lib/unreal` package in the
 project's `Plugins` directory before building the runtime image.

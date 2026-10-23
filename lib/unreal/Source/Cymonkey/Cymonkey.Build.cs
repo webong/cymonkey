@@ -1,8 +1,8 @@
 using UnrealBuildTool;
 
-public class JangolovaCymonkey : ModuleRules
+public class Cymonkey : ModuleRules
 {
-    public JangolovaCymonkey(ReadOnlyTargetRules Target) : base(Target)
+    public Cymonkey(ReadOnlyTargetRules Target) : base(Target)
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
         PublicDependencyModuleNames.AddRange(new[] { "Core", "CoreUObject", "Engine", "Json" });

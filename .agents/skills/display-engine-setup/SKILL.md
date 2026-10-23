@@ -13,7 +13,7 @@ bearer tokens outside source control.
 
 - Godot: build `scripts/deploy/godot-cymonkey/godot-cymonkey-gpu/Containerfile`; it is the license-free reference runtime.
 - Unreal: build `scripts/deploy/unreal-cymonkey/unreal-cymonkey-gpu/Containerfile` with the
-  operator's approved engine inputs, or install `pkg/unreal` in a custom
+  operator's approved engine inputs, or install `lib/unreal` in a custom
   project.
 - Unity: supply a licensed private Unity Linux Editor base; never invent or embed Unity credentials.
 

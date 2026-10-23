@@ -126,7 +126,7 @@ not certify the media pipeline or permission behavior on a real device.
 
 ## Reference hosts
 
-Build and run the [Cymonkey reference hosts](../examples/device-hosts/README.md)
+Build and run the [Cymonkey reference hosts](../etc/device-hosts/README.md)
 to exercise the reusable libraries before product adoption. They include local
 signing configuration, consent/lifecycle examples and a pending acceptance record.
 Signing identities, approved hardware and TURN access must be supplied by the

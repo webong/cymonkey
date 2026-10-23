@@ -5,13 +5,13 @@ FROM ${UE_BUILD_IMAGE} AS builder
 ARG UE_ROOT=/opt/UnrealEngine
 USER root
 WORKDIR /workspace
-COPY pkg/unreal ./pkg/unreal
+COPY lib/unreal ./lib/unreal
 COPY tests/unreal-cymonkey-fixture ./tests/unreal-cymonkey-fixture
 
 RUN test -x "${UE_ROOT}/Engine/Build/BatchFiles/RunUAT.sh"
 RUN "${UE_ROOT}/Engine/Build/BatchFiles/RunUAT.sh" BuildPlugin \
-    -Plugin="/workspace/pkg/unreal/JangolovaCymonkey.uplugin" \
-    -Package="/out/JangolovaCymonkey" \
+    -Plugin="/workspace/lib/unreal/Cymonkey.uplugin" \
+    -Package="/out/Cymonkey" \
     -Rocket \
     -TargetPlatforms=Linux \
     -utf8output

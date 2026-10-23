@@ -1,7 +1,7 @@
 class_name CymonkeyWebSocketHost
 extends Node
 
-const CymonkeyProtocol = preload("res://addons/jangolova_cymonkey/cymonkey_protocol.gd")
+const CymonkeyProtocol = preload("res://addons/cymonkey/cymonkey_protocol.gd")
 
 @export var listen_host := "0.0.0.0"
 @export var listen_port := 8090

@@ -44,7 +44,7 @@ test('engine container package sources and Unity local dependencies exist', asyn
         await checkContainers(path);
       } else if (entry.name.endsWith('Containerfile')) {
         const container = await read(path);
-        for (const [, source] of container.matchAll(/^COPY\s+(pkg\/\S+)\s/gm)) {
+        for (const [, source] of container.matchAll(/^COPY\s+((?:pkg|lib)\/\S+)\s/gm)) {
           await exists(source);
           checked++;
         }

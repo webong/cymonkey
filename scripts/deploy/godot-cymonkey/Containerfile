@@ -6,7 +6,7 @@ COPY lib/godot ./lib/godot
 COPY tests/godot-cymonkey-fixture ./tests/godot-cymonkey-fixture
 
 RUN mkdir -p tests/godot-cymonkey-fixture/addons \
-    && cp -R lib/godot/addons/jangolova_cymonkey tests/godot-cymonkey-fixture/addons/jangolova_cymonkey
+    && cp -R lib/godot/addons/cymonkey tests/godot-cymonkey-fixture/addons/cymonkey
 
 ENV GODOT_PROJECT_PATH=/workspace/tests/godot-cymonkey-fixture
 ENV CYMONKEY_TOKEN=

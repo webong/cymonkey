@@ -48,7 +48,7 @@ For network acceptance, the example UI accepts short-lived ICE server settings a
 a relay-only policy. Show connection evidence reports selected route types and
 media counters without candidate addresses, credentials or SDP. An empty selected
 route does not establish connectivity. See the reference-host acceptance procedure
-in `examples/device-hosts/README.md`.
+in `etc/device-hosts/README.md`.
 
 Held pointer sessions own one native button at a time. `down(x,y,button)`,
 `move(x,y)`, `up(x,y,button)` and `releasePointer()` support explicit SDK clients.

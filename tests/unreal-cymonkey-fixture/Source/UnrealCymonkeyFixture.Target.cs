@@ -7,6 +7,6 @@ public class UnrealCymonkeyFixtureTarget : TargetRules
         Type = TargetType.Game;
         DefaultBuildSettings = BuildSettingsVersion.Latest;
         IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_8;
-        ExtraModuleNames.AddRange(new[] { "UnrealPacmanFixture", "JangolovaCymonkey" });
+        ExtraModuleNames.AddRange(new[] { "UnrealPacmanFixture", "Cymonkey" });
     }
 }

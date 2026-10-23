@@ -94,7 +94,7 @@ audit events, reviewed packages, and caller-supplied target connections.
 - [Architecture](docs/architecture.md)
 - [Browser packages](docs/browser-augmentation-packages.md)
 - [Browser extension manager](docs/browser-extension-installation.md)
-- [Browser helper library for extensions, userscripts, and browser APIs](pkg/browser-helper/README.md)
+- [Browser helper library for extensions, userscripts, and browser APIs](lib/browser-helper/README.md)
 - [macOS native and WebKit helper libraries](lib/macos-helper/README.md)
 - [iOS web-view helper library](lib/ios-helper/README.md)
 - [Android web-view helper library](lib/android-helper/README.md)

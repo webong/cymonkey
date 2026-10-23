@@ -1,7 +1,7 @@
 class_name CymonkeyRegistry
 extends Node
 
-const CymonkeyProtocol = preload("res://addons/jangolova_cymonkey/cymonkey_protocol.gd")
+const CymonkeyProtocol = preload("res://addons/cymonkey/cymonkey_protocol.gd")
 
 signal event_published(event: Dictionary)
 

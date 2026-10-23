@@ -9,14 +9,14 @@ const automation = await readFile(new URL("Source/UnrealCymonkeyFixture/Private/
 const build = await readFile(new URL("Source/UnrealCymonkeyFixture/UnrealCymonkeyFixture.Build.cs", root), "utf8");
 const container = await readFile(new URL("../scripts/deploy/unreal-cymonkey/Containerfile", import.meta.url), "utf8");
 const runtime = await readFile(new URL("../scripts/deploy/unreal-cymonkey/run-fixture.sh", import.meta.url), "utf8");
-const server = await readFile(new URL("../pkg/unreal/Source/JangolovaCymonkey/Private/CymonkeyWebSocketServer.cpp", import.meta.url), "utf8");
-const serverHeader = await readFile(new URL("../pkg/unreal/Source/JangolovaCymonkey/Public/CymonkeyWebSocketServer.h", import.meta.url), "utf8");
+const server = await readFile(new URL("../lib/unreal/Source/Cymonkey/Private/CymonkeyWebSocketServer.cpp", import.meta.url), "utf8");
+const serverHeader = await readFile(new URL("../lib/unreal/Source/Cymonkey/Public/CymonkeyWebSocketServer.h", import.meta.url), "utf8");
 
 assert.equal(project.Modules[0].Name, "UnrealCymonkeyFixture");
 assert.equal(project.Modules[0].Type, "Runtime");
 assert.deepEqual(project.TargetPlatforms, ["Linux"]);
 assert.ok(project.AdditionalPluginDirectories.includes("../../pkg"));
-assert.ok(project.Plugins.some((plugin) => plugin.Name === "JangolovaCymonkey" && plugin.Enabled));
+assert.ok(project.Plugins.some((plugin) => plugin.Name === "Cymonkey" && plugin.Enabled));
 assert.match(actor, /object:fixture/);
 assert.match(actor, /resource\.describe/);
 assert.match(actor, /object\.visibility\.set/);
@@ -24,7 +24,7 @@ assert.match(actor, /UCymonkeyRegistryComponent/);
 assert.match(gameMode, /SpawnActor<ACymonkeyFixtureActor>/);
 assert.match(automation, /Jangolova\.Cymonkey\.Fixture\.ExplicitRegistration/);
 assert.match(automation, /object\.visibility\.set/);
-assert.match(build, /JangolovaCymonkey/);
+assert.match(build, /Cymonkey/);
 assert.match(container, /ARG UE_BUILD_IMAGE/);
 assert.match(container, /ARG UE_RUNTIME_IMAGE/);
 assert.match(container, /BuildPlugin/);

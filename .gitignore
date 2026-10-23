@@ -6,5 +6,5 @@
 /output/
 /.cache/
 **/.build/
-pkg/browser-helper/dist/
+lib/browser-helper/dist/
 .DS_Store

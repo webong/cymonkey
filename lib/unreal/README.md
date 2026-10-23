@@ -1,35 +1,35 @@
-# Jangolova Cymonkey for Unreal
+# Cymonkey for Unreal
 
-Jangolova Cymonkey is distributed as an Unreal plugin and as a separate packaged
+Cymonkey is distributed as an Unreal plugin and as a separate packaged
 headless fixture image. The plugin is engine code that you add to your own
 project; the container is a ready-to-run conformance environment.
 
 ## Install the plugin
 
 Download the Unreal 5.8 Linux artifact from the [v0.1.0 GitHub
-Release](https://github.com/akive-zone/jangolova/releases/tag/v0.1.0):
+Release](https://github.com/webong/cymonkey/releases/tag/v0.1.0):
 
 ```sh
-curl -L -o JangolovaCymonkey.tar.gz \
-  https://github.com/akive-zone/jangolova/releases/download/v0.1.0/JangolovaCymonkey-0.1.0-UE5.8-Linux.tar.gz
+curl -L -o Cymonkey.tar.gz \
+  https://github.com/webong/jangolova/releases/download/v0.1.0/Cymonkey-0.1.0-UE5.8-Linux.tar.gz
 mkdir -p MyGame/Plugins
-tar -xzf JangolovaCymonkey.tar.gz -C MyGame/Plugins
+tar -xzf Cymonkey.tar.gz -C MyGame/Plugins
 ```
 
-The extracted directory must be named `JangolovaCymonkey` and contain
-`JangolovaCymonkey.uplugin`. Enable the plugin in the Unreal project, regenerate
-project files, and add `JangolovaCymonkey` to the module dependencies of any C++
+The extracted directory must be named `Cymonkey` and contain
+`Cymonkey.uplugin`. Enable the plugin in the Unreal project, regenerate
+project files, and add `Cymonkey` to the module dependencies of any C++
 module that includes its headers:
 
 ```csharp
-PublicDependencyModuleNames.Add("JangolovaCymonkey");
+PublicDependencyModuleNames.Add("Cymonkey");
 ```
 
 The release artifact is a Linux/UE 5.8 build. Projects targeting another
 engine version or platform should build the source plugin with that engine's
 `RunUAT.sh BuildPlugin` command instead.
 
-`JangolovaCymonkey` is the Unreal Engine implementation of
+`Cymonkey` is the Unreal Engine implementation of
 the `render` domain of `cymonkey/v1alpha1`. It exposes semantic control of explicitly
 registered Unreal objects while Unreal continues to own rendering and
 application lifecycle.

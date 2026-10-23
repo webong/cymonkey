@@ -1,7 +1,7 @@
 # Unreal Cymonkey fixture environment
 
 This is a separate caller-owned Unreal project for compiling and exercising
-`pkg/unreal`. It is not part of the Jangolova provider image and it owns
+`lib/unreal`. It is not part of the Jangolova provider image and it owns
 its own Unreal process, World, renderer, and lifecycle.
 
 The project discovers the plugin through `AdditionalPluginDirectories` and

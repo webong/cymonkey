@@ -1,6 +1,6 @@
 # Lens Studio Cymonkey module
 
-`lensstudiocymonkey` is a narrow Jangolova backend for a Lens Studio project
+`lensstudiocymonkey` is a narrow backend for a Lens Studio project
 whose owner has already enabled Lens Studio's Developer Mode MCP server. It is
 not an agent and it does not start Lens Studio, create a second MCP server, or
 accept arbitrary Lens Studio tool names from a caller.
@@ -8,7 +8,7 @@ accept arbitrary Lens Studio tool names from a caller.
 The composition is deliberately one-way:
 
 ```text
-external agent -> Cymonkey policy / approval -> Jangolova Adapter
+external agent -> Cymonkey policy / approval -> Adapter
                -> lens-studio-mcp backend -> Lens Studio's existing MCP endpoint
 ```
 

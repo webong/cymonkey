@@ -12,7 +12,7 @@
   ],
   "Plugins": [
     {
-      "Name": "JangolovaCymonkey",
+      "Name": "Cymonkey",
       "Enabled": true
     }
   ],

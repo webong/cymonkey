@@ -55,10 +55,10 @@ commands and limits.
 ## Library for consuming extensions
 
 The shared `cymonkey.userscript/v1alpha1` manifest, validation, and
-registration planning live in [`pkg/browser-helper`](../pkg/browser-helper/README.md).
+registration planning live in [`lib/browser-helper`](../lib/browser-helper/README.md).
 An extension that wants persistent browser-native userscripts can import the
 library and supply its own browser APIs, approval UI, storage, and lifecycle.
-[`@cymonkey/browser-helper`](../pkg/browser-helper/README.md) can provide
+[`@cymonkey/browser-helper`](../lib/browser-helper/README.md) can provide
 scoped script registration and storage. Cymonkey does not ship an installable
 userscript-manager extension.
 

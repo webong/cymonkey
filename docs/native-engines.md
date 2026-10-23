@@ -11,7 +11,7 @@ caller-owned `websocket` endpoint. The Jangolova adapter dials that endpoint
 from the generic target descriptor. The application owns the listener,
 renderer, display, and lifecycle. The Unity MVP is at
 `lib/unity`; the Unreal C++ implementation starts at
-`pkg/unreal`. Both use the same transport-neutral resource and method
+`lib/unreal`. Both use the same transport-neutral resource and method
 contract.
 
 ## Legacy cooperative bridge

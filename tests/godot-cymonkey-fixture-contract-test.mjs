@@ -2,15 +2,15 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const packageRoot = new URL("../lib/godot/", import.meta.url);
-const registry = await readFile(new URL("addons/jangolova_cymonkey/cymonkey_registry.gd", packageRoot), "utf8");
-const protocol = await readFile(new URL("addons/jangolova_cymonkey/cymonkey_protocol.gd", packageRoot), "utf8");
-const host = await readFile(new URL("addons/jangolova_cymonkey/cymonkey_websocket_host.gd", packageRoot), "utf8");
+const registry = await readFile(new URL("addons/cymonkey/cymonkey_registry.gd", packageRoot), "utf8");
+const protocol = await readFile(new URL("addons/cymonkey/cymonkey_protocol.gd", packageRoot), "utf8");
+const host = await readFile(new URL("addons/cymonkey/cymonkey_websocket_host.gd", packageRoot), "utf8");
 const fixture = await readFile(new URL("godot-cymonkey-fixture/fixture.gd", import.meta.url), "utf8");
 const scene = await readFile(new URL("godot-cymonkey-fixture/fixture.tscn", import.meta.url), "utf8");
 const scenePlan = JSON.parse(await readFile(new URL("godot-cymonkey-fixture/house.scene-plan.json", import.meta.url), "utf8"));
 const project = await readFile(new URL("godot-cymonkey-fixture/project.godot", import.meta.url), "utf8");
 const container = await readFile(new URL("../scripts/deploy/godot-cymonkey/Containerfile", import.meta.url), "utf8");
-const goProtocol = await readFile(new URL("../pkg/board/display/contract/protocol.go", import.meta.url), "utf8");
+const goProtocol = await readFile(new URL("../lib/jangolova/displaykit/contract/protocol.go", import.meta.url), "utf8");
 
 assert.match(protocol, /cymonkey\/v1alpha1/);
 assert.equal(protocol.match(/VERSION := "([^"]+)"/)?.[1], goProtocol.match(/ProtocolVersion\s+= "([^"]+)"/)?.[1]);

@@ -7,7 +7,7 @@ COPY tests/godot-cymonkey-fixture ./tests/godot-cymonkey-fixture
 COPY scripts/deploy/godot-cymonkey/godot-cymonkey-gpu/run-fixture.sh /usr/local/bin/run-godot-cymonkey-gpu
 
 RUN mkdir -p tests/godot-cymonkey-fixture/addons \
-    && cp -R lib/godot/addons/jangolova_cymonkey tests/godot-cymonkey-fixture/addons/jangolova_cymonkey \
+    && cp -R lib/godot/addons/cymonkey tests/godot-cymonkey-fixture/addons/cymonkey \
     && mkdir -p /workspace/artifacts \
     && chmod 0777 /workspace/artifacts \
     && chmod +x /usr/local/bin/run-godot-cymonkey-gpu \

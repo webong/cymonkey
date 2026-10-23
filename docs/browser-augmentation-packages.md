@@ -6,7 +6,7 @@ their assets in its own build, declares browser permissions, and owns its UI.
 
 | Library | Role |
 | --- | --- |
-| [`@cymonkey/browser-helper`](../pkg/browser-helper/README.md) | Scoped browser API operations, extension management, userscript validation and registration, reviewed catalog, approvals, policy/audit gate, tab and engine routing, mounting, page runtime and bridge, sandbox handshake, extension cookie export, and optional control/media integrations. |
+| [`@cymonkey/browser-helper`](../lib/browser-helper/README.md) | Scoped browser API operations, extension management, userscript validation and registration, reviewed catalog, approvals, policy/audit gate, tab and engine routing, mounting, page runtime and bridge, sandbox handshake, extension cookie export, and optional control/media integrations. |
 | [`lib/macos-helper`](../lib/macos-helper/README.md) | Swift native helper, userscript catalog, managed-runtime controller, and `WKUserScript` installation for an app-owned web view. |
 | [`lib/ios-helper`](../lib/ios-helper/README.md) | Swift binding for a caller-owned `WKWebView`, approved scripts, and authorized cookie reads. |
 | [`lib/android-helper`](../lib/android-helper/README.md) | Kotlin binding for a caller-owned Android `WebView`, with a host-approved userscript manager, persistent store option, URL matching, navigation injection, and authorized cookie reads. |

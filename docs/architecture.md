@@ -258,7 +258,7 @@ lib/jangolova/displaykit/registry/         reviewed module discovery and activat
 src/protocol/cymonkey/          canonical versioned Cymonkey schemas
 src/protocol/browser-extension/ schema, recorded exchanges, and generated binding source
 tests/cymonkey-core-conformance.mjs  portable Cymonkey contract checks
-pkg/browser-helper/             browser API, extension management, and userscript library
+lib/browser-helper/             browser API, extension management, and userscript library
 lib/macos-helper/       Swift native binding, userscript catalog, and managed-runtime controller
 lib/threejs/            explicit-registration Three.js runtime
 pkg/                             distributable Godot, Unity, and Unreal Cymonkey packages
