@@ -11,6 +11,24 @@ convert those requests to the internal library interfaces.
 The installer verifies packages and manages their lifecycle. It does not
 contain a catalog of model runtimes, display engines, or device drivers.
 
+## Installing the packages
+
+The host links none of its guests; each runs as an installed package. One
+script builds every guest in its own module and installs it:
+
+```sh
+scripts/install-packages.sh                      # display device content console gateway mobile
+scripts/install-packages.sh gateway mobile       # only some roles
+scripts/install-packages.sh providers            # the ONNX and WebLLM content providers
+cymy plugins check                               # what is installed, what is missing
+```
+
+Re-running upgrades a package whose content changed and leaves the rest
+(`unchanged`). It installs the display engine once for each of `playwright`,
+`puppeteer` and `cymonkey`. `cymy plugins check` lists each role, the packages
+serving it and the commands that fail without it. The sections below show the
+individual build, manifest and install commands the script runs.
+
 ## Package manifest
 
 Generate an executable manifest through Cymy:

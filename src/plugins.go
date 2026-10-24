@@ -213,7 +213,7 @@ func keyboardPluginProvider(pid int) (devicekit.Provider, error) {
 
 func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("plugins requires install, upgrade, list, or remove")
+		return errors.New("plugins requires install, upgrade, list, check, or remove")
 	}
 	root, err := defaultPluginRoot()
 	if err != nil {
@@ -370,6 +370,16 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 			unreadable = append(unreadable, map[string]string{"id": problem.ID, "error": problem.Err.Error()})
 		}
 		return json.NewEncoder(stdout).Encode(map[string]any{"plugins": manifests, "unreadable": unreadable})
+	case "check":
+		if len(args) != 1 {
+			return errors.New("plugins check accepts no arguments")
+		}
+		items, _, err := packages.ListUnverified()
+		if err != nil {
+			return err
+		}
+		checkPlugins(items, stdout)
+		return nil
 	case "remove":
 		if len(args) != 2 {
 			return errors.New("plugins remove requires one name")
@@ -380,7 +390,7 @@ func pluginsCommand(args []string, stdout, stderr io.Writer) error {
 		_, err := fmt.Fprintf(stdout, "removed plugin %s\n", args[1])
 		return err
 	case "help", "-h", "--help":
-		_, err := fmt.Fprintln(stderr, "Usage: cymy plugins <manifest|install|upgrade|list|remove>")
+		_, err := fmt.Fprintln(stderr, "Usage: cymy plugins <manifest|install|upgrade|list|check|remove>")
 		return err
 	default:
 		return fmt.Errorf("unknown plugins command %q", args[0])

@@ -380,3 +380,46 @@ func TestStandaloneBoardProviderServesTheInventoryAndKeyboard(t *testing.T) {
 		t.Fatalf("keyboard provider did not reach the installed plugin: %v", err)
 	}
 }
+
+func TestPluginsCheckReportsEachRoleAndWhatIsMissing(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("CYMONKEY_PLUGIN_DIR", filepath.Join(root, "installed"))
+	source := filepath.Join(root, "gateway")
+	if err := os.Mkdir(source, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	executable := filepath.Join(source, "gateway")
+	if err := os.WriteFile(executable, []byte("#!/bin/sh\n"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	manifest, err := packagekit.ExecutableManifest("gateway", "1.0.0", []plugin.Contract{pluginContract(gatewayServiceContract)}, executable)
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, _ := json.Marshal(manifest)
+	manifestPath := filepath.Join(source, store.ManifestName)
+	if err := os.WriteFile(manifestPath, encoded, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := pluginsCommand([]string{"install", "--manifest", manifestPath}, io.Discard, io.Discard); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if err := pluginsCommand([]string{"check"}, &out, io.Discard); err != nil {
+		t.Fatal(err)
+	}
+	report := out.String()
+	for _, want := range []string{"installed: gateway", "scripts/install-packages.sh", "6 missing"} {
+		if !strings.Contains(report, want) {
+			t.Errorf("report lacks %q:\n%s", want, report)
+		}
+	}
+	for _, line := range strings.Split(report, "\n") {
+		if strings.HasPrefix(line, "gateway") && strings.Contains(line, "MISSING") {
+			t.Errorf("the installed gateway is reported missing: %s", line)
+		}
+		if strings.HasPrefix(line, "mobile") && !strings.Contains(line, "MISSING") {
+			t.Errorf("the uninstalled mobile role is not reported missing: %s", line)
+		}
+	}
+}

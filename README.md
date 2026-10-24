@@ -62,6 +62,12 @@ The example content component expects the `local-ultralytics` plugin and a
 mkdir -p .cache/bin
 go build -o .cache/bin/cymy ./src
 
+# The host runs its display engines, device provider, content, console,
+# gateway and mobile-target code as installed packages. Build and install them
+# once (re-running upgrades), then see what is installed:
+scripts/install-packages.sh
+.cache/bin/cymy plugins check
+
 export CYMONKEY_DISPLAY_TOKEN="replace-with-a-random-secret"
 export CYMONKEY_CONTENT_TOKEN="replace-with-another-random-secret"
 PATH="$PWD/.cache/bin:$PATH" cymy run \
