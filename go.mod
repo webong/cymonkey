@@ -8,7 +8,7 @@ require (
 )
 
 require (
-	github.com/webong/ext/pkg/plugin-go/contract v0.6.0
+	github.com/webong/ext/pkg/plugin-go/contract v0.7.0
 	github.com/webong/ext/res/web v0.5.0
 )
 
