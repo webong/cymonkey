@@ -61,6 +61,45 @@ system microphone switch. End an active broadcast using the OS indicator, or
 revoke the target at the operator. The app's Stop button cannot stop a separate
 broadcast extension. Broadcast playback is deliberately not implemented here.
 
+## Trying the iOS app on a real iPhone (free Personal Team)
+
+A free Apple Personal Team cannot register an App Group, so use the app-only
+spec `ios/project.personal-team.yml` (app capture only, no broadcast extension).
+You need Xcode, `xcodegen`, an iPhone in Developer Mode, `mkcert`, and the
+`mobile-target` package (`scripts/install-packages.sh mobile`).
+
+```sh
+cd etc/device-hosts/ios
+xcodegen generate --spec project.personal-team.yml
+xcodebuild -project BoardReference.xcodeproj -scheme BoardReference \
+  -destination 'id=<device UDID>' DEVELOPMENT_TEAM=<team ID> \
+  BOARD_BUNDLE_PREFIX=<a bundle ID you own> -allowProvisioningUpdates \
+  -derivedDataPath /tmp/board-ios build
+xcrun devicectl device install app --device <device UDID> \
+  /tmp/board-ios/Build/Products/Debug-iphoneos/BoardReference.app
+```
+
+On the phone, trust your developer certificate (Settings, General, VPN & Device
+Management). The app requires `wss://` with a trusted certificate and the
+operator has no TLS of its own, so `scripts/mobile-target-harness` puts TLS in
+front of only the target's own path:
+
+```sh
+mkcert -cert-file cert.pem -key-file key.pem <LAN IP> <host>.local localhost
+# AirDrop "$(mkcert -CAROOT)/rootCA.pem" to the phone, install the profile, then
+# Settings, General, About, Certificate Trust Settings: enable full trust.
+export CYMONKEY_OPERATOR_TOKEN=$(openssl rand -hex 16)
+cymy operator serve &
+go run ./scripts/mobile-target-harness --cert cert.pem --key key.pem
+```
+
+The harness registers the target and a viewer session, prints the endpoint and
+the token for the phone (the token is also copied to the clipboard), and serves
+the viewer at `http://127.0.0.1:7400/` with its credentials already filled in.
+Paste both on the phone, tap Start app capture, accept the prompts, then press
+Connect in the viewer. Ctrl-C ends the target and the session. `mkcert -install`
+is not needed on the Mac; the phone must trust the CA, the Mac does not.
+
 ## Session setup and viewers
 
 Follow [mobile target registration](../../docs/device-mobile-sessions.md).

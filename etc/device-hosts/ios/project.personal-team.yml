@@ -1,0 +1,43 @@
+# App-only variant of project.yml for a free Apple Personal Team. Free teams
+# cannot register an App Group, so this builds the reference app without the
+# Broadcast Upload Extension: app capture only (screen of this app, optional
+# audio and playback), no cross-app broadcast. Pass your team and a bundle ID
+# you own on the command line:
+#   xcodegen generate --spec project.personal-team.yml
+#   xcodebuild -project BoardReference.xcodeproj -scheme BoardReference \
+#     -destination 'id=<device UDID>' DEVELOPMENT_TEAM=<team> \
+#     BOARD_BUNDLE_PREFIX=<unique bundle id> -allowProvisioningUpdates build
+name: BoardReference
+options:
+  deploymentTarget:
+    iOS: '15.0'
+packages:
+  CymonkeyIOSHelper:
+    path: ../../../lib/ios-helper
+settings:
+  base:
+    SWIFT_VERSION: '5.0'
+    CODE_SIGN_STYLE: Automatic
+    BOARD_BUNDLE_PREFIX: dev.cymonkey.reference
+    TARGETED_DEVICE_FAMILY: '1,2'
+targets:
+  BoardReference:
+    type: application
+    platform: iOS
+    sources: [App, Shared]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(BOARD_BUNDLE_PREFIX)
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Board reference
+        UILaunchScreen: {}
+        NSMicrophoneUsageDescription: Test an explicitly granted Board microphone session.
+    dependencies:
+      - package: CymonkeyIOSHelper
+schemes:
+  BoardReference:
+    build:
+      targets:
+        BoardReference: all
