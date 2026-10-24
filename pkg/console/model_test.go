@@ -25,7 +25,10 @@ func TestModelCompositionRequiresExplicitToolExecutionAndContinuation(t *testing
 	invoked := 0
 	tool, err := NewJSONTool(Definition{Name: "lookup", InputSchema: json.RawMessage(`{"type":"object"}`)}, func(_ context.Context, input struct {
 		Key string `json:"key"`
-	}) (map[string]string, error) { invoked++; return map[string]string{"value": input.Key}, nil })
+	}) (map[string]string, error) {
+		invoked++
+		return map[string]string{"value": input.Key}, nil
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

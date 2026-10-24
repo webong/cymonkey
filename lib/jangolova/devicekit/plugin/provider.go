@@ -40,22 +40,14 @@ var Operations = []string{"list", "open", "invoke", "stream.open", "stream.read"
 const eventPollInterval = 250 * time.Millisecond
 
 // declaresEvents reports whether a package's descriptor serves the optional
-// events operation under the given contract name.
+// events operation under the given contract name. A package built before the
+// operation existed does not declare it.
 func declaresEvents(descriptor extplugin.Descriptor, contract string) bool {
 	if contract == "" {
 		contract = ContractName
 	}
-	for _, c := range descriptor.Contracts {
-		if c.Name != contract || c.Version != ContractVersion {
-			continue
-		}
-		for _, operation := range c.Operations {
-			if operation.Name == "events" {
-				return true
-			}
-		}
-	}
-	return false
+	_, err := descriptor.Lookup(extplugin.ContractRef{Name: contract, Version: ContractVersion}, "events")
+	return err == nil
 }
 
 func (p Provider) method(name string) string {

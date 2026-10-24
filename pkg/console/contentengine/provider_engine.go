@@ -27,8 +27,6 @@ type ProviderAdapterFactory func(context.Context, contentkit.ProviderAdapterRunt
 // beside their normal factory.
 type ProviderModelInspectFunc func(context.Context, contentkit.ProviderAdapterRuntime, contentkit.InstalledModel) error
 
-
-
 type SecretResolver interface {
 	ResolveSecret(context.Context, string) (string, error)
 }
