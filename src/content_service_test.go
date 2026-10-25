@@ -63,6 +63,53 @@ func TestContentCommandsRunInTheInstalledContentService(t *testing.T) {
 		t.Fatal("a missing config was reported valid")
 	}
 
+	// Upgrade through the public command, then execute the newly discovered
+	// package. A rejected upgrade must leave the previous package usable.
+	// ext revisions are content digests, not the display version. Produce a
+	// distinct valid binary instead of merely changing the version label.
+	upgradeBuild := exec.Command("go", "build", "-ldflags=-buildid=published-ext-upgrade", "-o", executable, "./cmd/content")
+	upgradeBuild.Dir = filepath.Join("..", "pkg", "console")
+	if output, err := upgradeBuild.CombinedOutput(); err != nil {
+		t.Fatalf("build upgrade: %v\n%s", err, output)
+	}
+	manifest, err = packagekit.ExecutableManifest("content", "1.0.1", []plugin.Contract{pluginContract(contentServiceContract)}, executable)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.WriteManifest(source, manifest); err != nil {
+		t.Fatal(err)
+	}
+	if err := pluginsCommand([]string{"upgrade", "--manifest", manifestPath}, io.Discard, io.Discard); err != nil {
+		t.Fatal(err)
+	}
+	if err := pluginsCommand([]string{"upgrade", "--manifest", manifestPath}, io.Discard, io.Discard); err == nil {
+		t.Fatal("same revision upgrade succeeded")
+	}
+	output.Reset()
+	if err := runContent([]string{"validate", "--config", configPath}, &output, &errors); err != nil || output.String() != "valid content config: 1 adapter(s)\n" {
+		t.Fatalf("validate after upgrade = %q, %v", output.String(), err)
+	}
+	installed, err := contentServicePackage()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if installed.Manifest.Descriptor.Identity.Revision != manifest.Descriptor.Identity.Revision {
+		t.Fatalf("upgrade revision = %s", installed.Manifest.Descriptor.Identity.Revision)
+	}
+	program, err := installed.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(program, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(program, []byte("tampered"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := runContent([]string{"validate", "--config", configPath}, &output, &errors); err == nil {
+		t.Fatal("tampered content service executed")
+	}
+
 	// The host admits only the operations the content service serves.
 	if err := contentServicePolicy(context.Background(), plugin.Request{Operation: "reboot"}); err == nil {
 		t.Fatal("an unknown content service operation was admitted")
@@ -164,40 +211,71 @@ func TestContentServeStreamsItsLogsAndStopsWhenCanceled(t *testing.T) {
 	address := listener.Addr().String()
 	listener.Close()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	var stdout bytes.Buffer
-	var logs lockedBuffer
-	done := make(chan error, 1)
-	go func() {
-		done <- runContentContext(ctx, []string{"serve", "--config", configPath, "--bind", address}, &stdout, &logs)
-	}()
-
-	// The log line the engine prints once it listens reaches the host while the
-	// command is still running.
-	deadline := time.Now().Add(20 * time.Second)
-	for !strings.Contains(logs.String(), "listening on") {
-		if time.Now().After(deadline) {
-			t.Fatalf("no streamed log line; logs = %q", logs.String())
+	for attempt := 0; attempt < 2; attempt++ {
+		ctx, cancel := context.WithCancel(context.Background())
+		if attempt == 1 {
+			cancel()
+			ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 		}
-		time.Sleep(25 * time.Millisecond)
-	}
-	response, err := http.Get("http://" + address + "/healthz")
-	if err != nil {
-		t.Fatalf("the served content engine does not answer: %v", err)
-	}
-	response.Body.Close()
-	if response.StatusCode != http.StatusOK {
-		t.Fatalf("healthz status = %d", response.StatusCode)
-	}
+		defer cancel()
+		var stdout bytes.Buffer
+		var logs lockedBuffer
+		done := make(chan error, 1)
+		go func() {
+			done <- runContentContext(ctx, []string{"serve", "--config", configPath, "--bind", address}, &stdout, &logs)
+		}()
 
-	cancel()
-	select {
-	case err := <-done:
+		// The log line the engine prints once it listens reaches the host while the
+		// command is still running.
+		deadline := time.Now().Add(20 * time.Second)
+		for !strings.Contains(logs.String(), "listening on") {
+			if time.Now().After(deadline) {
+				t.Fatalf("no streamed log line; logs = %q", logs.String())
+			}
+			time.Sleep(25 * time.Millisecond)
+		}
+		client := &http.Client{Timeout: 2 * time.Second}
+		response, err := client.Get("http://" + address + "/healthz")
 		if err != nil {
-			t.Fatalf("serve returned %v after cancellation", err)
+			t.Fatalf("the served content engine does not answer: %v", err)
 		}
-	case <-time.After(20 * time.Second):
-		t.Fatal("serve did not stop when canceled")
+		response.Body.Close()
+		if response.StatusCode != http.StatusOK {
+			t.Fatalf("healthz status = %d", response.StatusCode)
+		}
+
+		response, err = client.Post("http://"+address+"/v1/observe", "application/json", strings.NewReader(`{"requestId":"published-ext","image":"aW1hZ2U="}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		data, readErr := io.ReadAll(response.Body)
+		response.Body.Close()
+		if readErr != nil || response.StatusCode != http.StatusOK || !bytes.Contains(data, []byte(`"requestId":"published-ext"`)) {
+			t.Fatalf("observation = %d %s %v", response.StatusCode, data, readErr)
+		}
+		if attempt == 0 {
+			cancel()
+		}
+		select {
+		case err := <-done:
+			if err != nil {
+				t.Fatalf("serve returned %v after cancellation", err)
+			}
+		case <-time.After(20 * time.Second):
+			t.Fatal("serve did not stop when canceled")
+		}
+		if ctx.Err() == nil {
+			t.Fatal("serve returned before cancellation/deadline")
+		}
+		// Reclaim the exact listening address immediately, then start the service
+		// again on that address in the next iteration.
+		reclaimed, err := net.Listen("tcp", address)
+		if err != nil {
+			t.Fatalf("service retained its listener after close: %v", err)
+		}
+		if err := reclaimed.Close(); err != nil {
+			t.Fatal(err)
+		}
+		t.Logf("cycle %d: observation, streamed readiness, %v, listener reclaimed", attempt+1, ctx.Err())
 	}
 }
