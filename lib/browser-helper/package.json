@@ -2,7 +2,7 @@
   "name": "@cymonkey/browser-helper",
   "version": "0.1.0",
   "type": "module",
-  "description": "Composable browser, extension, and userscript APIs for Cymonkey integrations",
+  "description": "Composable browser, extension, userscript, and device viewer APIs for Cymonkey integrations",
   "files": [
     "dist",
     "README.md"
@@ -11,6 +11,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./device-viewer": {
+      "types": "./dist/device-viewer.d.ts",
+      "default": "./dist/device-viewer.js"
     }
   },
   "scripts": {

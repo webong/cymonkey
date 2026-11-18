@@ -42,3 +42,5 @@ export type {ControlCall, ControlResponse, ControlTransport} from './generated/b
 export {createExtensionManager} from './extension-manager.js';
 export type {ExtensionDescription, NativeExtensionInfo, ManagementEvent, NativeEvent, NativeManagement, InstallRequest, InstallBackend, ManagerCapabilities} from './extension-manager.js';
 export * from './userscript-runtime/index.js';
+export {DeviceViewer} from './device-viewer.js';
+export type {DeviceViewerOptions, DeviceViewerConnectOptions, DeviceViewerSignal, DeviceViewerDiagnostics, DeviceViewerRoute, DeviceViewerMedia, PointerButton} from './device-viewer.js';
