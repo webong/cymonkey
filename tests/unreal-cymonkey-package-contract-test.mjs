@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const root = new URL("../lib/unreal/", import.meta.url);
+const root = new URL("../pkg/unreal/", import.meta.url);
 const plugin = JSON.parse(await readFile(new URL("Cymonkey.uplugin", root)));
 const protocol = await readFile(new URL("Source/Cymonkey/Public/CymonkeyProtocol.h", root), "utf8");
 const registryHeader = await readFile(new URL("Source/Cymonkey/Public/CymonkeyRegistryComponent.h", root), "utf8");
@@ -10,7 +10,7 @@ const transport = await readFile(new URL("Source/Cymonkey/Public/ICymonkeyTransp
 const router = await readFile(new URL("Source/Cymonkey/Private/CymonkeyRequestRouter.cpp", root), "utf8");
 const host = await readFile(new URL("Source/Cymonkey/Private/CymonkeyWebSocketHost.cpp", root), "utf8");
 const hostHeader = await readFile(new URL("Source/Cymonkey/Public/CymonkeyWebSocketHost.h", root), "utf8");
-const goProtocol = await readFile(new URL("../lib/jangolova/displaykit/contract/protocol.go", import.meta.url), "utf8");
+const goProtocol = await readFile(new URL("../res/jangolova/displaykit/contract/protocol.go", import.meta.url), "utf8");
 
 assert.equal(plugin.Modules[0].Name, "Cymonkey");
 assert.equal(plugin.Modules[0].Type, "Runtime");

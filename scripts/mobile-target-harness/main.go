@@ -82,7 +82,7 @@ func run() error {
 	certFile := flag.String("cert", "", "TLS certificate for --host (for example from mkcert)")
 	keyFile := flag.String("key", "", "TLS key for the certificate")
 	viewerListen := flag.String("viewer-listen", "127.0.0.1:7400", "loopback address for the browser viewer")
-	viewerDir := flag.String("viewer-dir", "lib/browser-helper", "browser-helper package with viewer/ and a built dist/")
+	viewerDir := flag.String("viewer-dir", "res/browser-helper", "browser-helper package with viewer/ and a built dist/")
 	ttl := flag.Int("ttl", 900, "target and session lifetime in seconds")
 	audio := flag.Bool("audio", false, "grant system audio")
 	microphone := flag.Bool("microphone", false, "grant the phone microphone")

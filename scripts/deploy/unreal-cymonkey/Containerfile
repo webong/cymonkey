@@ -3,12 +3,12 @@ FROM ${UE_BUILD_IMAGE} AS builder
 
 ARG UE_ROOT=/opt/UnrealEngine
 WORKDIR /workspace
-COPY lib/unreal ./lib/unreal
+COPY pkg/unreal ./pkg/unreal
 COPY tests/unreal-cymonkey-fixture ./tests/unreal-cymonkey-fixture
 
 RUN test -x "${UE_ROOT}/Engine/Build/BatchFiles/RunUAT.sh"
 RUN "${UE_ROOT}/Engine/Build/BatchFiles/RunUAT.sh" BuildPlugin \
-    -Plugin="/workspace/lib/unreal/Cymonkey.uplugin" \
+    -Plugin="/workspace/pkg/unreal/Cymonkey.uplugin" \
     -Package="/out/Cymonkey" \
     -Rocket \
     -TargetPlatforms=Linux \

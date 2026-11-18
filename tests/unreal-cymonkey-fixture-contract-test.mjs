@@ -9,8 +9,8 @@ const automation = await readFile(new URL("Source/UnrealCymonkeyFixture/Private/
 const build = await readFile(new URL("Source/UnrealCymonkeyFixture/UnrealCymonkeyFixture.Build.cs", root), "utf8");
 const container = await readFile(new URL("../scripts/deploy/unreal-cymonkey/Containerfile", import.meta.url), "utf8");
 const runtime = await readFile(new URL("../scripts/deploy/unreal-cymonkey/run-fixture.sh", import.meta.url), "utf8");
-const server = await readFile(new URL("../lib/unreal/Source/Cymonkey/Private/CymonkeyWebSocketServer.cpp", import.meta.url), "utf8");
-const serverHeader = await readFile(new URL("../lib/unreal/Source/Cymonkey/Public/CymonkeyWebSocketServer.h", import.meta.url), "utf8");
+const server = await readFile(new URL("../pkg/unreal/Source/Cymonkey/Private/CymonkeyWebSocketServer.cpp", import.meta.url), "utf8");
+const serverHeader = await readFile(new URL("../pkg/unreal/Source/Cymonkey/Public/CymonkeyWebSocketServer.h", import.meta.url), "utf8");
 
 assert.equal(project.Modules[0].Name, "UnrealCymonkeyFixture");
 assert.equal(project.Modules[0].Type, "Runtime");

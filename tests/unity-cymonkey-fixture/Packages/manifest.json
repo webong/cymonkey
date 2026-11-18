@@ -1,5 +1,5 @@
 {
   "dependencies": {
-    "com.cymonkey.jangolova": "file:../../../lib/unity"
+    "com.cymonkey.jangolova": "file:../../../pkg/unity"
   }
 }

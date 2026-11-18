@@ -14,4 +14,4 @@ require (
 
 require jangolova v0.0.0
 
-replace jangolova => ./lib/jangolova
+replace jangolova => ./res/jangolova

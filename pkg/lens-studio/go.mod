@@ -11,4 +11,4 @@ require github.com/gorilla/websocket v1.5.3 // indirect
 
 replace board => ../board
 
-replace jangolova => ../../lib/jangolova
+replace jangolova => ../../res/jangolova

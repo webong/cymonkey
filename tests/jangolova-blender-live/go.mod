@@ -10,4 +10,4 @@ require (
 
 replace board => ../../pkg/board
 
-replace jangolova => ../../lib/jangolova
+replace jangolova => ../../res/jangolova
