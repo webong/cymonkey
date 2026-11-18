@@ -5,6 +5,7 @@
   "description": "Composable browser, extension, userscript, and device viewer APIs for Cymonkey integrations",
   "files": [
     "dist",
+    "viewer",
     "README.md"
   ],
   "exports": {

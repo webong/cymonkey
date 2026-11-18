@@ -82,7 +82,7 @@ func run() error {
 	certFile := flag.String("cert", "", "TLS certificate for --host (for example from mkcert)")
 	keyFile := flag.String("key", "", "TLS key for the certificate")
 	viewerListen := flag.String("viewer-listen", "127.0.0.1:7400", "loopback address for the browser viewer")
-	viewerDir := flag.String("viewer-dir", "lib/device-viewer", "viewer static files")
+	viewerDir := flag.String("viewer-dir", "lib/browser-helper", "browser-helper package with viewer/ and a built dist/")
 	ttl := flag.Int("ttl", 900, "target and session lifetime in seconds")
 	audio := flag.Bool("audio", false, "grant system audio")
 	microphone := flag.Bool("microphone", false, "grant the phone microphone")
@@ -165,16 +165,25 @@ func run() error {
 document.getElementById('endpoint').value=c.endpoint;document.getElementById('credential').value=c.credential;
 document.getElementById('status').textContent='Credentials loaded; press Connect.';`)
 	})
+	// Only the demo UI and the built library leave the package directory.
+	page.Handle("/viewer/", static)
+	page.Handle("/dist/", static)
 	page.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" && r.URL.Path != "/index.html" {
-			static.ServeHTTP(w, r)
+			http.NotFound(w, r)
 			return
 		}
-		html, err := os.ReadFile(filepath.Join(*viewerDir, "index.html"))
+		html, err := os.ReadFile(filepath.Join(*viewerDir, "viewer", "index.html"))
 		if err != nil {
-			http.Error(w, "viewer page unavailable", 500)
+			http.Error(w, "viewer page unavailable (run npm run build:browser-helper)", 500)
 			return
 		}
+		if _, err := os.Stat(filepath.Join(*viewerDir, "dist", "device-viewer.js")); err != nil {
+			http.Error(w, "viewer library not built (run npm run build:browser-helper)", 500)
+			return
+		}
+		// Served at "/", the page resolves app.js and ../dist/ from /viewer/.
+		html = bytes.Replace(html, []byte(`<meta charset="utf-8">`), []byte(`<meta charset="utf-8"><base href="/viewer/">`), 1)
 		html = bytes.Replace(html, []byte("</html>"), []byte(`<script type="module" src="/__harness.js"></script></html>`), 1)
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		_, _ = w.Write(html)
