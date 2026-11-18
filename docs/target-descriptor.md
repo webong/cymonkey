@@ -5,8 +5,8 @@ a native machine, in a container, in a VM, or remotely. The target may be in
 any of those places independently. The interaction contract contains no local
 or remote mode.
 
-The caller points Jangolova at an already-running target using the
-[provider-neutral target schema](../src/protocol/target/v1/target.schema.json).
+The caller points Jangolova at an already-running target with a
+provider-neutral target descriptor.
 The caller may be a person, an agent, a native launcher, a container
 supervisor, a VM manager, Xallet, or another orchestration system.
 

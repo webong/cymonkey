@@ -29,8 +29,8 @@ messages, lifecycle events, and display service shutdown errors.
 
 ## Material documents
 
-Environment and directory resolvers consume strict documents matching the
-[connection material schema](../src/protocol/target/v1/connection-material.schema.json).
+Environment and directory resolvers consume strict connection
+material documents.
 A credential is a set of connection headers with a mandatory expiry:
 
 ```json
