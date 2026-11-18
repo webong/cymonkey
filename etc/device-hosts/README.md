@@ -90,6 +90,7 @@ mkcert -cert-file cert.pem -key-file key.pem <LAN IP> <host>.local localhost
 # Settings, General, About, Certificate Trust Settings: enable full trust.
 export CYMONKEY_OPERATOR_TOKEN=$(openssl rand -hex 16)
 cymy operator serve &
+npm run build:browser-helper
 go run ./scripts/mobile-target-harness --cert cert.pem --key key.pem
 ```
 
@@ -105,7 +106,7 @@ is not needed on the Mac; the phone must trust the CA, the Mac does not.
 Follow [mobile target registration](../../docs/device-mobile-sessions.md).
 The trusted harness registers video plus independently enabled audio flags,
 passes only the producer URL/token to the phone, and opens a viewer session on
-the returned adapter. Use `lib/device-viewer` in Safari/Chrome on the viewer
+the returned adapter. Use the browser-helper device viewer (`lib/browser-helper/viewer/`) in Safari/Chrome on the viewer
 phone or desktop; no second native viewer implementation is needed.
 
 Use an operator served over trusted HTTPS, with the viewer on the same origin.
