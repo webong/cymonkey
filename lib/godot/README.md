@@ -1,4 +1,4 @@
-# Jangolova Cymonkey for Godot
+# Cymonkey for Godot
 
 `godot-cymonkey` is the license-free reference runtime for the `render` domain
 of `cymonkey/v1alpha1`. It is a small Godot 4 GDScript package that keeps
