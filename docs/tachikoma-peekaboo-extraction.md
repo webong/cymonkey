@@ -14,15 +14,15 @@ model or desktop acceptance. Full upstream feature parity is not claimed.
 
 | Location | Responsibility |
 | --- | --- |
-| `lib/jangolova/generationkit` | Neutral messages, generation, streaming, embeddings, speech, validation and explicit model registration |
+| `res/jangolova/generationkit` | Neutral messages, generation, streaming, embeddings, speech, validation and explicit model registration |
 | `pkg/console` | Schema-checked tools, selected invocation, one model turn, transcript continuation, bindings and HTTP/MCP presentation |
-| `lib/jangolova/displaykit/ui` | Portable UI observations, target identity, action receipts, predicates and bounded read-only waits |
+| `res/jangolova/displaykit/ui` | Portable UI observations, target identity, action receipts, predicates and bounded read-only waits |
 | `pkg/console/capture` | Finite image processing, native capture bridge, frame sampling, manifests and caller-supplied video decoding |
 | `pkg/board/clipboard` | Clipboard snapshots, conditional writes and Board resource grants |
 | `pkg/board/audio` | Device interfaces and finite PCM16/WAV conversion |
 | `github.com/webong/ext/pkg/plugin/jsonschema` | Shared bounded offline schema validation (ext) |
 | `pkg/content-endpoints` | Explicitly selected HTTP/WebSocket protocols, credentials and native model options |
-| `lib/macos-helper` | Native AX, capture, targeted input and clipboard implementation |
+| `res/macos-helper` | Native AX, capture, targeted input and clipboard implementation |
 | `src/console_command.go` | Host configuration, borrowed operator resources, CLI, listener/authentication and artifact destinations |
 
 Blockade has no built-in providers, endpoint defaults, model catalog or

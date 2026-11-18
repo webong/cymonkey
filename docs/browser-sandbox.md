@@ -4,7 +4,7 @@ Some browser packages need an isolated document with a different content
 security policy from an ordinary extension script. A consuming extension may
 provide that sandbox and bundle reviewed package assets in its own build.
 
-[`@cymonkey/browser-helper`](../lib/browser-helper/README.md) provides
+[`@cymonkey/browser-helper`](../res/browser-helper/README.md) provides
 package validation, approvals, tab routing, and `createMediaBrokerController`
 for tab-scoped camera sessions. `installEphemeralWebStorage` gives a sandboxed
 document in-memory storage that disappears when the document closes.
@@ -16,4 +16,4 @@ security policy, browser permissions, consent UI,
 and offscreen document that actually obtains media. A sandbox must not receive
 privileged extension APIs or a general remote-code loader. Camera Kit is an
 example package that needs such a host; its runtime code is in
-[`lib/snapchat-camera`](../lib/snapchat-camera/README.md).
+[`pkg/snapchat-camera`](../pkg/snapchat-camera/README.md).

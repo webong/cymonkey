@@ -10,8 +10,8 @@ Unity and Unreal integrations use the Cymonkey `render` domain over a
 caller-owned `websocket` endpoint. The Jangolova adapter dials that endpoint
 from the generic target descriptor. The application owns the listener,
 renderer, display, and lifecycle. The Unity MVP is at
-`lib/unity`; the Unreal C++ implementation starts at
-`lib/unreal`. Both use the same transport-neutral resource and method
+`pkg/unity`; the Unreal C++ implementation starts at
+`pkg/unreal`. Both use the same transport-neutral resource and method
 contract.
 
 ## Legacy cooperative bridge

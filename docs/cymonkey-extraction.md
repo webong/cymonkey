@@ -11,12 +11,12 @@ are separate. Jangolova does not configure or call Blockade.
 
 | Path | Responsibility |
 | --- | --- |
-| `lib/jangolova/displaykit/contract` | Public runtime wire data and validation. |
-| `lib/jangolova/displaykit/sdk` | Target/spec/session types and injected host service interfaces. |
+| `res/jangolova/displaykit/contract` | Public runtime wire data and validation. |
+| `res/jangolova/displaykit/sdk` | Target/spec/session types and injected host service interfaces. |
 | `pkg/board/display` | Runtime selection and browser/native semantic adapters. |
 | `src/internal/targetconn` | Caller-owned endpoint, credential, and TLS material handling. |
-| `lib/jangolova/displaykit/registry` | Metadata discovery, verified retrieval, and explicit activation. |
-| `lib/jangolova/displaykit/host` | Jangolova-owned host service boundary and dependency injection contract. |
+| `res/jangolova/displaykit/registry` | Metadata discovery, verified retrieval, and explicit activation. |
+| `res/jangolova/displaykit/host` | Jangolova-owned host service boundary and dependency injection contract. |
 | `src/display_*.go` | Executable-side composition of Cymonkey host services and the display library adapters. |
 | `src/internal/core` | Cymonkey's private composition and coordination implementation. |
 | `pkg/` | Distributable runtime packages. |
@@ -42,7 +42,7 @@ cleanup remain host responsibilities.
 
 The host supplies worker startup, credential-aware connection setup, cooperative
 listeners, and the legacy Safari connection. Missing services fail explicitly.
-`lib/jangolova/displaykit/host.Services` defines the Jangolova-owned host boundary.
+`res/jangolova/displaykit/host.Services` defines the Jangolova-owned host boundary.
 The Cymonkey executable supplies private services through the public host
 contract and converts public adapter sessions into the private provider
 contract. Its `engineRegistry` registers Jangolova adapters at startup and
@@ -75,6 +75,6 @@ artifacts through `registry.Activate`, supplying an approval callback and a
 runtime-specific mount callback. The SDK does not implement a universal binary
 plugin loader, install editor licenses, or own target process lifecycle.
 
-See [the public SDK guide](../lib/jangolova/displaykit/sdk/README.md),
+See [the public SDK guide](../res/jangolova/displaykit/sdk/README.md),
 [module discovery and activation](display-module-registry.md), and
 [runtime validation record](display-runtime-validation.md).

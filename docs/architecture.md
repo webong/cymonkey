@@ -74,7 +74,7 @@ local store and Jangolova's CDP/BiDi attachment provide extension-free
 registration. Integrators can use the browser helper's userscript APIs in their
 own extensions, and the macOS helper supplies source-free catalog data.
 
-`lib/macos-helper` includes a reusable Swift catalog and managed-runtime
+`res/macos-helper` includes a reusable Swift catalog and managed-runtime
 controller. A caller-owned macOS app can import it and provide its own UI and
 Safari extension if desired. It owns only its helper connection, never the
 target applications it augments.
@@ -185,11 +185,13 @@ calls. The cooperative Unity bridge implements the same vocabulary.
 
 The repository has one host and many guests. `src/` is the host: the single
 `cymy` binary, its generic contracts, admission policy and adapters.
-`lib/jangolova` is the shared library that the host and every guest depend on:
-the content, device and generation contracts and their host roles, with no
-engine behind them. `pkg/` holds the guests: `board` (devices and the display
-engine), `console`, the content providers and the platform products, and
-`lib/` also holds the non-Go helper products. The host never imports a guest;
+`res/` holds the runtime libraries: `res/jangolova`, the shared library that the
+host and every guest depend on (the content, device and generation contracts and
+their host roles, with no engine behind them), and the browser and native
+platform helpers. `pkg/` holds the appliance libraries that also work for other
+applications: the guests `board` (devices and the display engine), `console` and
+the content providers, and the engine and app packages (Godot, Unity, Unreal,
+Blender, Three.js, Snapchat Camera Kit, Lens Studio, Effect House, Liveframe). The host never imports a guest;
 it reaches them through the ext plugin system
 (`github.com/webong/ext/pkg/plugin-go/contract`). Until the cut is complete,
 `src/internal/boundary/guest_imports_test.go` fails on any new import of a
@@ -227,9 +229,9 @@ src/contentcli/                Cymonkey content command handlers
 src/devicecli/                 Cymonkey device command handlers
 src/internal/provider/         provider and MCP implementation
 src/fixtures/native-bridge/    native bridge fixture implementation
-lib/jangolova/                       shared contracts and host roles (one module)
-lib/jangolova/contentkit/            content provider host role and contracts
-lib/jangolova/generationkit/             generation, embedding and speech contracts
+res/jangolova/                       shared contracts and host roles (one module)
+res/jangolova/contentkit/            content provider host role and contracts
+res/jangolova/generationkit/             generation, embedding and speech contracts
 pkg/console/                   standalone tool composition library
 src/adapters/browserautomation/ Playwright CDP and Puppeteer CDP/BiDi attachment
 src/adapters/webdriverclassic/  existing W3C WebDriver session attachment
@@ -244,24 +246,24 @@ src/observation/                Jangolova capture and Blockade inference workflo
 pkg/board/                      standalone Board device library
 pkg/board/drive.go              read-only mounted-drive provider
 pkg/board/macoskeyboard/         explicit-PID macOS keyboard provider
-lib/jangolova/devicekit/host/              provider registration and grant selection
+res/jangolova/devicekit/host/              provider registration and grant selection
 src/internal/core/              core registry/composition/conformance code
 src/internal/host/              Cymonkey host configuration and process supervisor
 pkg/board/display/                  standalone Jangolova library and host boundary
-lib/jangolova/displaykit/host/             Jangolova host service injection contract
-lib/jangolova/contentkit/                 content provider host role and contracts
-lib/jangolova/generationkit/              generation, embedding and speech contracts
-lib/jangolova/contentkit/protocol/          content contract schemas and fixtures
+res/jangolova/displaykit/host/             Jangolova host service injection contract
+res/jangolova/contentkit/                 content provider host role and contracts
+res/jangolova/generationkit/              generation, embedding and speech contracts
+res/jangolova/contentkit/protocol/          content contract schemas and fixtures
 src/internal/targetconn/        caller-owned target connection helpers
-lib/jangolova/displaykit/contract/         public runtime wire contract
-lib/jangolova/displaykit/sdk/              public types and host-injection interfaces
-lib/jangolova/displaykit/registry/         reviewed module discovery and activation
+res/jangolova/displaykit/contract/         public runtime wire contract
+res/jangolova/displaykit/sdk/              public types and host-injection interfaces
+res/jangolova/displaykit/registry/         reviewed module discovery and activation
 src/protocol/cymonkey/          canonical versioned Cymonkey schemas
 src/protocol/browser-extension/ schema, recorded exchanges, and generated binding source
 tests/cymonkey-core-conformance.mjs  portable Cymonkey contract checks
-lib/browser-helper/             browser API, extension management, userscript, and device viewer library
-lib/macos-helper/       Swift native binding, userscript catalog, and managed-runtime controller
-lib/threejs/            explicit-registration Three.js runtime
+res/browser-helper/             browser API, extension management, userscript, and device viewer library
+res/macos-helper/       Swift native binding, userscript catalog, and managed-runtime controller
+pkg/threejs/            explicit-registration Three.js runtime
 pkg/                             distributable Godot, Unity, and Unreal Cymonkey packages
 tests/godot-cymonkey-fixture/    license-free Godot conformance project
 tests/unreal-cymonkey-fixture/   caller-owned Unreal conformance project

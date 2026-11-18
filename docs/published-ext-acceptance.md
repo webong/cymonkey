@@ -31,7 +31,7 @@ Every tracked nested Go module is inventoried and built/tested independently;
 root `go test ./...` alone is insufficient. The export rejects vendor trees,
 ext replacements, nonlocal replacements, escaping replacement paths, and
 symlinks escaping the export. Legitimate internal replacements such as
-`jangolova => ./lib/jangolova` are preserved. Dependency files are read-only and
+`jangolova => ./res/jangolova` are preserved. Dependency files are read-only and
 compared byte-for-byte after the run. Tests use `-count=1`.
 
 The exact remote module graph is also checked with `go mod verify` in a

@@ -195,4 +195,4 @@ and platform limitations.
 configured engines, model and runtime stores, the HTTP service and client, and
 the `content.provider` plugin adapter with its admission policy. It hosts the
 content providers (`pkg/content-*`) and builds on the shared content contract in
-`lib/jangolova/contentkit`.
+`res/jangolova/contentkit`.

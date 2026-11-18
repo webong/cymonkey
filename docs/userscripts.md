@@ -8,7 +8,7 @@ Cymonkey treats the declared features as requirements rather than treating a
 manager name as a compatibility guarantee. In particular, an omitted `@grant`
 is distinct from `@grant none`.
 
-The [Android WebView SDK](../lib/android-helper/README.md) can inspect any
+The [Android WebView SDK](../res/android-helper/README.md) can inspect any
 imported userscript and return a compatibility report before approval. Its
 current execution backend supports explicit `@grant none`, bounded HTTPS
 `@match`/`@exclude-match` and `@include`/`@exclude` rules. On WebViews with
@@ -55,10 +55,10 @@ commands and limits.
 ## Library for consuming extensions
 
 The shared `cymonkey.userscript/v1alpha1` manifest, validation, and
-registration planning live in [`lib/browser-helper`](../lib/browser-helper/README.md).
+registration planning live in [`res/browser-helper`](../res/browser-helper/README.md).
 An extension that wants persistent browser-native userscripts can import the
 library and supply its own browser APIs, approval UI, storage, and lifecycle.
-[`@cymonkey/browser-helper`](../lib/browser-helper/README.md) can provide
+[`@cymonkey/browser-helper`](../res/browser-helper/README.md) can provide
 scoped script registration and storage. Cymonkey does not ship an installable
 userscript-manager extension.
 
