@@ -5,7 +5,7 @@
 // stderr streams to the host as progress events while it runs.
 package commandkit
 
-import plugin "github.com/webong/ext/pkg/plugin-go/contract"
+import plugin "github.com/webong/ext/pkg/ext-go/engine"
 
 const (
 	// MaxOutputBytes bounds what one command may return on each stream.

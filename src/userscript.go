@@ -16,7 +16,7 @@ import (
 
 	"cymonkey/src/internal/paths"
 	"cymonkey/src/internal/provider"
-	userscripts "github.com/webong/ext/res/web/userscript"
+	userscripts "github.com/webong/ext/res/web/host/artifact/userscript"
 )
 
 type repeatFlag []string

@@ -8,7 +8,7 @@ import (
 	"image/jpeg"
 	"testing"
 
-	plugin "github.com/webong/ext/pkg/plugin-go/contract"
+	plugin "github.com/webong/ext/pkg/ext-go/engine"
 )
 
 func jpegFrame(t *testing.T, width, height int) []byte {

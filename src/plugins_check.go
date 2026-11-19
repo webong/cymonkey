@@ -7,7 +7,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
+	"github.com/webong/ext/pkg/ext-go/engine/host/store"
 )
 
 // pluginRole is one thing the host needs a package for: the contract the

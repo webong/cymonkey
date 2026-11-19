@@ -9,9 +9,9 @@ import (
 	"jangolova/contentkit"
 	"strings"
 
-	plugin "github.com/webong/ext/pkg/plugin-go/contract"
-	packagekit "github.com/webong/ext/pkg/plugin-go/contract/package"
-	"github.com/webong/ext/pkg/plugin-go/contract/transport/jsonline"
+	plugin "github.com/webong/ext/pkg/ext-go/engine"
+	packagekit "github.com/webong/ext/pkg/ext-go/engine/package"
+	"github.com/webong/ext/pkg/ext-go/engine/transport/jsonline"
 )
 
 type StartRequest struct {

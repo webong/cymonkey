@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	extplugin "github.com/webong/ext/pkg/plugin-go/contract"
+	extplugin "github.com/webong/ext/pkg/ext-go/engine"
 )
 
 func op(name string) extplugin.Request { return extplugin.Request{Operation: name} }

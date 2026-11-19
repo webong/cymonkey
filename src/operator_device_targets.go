@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
+	"github.com/webong/ext/pkg/ext-go/engine/host/store"
 )
 
 const (

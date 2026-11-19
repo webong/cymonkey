@@ -7,7 +7,7 @@ import (
 	"jangolova/contentkit"
 	"strings"
 
-	"github.com/webong/ext/pkg/plugin-go/contract/validate/jsonschema"
+	"github.com/webong/ext/pkg/ext-go/engine/validate/jsonschema"
 )
 
 // StructuredEvent exposes unmodified text deltas and complete schema-valid

@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	extplugin "github.com/webong/ext/pkg/plugin-go/contract"
-	"github.com/webong/ext/pkg/plugin-go/contract/host"
-	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
+	extplugin "github.com/webong/ext/pkg/ext-go/engine"
+	"github.com/webong/ext/pkg/ext-go/engine/host"
+	"github.com/webong/ext/pkg/ext-go/engine/host/store"
 	"jangolova/devicekit"
 )
 

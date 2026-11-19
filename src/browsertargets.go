@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"cymonkey/src/internal/browsermanage"
-	"github.com/webong/ext/res/web/extension"
+	"github.com/webong/ext/res/web/host/artifact/extension"
 )
 
 // browserTarget is a discovered browser profile and the adapter that reported it.

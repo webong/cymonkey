@@ -12,10 +12,10 @@ import (
 	"os/exec"
 	"time"
 
-	plugin "github.com/webong/ext/pkg/plugin-go/contract"
-	"github.com/webong/ext/pkg/plugin-go/contract/host"
-	"github.com/webong/ext/pkg/plugin-go/contract/host/process"
-	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
+	plugin "github.com/webong/ext/pkg/ext-go/engine"
+	"github.com/webong/ext/pkg/ext-go/engine/host"
+	"github.com/webong/ext/pkg/ext-go/engine/host/process"
+	"github.com/webong/ext/pkg/ext-go/engine/host/store"
 	"jangolova/commandkit"
 )
 

@@ -7,7 +7,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	plugin "github.com/webong/ext/pkg/plugin-go/contract"
+	plugin "github.com/webong/ext/pkg/ext-go/engine"
 )
 
 // maxEventText is the longest text one progress event may carry.

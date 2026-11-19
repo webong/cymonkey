@@ -7,7 +7,7 @@ import (
 
 	"console/contentengine"
 	contentplugin "console/contentengine/plugin"
-	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
+	"github.com/webong/ext/pkg/ext-go/engine/host/store"
 )
 
 // pluginRoot is the store that holds the installed provider packages.

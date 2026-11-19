@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/webong/ext/res/web/contract"
+	"github.com/webong/ext/res/web/host/contract"
 )
 
 // Cookie runs a cookie operation ("query" or "normalize") on a trusted browser

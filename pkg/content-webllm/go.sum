@@ -1,2 +1,2 @@
-github.com/webong/ext/pkg/plugin-go/contract v0.7.0 h1:Flh3CqO0kE4Xj+83sbJZghXJkkO/jmaXBr5IhnAWSIo=
-github.com/webong/ext/pkg/plugin-go/contract v0.7.0/go.mod h1:YajPTz7utaUNrcn856mnFegEHuk8l70pK2krbVFSZoc=
+github.com/webong/ext/pkg/ext-go/engine v0.4.0 h1:UpF71NLx8q3Q/LYJyvfd6wfbQ5/VfGOIk4V2YAXY2kE=
+github.com/webong/ext/pkg/ext-go/engine v0.4.0/go.mod h1:lnYoMIb5lKAnz60k2oG47rhxxFqOLA5MT3IaU5rlU4s=

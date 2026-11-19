@@ -193,7 +193,7 @@ applications: the guests `board` (devices and the display engine), `console` and
 the content providers, and the engine and app packages (Godot, Unity, Unreal,
 Blender, Three.js, Snapchat Camera Kit, Lens Studio, Effect House, Liveframe). The host never imports a guest;
 it reaches them through the ext plugin system
-(`github.com/webong/ext/pkg/plugin-go/contract`). Until the cut is complete,
+(`github.com/webong/ext/pkg/ext-go/engine`). Until the cut is complete,
 `src/internal/boundary/guest_imports_test.go` fails on any new import of a
 guest Go module; the list of exceptions is empty. `tests/` is the conformance
 and fixture surface. `board`, `console`, the content providers and `jangolova`

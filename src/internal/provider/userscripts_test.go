@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"cymonkey/src/internal/orchestrator"
-	userscripts "github.com/webong/ext/res/web/userscript"
+	userscripts "github.com/webong/ext/res/web/host/artifact/userscript"
 )
 
 type userscriptCallerFixture struct{ calls []json.RawMessage }

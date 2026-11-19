@@ -15,7 +15,7 @@ import (
 	"jangolova/mobilekit"
 
 	"github.com/gorilla/websocket"
-	plugin "github.com/webong/ext/pkg/plugin-go/contract"
+	plugin "github.com/webong/ext/pkg/ext-go/engine"
 )
 
 func startServer(t *testing.T, media mobilekit.Media) (*Server, mobilekit.StartResult) {

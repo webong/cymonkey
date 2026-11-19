@@ -25,8 +25,8 @@ import (
 
 	"github.com/gorilla/websocket"
 	pion "github.com/pion/webrtc/v4"
-	plugin "github.com/webong/ext/pkg/plugin-go/contract"
-	"github.com/webong/ext/pkg/plugin-go/contract/endpoint"
+	plugin "github.com/webong/ext/pkg/ext-go/engine"
+	"github.com/webong/ext/pkg/ext-go/engine/endpoint"
 )
 
 const (

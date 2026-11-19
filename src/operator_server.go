@@ -18,7 +18,7 @@ import (
 	"cymonkey/src/internal/engineprovider"
 	"cymonkey/src/internal/orchestrator"
 	"cymonkey/src/observation"
-	userscripts "github.com/webong/ext/res/web/userscript"
+	userscripts "github.com/webong/ext/res/web/host/artifact/userscript"
 	"jangolova/devicekit"
 	"jangolova/mobilekit"
 )

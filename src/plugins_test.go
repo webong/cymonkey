@@ -16,10 +16,10 @@ import (
 
 	"cymonkey/src/internal/manifest"
 	"cymonkey/src/internal/orchestrator"
-	plugin "github.com/webong/ext/pkg/plugin-go/contract"
-	"github.com/webong/ext/pkg/plugin-go/contract/host"
-	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
-	packagekit "github.com/webong/ext/pkg/plugin-go/contract/package"
+	plugin "github.com/webong/ext/pkg/ext-go/engine"
+	"github.com/webong/ext/pkg/ext-go/engine/host"
+	"github.com/webong/ext/pkg/ext-go/engine/host/store"
+	packagekit "github.com/webong/ext/pkg/ext-go/engine/package"
 	"jangolova/devicekit"
 	"jangolova/displaykit/bridge"
 )

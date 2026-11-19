@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	extplugin "github.com/webong/ext/pkg/plugin-go/contract"
+	extplugin "github.com/webong/ext/pkg/ext-go/engine"
 )
 
 // sequence is an admission policy for one plugin process. ext asks it before

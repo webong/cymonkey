@@ -1,6 +1,6 @@
 # Browser bookmarklets
 
-ext's `res/web/bookmarklet` library (`github.com/webong/ext/res/web/bookmarklet`)
+ext's bookmarklet library (`github.com/webong/ext/res/web/host/artifact/bookmarklet`)
 prepares small, user-activated page augmentations. Cymonkey exposes it through `cymy bookmarklet`. A saved bookmarklet
 runs in the current page when clicked; it needs neither an extension nor a
 running Cymonkey process.

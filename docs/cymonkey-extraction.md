@@ -24,7 +24,7 @@ are separate. Jangolova does not configure or call Blockade.
 `pkg/board/display` imports public Jangolova packages and has no transitive
 dependency on `cymonkey/src/internal`, the private adapter implementations, or
 `src/internal/targetconn`. Its optional process adapter imports only the
-ext plugin host (`pkg/plugin/host`). `TestPublicIntegrationHasNoPrivateDependencies`
+ext plugin host (`pkg/ext-go/engine/host`). `TestPublicIntegrationHasNoPrivateDependencies`
 checks the graph.
 
 There is deliberately no `cymonkey/cymonkey` re-export package. The core remains

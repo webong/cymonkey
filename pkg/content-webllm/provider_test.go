@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	plugin "github.com/webong/ext/pkg/plugin-go/contract"
+	plugin "github.com/webong/ext/pkg/ext-go/engine"
 )
 
 func TestCapabilitiesDoNotStartBrowser(t *testing.T) {

@@ -17,7 +17,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/webong/ext/pkg/plugin-go/contract/validate/jsonschema"
+	"github.com/webong/ext/pkg/ext-go/engine/validate/jsonschema"
 )
 
 var (

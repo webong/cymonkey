@@ -13,9 +13,9 @@ import (
 	"board/mobiletarget"
 	"jangolova/mobilekit"
 
-	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
-	packagekit "github.com/webong/ext/pkg/plugin-go/contract/package"
-	"github.com/webong/ext/pkg/plugin-go/contract/transport/jsonline"
+	"github.com/webong/ext/pkg/ext-go/engine/host/store"
+	packagekit "github.com/webong/ext/pkg/ext-go/engine/package"
+	"github.com/webong/ext/pkg/ext-go/engine/transport/jsonline"
 )
 
 func main() {

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"board/display"
-	plugin "github.com/webong/ext/pkg/plugin-go/contract"
+	plugin "github.com/webong/ext/pkg/ext-go/engine"
 	"jangolova/displaykit"
 	"jangolova/displaykit/sdk"
 	"jangolova/displaykit/serve"

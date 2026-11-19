@@ -1,6 +1,6 @@
 package displaykit
 
-import plugin "github.com/webong/ext/pkg/plugin-go/contract"
+import plugin "github.com/webong/ext/pkg/ext-go/engine"
 
 // The display.host contract is what a display engine package may ask of its
 // host while a session is connected. The host owns endpoint policy, the worker

@@ -12,7 +12,7 @@ import (
 
 	"cymonkey/src/internal/browsermanage"
 	"cymonkey/src/internal/engineprovider"
-	"github.com/webong/ext/res/web/contract"
+	"github.com/webong/ext/res/web/host/contract"
 )
 
 // browserSessionRequest is the Cymonkey-specific shortcut for the generic

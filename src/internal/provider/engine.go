@@ -19,7 +19,7 @@ import (
 	"cymonkey/src/internal/orchestrator"
 	"cymonkey/src/internal/paths"
 	"cymonkey/src/internal/targetconn"
-	userscripts "github.com/webong/ext/res/web/userscript"
+	userscripts "github.com/webong/ext/res/web/host/artifact/userscript"
 )
 
 func enginesCommand(args []string, registryFactory RegistryFactory) error {

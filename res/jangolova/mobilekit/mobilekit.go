@@ -12,7 +12,7 @@ import (
 	"errors"
 	"image/jpeg"
 
-	"github.com/webong/ext/pkg/plugin-go/contract/endpoint"
+	"github.com/webong/ext/pkg/ext-go/engine/endpoint"
 )
 
 const (

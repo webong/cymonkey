@@ -10,8 +10,8 @@ import (
 	"strings"
 	"syscall"
 
-	plugin "github.com/webong/ext/pkg/plugin-go/contract"
-	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
+	plugin "github.com/webong/ext/pkg/ext-go/engine"
+	"github.com/webong/ext/pkg/ext-go/engine/host/store"
 	"gopkg.in/yaml.v3"
 	commandrun "jangolova/commandkit/run"
 	"jangolova/contentkit/service"

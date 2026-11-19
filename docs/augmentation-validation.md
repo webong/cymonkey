@@ -6,7 +6,7 @@ It does not change the ownership of Board, Blockade, or caller-owned browsers.
 
 ## Implemented
 
-- ext's `res/web/bookmarklet` library with source/URL round trips and
+- ext's `res/web/host/artifact/bookmarklet` library with source/URL round trips and
   escaped, draggable HTML installation pages; exposed as `cymy bookmarklet`.
 - Reversible link-highlighter example, preserving comments, Unicode and `%`/`+`.
   Exported scripts cannot replace the page through a string return value.

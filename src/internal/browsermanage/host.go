@@ -15,8 +15,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/webong/ext/pkg/plugin-go/contract/host/adapter"
-	"github.com/webong/ext/res/web/contract"
+	"github.com/webong/ext/pkg/ext-go/engine/host/adapter"
+	"github.com/webong/ext/res/web/host/contract"
 )
 
 const (

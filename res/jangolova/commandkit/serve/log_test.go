@@ -5,7 +5,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	plugin "github.com/webong/ext/pkg/plugin-go/contract"
+	plugin "github.com/webong/ext/pkg/ext-go/engine"
 )
 
 func collect(events *[]plugin.Progress, err error) func(plugin.Progress) error {

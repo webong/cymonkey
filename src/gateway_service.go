@@ -9,7 +9,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/webong/ext/pkg/plugin-go/contract/host/store"
+	"github.com/webong/ext/pkg/ext-go/engine/host/store"
 	commandrun "jangolova/commandkit/run"
 	gatewayservice "jangolova/gatewaykit/service"
 )

@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/webong/ext/res/web/bookmarklet"
+	"github.com/webong/ext/res/web/host/artifact/bookmarklet"
 )
 
 func bookmarkletCommand(args []string, stdout io.Writer) error {

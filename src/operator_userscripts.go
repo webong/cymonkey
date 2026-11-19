@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"strings"
 
-	userscripts "github.com/webong/ext/res/web/userscript"
+	userscripts "github.com/webong/ext/res/web/host/artifact/userscript"
 )
 
 type userscriptOperatorRequest struct {
