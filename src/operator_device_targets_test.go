@@ -332,7 +332,7 @@ func TestMobileTargetPackageEndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 	executable := filepath.Join(source, "mobile")
-	buildGuest(t, executable, "pkg/board/cmd/mobile")
+	buildGuest(t, executable, "src/board/cmd/mobile")
 	manifest, err := packagekit.ExecutableManifest("mobile", "1.0.0", []plugin.Contract{pluginContract(mobileTargetContract)}, executable)
 	if err != nil {
 		t.Fatal(err)

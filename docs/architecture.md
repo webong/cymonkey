@@ -183,23 +183,27 @@ Every callable interaction engine uses the common bridge methods:
 The authenticated, provider-neutral `cymonkey.display/v1alpha1` HTTP API transports those
 calls. The cooperative Unity bridge implements the same vocabulary.
 
-The repository has one host and many guests. `src/` is the host: the single
-`cymy` binary, its generic contracts, admission policy and adapters.
+The repository has one host and many guests. `src/` is Cymonkey's core: the
+single `cymy` binary, its generic contracts, admission policy and adapters, and
+the two core guests `src/board` (devices and the display engine) and
+`src/console` (tool and model composition, the content engine). The core guests
+share the host's Go module but still run as separate plugin processes built
+from their own `cmd/` programs.
 `res/` holds the runtime libraries: `res/jangolova`, the shared library that the
 host and every guest depend on (the content, device and generation contracts and
 their host roles, with no engine behind them), and the browser and native
 platform helpers. `pkg/` holds the appliance libraries that also work for other
-applications: the guests `board` (devices and the display engine), `console` and
-the content providers, and the engine and app packages (Godot, Unity, Unreal,
-Blender, Three.js, Snapchat Camera Kit, Lens Studio, Effect House, Liveframe). The host never imports a guest;
-it reaches them through the ext plugin system
-(`github.com/webong/ext/pkg/ext-go/engine`). Until the cut is complete,
-`src/internal/boundary/guest_imports_test.go` fails on any new import of a
-guest Go module; the list of exceptions is empty. `tests/` is the conformance
-and fixture surface. `board`, `console`, the content providers and `jangolova`
-are separate Go modules. There is no `go.work`: the host's module requires only
-`jangolova` (through a local replacement) and cannot resolve a guest module, and
-each guest builds in its own module.
+applications: the content providers and the engine and app packages (Godot,
+Unity, Unreal, Blender, Three.js, Snapchat Camera Kit, Lens Studio, Effect
+House, Liveframe). The host never imports a guest; it reaches every guest
+through the ext plugin system (`github.com/webong/ext/pkg/ext-go/engine`).
+`src/internal/boundary/guest_imports_test.go` fails on any host import of
+`src/board`, `src/console` or a guest module under `pkg`, and on any import by
+a core guest of the host or of the other guest. `tests/` is the conformance
+and fixture surface. The content providers, the engine packages that need Go
+and `jangolova` are separate Go modules. There is no `go.work`: the host's
+module reaches `jangolova` through a local replacement, and each module under
+`pkg` builds on its own.
 Each library's plugin adapter selects the native executable contracts it understands;
 ext checks package structure and integrity without enumerating libraries. Cymonkey owns the command handlers, shared plugin directory, and
 public `cymonkey.*` wire contracts. Its composition adapters translate to the
@@ -232,7 +236,7 @@ src/fixtures/native-bridge/    native bridge fixture implementation
 res/jangolova/                       shared contracts and host roles (one module)
 res/jangolova/contentkit/            content provider host role and contracts
 res/jangolova/generationkit/             generation, embedding and speech contracts
-pkg/console/                   standalone tool composition library
+src/console/                   core guest: tool composition and the content engine
 src/adapters/browserautomation/ Playwright CDP and Puppeteer CDP/BiDi attachment
 src/adapters/webdriverclassic/  existing W3C WebDriver session attachment
 src/adapters/safarimcp/         caller-owned Safari MCP relay attachment
@@ -243,13 +247,13 @@ src/internal/orchestrator/      interaction lifecycle and target contracts
 src/internal/bridge/            engine-neutral semantic methods
 src/display_*.go                Executable-side display library services and adapter registration
 src/observation/                Jangolova capture and Blockade inference workflow
-pkg/board/                      standalone Board device library
-pkg/board/drive.go              read-only mounted-drive provider
-pkg/board/macoskeyboard/         explicit-PID macOS keyboard provider
+src/board/                      core guest: Board devices and the display engine
+src/board/drive.go              read-only mounted-drive provider
+src/board/macoskeyboard/         explicit-PID macOS keyboard provider
 res/jangolova/devicekit/host/              provider registration and grant selection
 src/internal/core/              core registry/composition/conformance code
 src/internal/host/              Cymonkey host configuration and process supervisor
-pkg/board/display/                  standalone Jangolova library and host boundary
+src/board/display/                  display engine and its host boundary
 res/jangolova/displaykit/host/             Jangolova host service injection contract
 res/jangolova/contentkit/                 content provider host role and contracts
 res/jangolova/generationkit/              generation, embedding and speech contracts

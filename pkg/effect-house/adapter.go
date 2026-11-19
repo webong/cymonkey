@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	displayengine "board/display"
+	displayengine "cymonkey/src/board/display"
 	contract "jangolova/displaykit/contract"
 	"jangolova/displaykit/sdk"
 )

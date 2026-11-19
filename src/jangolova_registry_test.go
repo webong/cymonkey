@@ -22,7 +22,7 @@ func installDisplayEngines(t *testing.T, names ...string) {
 	root := t.TempDir()
 	t.Setenv("CYMONKEY_PLUGIN_DIR", filepath.Join(root, "installed"))
 	program := filepath.Join(root, "display")
-	buildGuest(t, program, "pkg/board/cmd/display")
+	buildGuest(t, program, "src/board/cmd/display")
 	data, err := os.ReadFile(program)
 	if err != nil {
 		t.Fatal(err)

@@ -174,16 +174,23 @@ func TestExecutablePluginsAcrossLibraries(t *testing.T) {
 }
 
 // buildGuest builds a guest program, named by its path from the repository
-// root (pkg/board/cmd/gateway), in the guest's own module: guests are not part
-// of the host's module.
+// root. Programs under src and tests (src/board/cmd/gateway) belong to the
+// root module and build from the repository root; a program under pkg
+// (pkg/content-onnx/cmd/x) builds in its own module there. Either way the
+// host reaches the guest only through the plugin system.
 func buildGuest(t *testing.T, output, program string) {
 	t.Helper()
-	parts := strings.SplitN(program, "/", 3)
-	if len(parts) != 3 {
-		t.Fatalf("guest program %q is not module/path", program)
+	repository := filepath.Dir(filepath.Dir(fixtureSourcePath(t)))
+	build := exec.Command("go", "build", "-o", output, "./"+program)
+	build.Dir = repository
+	if strings.HasPrefix(program, "pkg/") {
+		parts := strings.SplitN(program, "/", 3)
+		if len(parts) != 3 {
+			t.Fatalf("guest program %q is not pkg/module/path", program)
+		}
+		build = exec.Command("go", "build", "-o", output, "./"+parts[2])
+		build.Dir = filepath.Join(repository, parts[0], parts[1])
 	}
-	build := exec.Command("go", "build", "-o", output, "./"+parts[2])
-	build.Dir = filepath.Join(filepath.Dir(filepath.Dir(fixtureSourcePath(t))), parts[0], parts[1])
 	if combined, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build %s: %v\n%s", program, err, combined)
 	}
@@ -330,7 +337,7 @@ func TestStandaloneBoardProviderServesTheInventoryAndKeyboard(t *testing.T) {
 		t.Fatal(err)
 	}
 	executable := filepath.Join(source, "provider")
-	buildGuest(t, executable, "pkg/board/cmd/provider")
+	buildGuest(t, executable, "src/board/cmd/provider")
 	pluginManifest, err := packagekit.ExecutableManifest("board", "1.0.0",
 		[]plugin.Contract{pluginContract(devicePluginContract)}, executable)
 	if err != nil {

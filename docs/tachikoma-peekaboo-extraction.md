@@ -15,11 +15,11 @@ model or desktop acceptance. Full upstream feature parity is not claimed.
 | Location | Responsibility |
 | --- | --- |
 | `res/jangolova/generationkit` | Neutral messages, generation, streaming, embeddings, speech, validation and explicit model registration |
-| `pkg/console` | Schema-checked tools, selected invocation, one model turn, transcript continuation, bindings and HTTP/MCP presentation |
+| `src/console` | Schema-checked tools, selected invocation, one model turn, transcript continuation, bindings and HTTP/MCP presentation |
 | `res/jangolova/displaykit/ui` | Portable UI observations, target identity, action receipts, predicates and bounded read-only waits |
-| `pkg/console/capture` | Finite image processing, native capture bridge, frame sampling, manifests and caller-supplied video decoding |
-| `pkg/board/clipboard` | Clipboard snapshots, conditional writes and Board resource grants |
-| `pkg/board/audio` | Audio device observation (PCM16/WAV framing is ext's `res/system/capture/media`) |
+| `src/console/capture` | Finite image processing, native capture bridge, frame sampling, manifests and caller-supplied video decoding |
+| `src/board/clipboard` | Clipboard snapshots, conditional writes and Board resource grants |
+| `src/board/audio` | Audio device observation (PCM16/WAV framing is ext's `res/system/capture/media`) |
 | `github.com/webong/ext/pkg/ext-go/engine/validate/jsonschema` | Shared bounded offline schema validation (ext) |
 | `pkg/content-endpoints` | Explicitly selected HTTP/WebSocket protocols, credentials and native model options |
 | `res/macos-helper` | Native AX, capture, targeted input and clipboard implementation |
@@ -98,7 +98,7 @@ collect before another mutation.
 ## Using the composition host
 
 See [Console configuration](console.md) and the
-[example configuration](../pkg/console/examples/operator/config.json).
+[example configuration](../src/console/examples/operator/config.json).
 The CLI selects models, existing display instances, existing granted device
 sessions and named MCP tools. It does not attach new targets.
 

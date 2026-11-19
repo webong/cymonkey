@@ -208,7 +208,7 @@ func keyboardPluginProvider(pid int) (devicekit.Provider, error) {
 	if failure != nil {
 		return nil, failure
 	}
-	return nil, errors.New("no installed device plugin serves the macOS keyboard; install the board provider (pkg/board/cmd/provider)")
+	return nil, errors.New("no installed device plugin serves the macOS keyboard; install the board provider (src/board/cmd/provider)")
 }
 
 func pluginsCommand(args []string, stdout, stderr io.Writer) error {

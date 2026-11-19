@@ -88,7 +88,7 @@ the engine name. `playwright` and `puppeteer` pin the backend to that driver;
 any other name uses the generic engine:
 
 ```sh
-go -C pkg/board build -o "$PWD/display" ./cmd/display
+go build -o "$PWD/display" ./src/board/cmd/display
 for engine in playwright puppeteer cymonkey; do
   cymy plugins manifest --type display --name $engine --version 1.0.0 --command ./display
   cymy plugins install --manifest ./plugin.json
@@ -120,7 +120,7 @@ forwards the command, its stdout comes back whole, and its log lines stream as
 progress. Build and install it once:
 
 ```sh
-go -C pkg/console build -o "$PWD/console" ./cmd/console
+go build -o "$PWD/console" ./src/console/cmd/console
 cymy plugins manifest --type console-service --name console --version 1.0.0 --command ./console
 cymy plugins install --manifest ./plugin.json
 ```
@@ -143,7 +143,7 @@ endpoint. It is a command service like the content and console services, and a
 long call: its "listening" line streams back, and an interrupt stops it.
 
 ```sh
-go -C pkg/board build -o "$PWD/gateway" ./cmd/gateway
+go build -o "$PWD/gateway" ./src/board/cmd/gateway
 cymy plugins manifest --type gateway-service --name gateway --version 1.0.0 --command ./gateway
 cymy plugins install --manifest ./plugin.json
 ```
@@ -158,7 +158,7 @@ The package is given only the token variable named by `--token-env` (default
 package. Install it once (see [mobile target sessions](device-mobile-sessions.md)):
 
 ```sh
-go -C pkg/board build -o "$PWD/mobile" ./cmd/mobile
+go build -o "$PWD/mobile" ./src/board/cmd/mobile
 cymy plugins manifest --type mobile-target --name mobile --version 1.0.0 --command ./mobile
 cymy plugins install --manifest ./plugin.json
 ```

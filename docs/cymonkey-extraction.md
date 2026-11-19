@@ -13,7 +13,7 @@ are separate. Jangolova does not configure or call Blockade.
 | --- | --- |
 | `res/jangolova/displaykit/contract` | Public runtime wire data and validation. |
 | `res/jangolova/displaykit/sdk` | Target/spec/session types and injected host service interfaces. |
-| `pkg/board/display` | Runtime selection and browser/native semantic adapters. |
+| `src/board/display` | Runtime selection and browser/native semantic adapters. |
 | `src/internal/targetconn` | Caller-owned endpoint, credential, and TLS material handling. |
 | `res/jangolova/displaykit/registry` | Metadata discovery, verified retrieval, and explicit activation. |
 | `res/jangolova/displaykit/host` | Jangolova-owned host service boundary and dependency injection contract. |
@@ -21,7 +21,7 @@ are separate. Jangolova does not configure or call Blockade.
 | `src/internal/core` | Cymonkey's private composition and coordination implementation. |
 | `pkg/` | Distributable runtime packages. |
 
-`pkg/board/display` imports public Jangolova packages and has no transitive
+`src/board/display` imports public Jangolova packages and has no transitive
 dependency on `cymonkey/src/internal`, the private adapter implementations, or
 `src/internal/targetconn`. Its optional process adapter imports only the
 ext plugin host (`pkg/ext-go/engine/host`). `TestPublicIntegrationHasNoPrivateDependencies`

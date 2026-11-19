@@ -9,7 +9,7 @@ import (
 	"sync"
 	"testing"
 
-	displayengine "board/display"
+	displayengine "cymonkey/src/board/display"
 	contract "jangolova/displaykit/contract"
 	"jangolova/displaykit/sdk"
 )

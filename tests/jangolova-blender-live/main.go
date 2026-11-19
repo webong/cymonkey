@@ -21,7 +21,7 @@ import (
 	"strings"
 	"time"
 
-	displayengine "board/display"
+	displayengine "cymonkey/src/board/display"
 	"github.com/gorilla/websocket"
 	"jangolova/displaykit/registry"
 	"jangolova/displaykit/sdk"

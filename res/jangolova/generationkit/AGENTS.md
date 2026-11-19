@@ -10,5 +10,5 @@ explicit registration, and lifecycle primitives in this module.
 - Put API dialects, authentication headers, and provider-specific payloads in
   optional packages outside `res/jangolova/generationkit`. Hosts select and configure them.
 - Generation returns proposed tool calls as data. Tool execution and subsequent
-  turns belong to the embedding host or `pkg/console` caller.
+  turns belong to the embedding host or `src/console` caller.
 - Never route to a fallback provider or execute a proposed tool implicitly.

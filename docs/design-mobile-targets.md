@@ -122,7 +122,7 @@ to that target's one long-lived process instead of launching a new one. It needs
 A new package, `mobile-target`:
 
 ```sh
-go build -o mobile ./pkg/board/cmd/mobile
+go build -o mobile ./src/board/cmd/mobile
 cymy plugins manifest --type mobile-target --name mobile --version 1.0.0 --command ./mobile
 cymy plugins install --manifest ./plugin.json
 ```

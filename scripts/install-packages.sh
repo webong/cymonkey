@@ -83,17 +83,17 @@ for role in "${roles[@]}"; do
       # One program installed once for each engine name it should answer to.
       echo "building display engine"
       mkdir -p "$stage/display-build"
-      go -C "$root/pkg/board" build -o "$stage/display-build/display" ./cmd/display
+      go -C "$root" build -o "$stage/display-build/display" ./src/board/cmd/display
       for engine in playwright puppeteer cymonkey; do
         mkdir -p "$stage/$engine"
         cp "$stage/display-build/display" "$stage/$engine/display"
         install_dir display "$engine" "$stage/$engine" display
       done ;;
-    device)  package device board pkg/board ./cmd/provider ;;
-    content) package content-service content pkg/console ./cmd/content ;;
-    console) package console-service console pkg/console ./cmd/console ;;
-    gateway) package gateway-service gateway pkg/board ./cmd/gateway ;;
-    mobile)  package mobile-target mobile pkg/board ./cmd/mobile ;;
+    device)  package device board . ./src/board/cmd/provider ;;
+    content) package content-service content . ./src/console/cmd/content ;;
+    console) package console-service console . ./src/console/cmd/console ;;
+    gateway) package gateway-service gateway . ./src/board/cmd/gateway ;;
+    mobile)  package mobile-target mobile . ./src/board/cmd/mobile ;;
     providers)
       package content onnx pkg/content-onnx .
       package content webllm pkg/content-webllm . ;;

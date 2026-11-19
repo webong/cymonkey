@@ -35,7 +35,7 @@ func TestContentCommandsRunInTheInstalledContentService(t *testing.T) {
 		t.Fatal(err)
 	}
 	executable := filepath.Join(source, "content")
-	buildGuest(t, executable, "pkg/console/cmd/content")
+	buildGuest(t, executable, "src/console/cmd/content")
 	manifest, err := packagekit.ExecutableManifest("content", "1.0.0", []plugin.Contract{pluginContract(contentServiceContract)}, executable)
 	if err != nil {
 		t.Fatal(err)
@@ -67,8 +67,8 @@ func TestContentCommandsRunInTheInstalledContentService(t *testing.T) {
 	// package. A rejected upgrade must leave the previous package usable.
 	// ext revisions are content digests, not the display version. Produce a
 	// distinct valid binary instead of merely changing the version label.
-	upgradeBuild := exec.Command("go", "build", "-ldflags=-buildid=published-ext-upgrade", "-o", executable, "./cmd/content")
-	upgradeBuild.Dir = filepath.Join("..", "pkg", "console")
+	upgradeBuild := exec.Command("go", "build", "-ldflags=-buildid=published-ext-upgrade", "-o", executable, "./src/console/cmd/content")
+	upgradeBuild.Dir = ".."
 	if output, err := upgradeBuild.CombinedOutput(); err != nil {
 		t.Fatalf("build upgrade: %v\n%s", err, output)
 	}
@@ -160,15 +160,6 @@ func TestContentServeStreamsItsLogsAndStopsWhenCanceled(t *testing.T) {
 	t.Setenv("CYMONKEY_CONTENT_CONFIG", "")
 	build := func(program, name string) string {
 		out := filepath.Join(root, name)
-		if program == "tests/plugin-fixture" {
-			// The fixture belongs to the host's module.
-			cmd := exec.Command("go", "build", "-o", out, "./"+program)
-			cmd.Dir = filepath.Dir(filepath.Dir(fixtureSourcePath(t)))
-			if output, err := cmd.CombinedOutput(); err != nil {
-				t.Fatalf("build %s: %v\n%s", program, err, output)
-			}
-			return out
-		}
 		buildGuest(t, out, program)
 		return out
 	}
@@ -197,7 +188,7 @@ func TestContentServeStreamsItsLogsAndStopsWhenCanceled(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	install("content", build("pkg/console/cmd/content", "content"), contentServiceContract)
+	install("content", build("src/console/cmd/content", "content"), contentServiceContract)
 	install("vision-fixture", build("tests/plugin-fixture", "fixture"), contentPluginContract)
 
 	configPath := filepath.Join(root, "content.yaml")

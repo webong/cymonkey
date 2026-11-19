@@ -33,7 +33,7 @@ func TestDisplayGatewayServesAsAnInstalledPackageAndStopsWhenCanceled(t *testing
 		t.Fatal(err)
 	}
 	executable := filepath.Join(source, "gateway")
-	buildGuest(t, executable, "pkg/board/cmd/gateway")
+	buildGuest(t, executable, "src/board/cmd/gateway")
 	manifest, err := packagekit.ExecutableManifest("gateway", "1.0.0", []plugin.Contract{pluginContract(gatewayServiceContract)}, executable)
 	if err != nil {
 		t.Fatal(err)

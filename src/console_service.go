@@ -83,7 +83,7 @@ func consoleServicePackage() (store.Installed, error) {
 			return item, nil
 		}
 	}
-	return store.Installed{}, errors.New("no console service is installed; build ./pkg/console/cmd/console and install it with cymy plugins")
+	return store.Installed{}, errors.New("no console service is installed; build ./src/console/cmd/console and install it with cymy plugins")
 }
 
 // consoleLaunchEnvironment builds the variables handed to the console service:

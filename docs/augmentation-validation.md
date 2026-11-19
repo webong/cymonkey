@@ -47,7 +47,7 @@ Build the CLI and browser library first:
 go build -o .cache/cymy-augmentation ./src
 npm run test:browser-helper
 go test ./src ./src/internal/provider
-(cd pkg/board && go test ./display/...)
+go test ./src/board/display/...
 ```
 
 For bookmarklet and web-host fixtures, set `CYMONKEY_BROWSER_BIN` to Chrome or

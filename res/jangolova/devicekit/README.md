@@ -17,4 +17,4 @@ It holds:
   and enforces the admission policy for each session.
 
 It contains no device implementation. Desktop, audio, storage, WebRTC, VNC
-gateway and keyboard providers live in `pkg/board` and build against the kit.
+gateway and keyboard providers live in `src/board` and build against the kit.

@@ -1,13 +1,13 @@
 # Console configuration and serving
 
-`pkg/console` provides composition APIs. `cymy console` is a host for explicitly
+`src/console` provides composition APIs. `cymy console` is a host for explicitly
 configured tools, models and existing Cymonkey resources. It makes one selected
 invocation or model turn per request.
 
 ## Configuration
 
 Use a JSON file with `apiVersion: "cymonkey.console/v1alpha1"`. The
-[example](../pkg/console/examples/operator/config.json) uses placeholder model
+[example](../src/console/examples/operator/config.json) uses placeholder model
 and endpoint values that must be replaced with your chosen configuration.
 Credentials are resolved only from environment variables named in that file.
 

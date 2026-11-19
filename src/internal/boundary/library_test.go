@@ -38,7 +38,7 @@ func TestLibrariesStayOutsideInternal(t *testing.T) {
 			if err != nil {
 				return err
 			}
-			for _, library := range []string{"board"} {
+			for _, library := range []string{"cymonkey/src/board", "cymonkey/src/console"} {
 				if name == library || strings.HasPrefix(name, library+"/") {
 					t.Errorf("internal package imports %s: %s", library, path)
 				}

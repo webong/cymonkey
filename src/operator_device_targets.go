@@ -141,7 +141,7 @@ func (s *operatorServer) createMobileTarget(w http.ResponseWriter, r *http.Reque
 	backend, err := s.startMobileTarget(mobilekit.StartRequest{ID: id, Name: req.Name, ICEServers: req.ICEServers, RelayOnly: req.RelayOnly, Media: media, TTLSeconds: req.TTLSeconds})
 	switch {
 	case errors.Is(err, errNoMobileTargetPackage):
-		operatorError(w, 503, "mobile_target_unavailable", "no mobile-target package is installed; build ./pkg/board/cmd/mobile and install it with cymy plugins")
+		operatorError(w, 503, "mobile_target_unavailable", "no mobile-target package is installed; build ./src/board/cmd/mobile and install it with cymy plugins")
 		return
 	case errors.Is(err, mobilekit.ErrConverterUnavailable):
 		operatorError(w, 503, "converter_unavailable", "ffmpeg is required")

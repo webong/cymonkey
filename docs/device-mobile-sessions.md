@@ -18,7 +18,7 @@ process from the `mobile-target` ext package, which the host starts when the
 target is created and stops when the target ends. Build and install it once:
 
 ```sh
-go -C pkg/board build -o "$PWD/mobile" ./cmd/mobile
+go build -o "$PWD/mobile" ./src/board/cmd/mobile
 cymy plugins manifest --type mobile-target --name mobile --version 1.0.0 --command ./mobile
 cymy plugins install --manifest ./plugin.json
 ```

@@ -65,7 +65,7 @@ func contentServicePackage() (store.Installed, error) {
 			return item, nil
 		}
 	}
-	return store.Installed{}, errors.New("no content service is installed; build ./pkg/console/cmd/content and install it with cymy plugins")
+	return store.Installed{}, errors.New("no content service is installed; build ./src/console/cmd/content and install it with cymy plugins")
 }
 
 // contentLaunchEnvironment builds the variables handed to the content service:

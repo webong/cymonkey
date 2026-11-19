@@ -31,7 +31,7 @@ func installConsoleService(t *testing.T) store.Installed {
 		t.Fatal(err)
 	}
 	executable := filepath.Join(source, "console")
-	buildGuest(t, executable, "pkg/console/cmd/console")
+	buildGuest(t, executable, "src/console/cmd/console")
 	manifest, err := packagekit.ExecutableManifest("console", "1.0.0", []plugin.Contract{pluginContract(consoleServiceContract)}, executable)
 	if err != nil {
 		t.Fatal(err)

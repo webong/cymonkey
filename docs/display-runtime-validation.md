@@ -2,7 +2,7 @@
 
 ## Implemented boundary
 
-The integration at `pkg/board/display` now uses the public wire contract in
+The integration at `src/board/display` now uses the public wire contract in
 `res/jangolova/displaykit/contract` and public host/module types in `res/jangolova/displaykit/sdk`.
 Its production dependency graph contains no private Cymonkey packages.
 The old private wire files were moved to the public contract package; the wire
@@ -79,7 +79,7 @@ See [reproduction instructions](../tests/blender-cymonkey-fixture/README.md).
 Passed focused race checks:
 
 ```sh
-(cd pkg/board && go test -race ./display/...)
+go test -race ./src/board/display/...
 (cd pkg/lens-studio && go test .)
 go test -race ./src ./src/internal/engineprovider ./src/internal/provider
 ```

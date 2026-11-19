@@ -13,4 +13,4 @@ engine and every content provider must agree on.
 It holds no behaviour that launches or supervises a provider. The content
 engine, which does (adapter registry, configured engines, model and runtime
 stores, the `content.provider` plugin adapter and admission policy, the HTTP
-service), is `pkg/console/contentengine`.
+service), is `src/console/contentengine`.

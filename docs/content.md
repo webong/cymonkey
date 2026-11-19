@@ -48,7 +48,7 @@ Use `--plugin NAME` when adding a custom endpoint plugin.
 serves `content.service`. Build and install it once:
 
 ```sh
-go -C pkg/console build -o "$PWD/content" ./cmd/content
+go build -o "$PWD/content" ./src/console/cmd/content
 cymy plugins manifest --type content-service --name content --version 1.0.0 --command ./content
 cymy plugins install --manifest ./plugin.json
 ```

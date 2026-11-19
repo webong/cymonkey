@@ -14,8 +14,9 @@ import (
 	"testing"
 )
 
-// The host (src) never imports a guest: Go modules under pkg reach it through
-// the ext plugin system. Imports that remain from before the cut are recorded
+// The host (src) never imports a guest: guests reach it through the ext plugin
+// system. Guests are the Go modules under pkg and the guest trees under src,
+// which share the host's module but still run as separate plugin processes. Imports that remain from before the cut are recorded
 // in guest_imports.txt, one "file import" pair per line. A new import fails the
 // test; a recorded import that disappears fails too, so the list only shrinks.
 // Regenerate it after removing imports with GUEST_IMPORTS_UPDATE=1.
@@ -26,6 +27,13 @@ const guestImportsFile = "guest_imports.txt"
 // them. A host may embed a kit, and so may a guest that hosts other plugins.
 var hostKits = map[string]bool{"jangolova": true}
 
+// guestTrees are guests that live in the host's module. Each builds its own
+// plugin programs (cmd/...) and is reached only through the plugin system.
+var guestTrees = []string{"src/board", "src/console"}
+
+// guestPackage is the import path of a guest tree in the host's module.
+func guestPackage(tree string) string { return "cymonkey/" + tree }
+
 func TestHostImportsOnlyListedGuests(t *testing.T) {
 	_, current, _, ok := runtime.Caller(0)
 	if !ok {
@@ -33,13 +41,22 @@ func TestHostImportsOnlyListedGuests(t *testing.T) {
 	}
 	root := filepath.Clean(filepath.Join(filepath.Dir(current), "..", "..", ".."))
 	modules := guestModules(t, root)
+	for _, tree := range guestTrees {
+		modules = append(modules, guestPackage(tree))
+	}
 
 	found := map[string]bool{}
 	err := filepath.WalkDir(filepath.Join(root, "src"), func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if entry.IsDir() || filepath.Ext(path) != ".go" {
+		if entry.IsDir() {
+			if relative, err := filepath.Rel(root, path); err == nil && isGuestTree(filepath.ToSlash(relative)) {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if filepath.Ext(path) != ".go" {
 			return nil
 		}
 		parsed, err := parser.ParseFile(token.NewFileSet(), path, nil, parser.ImportsOnly)
@@ -142,4 +159,58 @@ func guestModules(t *testing.T, root string) []string {
 		t.Fatal("no guest modules found under pkg")
 	}
 	return modules
+}
+
+func isGuestTree(relative string) bool {
+	for _, tree := range guestTrees {
+		if relative == tree {
+			return true
+		}
+	}
+	return false
+}
+
+// A guest tree in the host's module imports only its own packages from that
+// module: never the host, and never another guest. Shared code lives in
+// res/jangolova or ext.
+func TestGuestTreesImportOnlyThemselves(t *testing.T) {
+	_, current, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("resolve boundary test location")
+	}
+	root := filepath.Clean(filepath.Join(filepath.Dir(current), "..", "..", ".."))
+	for _, tree := range guestTrees {
+		own := guestPackage(tree)
+		checked := 0
+		err := filepath.WalkDir(filepath.Join(root, filepath.FromSlash(tree)), func(path string, entry fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if entry.IsDir() || filepath.Ext(path) != ".go" {
+				return nil
+			}
+			parsed, err := parser.ParseFile(token.NewFileSet(), path, nil, parser.ImportsOnly)
+			if err != nil {
+				return err
+			}
+			checked++
+			for _, imported := range parsed.Imports {
+				name, err := strconv.Unquote(imported.Path.Value)
+				if err != nil {
+					return err
+				}
+				if (name == "cymonkey" || strings.HasPrefix(name, "cymonkey/")) && name != own && !strings.HasPrefix(name, own+"/") {
+					rel, _ := filepath.Rel(root, path)
+					t.Errorf("guest %s imports %s outside its own tree: %s", tree, name, filepath.ToSlash(rel))
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if checked == 0 {
+			t.Errorf("guest tree %s has no Go files", tree)
+		}
+	}
 }

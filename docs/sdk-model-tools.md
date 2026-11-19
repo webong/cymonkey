@@ -2,7 +2,7 @@
 
 The reusable features from [Tachikoma](https://github.com/openclaw/Tachikoma)
 are assigned to the libraries that own their contracts. Console lives in
-`pkg/console` and provides composition for humans and agents.
+`src/console` and provides composition for humans and agents.
 
 | Feature | Cymonkey SDK ownership |
 | --- | --- |
@@ -39,18 +39,18 @@ Console provides no autonomous multi-step loop, planner, memory store, automatic
 retry, background tool execution, process launcher, or session manager. Caller
 applications may build those behaviors upon the primitives if desired.
 
-The [runnable handoff example](../pkg/console/examples/handoff/README.md)
+The [runnable handoff example](../src/console/examples/handoff/README.md)
 demonstrates inspection, explicit invocation, rejection, and direct human use
 with a scripted local generator. No remote model or device is needed.
 
 ## Embedding surfaces
 
 - [`res/jangolova/generationkit`](../res/jangolova/generationkit/README.md): neutral generation contracts and model bindings.
-- [`pkg/console`](../pkg/console/README.md): tool composition, SDK bindings, MCP.
-- [`pkg/board`](../pkg/board/README.md): existing device providers and audio channels.
-- [`pkg/board/display`](../pkg/board/display/README.md): existing semantic interaction SDK.
-- [`pkg/console/generation`](../pkg/console/generation/README.md): optional HTTP API dialects.
-- [`pkg/console/realtime`](../pkg/console/realtime/README.md): optional explicit model WebSocket session.
+- [`src/console`](../src/console/README.md): tool composition, SDK bindings, MCP.
+- [`src/board`](../src/board/README.md): existing device providers and audio channels.
+- [`src/board/display`](../src/board/display/README.md): existing semantic interaction SDK.
+- [`src/console/generation`](../src/console/generation/README.md): optional HTTP API dialects.
+- [`src/console/realtime`](../src/console/realtime/README.md): optional explicit model WebSocket session.
 
 This adds native Go embedding surfaces. It does not imply every Tachikoma
 provider/model feature is supported or add generation/speech routes to Cymonkey's

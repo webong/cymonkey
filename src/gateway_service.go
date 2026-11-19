@@ -52,7 +52,7 @@ func gatewayServicePackage() (store.Installed, error) {
 			return item, nil
 		}
 	}
-	return store.Installed{}, errors.New("no display gateway is installed; build ./pkg/board/cmd/gateway and install it with cymy plugins")
+	return store.Installed{}, errors.New("no display gateway is installed; build ./src/board/cmd/gateway and install it with cymy plugins")
 }
 
 // gatewayLaunchEnvironment passes the gateway only the token variable it will

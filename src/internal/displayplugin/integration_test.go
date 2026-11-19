@@ -34,8 +34,8 @@ func installDisplayEngine(t *testing.T) store.Installed {
 		t.Fatal("resolve test location")
 	}
 	program := filepath.Join(t.TempDir(), "program")
-	build := exec.Command("go", "build", "-o", program, "./cmd/display")
-	build.Dir = filepath.Join(filepath.Dir(file), "..", "..", "..", "pkg", "board")
+	build := exec.Command("go", "build", "-o", program, "./src/board/cmd/display")
+	build.Dir = filepath.Join(filepath.Dir(file), "..", "..", "..")
 	if output, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build display engine: %v\n%s", err, output)
 	}
