@@ -6,6 +6,8 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/pion/rtp v1.10.5
 	github.com/pion/webrtc/v4 v4.2.22
+	github.com/webong/ext/pkg/ext-go/engine v0.4.0
+	github.com/webong/ext/res/system v0.5.1
 	golang.org/x/sys v0.49.0
 )
 
@@ -25,7 +27,6 @@ require (
 	github.com/pion/stun/v4 v4.0.1 // indirect
 	github.com/pion/transport/v5 v5.1.1 // indirect
 	github.com/pion/turn/v5 v5.1.2 // indirect
-	github.com/webong/ext/pkg/ext-go/engine v0.4.0
 	github.com/wlynxg/anet v0.0.5 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/net v0.61.0 // indirect

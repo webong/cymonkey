@@ -1,5 +1,7 @@
 // Package clipboard exposes bounded clipboard access through explicit Board
-// grants. Native implementations belong to caller-selected runtime packages.
+// grants. The clipboard model, limits and checks are ext's
+// res/system/capture/clipboard; native implementations belong to
+// caller-selected runtime packages.
 package clipboard
 
 import (
@@ -10,6 +12,8 @@ import (
 
 	"jangolova/devicekit"
 	"jangolova/devicekit/device"
+
+	sysclipboard "github.com/webong/ext/res/system/capture/clipboard"
 )
 
 const (
@@ -19,34 +23,21 @@ const (
 	Clear    devicekit.Capability = "clipboard.clear"
 )
 
-var ErrChanged = errors.New("clipboard generation changed")
+// ErrChanged is ext's compare-and-swap failure: the generation moved on.
+var ErrChanged = sysclipboard.ErrChanged
 
-type Representation struct {
-	Format string `json:"format"`
-	Data   []byte `json:"data"`
-}
-type Item struct {
-	Representations []Representation `json:"representations"`
-}
-type Snapshot struct {
-	Generation string `json:"generation"`
-	Items      []Item `json:"items"`
-}
-type WriteRequest struct {
-	ExpectedGeneration string `json:"expectedGeneration"`
-	Items              []Item `json:"items"`
-}
-type Receipt struct {
-	Generation string `json:"generation"`
-	Dispatch   string `json:"dispatch"`
-}
+type (
+	Representation = sysclipboard.Representation
+	Item           = sysclipboard.Item
+	Snapshot       = sysclipboard.Snapshot
+	WriteRequest   = sysclipboard.WriteRequest
+	Receipt        = sysclipboard.Receipt
+	// Backend must serialize operations and compare ExpectedGeneration
+	// directly before changing the native clipboard. Restoration is another
+	// explicit write.
+	Backend = sysclipboard.Backend
+)
 
-// Backend must serialize operations and compare ExpectedGeneration directly
-// before changing the native clipboard. Restoration is another explicit write.
-type Backend interface {
-	Read(context.Context, int64) (Snapshot, error)
-	Write(context.Context, WriteRequest, int64) (Receipt, error)
-}
 type Options struct {
 	ProviderID string
 	DeviceID   string
@@ -55,49 +46,19 @@ type Options struct {
 	Formats    []string
 }
 
-func Validate(snapshot Snapshot, maxBytes int64, formats []string) error {
-	if snapshot.Generation == "" || maxBytes <= 0 || maxBytes > 16<<20 || len(snapshot.Items) > 64 {
-		return errors.New("invalid clipboard snapshot or bounds")
-	}
-	allowed := map[string]bool{}
-	for _, format := range formats {
-		allowed[format] = true
-	}
-	var size int64
-	for _, item := range snapshot.Items {
-		if len(item.Representations) == 0 || len(item.Representations) > 32 {
-			return errors.New("invalid clipboard representations")
-		}
-		seen := map[string]bool{}
-		for _, r := range item.Representations {
-			if r.Format == "" || seen[r.Format] || !allowed[r.Format] {
-				return errors.New("clipboard format is not granted or is duplicated")
-			}
-			seen[r.Format] = true
-			size += int64(len(r.Data))
-			if size > maxBytes {
-				return errors.New("clipboard exceeds byte limit")
-			}
-		}
-	}
-	return nil
-}
-
 // NewProvider borrows a backend. Closing a Board attachment never clears,
 // restores or closes the system clipboard. Every write supplies the observed
 // generation; atomicity against other processes depends on the native backend.
+// Board grants decide which capabilities a session may call, so the ext
+// clipboard policy allows both reads and writes.
 func NewProvider(backend Backend, options Options) (*device.Provider, error) {
-	if backend == nil || options.ProviderID == "" || options.DeviceID == "" || options.ResourceID == "" || options.MaxBytes <= 0 || options.MaxBytes > 16<<20 || len(options.Formats) == 0 || len(options.Formats) > 32 {
+	if options.ProviderID == "" || options.DeviceID == "" || options.ResourceID == "" {
 		return nil, errors.New("clipboard needs a backend, IDs, byte ceiling and allowed formats")
 	}
-	seen := map[string]bool{}
-	for _, format := range options.Formats {
-		if format == "" || len(format) > 256 || seen[format] {
-			return nil, errors.New("invalid or duplicate clipboard format")
-		}
-		seen[format] = true
+	board, err := sysclipboard.New(backend, sysclipboard.Policy{MaxBytes: options.MaxBytes, AllowedFormats: options.Formats, AllowRead: true, AllowWrite: true})
+	if err != nil {
+		return nil, fmt.Errorf("clipboard needs a backend, IDs, byte ceiling and allowed formats: %w", err)
 	}
-	options.Formats = append([]string(nil), options.Formats...)
 	return &device.Provider{ProviderID: options.ProviderID, Device: devicekit.Device{ID: options.DeviceID, Kind: "clipboard", Capabilities: []devicekit.CapabilityDescriptor{
 		device.Descriptor(Describe, device.EmptySchema, true), device.Descriptor(Read, device.EmptySchema, true),
 		device.Descriptor(Write, `{"type":"object","required":["expectedGeneration","items"],"properties":{"expectedGeneration":{"type":"string"},"items":{"type":"array"}},"additionalProperties":false}`, true),
@@ -107,14 +68,10 @@ func NewProvider(backend Backend, options Options) (*device.Provider, error) {
 			if err := device.Empty(a.Input); err != nil {
 				return Snapshot{}, err
 			}
-			s, err := backend.Read(ctx, options.MaxBytes)
-			if err != nil {
-				return s, err
-			}
-			return s, Validate(s, options.MaxBytes, options.Formats)
+			return board.Read(ctx)
 		}
 		write := func(ctx context.Context, a devicekit.Action) (devicekit.Result, error) {
-			var r WriteRequest
+			var receipt Receipt
 			if a.Capability == Clear {
 				var c struct {
 					ExpectedGeneration string `json:"expectedGeneration"`
@@ -122,20 +79,21 @@ func NewProvider(backend Backend, options Options) (*device.Provider, error) {
 				if err := device.Decode(a.Input, &c); err != nil {
 					return devicekit.Result{}, err
 				}
-				r.ExpectedGeneration = c.ExpectedGeneration
-				r.Items = []Item{}
-			} else if err := device.Decode(a.Input, &r); err != nil {
-				return devicekit.Result{}, err
-			}
-			if err := Validate(Snapshot{Generation: r.ExpectedGeneration, Items: r.Items}, options.MaxBytes, options.Formats); err != nil {
-				return devicekit.Result{}, err
-			}
-			receipt, err := backend.Write(ctx, r, options.MaxBytes)
-			if err != nil {
-				return devicekit.Result{}, err
-			}
-			if receipt.Generation == "" || receipt.Dispatch != "dispatched" {
-				return devicekit.Result{}, errors.New("clipboard write returned unknown dispatch")
+				r, err := board.Clear(ctx, c.ExpectedGeneration)
+				if err != nil {
+					return devicekit.Result{}, err
+				}
+				receipt = r
+			} else {
+				var request WriteRequest
+				if err := device.Decode(a.Input, &request); err != nil {
+					return devicekit.Result{}, err
+				}
+				r, err := board.Write(ctx, request)
+				if err != nil {
+					return devicekit.Result{}, err
+				}
+				receipt = r
 			}
 			return device.Result(receipt)
 		}
@@ -174,6 +132,8 @@ func NewProvider(backend Backend, options Options) (*device.Provider, error) {
 
 // Bridge borrows an authenticated native caller. The resource is fixed
 // by the host; the provider passes its selected byte ceiling for each call.
+// The native helper protocol has no generation-only call, so Generation is
+// unsupported; Board never calls it.
 type Caller interface {
 	Call(context.Context, string, json.RawMessage) (json.RawMessage, error)
 }
@@ -182,12 +142,14 @@ type Bridge struct {
 	ResourceID string
 }
 
+var _ Backend = Bridge{}
+
 func (b Bridge) call(ctx context.Context, name string, input map[string]any, out any) error {
 	if b.Caller == nil || b.ResourceID == "" {
 		return errors.New("clipboard bridge is unconfigured")
 	}
 	limit, ok := input["maxBytes"].(int64)
-	if !ok || limit <= 0 || limit > 16<<20 {
+	if !ok || limit <= 0 || limit > sysclipboard.MaxPolicyBytes {
 		return errors.New("invalid clipboard byte ceiling")
 	}
 	input["resourceId"] = b.ResourceID
@@ -207,12 +169,18 @@ func (b Bridge) call(ctx context.Context, name string, input map[string]any, out
 	}
 	return nil
 }
-func (b Bridge) Read(ctx context.Context, limit int64) (Snapshot, error) {
+
+func (Bridge) Generation(context.Context) (string, error) {
+	return "", errors.New("the native clipboard bridge has no generation-only call")
+}
+
+func (b Bridge) Read(ctx context.Context, limit int64, _ []string) (Snapshot, error) {
 	var s Snapshot
 	err := b.call(ctx, string(Read), map[string]any{"maxBytes": limit}, &s)
 	return s, err
 }
-func (b Bridge) Write(ctx context.Context, r WriteRequest, limit int64) (Receipt, error) {
+
+func (b Bridge) Write(ctx context.Context, r WriteRequest, limit int64, _ []string) (Receipt, error) {
 	var out Receipt
 	err := b.call(ctx, string(Write), map[string]any{"maxBytes": limit, "expectedGeneration": r.ExpectedGeneration, "items": r.Items}, &out)
 	return out, err

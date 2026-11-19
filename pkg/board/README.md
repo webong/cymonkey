@@ -27,7 +27,6 @@ Board owns the following SDK packages extracted from Xallet:
 - `displayprobe`: desktop, X11/Wayland, and recording prerequisite observations.
 - `permissionprobe`: OS capture-permission settings navigation.
 - `filesystemprobe`: capacity and usage of a caller-selected volume.
-- `volumearchive`: directory archive export, restore, and digest calculation.
 - `networkprobe`: HTTP(S) and TCP endpoint health observations.
 - `audio`: virtual audio device observation from PulseAudio listings.
 
@@ -209,15 +208,16 @@ heartbeat retention, crop, element-box annotation and contact sheets.
 a native capture caller; `Around` captures evidence around one caller-selected
 operation. Storage, codec and target ownership stay with the host.
 
-`board/clipboard.NewProvider` adapts a host-supplied clipboard backend to explicit
+`board/clipboard.NewProvider` adapts a host-supplied ext clipboard backend
+(`res/system/capture/clipboard`) to explicit
 Board capabilities/resources. Read returns finite content; describe returns
 metadata. Write/clear require the observed generation. Restoration is another
 explicit write. Atomicity against other processes depends on the backend; macOS
 uses change-count checks and cannot guarantee an atomic cross-process operation.
 Board action JSON remains limited to 64 KiB.
 
-`board/audio.WAV` and `ReadWAV` encode/decode finite PCM16 containers without
-opening a microphone/player, resampling, or selecting an output destination.
+PCM16 and WAV framing (`WAV`, `ReadWAV`) and storage snapshot export/restore
+come from ext's `res/system` (`capture/media` and `device/image`).
 
 See [feature extraction](../../docs/tachikoma-peekaboo-extraction.md) for native
 byte limits and independent clipboard/viewer grants.

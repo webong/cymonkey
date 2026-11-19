@@ -1,4 +1,5 @@
-// Package audio describes caller-selected audio devices and normalizes runtime observations.
+// Package audio describes caller-selected audio devices and normalizes runtime
+// observations. PCM16 and WAV framing come from ext's res/system/capture/media.
 package audio
 
 import (

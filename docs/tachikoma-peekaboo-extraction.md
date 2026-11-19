@@ -19,7 +19,7 @@ model or desktop acceptance. Full upstream feature parity is not claimed.
 | `res/jangolova/displaykit/ui` | Portable UI observations, target identity, action receipts, predicates and bounded read-only waits |
 | `pkg/console/capture` | Finite image processing, native capture bridge, frame sampling, manifests and caller-supplied video decoding |
 | `pkg/board/clipboard` | Clipboard snapshots, conditional writes and Board resource grants |
-| `pkg/board/audio` | Device interfaces and finite PCM16/WAV conversion |
+| `pkg/board/audio` | Audio device observation (PCM16/WAV framing is ext's `res/system/capture/media`) |
 | `github.com/webong/ext/pkg/ext-go/engine/validate/jsonschema` | Shared bounded offline schema validation (ext) |
 | `pkg/content-endpoints` | Explicitly selected HTTP/WebSocket protocols, credentials and native model options |
 | `res/macos-helper` | Native AX, capture, targeted input and clipboard implementation |

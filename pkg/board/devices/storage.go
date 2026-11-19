@@ -2,7 +2,6 @@ package devices
 
 import (
 	"board/filesystemprobe"
-	"board/volumearchive"
 	"context"
 	"errors"
 	"io"
@@ -11,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+
+	volumeimage "github.com/webong/ext/res/system/device/image"
 )
 
 const StorageUpload = devicekit.StorageUpload
@@ -102,7 +103,7 @@ func Storage(o StorageOptions) (*device.Provider, error) {
 				return nil, err
 			}
 			limited := &limitedWriter{writer: f, remaining: o.MaxTransferBytes}
-			err = volumearchive.ExportRoot(ctx, limited, root)
+			err = volumeimage.ExportRoot(ctx, limited, root)
 			err = errors.Join(err, f.Close())
 			if err != nil {
 				_ = os.Remove(f.Name())
@@ -146,7 +147,7 @@ func Storage(o StorageOptions) (*device.Provider, error) {
 			if upload == nil || !upload.complete() {
 				return devicekit.Result{}, errors.New("close the upload channel before restoring")
 			}
-			if err := volumearchive.RestoreRootWithLimits(ctx, filepath.Join(tmp, "upload.tar.gz"), root, volumearchive.Limits{Bytes: o.MaxExtractedBytes, Entries: 100000}); err != nil {
+			if err := volumeimage.RestoreRootWithLimits(ctx, filepath.Join(tmp, "upload.tar.gz"), root, volumeimage.Limits{Bytes: o.MaxExtractedBytes, Entries: 100000}); err != nil {
 				return devicekit.Result{}, err
 			}
 			return device.Result(map[string]bool{"restored": true})

@@ -28,7 +28,7 @@ available through Board's provider/session contract.
 | `board/displayprobe` | `New`, `Observe`, `ResolveX11Socket` | `sdk/displayprobe` |
 | `board/permissionprobe` | `New`, `Open` | `sdk/permissionprobe` |
 | `board/filesystemprobe` | `VolumeCapacityBytes`, `DirectoryUsageBytes` | `sdk/filesystemprobe` |
-| `board/volumearchive` | `Export`, `Restore`, `FileDigest` | `sdk/volumearchive` |
+| ext `res/system/device/image` | `Export`, `Restore`, `FileDigest` | (provided by ext) |
 | `board/networkprobe` | `New`, `Observe`, `NewRequest`, `NewTCPRequest` | `sdk/networkprobe` |
 | `board/audio` | `ParsePulseDevices` with caller-selected device IDs | PulseAudio parsing in `internal/runtime/display_oci_session.go` |
 | `board/vncgateway` | `Server.Handler` | `interfaces/vncgateway` |
