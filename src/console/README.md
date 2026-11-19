@@ -11,6 +11,9 @@ is approved. The host owns those choices.
 
 
 Model types are ext's `res/int/inference` and `res/int/realtime` contracts.
+`modelguest` runs an installed ext model adapter as a guest and exposes its
+generation and embeddings through those contracts (see the `adapter` field in
+[the Console guide](../../docs/console.md)).
 Model capabilities in configuration use ext's names: `generate`, `stream`,
 `embed`, `transcribe`, `synthesize`, `structuredOutput`, `toolProposal` and
 `modelListing`.

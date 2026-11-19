@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/subtle"
+	"cymonkey/src/console/modelguest"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -55,6 +56,10 @@ type consoleModel struct {
 	Capabilities       []string                `json:"capabilities"`
 	Options            json.RawMessage         `json:"options,omitempty"`
 	EmbeddingInputType string                  `json:"embeddingInputType,omitempty"`
+	// Adapter names an installed ext model adapter (an inference.provider/v1
+	// package) that serves this model as a guest. BaseURL is its endpoint and
+	// APIKeyEnvironment names its key; Protocol must be empty.
+	Adapter string `json:"adapter,omitempty"`
 }
 type consoleTool struct {
 	Definition        console.Definition `json:"definition"`
@@ -107,6 +112,7 @@ type consoleHost struct {
 	models        console.Models
 	attachments   []*mcp.HTTPTransport
 	artifactRoots []*os.Root
+	adapters      []*modelguest.Provider
 	config        consoleConfiguration
 }
 
@@ -119,6 +125,9 @@ func (h *consoleHost) close() error {
 	}
 	for _, root := range h.artifactRoots {
 		err = errors.Join(err, root.Close())
+	}
+	for _, adapter := range h.adapters {
+		err = errors.Join(err, adapter.Close())
 	}
 	return err
 }
@@ -141,19 +150,11 @@ func loadConsole(ctx context.Context, path string) (host *consoleHost, err error
 			_ = h.close()
 		}
 	}()
-	clients := map[string]*endpointmodels.Client{}
+	backends := map[string]*modelBackend{}
 	selected := map[string]consoleModel{}
 	for _, model := range config.Models {
-		if model.ID == "" || model.Provider == "" || model.Model == "" || clients[model.ID] != nil {
+		if model.ID == "" || model.Provider == "" || model.Model == "" || backends[model.ID] != nil {
 			return nil, errors.New("model bindings require unique IDs, opaque provider IDs and explicit models")
-		}
-		var key func(context.Context) (string, error)
-		if model.APIKeyEnvironment != "" {
-			key = endpointmodels.EnvironmentKey(model.APIKeyEnvironment)
-		}
-		client, e := endpointmodels.New(endpointmodels.Config{Protocol: model.Protocol, BaseURL: model.BaseURL, APIKey: key, EmbeddingInputType: model.EmbeddingInputType})
-		if e != nil {
-			return nil, e
 		}
 		if len(model.Options) > 0 {
 			var value map[string]any
@@ -161,7 +162,11 @@ func loadConsole(ctx context.Context, path string) (host *consoleHost, err error
 				return nil, errors.New("model options must be an object")
 			}
 		}
-		clients[model.ID] = client
+		backend, e := h.openBackend(ctx, model)
+		if e != nil {
+			return nil, e
+		}
+		backends[model.ID] = backend
 		selected[model.ID] = model
 		capabilities := make([]inference.Capability, 0, len(model.Capabilities))
 		for _, name := range model.Capabilities {
@@ -171,7 +176,7 @@ func loadConsole(ctx context.Context, path string) (host *consoleHost, err error
 			}
 			capabilities = append(capabilities, capability)
 		}
-		if e = h.models.Register(console.ModelBinding{Info: inference.ModelInfo{ID: model.ID, Provider: model.Provider, Capabilities: capabilities}, Model: model.Model, Generator: configuredGenerator{client: client, options: model.Options}}); e != nil {
+		if e = h.models.Register(console.ModelBinding{Info: inference.ModelInfo{ID: model.ID, Provider: model.Provider, Capabilities: capabilities}, Model: model.Model, Generator: backend.generator}); e != nil {
 			return nil, e
 		}
 	}
@@ -187,18 +192,21 @@ func loadConsole(ctx context.Context, path string) (host *consoleHost, err error
 		var e error
 		switch spec.Kind {
 		case "generate", "embed", "transcribe", "synthesize":
-			client := clients[spec.ModelID]
+			backend := backends[spec.ModelID]
 			model := selected[spec.ModelID]
-			if client == nil {
+			if backend == nil {
 				return nil, fmt.Errorf("tool %q selects an unknown model", spec.Definition.Name)
+			}
+			if unsupported := backend.missing(spec.Kind); unsupported != "" {
+				return nil, fmt.Errorf("tool %q: model %q %s", spec.Definition.Name, model.ID, unsupported)
 			}
 			switch spec.Kind {
 			case "generate":
-				tool, e = bindings.Generate(spec.Definition, configuredGenerator{client: client, options: model.Options}, model.Model)
+				tool, e = bindings.Generate(spec.Definition, backend.generator, model.Model)
 			case "embed":
-				tool, e = bindings.Embed(spec.Definition, client, model.Model)
+				tool, e = bindings.Embed(spec.Definition, backend.embedder, model.Model)
 			case "transcribe":
-				tool, e = bindings.Transcribe(spec.Definition, client, bindings.TranscriptionOptions{Model: model.Model, MaxAudioBytes: spec.MaxAudioBytes})
+				tool, e = bindings.Transcribe(spec.Definition, backend.transcriber, bindings.TranscriptionOptions{Model: model.Model, MaxAudioBytes: spec.MaxAudioBytes})
 			case "synthesize":
 				if !filepath.IsAbs(spec.ArtifactDirectory) || spec.MaxAudioBytes < 1 || spec.MaxAudioBytes > 64<<20 {
 					return nil, errors.New("synthesis needs an absolute existing artifact directory and audio ceiling")
@@ -208,7 +216,7 @@ func loadConsole(ctx context.Context, path string) (host *consoleHost, err error
 					return nil, err
 				}
 				h.artifactRoots = append(h.artifactRoots, root)
-				tool, e = bindings.Synthesize(spec.Definition, client, bindings.SpeechOptions{Model: model.Model, Voice: spec.Voice, Format: spec.Format, Instructions: spec.Instructions, MaxTextBytes: spec.MaxTextBytes}, consoleAudioConsumer(root, spec.ArtifactDirectory, spec.Format, spec.MaxAudioBytes))
+				tool, e = bindings.Synthesize(spec.Definition, backend.synthesizer, bindings.SpeechOptions{Model: model.Model, Voice: spec.Voice, Format: spec.Format, Instructions: spec.Instructions, MaxTextBytes: spec.MaxTextBytes}, consoleAudioConsumer(root, spec.ArtifactDirectory, spec.Format, spec.MaxAudioBytes))
 			}
 		case "display", "observe", "see", "verify", "wait", "observed-action":
 			if remote == nil || spec.InstanceID == "" || spec.SurfaceID == "" {

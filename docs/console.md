@@ -13,7 +13,20 @@ Credentials are resolved only from environment variables named in that file.
 
 `models` entries select an opaque catalog ID, provider ID, native model ID,
 protocol, API root and optional native adapter `options`. Native options are
-fixed by the host binding; tool callers cannot replace them.
+fixed by the host binding; tool callers cannot replace them. `capabilities` use
+ext's inference names (`generate`, `stream`, `embed`, `transcribe`,
+`synthesize`, `structuredOutput`, `toolProposal`, `modelListing`).
+
+A model entry may instead set `adapter` to the name of an installed ext model
+adapter, an `inference.provider/v1` package such as ext's `adapters/openai`.
+The Console then runs that package as a guest from the plugin store
+(`CYMONKEY_PLUGIN_DIR`), passing `baseURL` as the adapter's endpoint and the
+key from `apiKeyEnvironment`; `protocol` and `embeddingInputType` must be empty.
+An adapter model serves `generate` and `embed` tools and non-streaming
+generation only. Streaming, transcription and speech need the built-in
+protocol clients until ext's inference bridge returns streamed responses and
+its adapters implement those operations. ext's OpenAI adapter v0.1.0 also drops
+tool-call arguments; the Console refuses those responses.
 
 `tools` entries contain a Console `definition` and one of these binding kinds:
 

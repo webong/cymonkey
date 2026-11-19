@@ -36,8 +36,12 @@ github.com/pion/webrtc/v4 v4.2.22 h1:eoRTHzLKW5tI9o5iahw3s4KL4IHPESsfIF06zWi3JAo
 github.com/pion/webrtc/v4 v4.2.22/go.mod h1:JBu1ba8lUEX4jbYFKofglMQJG7f0rJk7UepKjI3GaLE=
 github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=
 github.com/stretchr/testify v1.12.1/go.mod h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg=
+github.com/webong/ext/adapters/openai v0.1.0 h1:P/ATk0NaZ2vO6CMR8lM46PQj1ES+YOhpArNyEH6nHtE=
+github.com/webong/ext/adapters/openai v0.1.0/go.mod h1:0aWrbgjiWU0yqWwr3SUc2feiG76ToMpDSXR6vWyTwWs=
 github.com/webong/ext/pkg/ext-go/engine v0.4.0 h1:UpF71NLx8q3Q/LYJyvfd6wfbQ5/VfGOIk4V2YAXY2kE=
 github.com/webong/ext/pkg/ext-go/engine v0.4.0/go.mod h1:lnYoMIb5lKAnz60k2oG47rhxxFqOLA5MT3IaU5rlU4s=
+github.com/webong/ext/pkg/ext-go/inference v0.1.1 h1:yUxavwEoz4cX75ZHBsov/pWD6FthZ92ZW7Cu16sEq0s=
+github.com/webong/ext/pkg/ext-go/inference v0.1.1/go.mod h1:ivhlPKsK3Upt3hyncbwSJE2FhM1wfN078uZ3RVTQ/sA=
 github.com/webong/ext/res/int v0.1.0 h1:OxxpESJPTy152dhoQWKoUGWHDGgrjv2Qokm9PG69OU0=
 github.com/webong/ext/res/int v0.1.0/go.mod h1:6nfdOsNf28H7XJqzalOZyWEUz0QLxEB075SN5TbVzDg=
 github.com/webong/ext/res/system v0.5.1 h1:wI8ZTG4K9oLVuIZ2LtKpIF8TN1OeE3Y5QnF4OQWDSbM=

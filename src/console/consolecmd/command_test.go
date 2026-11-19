@@ -67,3 +67,22 @@ func TestCommandsRefuseMissingConfigurationAndUnknownCommandsAndOpenListeners(t 
 		t.Fatal("serve accepted a non-loopback address")
 	}
 }
+
+func TestModelAdaptersRejectProtocolFieldsAndMissingPackages(t *testing.T) {
+	t.Setenv("CYMONKEY_PLUGIN_DIR", t.TempDir())
+	t.Setenv("ADAPTER_TEST_KEY", "k")
+	for name, model := range map[string]string{
+		"protocol":  `{"id": "a", "provider": "p", "model": "m", "adapter": "openai", "protocol": "openai-compatible", "baseURL": "http://127.0.0.1:1/v1", "apiKeyEnvironment": "ADAPTER_TEST_KEY", "capabilities": ["generate"]}`,
+		"no key":    `{"id": "a", "provider": "p", "model": "m", "adapter": "openai", "baseURL": "http://127.0.0.1:1/v1", "capabilities": ["generate"]}`,
+		"not found": `{"id": "a", "provider": "p", "model": "m", "adapter": "openai", "baseURL": "http://127.0.0.1:1/v1", "apiKeyEnvironment": "ADAPTER_TEST_KEY", "capabilities": ["generate"]}`,
+	} {
+		path := filepath.Join(t.TempDir(), "console.json")
+		config := `{"apiVersion": "cymonkey.console/v1alpha1", "models": [` + model + `], "tools": []}`
+		if err := os.WriteFile(path, []byte(config), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err := run(t, "", "models", "--config", path); err == nil {
+			t.Errorf("%s: an invalid adapter model was accepted", name)
+		}
+	}
+}
