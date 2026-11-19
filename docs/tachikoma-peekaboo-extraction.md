@@ -17,7 +17,7 @@ model or desktop acceptance. Full upstream feature parity is not claimed.
 | `res/jangolova/generationkit` | Neutral messages, generation, streaming, embeddings, speech, validation and explicit model registration |
 | `src/console` | Schema-checked tools, selected invocation, one model turn, transcript continuation, bindings and HTTP/MCP presentation |
 | `res/jangolova/displaykit/ui` | Portable UI observations, target identity, action receipts, predicates and bounded read-only waits |
-| `src/console/capture` | Finite image processing, native capture bridge, frame sampling, manifests and caller-supplied video decoding |
+| `src/console/capture` | Native capture bridge (a frame source for ext's `res/system/capture/media`, which owns image processing, sampling, manifests and video decoding) |
 | `src/board/clipboard` | Clipboard snapshots, conditional writes and Board resource grants |
 | `src/board/audio` | Audio device observation (PCM16/WAV framing is ext's `res/system/capture/media`) |
 | `github.com/webong/ext/pkg/ext-go/engine/validate/jsonschema` | Shared bounded offline schema validation (ext) |

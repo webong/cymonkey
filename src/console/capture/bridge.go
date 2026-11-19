@@ -1,13 +1,24 @@
+// Package capture binds the Console to a native viewer's host-bound surface.
+// Frame sampling, change detection, crop, annotation, contact sheets and video
+// sampling are ext's res/system/capture/media; a Bridge is a media.FrameSource.
 package capture
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"image"
+	"image/png"
 	"time"
+
+	"github.com/webong/ext/res/system/capture/media"
 )
+
+// Frame is ext's captured frame.
+type Frame = media.Frame
 
 type Caller interface {
 	Call(context.Context, string, json.RawMessage) (json.RawMessage, error)
@@ -72,6 +83,9 @@ func (b Bridge) Snapshot(ctx context.Context) (Snapshot, error) {
 	}
 	return result, nil
 }
+
+var _ media.FrameSource = Bridge{}
+
 func (b Bridge) Capture(ctx context.Context) (Frame, error) {
 	s, err := b.Snapshot(ctx)
 	if err != nil {
@@ -81,21 +95,14 @@ func (b Bridge) Capture(ctx context.Context) (Frame, error) {
 	return Frame{Data: s.Data, ObservedAt: s.ObservedAt, Target: string(target), CoordinateSpace: s.CoordinateSpace}, nil
 }
 
-// Around captures before and after one caller-supplied operation. It returns
-// post-action evidence even after an action error when the context permits it.
-// The caller decides how to interpret the operation's dispatch uncertainty.
-func Around(ctx context.Context, source Source, operation func(context.Context) error) (before, after Frame, err error) {
-	if source == nil || operation == nil {
-		return before, after, errors.New("capture source and explicit operation are required")
+// decode accepts one bounded PNG frame with its capture identity.
+func decode(frame Frame, maxBytes, maxPixels int) (image.Image, error) {
+	if maxBytes < 1 || maxBytes > 64<<20 || maxPixels < 1 || maxPixels > 16<<20 || len(frame.Data) == 0 || len(frame.Data) > maxBytes || frame.ObservedAt.IsZero() || frame.Target == "" || frame.CoordinateSpace == "" {
+		return nil, errors.New("invalid capture frame")
 	}
-	before, err = source.Capture(ctx)
-	if err != nil {
-		return before, after, err
+	config, err := png.DecodeConfig(bytes.NewReader(frame.Data))
+	if err != nil || config.Width < 1 || config.Height < 1 || config.Width > maxPixels/config.Height {
+		return nil, errors.New("capture image exceeds dimensions or is not PNG")
 	}
-	actionErr := operation(ctx)
-	after, captureErr := source.Capture(ctx)
-	if captureErr == nil && after.Target != before.Target {
-		captureErr = errors.New("capture target changed around operation")
-	}
-	return before, after, errors.Join(actionErr, captureErr)
+	return png.Decode(bytes.NewReader(frame.Data))
 }

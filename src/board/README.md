@@ -202,12 +202,13 @@ enforce that. Run `go test ./src/board/...` from the repository root.
 
 ## Capture and clipboard SDKs
 
-`console/capture` provides bounded PNG processing and read-only sampling over a
-caller-supplied source: digest/metadata manifests, changed-region detection,
-heartbeat retention, crop, element-box annotation and contact sheets.
-`SampleVideo` accepts explicit offsets and a borrowed decoder. `Bridge` borrows
-a native capture caller; `Around` captures evidence around one caller-selected
-operation. Storage, codec and target ownership stay with the host.
+ext's `res/system/capture/media` provides bounded PNG processing and read-only
+sampling over a caller-supplied frame source: digest/metadata manifests,
+changed-region detection, heartbeat retention, crop, element-box annotation,
+contact sheets, `SampleVideo` with a borrowed decoder, and `Around` for evidence
+around one caller-selected operation. `console/capture.Bridge` borrows a native
+capture caller and is a `media.FrameSource`. Storage, codec and target
+ownership stay with the host.
 
 `board/clipboard.NewProvider` adapts a host-supplied ext clipboard backend
 (`res/system/capture/clipboard`) to explicit
