@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"cymonkey/src/console"
-	"jangolova/generationkit"
+	"github.com/webong/ext/res/int/inference"
 )
 
 type lookupInput struct {
@@ -26,12 +26,12 @@ type lookupOutput struct {
 }
 
 type report struct {
-	Definitions     []console.Definition    `json:"definitions"`
-	Proposals       []console.Call          `json:"proposals,omitempty"`
-	Result          *console.Result         `json:"result,omitempty"`
-	Transcript      []generationkit.Message `json:"transcript,omitempty"`
-	ModelRequests   int                     `json:"modelRequests"`
-	ToolInvocations int                     `json:"toolInvocations"`
+	Definitions     []console.Definition `json:"definitions"`
+	Proposals       []console.Call       `json:"proposals,omitempty"`
+	Result          *console.Result      `json:"result,omitempty"`
+	Transcript      []inference.Message  `json:"transcript,omitempty"`
+	ModelRequests   int                  `json:"modelRequests"`
+	ToolInvocations int                  `json:"toolInvocations"`
 }
 
 func main() {
@@ -101,15 +101,16 @@ func run(ctx context.Context, action, key string) error {
 
 	// This is application-owned example data, not a built-in model catalog.
 	generator := &scriptedGenerator{arguments: arguments}
-	var models generationkit.ModelCatalog
-	if err := models.Register(generationkit.ModelInfo{
-		ID: "example-binding", Provider: "local-example", Model: "scripted",
-	}, generator); err != nil {
+	var models console.Models
+	if err := models.Register(console.ModelBinding{
+		Info:  inference.ModelInfo{ID: "example-binding", Provider: "local-example"},
+		Model: "scripted", Generator: generator,
+	}); err != nil {
 		return err
 	}
 	composition := console.ModelTools{Model: &models, Tools: &tools}
-	messages := []generationkit.Message{generationkit.TextMessage("user", "Look up the note for "+key)}
-	response, err := composition.Generate(ctx, generationkit.GenerationRequest{
+	messages := []inference.Message{console.TextMessage(inference.RoleUser, "Look up the note for "+key)}
+	response, err := composition.Generate(ctx, inference.GenerationRequest{
 		Model: "example-binding", Messages: messages,
 	})
 	if err != nil {
@@ -156,20 +157,20 @@ func printReport(output report) error {
 
 // scriptedGenerator supplies a deterministic proposal so the handoff can be
 // explored without credentials, network calls, or a paid model. An embedding
-// application replaces this value with its configured generationkit.Generator.
+// application replaces this value with its configured inference.Generator.
 type scriptedGenerator struct {
 	arguments json.RawMessage
 	requests  int
 }
 
-func (g *scriptedGenerator) Generate(ctx context.Context, request generationkit.GenerationRequest) (generationkit.GenerationResponse, error) {
+func (g *scriptedGenerator) Generate(ctx context.Context, request inference.GenerationRequest) (inference.GenerationResponse, error) {
 	if err := ctx.Err(); err != nil {
-		return generationkit.GenerationResponse{}, err
+		return inference.GenerationResponse{}, err
 	}
 	g.requests++
-	return generationkit.GenerationResponse{
-		Model: request.Model, StopReason: "tool_calls",
-		Message: generationkit.Message{Role: "assistant", ToolCalls: []generationkit.ToolCall{{
+	return inference.GenerationResponse{
+		Model: request.Model, StopReason: inference.FinishReasonToolCalls,
+		Message: inference.Message{Role: "assistant", ToolCalls: []inference.ToolCall{{
 			ID: "example-call", Name: "lookup_note", Arguments: append(json.RawMessage(nil), g.arguments...),
 		}}},
 	}, nil

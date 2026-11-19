@@ -3,44 +3,50 @@ package generation
 import (
 	"bytes"
 	"context"
+	"cymonkey/src/console"
 	"encoding/json"
 	"errors"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
+	"sync"
 
-	"jangolova/generationkit"
+	"github.com/webong/ext/res/int/inference"
 )
 
-func (c *Client) Transcribe(ctx context.Context, request generationkit.TranscriptionRequest) (generationkit.TranscriptionResponse, error) {
+func (c *Client) Transcribe(ctx context.Context, request inference.TranscriptionRequest) (inference.TranscriptionResponse, error) {
 	if c.config.Protocol != OpenAI {
-		return generationkit.TranscriptionResponse{}, unsupported("transcription endpoint")
+		return inference.TranscriptionResponse{}, unsupported("transcription endpoint")
 	}
-	if generationkit.ValidateTranscriptionRequest(request) != nil || len(request.Audio) > 25<<20 {
-		return generationkit.TranscriptionResponse{}, errors.New("transcription needs a model and at most 25 MiB of audio")
+	if request.Validate() != nil || len(request.Audio) > 25<<20 {
+		return inference.TranscriptionResponse{}, errors.New("transcription needs a model and at most 25 MiB of audio")
+	}
+	options, err := console.DecodeTranscriptionOptions(request.Options)
+	if err != nil {
+		return inference.TranscriptionResponse{}, err
 	}
 	extensions := map[string]string{"audio/wav": "wav", "audio/x-wav": "wav", "audio/mpeg": "mp3", "audio/mp4": "m4a", "audio/ogg": "ogg", "audio/webm": "webm", "audio/flac": "flac"}
 	extension, ok := extensions[request.MediaType]
 	if !ok {
-		return generationkit.TranscriptionResponse{}, unsupported("transcription audio format")
+		return inference.TranscriptionResponse{}, unsupported("transcription audio format")
 	}
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 	responseFormat := "json"
-	if request.Metadata || len(request.Timestamps) > 0 {
+	if options.Metadata || len(request.Timestamps) > 0 {
 		responseFormat = "verbose_json"
 	}
 	for key, value := range map[string]string{"model": request.Model, "response_format": responseFormat, "language": request.Language, "prompt": request.Prompt} {
 		if value != "" {
 			if err := writer.WriteField(key, value); err != nil {
-				return generationkit.TranscriptionResponse{}, err
+				return inference.TranscriptionResponse{}, err
 			}
 		}
 	}
 	for _, granularity := range request.Timestamps {
 		if err := writer.WriteField("timestamp_granularities[]", granularity); err != nil {
-			return generationkit.TranscriptionResponse{}, err
+			return inference.TranscriptionResponse{}, err
 		}
 	}
 	header := textproto.MIMEHeader{}
@@ -48,71 +54,77 @@ func (c *Client) Transcribe(ctx context.Context, request generationkit.Transcrip
 	header.Set("Content-Type", request.MediaType)
 	part, err := writer.CreatePart(header)
 	if err != nil {
-		return generationkit.TranscriptionResponse{}, err
+		return inference.TranscriptionResponse{}, err
 	}
 	if _, err = part.Write(request.Audio); err != nil {
-		return generationkit.TranscriptionResponse{}, err
+		return inference.TranscriptionResponse{}, err
 	}
 	if err = writer.Close(); err != nil {
-		return generationkit.TranscriptionResponse{}, err
+		return inference.TranscriptionResponse{}, err
 	}
 	resp, err := c.do(ctx, http.MethodPost, "/audio/transcriptions", writer.FormDataContentType(), &body, false)
 	if err != nil {
-		return generationkit.TranscriptionResponse{}, err
+		return inference.TranscriptionResponse{}, err
 	}
 	defer resp.Body.Close()
 	data, err := readBounded(resp.Body, c.config.MaxResponseBytes)
 	if err != nil {
-		return generationkit.TranscriptionResponse{}, err
+		return inference.TranscriptionResponse{}, err
 	}
 	var result struct {
-		Text     *string                              `json:"text"`
-		Language string                               `json:"language"`
-		Duration *float64                             `json:"duration"`
-		Segments []generationkit.TranscriptionSegment `json:"segments"`
-		Words    []generationkit.TranscriptionWord    `json:"words"`
+		Text     *string                          `json:"text"`
+		Language string                           `json:"language"`
+		Duration *float64                         `json:"duration"`
+		Segments []inference.TranscriptionSegment `json:"segments"`
+		Words    []inference.TranscriptionWord    `json:"words"`
 	}
 	if err = json.Unmarshal(data, &result); err != nil {
-		return generationkit.TranscriptionResponse{}, err
+		return inference.TranscriptionResponse{}, err
 	}
 	if result.Text == nil {
-		return generationkit.TranscriptionResponse{}, errors.New("transcription response has no text field")
+		return inference.TranscriptionResponse{}, errors.New("transcription response has no text field")
 	}
-	response := generationkit.TranscriptionResponse{Text: *result.Text, Language: result.Language, DurationSeconds: result.Duration, Segments: result.Segments, Words: result.Words}
-	return response, generationkit.ValidateTranscriptionResponse(response)
+	response := inference.TranscriptionResponse{Text: *result.Text, Language: result.Language, DurationSeconds: result.Duration, Segments: result.Segments, Words: result.Words}
+	return response, response.Validate()
 }
 
-func (c *Client) Synthesize(ctx context.Context, request generationkit.SpeechRequest) (generationkit.SpeechStream, error) {
+func (c *Client) Synthesize(ctx context.Context, request inference.SpeechRequest) (inference.SpeechStream, error) {
 	if c.config.Protocol != OpenAI {
-		return generationkit.SpeechStream{}, unsupported("speech endpoint")
+		return nil, unsupported("speech endpoint")
 	}
-	mediaTypes := map[string]string{"mp3": "audio/mpeg", "opus": "audio/ogg", "aac": "audio/aac", "flac": "audio/flac", "wav": "audio/wav", "pcm": "audio/pcm"}
 	format := request.Format
 	if format == "" {
 		format = "mp3"
 	}
-	mediaType, ok := mediaTypes[format]
-	if !ok || request.Model == "" || request.Text == "" || request.Voice == "" {
-		return generationkit.SpeechStream{}, errors.New("speech needs model, text, voice, and a supported format")
+	_, ok := console.SpeechMediaType(format)
+	if !ok || request.Model == "" || request.Input == "" || request.Voice == "" {
+		return nil, errors.New("speech needs model, input, voice, and a supported format")
 	}
-	payload := map[string]any{"model": request.Model, "input": request.Text, "voice": request.Voice, "response_format": format}
-	if request.Instructions != "" {
-		payload["instructions"] = request.Instructions
+	options, err := console.DecodeSpeechOptions(request.Options)
+	if err != nil {
+		return nil, err
+	}
+	payload := map[string]any{"model": request.Model, "input": request.Input, "voice": request.Voice, "response_format": format}
+	if options.Instructions != "" {
+		payload["instructions"] = options.Instructions
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
-		return generationkit.SpeechStream{}, err
+		return nil, err
 	}
 	resp, err := c.do(ctx, http.MethodPost, "/audio/speech", "application/json", bytes.NewReader(body), false)
 	if err != nil {
-		return generationkit.SpeechStream{}, err
+		return nil, err
 	}
-	return generationkit.SpeechStream{Audio: &audioReader{body: resp.Body, remaining: c.config.MaxResponseBytes}, MediaType: mediaType}, nil
+	return &audioReader{body: resp.Body, remaining: c.config.MaxResponseBytes}, nil
 }
 
+// audioReader is the bounded speech stream. Close is idempotent.
 type audioReader struct {
 	body      io.ReadCloser
 	remaining int64
+	once      sync.Once
+	closeErr  error
 }
 
 func (r *audioReader) Read(p []byte) (int, error) {
@@ -134,4 +146,7 @@ func (r *audioReader) Read(p []byte) (int, error) {
 	r.remaining -= int64(n)
 	return n, err
 }
-func (r *audioReader) Close() error { return r.body.Close() }
+func (r *audioReader) Close() error {
+	r.once.Do(func() { r.closeErr = r.body.Close() })
+	return r.closeErr
+}

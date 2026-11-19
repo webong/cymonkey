@@ -5,6 +5,7 @@ package generation
 import (
 	"bytes"
 	"context"
+	"cymonkey/src/console"
 	"errors"
 	"fmt"
 	"io"
@@ -16,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"jangolova/generationkit"
+	"github.com/webong/ext/res/int/inference"
 )
 
 type Protocol string
@@ -169,29 +170,37 @@ func readBounded(reader io.Reader, limit int64) ([]byte, error) {
 	return data, nil
 }
 
-func (c *Client) Generate(ctx context.Context, request generationkit.GenerationRequest) (generationkit.GenerationResponse, error) {
+func (c *Client) Generate(ctx context.Context, request inference.GenerationRequest) (inference.GenerationResponse, error) {
 	body, path, err := c.encode(request, false)
 	if err != nil {
-		return generationkit.GenerationResponse{}, err
+		return inference.GenerationResponse{}, err
 	}
 	resp, err := c.do(ctx, http.MethodPost, path, "application/json", bytes.NewReader(body), false)
 	if err != nil {
-		return generationkit.GenerationResponse{}, err
+		return inference.GenerationResponse{}, err
 	}
 	defer resp.Body.Close()
 	data, err := readBounded(resp.Body, c.config.MaxResponseBytes)
 	if err != nil {
-		return generationkit.GenerationResponse{}, err
+		return inference.GenerationResponse{}, err
 	}
 	result, err := c.decode(data, request.Model)
 	if err != nil {
 		if errors.Is(err, contentkit.ErrGenerationUnsupported) {
-			return generationkit.GenerationResponse{}, err
+			return inference.GenerationResponse{}, err
 		}
-		return generationkit.GenerationResponse{}, &contentkit.ModelError{Kind: contentkit.ErrorInvalidResponse, Operation: "generate", Cause: err}
+		return inference.GenerationResponse{}, &contentkit.ModelError{Kind: contentkit.ErrorInvalidResponse, Operation: "generate", Cause: err}
 	}
-	if err := generationkit.ValidateGenerationResult(result, request); err != nil {
-		return generationkit.GenerationResponse{}, &contentkit.ModelError{Kind: contentkit.ErrorInvalidResponse, Operation: "generate", Cause: err}
+	if err := console.ValidateResult(result, request); err != nil {
+		return inference.GenerationResponse{}, &contentkit.ModelError{Kind: contentkit.ErrorInvalidResponse, Operation: "generate", Cause: err}
 	}
 	return result, nil
 }
+
+var (
+	_ inference.Generator   = (*Client)(nil)
+	_ inference.Streamer    = (*Client)(nil)
+	_ inference.Embedder    = (*Client)(nil)
+	_ inference.Transcriber = (*Client)(nil)
+	_ inference.Synthesizer = (*Client)(nil)
+)

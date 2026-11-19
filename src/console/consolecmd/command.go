@@ -25,9 +25,9 @@ import (
 	endpointmodels "cymonkey/src/console/generation"
 	"cymonkey/src/console/httpapi"
 	"cymonkey/src/console/mcp"
+	"github.com/webong/ext/res/int/inference"
 	"jangolova/displaykit/contract"
 	"jangolova/displaykit/ui"
-	"jangolova/generationkit"
 )
 
 // Configuration belongs to the operator. SDKs never discover credentials,
@@ -87,24 +87,24 @@ type configuredGenerator struct {
 	options json.RawMessage
 }
 
-func (m configuredGenerator) Generate(ctx context.Context, r generationkit.GenerationRequest) (generationkit.GenerationResponse, error) {
+func (m configuredGenerator) Generate(ctx context.Context, r inference.GenerationRequest) (inference.GenerationResponse, error) {
 	if len(r.Options) > 0 {
-		return generationkit.GenerationResponse{}, errors.New("native options are fixed by the host binding")
+		return inference.GenerationResponse{}, errors.New("native options are fixed by the host binding")
 	}
 	r.Options = append(json.RawMessage(nil), m.options...)
 	return m.client.Generate(ctx, r)
 }
-func (m configuredGenerator) Stream(ctx context.Context, r generationkit.GenerationRequest, emit func(generationkit.GenerationEvent) error) (generationkit.GenerationResponse, error) {
+func (m configuredGenerator) Stream(ctx context.Context, r inference.GenerationRequest, sink inference.EventSink) (inference.GenerationResponse, error) {
 	if len(r.Options) > 0 {
-		return generationkit.GenerationResponse{}, errors.New("native options are fixed by the host binding")
+		return inference.GenerationResponse{}, errors.New("native options are fixed by the host binding")
 	}
 	r.Options = append(json.RawMessage(nil), m.options...)
-	return m.client.Stream(ctx, r, emit)
+	return m.client.Stream(ctx, r, sink)
 }
 
 type consoleHost struct {
 	tools         console.Registry
-	models        generationkit.ModelCatalog
+	models        console.Models
 	attachments   []*mcp.HTTPTransport
 	artifactRoots []*os.Root
 	config        consoleConfiguration
@@ -163,7 +163,15 @@ func loadConsole(ctx context.Context, path string) (host *consoleHost, err error
 		}
 		clients[model.ID] = client
 		selected[model.ID] = model
-		if e = h.models.Register(generationkit.ModelInfo{ID: model.ID, Provider: model.Provider, Model: model.Model, Capabilities: model.Capabilities}, configuredGenerator{client: client, options: model.Options}); e != nil {
+		capabilities := make([]inference.Capability, 0, len(model.Capabilities))
+		for _, name := range model.Capabilities {
+			capability := inference.Capability(name)
+			if !capability.Valid() {
+				return nil, fmt.Errorf("model %q capability %q is not an ext inference capability", model.ID, name)
+			}
+			capabilities = append(capabilities, capability)
+		}
+		if e = h.models.Register(console.ModelBinding{Info: inference.ModelInfo{ID: model.ID, Provider: model.Provider, Capabilities: capabilities}, Model: model.Model, Generator: configuredGenerator{client: client, options: model.Options}}); e != nil {
 			return nil, e
 		}
 	}
@@ -521,13 +529,15 @@ func Run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.
 		}
 		return json.NewEncoder(stdout).Encode(result)
 	}
-	var request generationkit.GenerationRequest
+	var request inference.GenerationRequest
 	if err = consoleDecode(reader, &request); err != nil {
 		return err
 	}
 	model := console.ModelTools{Model: &host.models, Tools: &host.tools}
 	if command == "stream" {
-		_, err = model.Stream(ctx, request, func(event generationkit.GenerationEvent) error { return json.NewEncoder(stdout).Encode(event) })
+		_, err = model.Stream(ctx, request, inference.SinkFunc(func(_ context.Context, event inference.GenerationEvent) error {
+			return json.NewEncoder(stdout).Encode(event)
+		}))
 		return err
 	}
 	result, err := model.Generate(ctx, request)

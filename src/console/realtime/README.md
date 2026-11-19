@@ -1,6 +1,6 @@
 # Optional realtime adapter
 
-This package implements `blockade.RealtimeSession` using the Realtime WebSocket
+This package implements ext's `res/int/realtime.Session` (and `AudioControl`) using the Realtime WebSocket
 API dialect. `Open` requires a host-selected WebSocket URL and model ID; voice,
 instructions, tools, credential resolver, and dialer are supplied explicitly.
 It contains no built-in endpoint/model catalog or device integration.

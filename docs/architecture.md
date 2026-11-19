@@ -235,7 +235,6 @@ src/internal/provider/         provider and MCP implementation
 src/fixtures/native-bridge/    native bridge fixture implementation
 res/jangolova/                       shared contracts and host roles (one module)
 res/jangolova/contentkit/            content provider host role and contracts
-res/jangolova/generationkit/             generation, embedding and speech contracts
 src/console/                   core guest: tool composition and the content engine
 src/adapters/browserautomation/ Playwright CDP and Puppeteer CDP/BiDi attachment
 src/adapters/webdriverclassic/  existing W3C WebDriver session attachment
@@ -256,7 +255,6 @@ src/internal/host/              Cymonkey host configuration and process supervis
 src/board/display/                  display engine and its host boundary
 res/jangolova/displaykit/host/             Jangolova host service injection contract
 res/jangolova/contentkit/                 content provider host role and contracts
-res/jangolova/generationkit/              generation, embedding and speech contracts
 res/jangolova/contentkit/protocol/          content contract schemas and fixtures
 src/internal/targetconn/        caller-owned target connection helpers
 res/jangolova/displaykit/contract/         public runtime wire contract

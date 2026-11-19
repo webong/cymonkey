@@ -18,7 +18,7 @@ import (
 
 const consoleTestConfig = `{
   "apiVersion": "cymonkey.console/v1alpha1",
-  "models": [{"id": "local", "provider": "local-llm", "model": "m1", "protocol": "openai-compatible", "baseURL": "http://127.0.0.1:1", "apiKeyEnvironment": "CONSOLE_TEST_KEY", "capabilities": ["text.generate"]}],
+  "models": [{"id": "local", "provider": "local-llm", "model": "m1", "protocol": "openai-compatible", "baseURL": "http://127.0.0.1:1", "apiKeyEnvironment": "CONSOLE_TEST_KEY", "capabilities": ["generate"]}],
   "tools": [{"definition": {"name": "ask", "description": "Ask the model", "inputSchema": {"type": "object"}}, "kind": "generate", "modelId": "local"}]
 }`
 

@@ -7,17 +7,17 @@ import (
 	"fmt"
 	"jangolova/contentkit"
 
-	"jangolova/generationkit"
+	"github.com/webong/ext/res/int/inference"
 )
 
 // ModelTools composes a caller-selected model with an explicitly registered
 // tool catalog. Each Generate or Stream performs one model request only.
 type ModelTools struct {
-	Model generationkit.Generator
+	Model inference.Generator
 	Tools *Registry
 }
 
-func (m ModelTools) request(request generationkit.GenerationRequest) (generationkit.GenerationRequest, error) {
+func (m ModelTools) request(request inference.GenerationRequest) (inference.GenerationRequest, error) {
 	if m.Model == nil || m.Tools == nil {
 		return request, errors.New("model and tool registry are required")
 	}
@@ -25,58 +25,58 @@ func (m ModelTools) request(request generationkit.GenerationRequest) (generation
 		return request, errors.New("ModelTools supplies tools from its registry")
 	}
 	for _, definition := range m.Tools.Definitions() {
-		request.Tools = append(request.Tools, generationkit.ToolDefinition{Name: definition.Name, Description: definition.Description, InputSchema: definition.InputSchema})
+		request.Tools = append(request.Tools, inference.ToolDefinition{Name: definition.Name, Description: definition.Description, InputSchema: definition.InputSchema})
 	}
-	return request, generationkit.ValidateGenerationRequest(request)
+	return request, request.Validate()
 }
 
-func (m ModelTools) Generate(ctx context.Context, request generationkit.GenerationRequest) (generationkit.GenerationResponse, error) {
+func (m ModelTools) Generate(ctx context.Context, request inference.GenerationRequest) (inference.GenerationResponse, error) {
 	if err := ctx.Err(); err != nil {
-		return generationkit.GenerationResponse{}, err
+		return inference.GenerationResponse{}, err
 	}
 	request, err := m.request(request)
 	if err != nil {
-		return generationkit.GenerationResponse{}, err
+		return inference.GenerationResponse{}, err
 	}
 	response, err := m.Model.Generate(ctx, request)
 	if err != nil {
-		return generationkit.GenerationResponse{}, err
+		return inference.GenerationResponse{}, err
 	}
-	if err := generationkit.ValidateGenerationResult(response, request); err != nil {
-		return generationkit.GenerationResponse{}, err
+	if err := ValidateResult(response, request); err != nil {
+		return inference.GenerationResponse{}, err
 	}
 	return response, nil
 }
 
-func (m ModelTools) Stream(ctx context.Context, request generationkit.GenerationRequest, emit func(generationkit.GenerationEvent) error) (generationkit.GenerationResponse, error) {
+func (m ModelTools) Stream(ctx context.Context, request inference.GenerationRequest, sink inference.EventSink) (inference.GenerationResponse, error) {
 	if err := ctx.Err(); err != nil {
-		return generationkit.GenerationResponse{}, err
+		return inference.GenerationResponse{}, err
 	}
 	request, err := m.request(request)
 	if err != nil {
-		return generationkit.GenerationResponse{}, err
+		return inference.GenerationResponse{}, err
 	}
-	if emit == nil {
-		return generationkit.GenerationResponse{}, errors.New("stream callback is required")
+	if sink == nil {
+		return inference.GenerationResponse{}, errors.New("stream callback is required")
 	}
-	model, ok := m.Model.(generationkit.StreamingGenerator)
+	model, ok := m.Model.(inference.Streamer)
 	if !ok {
-		return generationkit.GenerationResponse{}, contentkit.ErrGenerationUnsupported
+		return inference.GenerationResponse{}, contentkit.ErrGenerationUnsupported
 	}
-	response, err := model.Stream(ctx, request, emit)
+	response, err := model.Stream(ctx, request, sink)
 	if err != nil {
-		return generationkit.GenerationResponse{}, err
+		return inference.GenerationResponse{}, err
 	}
-	if err := generationkit.ValidateGenerationResult(response, request); err != nil {
-		return generationkit.GenerationResponse{}, err
+	if err := ValidateResult(response, request); err != nil {
+		return inference.GenerationResponse{}, err
 	}
 	return response, nil
 }
 
 // ProposedCalls converts a model response to data that a host can inspect and
 // choose to invoke. Conversion does not call the registry.
-func ProposedCalls(response generationkit.GenerationResponse) ([]Call, error) {
-	if err := generationkit.ValidateGenerationResponse(response); err != nil {
+func ProposedCalls(response inference.GenerationResponse) ([]Call, error) {
+	if err := response.Validate(); err != nil {
 		return nil, err
 	}
 	calls := make([]Call, 0, len(response.Message.ToolCalls))
@@ -89,8 +89,8 @@ func ProposedCalls(response generationkit.GenerationResponse) ([]Call, error) {
 // Continue builds a new transcript after the caller has resolved every
 // proposed call. Results are reordered to the proposals and must match IDs
 // and names. Nothing is executed and no subsequent model request is started.
-func Continue(messages []generationkit.Message, response generationkit.GenerationResponse, results []Result) ([]generationkit.Message, error) {
-	if err := generationkit.ValidateGenerationResponse(response); err != nil {
+func Continue(messages []inference.Message, response inference.GenerationResponse, results []Result) ([]inference.Message, error) {
+	if err := response.Validate(); err != nil {
 		return nil, err
 	}
 	if len(results) != len(response.Message.ToolCalls) {
@@ -103,13 +103,13 @@ func Continue(messages []generationkit.Message, response generationkit.Generatio
 		}
 		byID[result.ID] = result
 	}
-	updated := append(append([]generationkit.Message(nil), messages...), response.Message)
+	updated := append(append([]inference.Message(nil), messages...), response.Message)
 	for _, call := range response.Message.ToolCalls {
 		result, ok := byID[call.ID]
 		if !ok || result.Name != call.Name {
 			return nil, fmt.Errorf("%w: tool result does not match proposal %q", ErrInvalidResult, call.ID)
 		}
-		message := generationkit.TextMessage("tool", string(result.Output))
+		message := TextMessage(inference.RoleTool, string(result.Output))
 		message.ToolError = result.IsError
 		message.ToolCallID = call.ID
 		message.ToolName = call.Name
@@ -121,7 +121,7 @@ func Continue(messages []generationkit.Message, response generationkit.Generatio
 	if err != nil {
 		return nil, err
 	}
-	var snapshot []generationkit.Message
+	var snapshot []inference.Message
 	if err = json.Unmarshal(data, &snapshot); err != nil {
 		return nil, err
 	}

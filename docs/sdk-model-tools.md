@@ -45,7 +45,7 @@ with a scripted local generator. No remote model or device is needed.
 
 ## Embedding surfaces
 
-- [`res/jangolova/generationkit`](../res/jangolova/generationkit/README.md): neutral generation contracts and model bindings.
+- ext's `res/int/inference` and `res/int/realtime`: the generation, streaming, embedding, speech, transcription and duplex-session contracts. `src/console` holds the model router (`console.Models`) and result checks on top of them.
 - [`src/console`](../src/console/README.md): tool composition, SDK bindings, MCP.
 - [`src/board`](../src/board/README.md): existing device providers and audio channels.
 - [`src/board/display`](../src/board/display/README.md): existing semantic interaction SDK.

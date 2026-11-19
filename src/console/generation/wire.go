@@ -9,11 +9,11 @@ import (
 	"net/url"
 	"strings"
 
-	"jangolova/generationkit"
+	"github.com/webong/ext/res/int/inference"
 )
 
-func (c *Client) encode(request generationkit.GenerationRequest, stream bool) ([]byte, string, error) {
-	if err := generationkit.ValidateGenerationRequest(request); err != nil {
+func (c *Client) encode(request inference.GenerationRequest, stream bool) ([]byte, string, error) {
+	if err := request.Validate(); err != nil {
 		return nil, "", err
 	}
 	var payload map[string]any
@@ -61,7 +61,7 @@ func (c *Client) encode(request generationkit.GenerationRequest, stream bool) ([
 func unsupported(feature string) error {
 	return fmt.Errorf("%w: %s", contentkit.ErrGenerationUnsupported, feature)
 }
-func plainText(message generationkit.Message) (string, error) {
+func plainText(message inference.Message) (string, error) {
 	var text strings.Builder
 	for _, part := range message.Parts {
 		if part.Kind != "text" {
@@ -71,7 +71,7 @@ func plainText(message generationkit.Message) (string, error) {
 	}
 	return text.String(), nil
 }
-func openAIRequest(request generationkit.GenerationRequest) (map[string]any, error) {
+func openAIRequest(request inference.GenerationRequest) (map[string]any, error) {
 	messages := make([]any, 0, len(request.Messages))
 	for _, message := range request.Messages {
 		wire := map[string]any{"role": message.Role}
@@ -125,7 +125,7 @@ func openAIRequest(request generationkit.GenerationRequest) (map[string]any, err
 					}
 					parts = append(parts, map[string]any{"type": "input_audio", "input_audio": map[string]any{"data": base64.StdEncoding.EncodeToString(part.Data), "format": format}})
 				default:
-					return nil, unsupported("OpenAI-compatible " + part.Kind + " input")
+					return nil, unsupported("OpenAI-compatible " + string(part.Kind) + " input")
 				}
 			}
 			wire["content"] = parts
@@ -162,7 +162,7 @@ func openAIRequest(request generationkit.GenerationRequest) (map[string]any, err
 	return payload, nil
 }
 
-func anthropicRequest(request generationkit.GenerationRequest) (map[string]any, error) {
+func anthropicRequest(request inference.GenerationRequest) (map[string]any, error) {
 	messages := []any{}
 	system := []any{}
 	for _, message := range request.Messages {
@@ -225,7 +225,7 @@ func anthropicRequest(request generationkit.GenerationRequest) (map[string]any, 
 					}
 					blocks = append(blocks, map[string]any{"type": "document", "source": source})
 				default:
-					return nil, unsupported("Anthropic " + part.Kind + " input")
+					return nil, unsupported("Anthropic " + string(part.Kind) + " input")
 				}
 			}
 		}
@@ -261,7 +261,7 @@ func anthropicRequest(request generationkit.GenerationRequest) (map[string]any, 
 	return payload, nil
 }
 
-func geminiRequest(request generationkit.GenerationRequest) (map[string]any, error) {
+func geminiRequest(request inference.GenerationRequest) (map[string]any, error) {
 	contents := []any{}
 	system := []any{}
 	for _, message := range request.Messages {
@@ -461,12 +461,12 @@ type geminiResponse struct {
 	Error json.RawMessage `json:"error"`
 }
 
-func (c *Client) decode(data []byte, model string) (generationkit.GenerationResponse, error) {
+func (c *Client) decode(data []byte, model string) (inference.GenerationResponse, error) {
 	return c.decodeOffset(data, model, 0)
 }
 
-func (c *Client) decodeOffset(data []byte, model string, callOffset int) (generationkit.GenerationResponse, error) {
-	r := generationkit.GenerationResponse{Model: model, Message: generationkit.Message{Role: "assistant"}}
+func (c *Client) decodeOffset(data []byte, model string, callOffset int) (inference.GenerationResponse, error) {
+	r := inference.GenerationResponse{Model: model, Message: inference.Message{Role: "assistant"}}
 	switch c.config.Protocol {
 	case Responses:
 		return decodeResponses(data, model)
@@ -484,25 +484,29 @@ func (c *Client) decodeOffset(data []byte, model string, callOffset int) (genera
 		}
 		m := wire.Choices[0].Message
 		if m.Content != "" {
-			r.Message.Parts = append(r.Message.Parts, generationkit.MessagePart{Kind: "text", Text: m.Content})
+			r.Message.Parts = append(r.Message.Parts, inference.Part{Kind: "text", Text: m.Content})
 		}
 		if m.Reasoning != "" {
-			r.Message.Parts = append(r.Message.Parts, generationkit.MessagePart{Kind: "reasoning", Text: m.Reasoning})
+			r.Message.Parts = append(r.Message.Parts, inference.Part{Kind: "reasoning", Text: m.Reasoning})
 		}
 		if m.Refusal != "" {
-			r.Message.Parts = append(r.Message.Parts, generationkit.MessagePart{Kind: "refusal", Text: m.Refusal})
+			r.Message.Parts = append(r.Message.Parts, inference.Part{Kind: "refusal", Text: m.Refusal})
 			r.StopReason = "refusal"
 		}
 		for _, call := range m.ToolCalls {
 			if call.Type != "function" {
 				return r, unsupported("non-function tool call")
 			}
-			r.Message.ToolCalls = append(r.Message.ToolCalls, generationkit.ToolCall{ID: call.ID, Name: call.Function.Name, Arguments: json.RawMessage(call.Function.Arguments)})
+			r.Message.ToolCalls = append(r.Message.ToolCalls, inference.ToolCall{ID: call.ID, Name: call.Function.Name, Arguments: json.RawMessage(call.Function.Arguments)})
 		}
 		if r.StopReason == "" {
-			r.StopReason = wire.Choices[0].FinishReason
+			reason, err := finishReason(wire.Choices[0].FinishReason)
+			if err != nil {
+				return inference.GenerationResponse{}, err
+			}
+			r.StopReason = reason
 		}
-		r.Usage = generationkit.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output, Total: wire.Usage.Total, CachedInput: wire.Usage.InputDetails.Cached, Reasoning: wire.Usage.OutputDetails.Reasoning}
+		r.Usage = inference.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output, Total: wire.Usage.Total, CachedInput: wire.Usage.InputDetails.Cached, Reasoning: wire.Usage.OutputDetails.Reasoning}
 	case Anthropic:
 		var wire anthropicResponse
 		if err := json.Unmarshal(data, &wire); err != nil {
@@ -515,7 +519,7 @@ func (c *Client) decodeOffset(data []byte, model string, callOffset int) (genera
 		for _, block := range wire.Content {
 			switch block.Type {
 			case "text":
-				r.Message.Parts = append(r.Message.Parts, generationkit.MessagePart{Kind: "text", Text: block.Text})
+				r.Message.Parts = append(r.Message.Parts, inference.Part{Kind: "text", Text: block.Text})
 			case "thinking", "redacted_thinking":
 				part, err := thinkingPart(block)
 				if err != nil {
@@ -523,13 +527,17 @@ func (c *Client) decodeOffset(data []byte, model string, callOffset int) (genera
 				}
 				r.Message.Parts = append(r.Message.Parts, part)
 			case "tool_use":
-				r.Message.ToolCalls = append(r.Message.ToolCalls, generationkit.ToolCall{ID: block.ID, Name: block.Name, Arguments: block.Input})
+				r.Message.ToolCalls = append(r.Message.ToolCalls, inference.ToolCall{ID: block.ID, Name: block.Name, Arguments: block.Input})
 			default:
 				return r, unsupported("Anthropic response block " + block.Type)
 			}
 		}
-		r.StopReason = normalizeStop(wire.StopReason)
-		r.Usage = generationkit.TokenUsage{Input: wire.Usage.Input + wire.Usage.Cached + wire.Usage.CacheWrite, Output: wire.Usage.Output, Total: wire.Usage.Input + wire.Usage.Cached + wire.Usage.CacheWrite + wire.Usage.Output, CachedInput: wire.Usage.Cached}
+		reason, err := finishReason(wire.StopReason)
+		if err != nil {
+			return inference.GenerationResponse{}, err
+		}
+		r.StopReason = reason
+		r.Usage = inference.TokenUsage{Input: wire.Usage.Input + wire.Usage.Cached + wire.Usage.CacheWrite, Output: wire.Usage.Output, Total: wire.Usage.Input + wire.Usage.Cached + wire.Usage.CacheWrite + wire.Usage.Output, CachedInput: wire.Usage.Cached}
 	case Gemini:
 		var wire geminiResponse
 		if err := json.Unmarshal(data, &wire); err != nil {
@@ -542,7 +550,7 @@ func (c *Client) decodeOffset(data []byte, model string, callOffset int) (genera
 		if wire.Model != "" {
 			r.Model = wire.Model
 		}
-		r.Usage = generationkit.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output + wire.Usage.Reasoning, Total: wire.Usage.Total, CachedInput: wire.Usage.Cached, Reasoning: wire.Usage.Reasoning}
+		r.Usage = inference.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output + wire.Usage.Reasoning, Total: wire.Usage.Total, CachedInput: wire.Usage.Cached, Reasoning: wire.Usage.Reasoning}
 		if len(wire.Candidates) == 0 {
 			return r, nil
 		}
@@ -564,19 +572,23 @@ func (c *Client) decodeOffset(data []byte, model string, callOffset int) (genera
 				if len(args) == 0 {
 					args = json.RawMessage(`{}`)
 				}
-				r.Message.ToolCalls = append(r.Message.ToolCalls, generationkit.ToolCall{ID: id, Name: call.Name, Arguments: args, ProviderData: signature})
+				r.Message.ToolCalls = append(r.Message.ToolCalls, inference.ToolCall{ID: id, Name: call.Name, Arguments: args, ProviderData: signature})
 			} else if part.Text != "" {
-				kind := "text"
+				kind := inference.PartKindText
 				if part.Thought {
-					kind = "reasoning"
+					kind = inference.PartKindReasoning
 				}
-				r.Message.Parts = append(r.Message.Parts, generationkit.MessagePart{Kind: kind, Text: part.Text, ProviderData: signature})
+				r.Message.Parts = append(r.Message.Parts, inference.Part{Kind: kind, Text: part.Text, ProviderData: signature})
 			} else if len(signature) > 0 {
-				r.Message.Parts = append(r.Message.Parts, generationkit.MessagePart{Kind: "context", ProviderData: signature})
+				r.Message.Parts = append(r.Message.Parts, inference.Part{Kind: "context", ProviderData: signature})
 			}
 		}
-		r.StopReason = normalizeStop(wire.Candidates[0].FinishReason)
-		r.Usage = generationkit.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output + wire.Usage.Reasoning, Total: wire.Usage.Total, CachedInput: wire.Usage.Cached, Reasoning: wire.Usage.Reasoning}
+		reason, err := finishReason(wire.Candidates[0].FinishReason)
+		if err != nil {
+			return inference.GenerationResponse{}, err
+		}
+		r.StopReason = reason
+		r.Usage = inference.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output + wire.Usage.Reasoning, Total: wire.Usage.Total, CachedInput: wire.Usage.Cached, Reasoning: wire.Usage.Reasoning}
 	}
 	return r, nil
 }
@@ -584,33 +596,42 @@ func (c *Client) decodeOffset(data []byte, model string, callOffset int) (genera
 func hasError(raw json.RawMessage) bool {
 	return len(raw) > 0 && strings.TrimSpace(string(raw)) != "null"
 }
-func normalizeStop(reason string) string {
+
+// finishReason maps a provider's native stop reason onto ext's finish reasons.
+// A reason ext cannot represent is refused instead of being read as completion.
+func finishReason(reason string) (inference.FinishReason, error) {
 	switch reason {
-	case "end_turn", "stop_sequence", "STOP":
-		return "stop"
-	case "max_tokens", "MAX_TOKENS":
-		return "length"
-	case "tool_use":
-		return "tool_calls"
+	case "", "FINISH_REASON_UNSPECIFIED":
+		return "", nil
+	case "stop", "end_turn", "stop_sequence", "STOP":
+		return inference.FinishReasonStop, nil
+	case "length", "max_tokens", "MAX_TOKENS", "max_output_tokens":
+		return inference.FinishReasonLength, nil
+	case "tool_calls", "tool_use", "function_call":
+		return inference.FinishReasonToolCalls, nil
+	case "content_filter", "SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII", "IMAGE_SAFETY":
+		return inference.FinishReasonContentFilter, nil
+	case "refusal":
+		return inference.FinishReasonRefusal, nil
 	default:
-		return reason
+		return "", unsupported("finish reason " + reason)
 	}
 }
 
-func thinkingPart(block anthropicBlock) (generationkit.MessagePart, error) {
+func thinkingPart(block anthropicBlock) (inference.Part, error) {
 	var raw []byte
 	var err error
-	kind := "context"
+	kind := inference.PartKindContext
 	text := ""
 	if block.Type == "thinking" {
 		if block.Signature == "" {
-			return generationkit.MessagePart{}, errors.New("thinking block is missing its replay signature")
+			return inference.Part{}, errors.New("thinking block is missing its replay signature")
 		}
-		kind = "reasoning"
+		kind = inference.PartKindReasoning
 		text = block.Thinking
 		raw, err = json.Marshal(map[string]string{"type": "thinking", "thinking": block.Thinking, "signature": block.Signature})
 	} else {
 		raw, err = json.Marshal(map[string]string{"type": "redacted_thinking", "data": block.Data})
 	}
-	return generationkit.MessagePart{Kind: kind, Text: text, ProviderData: raw}, err
+	return inference.Part{Kind: kind, Text: text, ProviderData: raw}, err
 }

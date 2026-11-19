@@ -6,12 +6,12 @@ import (
 	"fmt"
 
 	"github.com/webong/ext/pkg/ext-go/engine/validate/jsonschema"
-	"jangolova/generationkit"
+	"github.com/webong/ext/res/int/inference"
 )
 
 // Native options use the selected API dialect's names. Only documented fields
 // are accepted; options cannot replace model, messages, tools or endpoint data.
-func applyOptions(protocol Protocol, r generationkit.GenerationRequest, payload map[string]any) error {
+func applyOptions(protocol Protocol, r inference.GenerationRequest, payload map[string]any) error {
 	if len(r.Options) == 0 {
 		return nil
 	}

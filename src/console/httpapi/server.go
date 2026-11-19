@@ -3,6 +3,7 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -10,14 +11,14 @@ import (
 	"net/http"
 
 	"cymonkey/src/console"
-	"jangolova/generationkit"
+	"github.com/webong/ext/res/int/inference"
 )
 
 const APIVersion = "cymonkey.console/v1alpha1"
 
 type Server struct {
 	Tools  *console.Registry
-	Models *generationkit.ModelCatalog
+	Models *console.Models
 }
 
 func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -59,8 +60,8 @@ func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			failure(w, 405, "method_not_allowed")
 			return
 		}
-		var request generationkit.GenerationRequest
-		if decode(w, r, &request) != nil || generationkit.ValidateGenerationRequest(request) != nil || len(request.Tools) > 0 {
+		var request inference.GenerationRequest
+		if decode(w, r, &request) != nil || request.Validate() != nil || len(request.Tools) > 0 {
 			failure(w, 400, "invalid_request")
 			return
 		}
@@ -79,7 +80,7 @@ func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.Header().Set("Content-Type", "application/x-ndjson")
-		_, err := models.Stream(r.Context(), request, func(event generationkit.GenerationEvent) error {
+		_, err := models.Stream(r.Context(), request, inference.SinkFunc(func(_ context.Context, event inference.GenerationEvent) error {
 			if err := json.NewEncoder(w).Encode(event); err != nil {
 				return err
 			}
@@ -87,7 +88,7 @@ func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				f.Flush()
 			}
 			return r.Context().Err()
-		})
+		}))
 		if err != nil {
 			_ = json.NewEncoder(w).Encode(map[string]string{"kind": "error", "code": code(err)})
 		}

@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"cymonkey/src/console"
+	"github.com/webong/ext/res/int/inference"
 	"jangolova/displaykit/ui"
-	"jangolova/generationkit"
 )
 
 // Observe binds a surface to a read-only observer. Tool input selects a query,
@@ -78,25 +78,24 @@ func ObservedAction(definition console.Definition, client ui.Client, action stri
 }
 
 type EmbeddingInput struct {
-	Texts      []string `json:"texts,omitempty"`
-	Tokens     [][]int  `json:"tokens,omitempty"`
-	Dimensions int      `json:"dimensions,omitempty"`
+	Inputs  []string        `json:"inputs"`
+	Options json.RawMessage `json:"options,omitempty"` // provider options, such as {"dimensions": 256}
 }
 
-func Embed(definition console.Definition, provider generationkit.Embedder, model string) (console.Tool, error) {
+func Embed(definition console.Definition, provider inference.Embedder, model string) (console.Tool, error) {
 	if provider == nil || model == "" {
 		return console.Tool{}, errors.New("embedding needs a provider and fixed model")
 	}
-	return console.NewJSONTool(definition, func(ctx context.Context, input EmbeddingInput) (generationkit.EmbeddingResponse, error) {
-		r := generationkit.EmbeddingRequest{Model: model, Texts: input.Texts, Tokens: input.Tokens, Dimensions: input.Dimensions}
-		if err := generationkit.ValidateEmbeddingRequest(r); err != nil {
-			return generationkit.EmbeddingResponse{}, err
+	return console.NewJSONTool(definition, func(ctx context.Context, input EmbeddingInput) (inference.EmbeddingResponse, error) {
+		r := inference.EmbeddingRequest{Model: model, Inputs: input.Inputs, Options: input.Options}
+		if err := r.Validate(); err != nil {
+			return inference.EmbeddingResponse{}, err
 		}
 		result, err := provider.Embed(ctx, r)
 		if err != nil {
 			return result, err
 		}
-		return result, generationkit.ValidateEmbeddingResponse(result, r)
+		return result, console.ValidateEmbeddings(result, r)
 	})
 }
 

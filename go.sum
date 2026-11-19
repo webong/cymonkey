@@ -38,6 +38,8 @@ github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWD
 github.com/stretchr/testify v1.12.1/go.mod h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg=
 github.com/webong/ext/pkg/ext-go/engine v0.4.0 h1:UpF71NLx8q3Q/LYJyvfd6wfbQ5/VfGOIk4V2YAXY2kE=
 github.com/webong/ext/pkg/ext-go/engine v0.4.0/go.mod h1:lnYoMIb5lKAnz60k2oG47rhxxFqOLA5MT3IaU5rlU4s=
+github.com/webong/ext/res/int v0.1.0 h1:OxxpESJPTy152dhoQWKoUGWHDGgrjv2Qokm9PG69OU0=
+github.com/webong/ext/res/int v0.1.0/go.mod h1:6nfdOsNf28H7XJqzalOZyWEUz0QLxEB075SN5TbVzDg=
 github.com/webong/ext/res/system v0.5.1 h1:wI8ZTG4K9oLVuIZ2LtKpIF8TN1OeE3Y5QnF4OQWDSbM=
 github.com/webong/ext/res/system v0.5.1/go.mod h1:ChrugLedXqBaKX9eYWBh9oCUkbTyUec/uV7Df4SF1XA=
 github.com/webong/ext/res/web/host v0.2.1 h1:0YE4JK34uHJT4swjoZzYjh5S8/RF6t0pFqOr83V+CBQ=

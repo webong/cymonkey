@@ -13,7 +13,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"jangolova/generationkit"
+	"github.com/webong/ext/res/int/inference"
+	"github.com/webong/ext/res/int/realtime"
 )
 
 type Config struct {
@@ -21,7 +22,7 @@ type Config struct {
 	Model        string
 	Voice        string
 	Instructions string
-	Tools        []generationkit.ToolDefinition
+	Tools        []inference.ToolDefinition
 	APIKey       func(context.Context) (string, error)
 	Dialer       *websocket.Dialer
 }
@@ -40,8 +41,8 @@ func Open(ctx context.Context, config Config) (*Session, error) {
 	if err != nil || (u.Scheme != "ws" && u.Scheme != "wss") || u.Host == "" || u.User != nil || u.Fragment != "" || config.Model == "" {
 		return nil, errors.New("realtime needs an explicit WebSocket endpoint and model")
 	}
-	probe := generationkit.GenerationRequest{Model: config.Model, Messages: []generationkit.Message{generationkit.TextMessage("user", "validate")}, Tools: config.Tools}
-	if err := generationkit.ValidateGenerationRequest(probe); err != nil {
+	probe := inference.GenerationRequest{Model: config.Model, Messages: []inference.Message{inference.Message{Role: inference.RoleUser, Parts: []inference.Part{{Kind: inference.PartKindText, Text: "validate"}}}}, Tools: config.Tools}
+	if err := probe.Validate(); err != nil {
 		return nil, err
 	}
 	query := u.Query()
@@ -134,24 +135,24 @@ func (s *Session) SendToolResult(ctx context.Context, id string, output []byte) 
 	}
 	return s.send(ctx, map[string]any{"type": "conversation.item.create", "item": map[string]any{"type": "function_call_output", "call_id": id, "output": string(output)}})
 }
-func (s *Session) Receive(ctx context.Context) (generationkit.RealtimeEvent, error) {
+func (s *Session) Receive(ctx context.Context) (realtime.Event, error) {
 	s.readMu.Lock()
 	defer s.readMu.Unlock()
 	if err := ctx.Err(); err != nil {
-		return generationkit.RealtimeEvent{}, err
+		return realtime.Event{}, err
 	}
 	deadline, _ := ctx.Deadline()
 	if err := s.conn.SetReadDeadline(deadline); err != nil {
-		return generationkit.RealtimeEvent{}, err
+		return realtime.Event{}, err
 	}
 	stop := context.AfterFunc(ctx, func() { _ = s.Close() })
 	defer stop()
 	_, raw, err := s.conn.ReadMessage()
 	if err != nil {
 		if ctx.Err() != nil {
-			return generationkit.RealtimeEvent{}, ctx.Err()
+			return realtime.Event{}, ctx.Err()
 		}
-		return generationkit.RealtimeEvent{}, err
+		return realtime.Event{}, err
 	}
 	var wire struct {
 		Type       string `json:"type"`
@@ -174,9 +175,9 @@ func (s *Session) Receive(ctx context.Context) (generationkit.RealtimeEvent, err
 		} `json:"response"`
 	}
 	if err = json.Unmarshal(raw, &wire); err != nil {
-		return generationkit.RealtimeEvent{}, err
+		return realtime.Event{}, err
 	}
-	event := generationkit.RealtimeEvent{Kind: wire.Type, NativeType: wire.Type, ID: wire.ID, ItemID: wire.ItemID, ResponseID: wire.ResponseID, OccurredAt: time.Now().UTC(), Raw: raw}
+	event := realtime.Event{Kind: wire.Type, NativeType: wire.Type, ID: wire.ID, ItemID: wire.ItemID, ResponseID: wire.ResponseID, OccurredAt: time.Now().UTC(), Raw: raw}
 	switch wire.Type {
 	case "session.created", "session.updated":
 		event.Kind = "session.ready"
@@ -191,7 +192,7 @@ func (s *Session) Receive(ctx context.Context) (generationkit.RealtimeEvent, err
 		if wire.Response.Status == "cancelled" {
 			event.Kind = "response.interrupted"
 		}
-		event.Usage = &generationkit.TokenUsage{Input: wire.Response.Usage.Input, Output: wire.Response.Usage.Output, Total: wire.Response.Usage.Total}
+		event.Usage = &inference.TokenUsage{Input: wire.Response.Usage.Input, Output: wire.Response.Usage.Output, Total: wire.Response.Usage.Total}
 	case "input_audio_buffer.committed":
 		event.Kind = "audio.committed"
 	case "conversation.item.input_audio_transcription.completed":
@@ -210,15 +211,15 @@ func (s *Session) Receive(ctx context.Context) (generationkit.RealtimeEvent, err
 		event.Kind = "audio.delta"
 		event.Audio, err = base64.StdEncoding.DecodeString(wire.Delta)
 		if err != nil || len(event.Audio)%2 != 0 {
-			return generationkit.RealtimeEvent{}, errors.New("invalid realtime PCM16 audio delta")
+			return realtime.Event{}, errors.New("invalid realtime PCM16 audio delta")
 		}
 	case "response.function_call_arguments.done":
 		event.Kind = "tool.completed"
 		var args map[string]json.RawMessage
 		if wire.CallID == "" || wire.Name == "" || json.Unmarshal([]byte(wire.Arguments), &args) != nil || args == nil {
-			return generationkit.RealtimeEvent{}, errors.New("invalid realtime tool proposal")
+			return realtime.Event{}, errors.New("invalid realtime tool proposal")
 		}
-		event.Call = &generationkit.ToolCall{ID: wire.CallID, Name: wire.Name, Arguments: json.RawMessage(wire.Arguments)}
+		event.Call = &inference.ToolCall{ID: wire.CallID, Name: wire.Name, Arguments: json.RawMessage(wire.Arguments)}
 	case "error":
 		return event, errors.New("realtime provider returned an error event")
 	}
@@ -226,7 +227,7 @@ func (s *Session) Receive(ctx context.Context) (generationkit.RealtimeEvent, err
 }
 func (s *Session) Close() error { s.once.Do(func() { s.closeErr = s.conn.Close() }); return s.closeErr }
 
-var _ generationkit.RealtimeSession = (*Session)(nil)
+var _ realtime.Session = (*Session)(nil)
 
 func (s *Session) ClearInputAudio(ctx context.Context) error {
 	return s.send(ctx, map[string]any{"type": "input_audio_buffer.clear"})
@@ -238,4 +239,4 @@ func (s *Session) TruncateAudio(ctx context.Context, itemID string, contentIndex
 	return s.send(ctx, map[string]any{"type": "conversation.item.truncate", "item_id": itemID, "content_index": contentIndex, "audio_end_ms": audioMilliseconds})
 }
 
-var _ generationkit.RealtimeAudioControl = (*Session)(nil)
+var _ realtime.AudioControl = (*Session)(nil)

@@ -9,7 +9,7 @@
       "protocol": "openai-compatible",
       "baseURL": "https://models.example.invalid/v1",
       "apiKeyEnvironment": "MY_MODEL_KEY",
-      "capabilities": ["generation", "streaming"]
+      "capabilities": ["generate", "stream"]
     }
   ],
   "tools": [

@@ -14,7 +14,7 @@ model or desktop acceptance. Full upstream feature parity is not claimed.
 
 | Location | Responsibility |
 | --- | --- |
-| `res/jangolova/generationkit` | Neutral messages, generation, streaming, embeddings, speech, validation and explicit model registration |
+| ext `res/int/inference` (was `res/jangolova/generationkit`) | Neutral messages, generation, streaming, embeddings, speech, validation and explicit model registration |
 | `src/console` | Schema-checked tools, selected invocation, one model turn, transcript continuation, bindings and HTTP/MCP presentation |
 | `res/jangolova/displaykit/ui` | Portable UI observations, target identity, action receipts, predicates and bounded read-only waits |
 | `src/console/capture` | Native capture bridge (a frame source for ext's `res/system/capture/media`, which owns image processing, sampling, manifests and video decoding) |

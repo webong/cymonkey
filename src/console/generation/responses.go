@@ -3,6 +3,7 @@ package generation
 import (
 	"bytes"
 	"context"
+	"cymonkey/src/console"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -10,10 +11,10 @@ import (
 	"mime"
 	"net/http"
 
-	"jangolova/generationkit"
+	"github.com/webong/ext/res/int/inference"
 )
 
-func responsesRequest(request generationkit.GenerationRequest) (map[string]any, error) {
+func responsesRequest(request inference.GenerationRequest) (map[string]any, error) {
 	input := []any{}
 	for _, message := range request.Messages {
 		if message.Role == "tool" {
@@ -69,7 +70,7 @@ func responsesRequest(request generationkit.GenerationRequest) (map[string]any, 
 				}
 				parts = append(parts, wire)
 			default:
-				return nil, unsupported("Responses " + part.Kind + " input")
+				return nil, unsupported("Responses " + string(part.Kind) + " input")
 			}
 		}
 		if len(parts) > 0 {
@@ -99,7 +100,7 @@ func responsesRequest(request generationkit.GenerationRequest) (map[string]any, 
 	return payload, nil
 }
 
-func decodeResponses(data []byte, model string) (generationkit.GenerationResponse, error) {
+func decodeResponses(data []byte, model string) (inference.GenerationResponse, error) {
 	var wire struct {
 		ID         string `json:"id"`
 		Model      string `json:"model"`
@@ -121,22 +122,21 @@ func decodeResponses(data []byte, model string) (generationkit.GenerationRespons
 		} `json:"usage"`
 	}
 	if err := json.Unmarshal(data, &wire); err != nil {
-		return generationkit.GenerationResponse{}, err
+		return inference.GenerationResponse{}, err
 	}
 	if wire.Status != "completed" && wire.Status != "incomplete" {
-		return generationkit.GenerationResponse{}, errors.New("Responses request did not complete")
+		return inference.GenerationResponse{}, errors.New("Responses request did not complete")
 	}
-	r := generationkit.GenerationResponse{ID: wire.ID, Model: model, Message: generationkit.Message{Role: "assistant"}, StopReason: "stop", Usage: generationkit.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output, Total: wire.Usage.Total, CachedInput: wire.Usage.InputDetails.Cached, Reasoning: wire.Usage.OutputDetails.Reasoning}}
+	r := inference.GenerationResponse{ID: wire.ID, Model: model, Message: inference.Message{Role: "assistant"}, StopReason: "stop", Usage: inference.TokenUsage{Input: wire.Usage.Input, Output: wire.Usage.Output, Total: wire.Usage.Total, CachedInput: wire.Usage.InputDetails.Cached, Reasoning: wire.Usage.OutputDetails.Reasoning}}
 	if wire.Model != "" {
 		r.Model = wire.Model
 	}
 	if wire.Status == "incomplete" {
-		r.StopReason = "incomplete"
-		if wire.Incomplete.Reason == "max_output_tokens" {
-			r.StopReason = "length"
-		}
-		if r.StopReason == "" {
-			r.StopReason = "incomplete"
+		// An incomplete response is never completed output: content filtering
+		// is reported as such, and every other cut-off as length.
+		r.StopReason = inference.FinishReasonLength
+		if wire.Incomplete.Reason == "content_filter" {
+			r.StopReason = inference.FinishReasonContentFilter
 		}
 	}
 	for _, raw := range wire.Output {
@@ -156,23 +156,23 @@ func decodeResponses(data []byte, model string) (generationkit.GenerationRespons
 		}
 		switch item.Type {
 		case "reasoning":
-			r.Message.Parts = append(r.Message.Parts, generationkit.MessagePart{Kind: "context", ProviderData: append(json.RawMessage(nil), raw...)})
+			r.Message.Parts = append(r.Message.Parts, inference.Part{Kind: "context", ProviderData: append(json.RawMessage(nil), raw...)})
 		case "message":
 			for _, part := range item.Content {
 				switch part.Type {
 				case "output_text":
-					r.Message.Parts = append(r.Message.Parts, generationkit.MessagePart{Kind: "text", Text: part.Text})
+					r.Message.Parts = append(r.Message.Parts, inference.Part{Kind: "text", Text: part.Text})
 				case "refusal":
-					r.Message.Parts = append(r.Message.Parts, generationkit.MessagePart{Kind: "refusal", Text: part.Refusal})
+					r.Message.Parts = append(r.Message.Parts, inference.Part{Kind: "refusal", Text: part.Refusal})
 					r.StopReason = "refusal"
 				default:
 					return r, unsupported("Responses content " + part.Type)
 				}
 			}
 		case "function_call":
-			r.Message.ToolCalls = append(r.Message.ToolCalls, generationkit.ToolCall{ID: item.CallID, Name: item.Name, Arguments: json.RawMessage(item.Arguments)})
+			r.Message.ToolCalls = append(r.Message.ToolCalls, inference.ToolCall{ID: item.CallID, Name: item.Name, Arguments: json.RawMessage(item.Arguments)})
 			if wire.Status == "completed" {
-				r.StopReason = "tool_calls"
+				r.StopReason = inference.FinishReasonToolCalls
 			}
 		default:
 			return r, unsupported("Responses output item " + item.Type)
@@ -181,17 +181,17 @@ func decodeResponses(data []byte, model string) (generationkit.GenerationRespons
 	return r, nil
 }
 
-func (c *Client) streamResponses(ctx context.Context, request generationkit.GenerationRequest, emit func(generationkit.GenerationEvent) error) (generationkit.GenerationResponse, error) {
+func (c *Client) streamResponses(ctx context.Context, request inference.GenerationRequest, emit func(inference.GenerationEvent) error) (inference.GenerationResponse, error) {
 	body, path, err := c.encode(request, true)
 	if err != nil {
-		return generationkit.GenerationResponse{}, err
+		return inference.GenerationResponse{}, err
 	}
 	resp, err := c.do(ctx, http.MethodPost, path, "application/json", bytes.NewReader(body), true)
 	if err != nil {
-		return generationkit.GenerationResponse{}, err
+		return inference.GenerationResponse{}, err
 	}
 	defer resp.Body.Close()
-	var result generationkit.GenerationResponse
+	var result inference.GenerationResponse
 	complete := false
 	err = readSSE(io.LimitReader(resp.Body, c.config.MaxResponseBytes+1), c.config.MaxResponseBytes, func(data []byte) error {
 		if err := ctx.Err(); err != nil {
@@ -216,17 +216,17 @@ func (c *Client) streamResponses(ctx context.Context, request generationkit.Gene
 		}
 		switch event.Type {
 		case "response.reasoning_summary_text.delta":
-			return emit(generationkit.GenerationEvent{Kind: "reasoning.delta", Text: event.Delta})
+			return emit(inference.GenerationEvent{Kind: "reasoning.delta", Text: event.Delta})
 		case "response.refusal.delta":
-			return emit(generationkit.GenerationEvent{Kind: "refusal.delta", Text: event.Delta})
+			return emit(inference.GenerationEvent{Kind: "refusal.delta", Text: event.Delta})
 		case "response.output_text.delta":
-			return emit(generationkit.GenerationEvent{Kind: "text.delta", Text: event.Delta})
+			return emit(inference.GenerationEvent{Kind: "text.delta", Text: event.Delta})
 		case "response.output_item.added":
 			if event.Item.Type == "function_call" {
-				return emit(generationkit.GenerationEvent{Kind: "tool.delta", Index: event.Index, CallID: event.Item.CallID, ToolName: event.Item.Name})
+				return emit(inference.GenerationEvent{Kind: "tool.delta", Index: event.Index, CallID: event.Item.CallID, ToolName: event.Item.Name})
 			}
 		case "response.function_call_arguments.delta":
-			return emit(generationkit.GenerationEvent{Kind: "tool.delta", Index: event.Index, ArgumentsDelta: event.Delta})
+			return emit(inference.GenerationEvent{Kind: "tool.delta", Index: event.Index, ArgumentsDelta: event.Delta})
 		case "response.completed", "response.incomplete":
 			var err error
 			result, err = decodeResponses(event.Response, request.Model)
@@ -240,16 +240,16 @@ func (c *Client) streamResponses(ctx context.Context, request generationkit.Gene
 		return nil
 	})
 	if err != nil {
-		return generationkit.GenerationResponse{}, err
+		return inference.GenerationResponse{}, err
 	}
 	if !complete {
-		return generationkit.GenerationResponse{}, io.ErrUnexpectedEOF
+		return inference.GenerationResponse{}, io.ErrUnexpectedEOF
 	}
-	if err := generationkit.ValidateGenerationResult(result, request); err != nil {
-		return generationkit.GenerationResponse{}, err
+	if err := console.ValidateResult(result, request); err != nil {
+		return inference.GenerationResponse{}, err
 	}
 	if err := emitCompleted(result, emit); err != nil {
-		return generationkit.GenerationResponse{}, err
+		return inference.GenerationResponse{}, err
 	}
 	return result, nil
 }

@@ -9,6 +9,11 @@ model turn or invokes a registered tool. Console does not choose tools, run an
 autonomous loop, persist conversations, retry calls, or decide whether a call
 is approved. The host owns those choices.
 
+
+Model types are ext's `res/int/inference` and `res/int/realtime` contracts.
+Model capabilities in configuration use ext's names: `generate`, `stream`,
+`embed`, `transcribe`, `synthesize`, `structuredOutput`, `toolProposal` and
+`modelListing`.
 ## Core API
 
 Register tools in a zero-value registry, expose their definitions to a caller,
@@ -111,9 +116,11 @@ decides whether to submit the updated transcript to the model.
 - `bindings.Generate` exposes one fixed model as a tool, returning a validated
   generation response. Its input cannot select a model or supply nested tools.
 - `bindings.Transcribe` exposes a fixed transcription model with an explicit
-  audio byte ceiling. Audio bytes use JSON's base64 representation.
-- `bindings.Synthesize` fixes model, voice, format, instructions, and text byte
-  ceiling. The host supplies a synchronous audio consumer that returns JSON
+  audio byte ceiling. Audio bytes use JSON's base64 representation; provider
+  options such as `{"metadata": true}` travel in `options`.
+- `bindings.Synthesize` fixes model, voice, format, instructions, and input byte
+  ceiling. The tool's argument is `input`. The host supplies a synchronous
+  audio consumer that receives the stream and its media type and returns JSON
   metadata. The binding closes the audio response after the consumer returns,
   including on failure; it never chooses a file or device destination.
 
@@ -171,6 +178,8 @@ feature mapping and module ownership.
 ## Additional composition APIs
 
 - `bindings.Embed` fixes an embedding provider/model and validates vectors.
+  Its arguments are `inputs` (text) and optional `options`, such as
+  `{"dimensions": 256}`; token-array input is not part of ext's contract.
 - `bindings.Observe`, `Verify` and `Wait` borrow one fixed UI surface. Waits
   perform bounded reads and pin target identity.
 - `bindings.ObservedAction` requires a fresh originating observation and

@@ -7,6 +7,7 @@ require (
 	github.com/pion/rtp v1.10.5
 	github.com/pion/webrtc/v4 v4.2.22
 	github.com/webong/ext/pkg/ext-go/engine v0.4.0
+	github.com/webong/ext/res/int v0.1.0
 	github.com/webong/ext/res/system v0.5.1
 	github.com/webong/ext/res/web/host v0.2.1
 	golang.org/x/sys v0.49.0

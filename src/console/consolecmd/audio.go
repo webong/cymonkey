@@ -11,13 +11,13 @@ import (
 	"path/filepath"
 
 	"cymonkey/src/console/bindings"
-	"jangolova/generationkit"
+	"github.com/webong/ext/res/int/inference"
 )
 
 // The CLI host, rather than Console, chooses an existing artifact directory.
 // OpenRoot confines mutations to that directory, including symlink traversal.
 func consoleAudioConsumer(root *os.Root, directory, format string, ceiling int64) bindings.SpeechConsumer {
-	return func(ctx context.Context, stream generationkit.SpeechStream) (json.RawMessage, error) {
+	return func(ctx context.Context, stream inference.SpeechStream, mediaType string) (json.RawMessage, error) {
 		extensions := map[string]string{"mp3": "mp3", "opus": "ogg", "aac": "aac", "flac": "flac", "wav": "wav", "pcm": "pcm"}
 		extension, ok := extensions[format]
 		if !ok {
@@ -37,7 +37,7 @@ func consoleAudioConsumer(root *os.Root, directory, format string, ceiling int64
 			return nil, err
 		}
 		defer root.Remove(temporary)
-		count, copyErr := io.Copy(file, io.LimitReader(stream.Audio, ceiling+1))
+		count, copyErr := io.Copy(file, io.LimitReader(stream, ceiling+1))
 		closeErr := file.Close()
 		if count > ceiling {
 			return nil, errors.Join(errors.New("speech artifact exceeds byte ceiling"), copyErr, closeErr)
@@ -51,6 +51,6 @@ func consoleAudioConsumer(root *os.Root, directory, format string, ceiling int64
 		if err := root.Link(temporary, name); err != nil {
 			return nil, err
 		}
-		return json.Marshal(map[string]any{"path": filepath.Join(directory, name), "mediaType": stream.MediaType, "bytes": count})
+		return json.Marshal(map[string]any{"path": filepath.Join(directory, name), "mediaType": mediaType, "bytes": count})
 	}
 }

@@ -6,18 +6,18 @@ import (
 	"errors"
 	"testing"
 
-	"jangolova/generationkit"
+	"github.com/webong/ext/res/int/inference"
 )
 
 type proposingModel struct {
 	count   int
-	request generationkit.GenerationRequest
+	request inference.GenerationRequest
 }
 
-func (m *proposingModel) Generate(_ context.Context, request generationkit.GenerationRequest) (generationkit.GenerationResponse, error) {
+func (m *proposingModel) Generate(_ context.Context, request inference.GenerationRequest) (inference.GenerationResponse, error) {
 	m.count++
 	m.request = request
-	return generationkit.GenerationResponse{Model: request.Model, Message: generationkit.Message{Role: "assistant", ToolCalls: []generationkit.ToolCall{{ID: "chosen", Name: "lookup", Arguments: json.RawMessage(`{"key":"a"}`)}}}}, nil
+	return inference.GenerationResponse{Model: request.Model, Message: inference.Message{Role: "assistant", ToolCalls: []inference.ToolCall{{ID: "chosen", Name: "lookup", Arguments: json.RawMessage(`{"key":"a"}`)}}}}, nil
 }
 
 func TestModelCompositionRequiresExplicitToolExecutionAndContinuation(t *testing.T) {
@@ -37,8 +37,8 @@ func TestModelCompositionRequiresExplicitToolExecutionAndContinuation(t *testing
 	}
 	model := &proposingModel{}
 	composition := ModelTools{Model: model, Tools: &registry}
-	messages := []generationkit.Message{generationkit.TextMessage("user", "find a")}
-	response, err := composition.Generate(context.Background(), generationkit.GenerationRequest{Model: "host-choice", Messages: messages})
+	messages := []inference.Message{TextMessage(inference.RoleUser, "find a")}
+	response, err := composition.Generate(context.Background(), inference.GenerationRequest{Model: "host-choice", Messages: messages})
 	if err != nil {
 		t.Fatal(err)
 	}
