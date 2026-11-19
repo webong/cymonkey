@@ -61,8 +61,8 @@ single tree artifact (one entry covered by a directory digest, skipping
 `__pycache__`) of an ext source package,
 and `--stage` copies exactly those files into a clean directory, because the
 installer refuses a package directory that holds unlisted files.
-That includes `python/ext_plugin`, a vendored copy of ext's Python guest SDK
-(see `python/ext_plugin/VENDORED.md`), and every vendored dependency. A tree has
+That includes `python/ext_io`, a vendored copy of ext's Python guest SDK
+`ext_io.plugin` (see `python/ext_io/VENDORED.md`), and every vendored dependency. A tree has
 no per-file limit (ext caps it at 250,000 files and 16 GiB by default), and file
 names inside it may use any case. The tree path itself (`python`) must be
 lower-case, symlinks inside it are followed when staging, and the installer

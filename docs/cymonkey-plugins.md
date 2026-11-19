@@ -201,8 +201,8 @@ package. Each call is an ext envelope carrying the plugin identity, contract,
 operation, deadline, and payload. Calls are serialized within one process, and
 frames are limited to 24 MiB. A cancellation or timeout terminates the process.
 Providers written in Go use ext's `jsonline.ServeFunc`, and Python providers
-use ext's `ext_plugin` guest SDK (vendored under
-`pkg/content-ultralytics/python/ext_plugin`).
+use ext's `ext_io.plugin` guest SDK (vendored under
+`pkg/content-ultralytics/python/ext_io`).
 
 After the handshake, operations belong to the declared Cymonkey domain:
 

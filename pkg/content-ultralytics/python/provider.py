@@ -2,7 +2,7 @@ import base64
 import json
 import os
 
-import ext_plugin
+from ext_io.plugin import serve_stdio
 from inference import Worker
 
 ADAPTER_API = "content.adapter/v1"
@@ -129,7 +129,7 @@ class Provider:
 def main():
     manifest_path = os.environ["PLUGIN_MANIFEST"]
     provider = Provider()
-    ext_plugin.serve_stdio(
+    serve_stdio(
         manifest_path,
         lambda contract, operation, payload: provider.call(
             contract + "." + operation, payload or {}
