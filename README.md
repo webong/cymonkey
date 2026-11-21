@@ -98,6 +98,7 @@ audit events, reviewed packages, and caller-supplied target connections.
 - [Content observation and interpretation](docs/content.md)
 - [Device input and output](docs/device-sessions.md)
 - [Architecture](docs/architecture.md)
+- [Ext helper extraction boundary](docs/ext-helper-extraction.md)
 - [Browser packages](docs/browser-augmentation-packages.md)
 - [Browser extension manager](docs/browser-extension-installation.md)
 - [Browser helper library for extensions, userscripts, browser APIs, and the device viewer](res/browser-helper/README.md)

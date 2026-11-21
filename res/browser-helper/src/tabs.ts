@@ -1,3 +1,5 @@
+import {createTabMessenger} from 'ext-web/native';
+
 export type BrowserTab = {id?: number; url?: string; lastAccessed?: number};
 export type TabRouterDependencies = {
   tabs: {
@@ -11,6 +13,11 @@ export type TabRouterDependencies = {
 
 export function createTabRouter(dependencies: TabRouterDependencies) {
   if (!dependencies?.tabs?.query || !dependencies.tabs.get || !dependencies.tabs.sendMessage) throw new Error('browser tabs adapter is required');
+  const messenger = createTabMessenger({
+    tabs: dependencies.tabs,
+    attach: dependencies.attach,
+    isMissingReceiver: missingReceiver,
+  });
   const isOwn = (tab: BrowserTab) => Boolean(dependencies.extensionOrigin && tab.url?.startsWith(dependencies.extensionOrigin));
   const active = async () => {
     const focused = await dependencies.tabs.query({active: true, lastFocusedWindow: true});
@@ -31,16 +38,7 @@ export function createTabRouter(dependencies: TabRouterDependencies) {
       const tab = await resolve(target);
       if (typeof channel !== 'string' || !channel || typeof method !== 'string' || !method) throw new Error('tab message channel and method are required');
       const message = {channel, method, params};
-      try { return await dependencies.tabs.sendMessage(tab.id, message); }
-      catch (error) {
-        if (!dependencies.attach || !missingReceiver(error)) throw error;
-        const current = await dependencies.tabs.get(tab.id);
-        let protocol = '';
-        try { protocol = current.url ? new URL(current.url).protocol : ''; } catch { /* rejected below */ }
-        if (protocol !== 'http:' && protocol !== 'https:') throw new Error('tab runtime can attach only to HTTP(S) pages');
-        await dependencies.attach(tab.id);
-        return dependencies.tabs.sendMessage(tab.id, message);
-      }
+      return messenger.send(tab.id, message);
     },
   };
 }

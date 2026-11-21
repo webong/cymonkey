@@ -4,11 +4,16 @@ import {createBrowserAdapter, decidePolicy, installEphemeralWebStorage, validate
 
 function fixture() {
   const records = new Map();
+  const dynamicRules = new Map();
   const calls = [];
+  let failOwnershipSave = false;
   const adapter = createBrowserAdapter({
     storage: {
       async get(keys) { return Object.fromEntries((Array.isArray(keys) ? keys : [keys]).map((key) => [key, records.get(key)])); },
-      async set(values) { for (const [key, value] of Object.entries(values)) records.set(key, value); },
+      async set(values) {
+        if (failOwnershipSave && 'ext.web.networkOwners.v1' in values) throw new Error('ownership save failed');
+        for (const [key, value] of Object.entries(values)) records.set(key, value);
+      },
     },
     scripting: {
       async registerContentScripts(scripts) { calls.push(['register', scripts]); },
@@ -18,22 +23,32 @@ function fixture() {
       async removeCSS(options) { calls.push(['removeCSS', options]); },
     },
     network: {
-      async updateDynamicRules(options) { calls.push(['rules', options]); },
+      async getDynamicRules() { return [...dynamicRules.values()]; },
+      async updateDynamicRules(options) {
+        calls.push(['rules', options]);
+        for (const id of options.removeRuleIds) dynamicRules.delete(id);
+        for (const rule of options.addRules ?? []) dynamicRules.set(rule.id, rule);
+      },
     },
     now: () => '2026-01-01T00:00:00.000Z',
   });
-  return {adapter, calls};
+  return {adapter, calls, records, dynamicRules, failOwnershipSaves(value) { failOwnershipSave = value; }};
 }
 
 test('scripts and storage are bounded by an owner supplied by the integrating extension', async () => {
-  const {adapter, calls} = fixture();
+  const {adapter, calls, records} = fixture();
   assert.deepEqual(adapter.capabilities(), {storage: true, events: true, scripts: true, networkRules: true});
   await adapter.storage.set('reader', {mode: 'dark'});
   assert.deepEqual(await adapter.storage.get('reader', ['mode']), {mode: 'dark'});
   assert.deepEqual(await adapter.storage.get('other', ['mode']), {mode: null});
-  const registration = {id: 'main', matches: ['https://example.com/*'], files: ['augmentations/reader/content.js']};
-  assert.deepEqual(await adapter.scripts.register('reader', [registration]), {ids: ['cm-6-reader-main']});
-  await assert.rejects(adapter.scripts.register('reader', [{...registration, files: ['augmentations/other/content.js']}]), /packaged below/);
+  assert.equal(records.get('ext.web.cymonkey.reader.mode'), 'dark');
+  assert.equal(records.has('cymonkey.scoped.reader.mode'), false);
+  const registration = {id: 'main', matches: ['https://example.com/*'], excludeMatches: ['https://example.com/private/*'], files: ['augmentations/reader/content.js']};
+  assert.deepEqual(await adapter.scripts.register('reader', [registration]), {ids: ['ext-15-cymonkey_2ereader-main']});
+  assert.deepEqual(calls[0][1][0].excludeMatches, registration.excludeMatches);
+  await assert.rejects(adapter.scripts.register('reader', [{...registration, files: ['augmentations/other/content.js']}]), /asset prefix/);
+  await assert.rejects(adapter.scripts.register('reader', [registration, {...registration, id: 'extra', files: ['augmentations/other/content.js']}]), /asset prefix/);
+  assert.equal(calls.filter(([name]) => name === 'register').length, 1);
   assert.deepEqual(await adapter.scripts.execute('reader', 3, registration.files), {tabId: 3, frames: [0]});
   await adapter.scripts.style('reader', 3, 'body { color: red; }', 'insert');
   await adapter.scripts.unregister('reader', ['main']);
@@ -54,12 +69,24 @@ test('script ids do not collide across owners with punctuation or separators', a
 });
 
 test('network rules cannot be taken over by another owner', async () => {
-  const {adapter, calls} = fixture();
+  const {adapter, calls, records, dynamicRules} = fixture();
   await adapter.network.install('alpha', [{id: 7, action: {type: 'block'}}]);
-  await assert.rejects(adapter.network.install('beta', [{id: 7, action: {type: 'redirect'}}]), /another owner/);
+  assert.equal(dynamicRules.get(7).action.type, 'block');
+  assert.equal(records.has('cymonkey.browserAdapter.networkOwnership.v1'), false);
+  assert.deepEqual(records.get('ext.web.networkOwners.v1'), {'7': 'cymonkey.alpha'});
+  await assert.rejects(adapter.network.install('beta', [{id: 7, action: {type: 'redirect'}}]), /another namespace/);
   await assert.rejects(adapter.network.remove('beta', [7]), /not owned/);
   await adapter.network.remove('alpha', [7]);
+  assert.equal(dynamicRules.has(7), false);
   assert.equal(calls.filter(([name]) => name === 'rules').length, 2);
+});
+
+test('network rule replacement rolls back when ownership storage fails', async () => {
+  const {adapter, dynamicRules, failOwnershipSaves} = fixture();
+  await adapter.network.install('alpha', [{id: 7, action: {type: 'block'}}]);
+  failOwnershipSaves(true);
+  await assert.rejects(adapter.network.install('alpha', [{id: 7, action: {type: 'allow'}}]), /ownership save failed/);
+  assert.equal(dynamicRules.get(7).action.type, 'block');
 });
 
 test('policy and package checks are reusable without browser globals', () => {

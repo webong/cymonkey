@@ -1,7 +1,7 @@
 # Cymonkey browser helper
 
-`@cymonkey/browser-helper` provides APIs for browser integrations, extension
-management, userscripts, page augmentations, and the WebRTC device viewer. An integrating extension or
+`@cymonkey/browser-helper` provides Cymonkey execution APIs for browser
+integrations, userscript planning, page augmentations, and the WebRTC device viewer. An integrating extension or
 host can use them to build its own manager or augmentation flow. The caller
 supplies its own browser entry points, UI, and manifest permissions.
 
@@ -26,9 +26,13 @@ const inventory = await adapter.events.read();
 The caller supplies browser APIs and declares the corresponding manifest
 permissions. Individual operations are available only when the supplied API
 supports them. Scripts can only reference files under that owner's configured
-asset prefix. Storage keys and network rule IDs are owner-scoped; a different
-owner cannot remove or replace another owner's network rule through this
-adapter. The package also exports pure `validatePolicy`, `decidePolicy`, and
+asset prefix. Storage and network-rule ownership use ext-web's scoped workspace
+registries; registered script IDs use ext-web's namespace. The network adapter
+must supply both `getDynamicRules` and `updateDynamicRules` so a failed ownership
+save can restore the previous browser rules. A different owner cannot remove
+or replace another owner's rule through this adapter. There is no read of the
+former `cymonkey.scoped.*` or `cymonkey.browserAdapter.networkOwnership.v1`
+storage keys and no `cm-*` script-ID fallback. The package also exports pure `validatePolicy`, `decidePolicy`, and
 `validateBrowserPackage` functions. `createControlGate` wraps policy decisions
 and redacted audit phases. The integrating extension resolves caller and
 target context from trusted browser APIs before passing it to the gate.
@@ -36,51 +40,32 @@ target context from trusted browser APIs before passing it to the gate.
 `createPackageCatalog` loads a reviewed registry through a caller-supplied
 loader. `createApprovalManager` stores expiring, single-use approvals bound to
 the package, revision, augmentation, target, origin, and permissions.
-`createTabRouter` selects a target and attaches the integrating extension's
-own content scripts if a receiver is absent. `createAugmentationManager`
+`createTabRouter` selects a target and delegates bounded tab messaging and
+safe HTTP(S) receiver attachment to the pinned `ext-web/native` library.
+`createAugmentationManager`
 composes these with scoped script injection to mount a reviewed package. The
 extension provides its own package assets, content receiver, sandbox page,
 approval UI, and manifest permissions.
 
 ## Extension management
 
-`createExtensionManager` wraps an integrating extension's native
-`browser.management` or `chrome.management` API. The extension declares the
-`management` permission and calls actions from its own UI. The browser still
-decides whether disabling or uninstalling an extension needs confirmation.
-
-```ts
-import {createExtensionManager} from '@cymonkey/browser-helper';
-
-const manager = createExtensionManager(browser.management);
-const installed = await manager.list();
-const stopWatching = manager.watch((change) => renderChange(change));
-```
-
-`list`, `describe`, `setEnabled`, `uninstall`, and `watch` operate on installed
-extensions through the supplied browser API. `capabilities()` reports which
-methods are present. Packaging and installation use an optional trusted host
-backend:
-
-```ts
-const manager = createExtensionManager(browser.management, {
-  prepare: (source) => trustedHost.prepareExtension(source),
-  install: (request) => trustedHost.installExtension(request),
-});
-```
-
-The host handles source review, installation, and native browser consent. The
-browser management API does not install arbitrary ZIP or XPI files.
+Generic extension inventory, lifecycle observation, enable/disable, and
+uninstall are supplied by `ext-web/native` (`createExtensionCatalog` and
+`createExtensionManager`). Cymonkey does not re-export a second management
+library. An integrating extension owns its management permission and UI;
+Cymonkey still owns any approval and installation policy it applies before
+using those native operations. The browser management API does not install
+arbitrary ZIP or XPI files.
 
 ## Userscripts
 
 `createManifest`, `parseMetadata`, `sourceRevision`, `validateManifest`,
 `permissionIncrease`, and `registrationPlan` prepare and review a
-`cymonkey.userscript/v1alpha1` userscript. `createNativeUserscriptManager`
-manages browser-native registration and reconciliation. The caller supplies
-source validation, revision checks, registration planning, and approval, and
-its `describe` function must return source-free metadata. All of these APIs
-are exported from this package's root entry point.
+`cymonkey.userscript/v1alpha1` userscript. Generic browser-native
+registration and reconciliation are supplied by `ext-web/userscripts`
+(`createUserscriptRegistry`), not a Cymonkey manager. The integrating host
+passes the reviewed Cymonkey registration plan and authorization callback to
+that registry; Cymonkey's public descriptions must remain source-free.
 
 ## Cookie export
 

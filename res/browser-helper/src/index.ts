@@ -14,8 +14,6 @@ export {createApprovalManager} from './approvals.js';
 export type {ApprovalScope, ApprovalRecord, ApprovalDependencies} from './approvals.js';
 export {createTabRouter} from './tabs.js';
 export type {BrowserTab, TabRouterDependencies} from './tabs.js';
-export {createNativeUserscriptManager} from './userscripts.js';
-export type {ManagedUserscript, NativeUserscriptRegistration, NativeUserscriptAPI, UserscriptManagerDependencies} from './userscripts.js';
 export {createUserscriptConnectionHub} from './userscript-connections.js';
 export type {UserscriptPort, UserscriptConnectionEvent} from './userscript-connections.js';
 export {createAugmentationManager} from './augmentations.js';
@@ -39,8 +37,6 @@ export type {OutboundControlConfiguration, OutboundControlStatus} from './outbou
 export {installEphemeralWebStorage, createMemoryStorage} from './sandbox-storage.js';
 export {BrowserExtensionClient, browserExtensionProtocolVersion} from './generated/browser-extension-v1alpha1.js';
 export type {ControlCall, ControlResponse, ControlTransport} from './generated/browser-extension-v1alpha1.js';
-export {createExtensionManager} from './extension-manager.js';
-export type {ExtensionDescription, NativeExtensionInfo, ManagementEvent, NativeEvent, NativeManagement, InstallRequest, InstallBackend, ManagerCapabilities} from './extension-manager.js';
 export * from './userscript-runtime/index.js';
 export {DeviceViewer} from './device-viewer.js';
 export type {DeviceViewerOptions, DeviceViewerConnectOptions, DeviceViewerSignal, DeviceViewerDiagnostics, DeviceViewerRoute, DeviceViewerMedia, PointerButton} from './device-viewer.js';
