@@ -41,6 +41,10 @@ configure a reported ID as the Board system-audio source rather than a raw
 Core Graphics display number. The ext revision is pinned in `Package.resolved`.
 The native runtime's clipboard binding also delegates to `ExtClipboard` while
 retaining Cymonkey's 2 MiB ceiling, per-request byte limit, and grant checks.
+Configured Apple Event commands delegate typed native send/receive to
+`ExtSystem.SystemAppleEvent`; Cymonkey still validates command names, target
+bundle IDs, parameter mappings, and supplied input before dispatch. The ext
+sender waits for a reply without granting the event interactive UI access.
 
 ## App-owned WKWebView scripts
 

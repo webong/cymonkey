@@ -69,6 +69,23 @@ final class RuntimeTests: XCTestCase {
         XCTAssertTrue(sender.invocations.isEmpty)
     }
 
+    func testAppleEventMappingRejectsUnknownMissingAndOutOfRangeInputs() throws {
+        let command = AppleEventCommand(
+            name: "set-count", bundleId: "com.example.Target", eventClass: "hook", eventId: "SetN",
+            parameters: [AppleEventParameter(input: "count", keyword: "pCnt", type: .integer, required: true)]
+        )
+        XCTAssertThrowsError(try mappedAppleEventParameters(command: command, input: [:]))
+        XCTAssertThrowsError(try mappedAppleEventParameters(command: command, input: [
+            "count": .number(1), "raw": .string("not mapped")
+        ]))
+        XCTAssertThrowsError(try mappedAppleEventParameters(command: command, input: [
+            "count": .number(Double(Int32.max) + 1)
+        ]))
+        XCTAssertEqual(try mappedAppleEventParameters(command: command, input: [
+            "count": .number(42)
+        ]).count, 1)
+    }
+
     func testPlaintextRemoteControlEndpointIsRejected() throws {
         XCTAssertThrowsError(try ControlEndpoint(
             url: XCTUnwrap(URL(string: "ws://example.com/control")),

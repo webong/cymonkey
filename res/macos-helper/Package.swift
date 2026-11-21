@@ -21,6 +21,7 @@ let package = Package(
         ]),
         .target(name: "CymonkeyMacOSRuntime", dependencies: [
             .product(name: "ExtClipboard", package: "ext"),
+            .product(name: "ExtSystem", package: "ext"),
         ]),
         .target(name: "MacOSWebViewScripts"),
         .executableTarget(
