@@ -41,6 +41,9 @@ public struct HelperConfiguration: Codable, Sendable {
             try viewer.validate()
         }
         try clipboard?.validate()
+        if let clipboard, clipboard.maxBytes > 2 * 1024 * 1024 {
+            throw RuntimeError.invalidRequest("clipboard maxBytes exceeds Cymonkey's 2 MiB limit")
+        }
     }
 
     public static func load(from url: URL) throws -> HelperConfiguration {

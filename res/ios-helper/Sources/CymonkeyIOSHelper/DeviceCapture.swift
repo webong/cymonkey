@@ -1,6 +1,7 @@
 #if os(iOS)
 import ReplayKit
 import CoreMedia
+import ExtSystem
 
 /// The authenticated host owns encoding and transport. Consume the sample
 /// synchronously or retain it explicitly; never queue unbounded video frames.
@@ -12,51 +13,30 @@ public protocol DeviceCaptureSink: AnyObject {
 /// App capture on iOS. Cross-app capture uses DeviceBroadcastHandler in an
 /// RPBroadcast upload extension selected through RPSystemBroadcastPickerView.
 @MainActor public final class DeviceCapture {
-    private let recorder = RPScreenRecorder.shared()
-    private weak var sink: DeviceCaptureSink?
-    private var active = false
-    public init(sink: DeviceCaptureSink) { self.sink = sink }
+    private let bridge: CaptureSinkBridge
+    private let native: SystemDeviceCapture
+
+    public init(sink: DeviceCaptureSink) {
+        let bridge = CaptureSinkBridge(sink: sink)
+        self.bridge = bridge
+        self.native = SystemDeviceCapture(sink: bridge)
+    }
+
     public func start(systemAudio: Bool = false, microphone: Bool = false) async throws {
-        guard !active, recorder.isAvailable, !recorder.isRecording else {
-            throw NSError(domain: "CymonkeyDeviceCapture", code: 1,
-                          userInfo: [NSLocalizedDescriptionKey: "Screen capture unavailable or already active"])
-        }
-        active = true
-        recorder.isMicrophoneEnabled = microphone
-        let sink = self.sink
-        do {
-            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                recorder.startCapture(handler: { sample, kind, error in
-                    if let error { sink?.stopped(error: error); return }
-                    let permitted = kind == .video || (kind == .audioApp && systemAudio) || (kind == .audioMic && microphone)
-                    if permitted, CMSampleBufferDataIsReady(sample) { sink?.receive(sample, kind: kind) }
-                }, completionHandler: { error in
-                    if let error { continuation.resume(throwing: error) }
-                    else { continuation.resume() }
-                })
-            }
-            if !active {
-                try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                    recorder.stopCapture { error in
-                        if let error { continuation.resume(throwing: error) }
-                        else { continuation.resume() }
-                    }
-                }
-                throw CancellationError()
-            }
-        } catch { active = false; throw error }
+        try await native.start(systemAudio: systemAudio, microphone: microphone, maxDuration: 3600)
     }
+
     public func stop() async throws {
-        guard active else { return }
-        active = false
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            recorder.stopCapture { error in
-                if let error { continuation.resume(throwing: error) }
-                else { continuation.resume() }
-            }
-        }
-        sink?.stopped(error: nil)
+        try await native.stop()
     }
+}
+
+private final class CaptureSinkBridge: SystemDeviceCaptureSink {
+    private weak var sink: DeviceCaptureSink?
+
+    init(sink: DeviceCaptureSink) { self.sink = sink }
+    func receive(_ sample: CMSampleBuffer, kind: RPSampleBufferType) { sink?.receive(sample, kind: kind) }
+    func mediaStopped(error: Error?) { sink?.stopped(error: error) }
 }
 
 /// Subclass in the host's Broadcast Upload Extension and override makeSink.

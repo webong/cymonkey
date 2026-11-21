@@ -14,6 +14,20 @@ or control of the Windows secure desktop.
 
 ## Build
 
+The WebView2 and media projects consume `Ext.Web.Windows` and
+`Ext.Audio.Windows` 0.1.0 for native mechanics. ext publishes the NuGet files
+on its GitHub release, not the configured public NuGet feed. Run the pinned,
+SHA-256-verifying restore script before building either project:
+
+```powershell
+res/windows-helper/restore-ext.ps1
+dotnet build res/windows-helper/WebView2/Cymonkey.Windows.WebView2.csproj --no-restore
+dotnet build res/windows-helper/Media/Cymonkey.Windows.Media.csproj --no-restore
+```
+
+The script downloads only into a task-specific temporary NuGet feed. It does
+not vendor ext binaries into Cymonkey.
+
 Build on a Windows machine or cross-compile from the repository root:
 
 ```powershell
@@ -48,7 +62,8 @@ denied results; they never trigger an elevated fallback.
 ## App-owned WebView2 scripts and extensions
 
 The separate [WebView2 class library](WebView2/Cymonkey.Windows.WebView2.csproj)
-binds to a host application's `CoreWebView2` and its selected profile. It can
+adapts ext's `WebView2Workspace` to a host application's `CoreWebView2` and
+its selected profile. It can
 register approved scripts for future documents, run a registered script in
 the current page, and remove its future-document registration. Scripts check
 exact HTTPS origins inside the page. The library also lists extensions in the
@@ -74,14 +89,14 @@ var installed = await helper.InstallApprovedExtensionAsync(unpackedFolder);
 ```
 
 Add `using Cymonkey.Windows.WebView2;` and
-`using Microsoft.Web.WebView2.Core;` in the host. The host chooses the
+`using Microsoft.Web.WebView2.Core;` in the host. Dispose the helper when the
+host retires that web view so ext removes its document scripts. The host chooses the
 WebView2 environment and profile, reviews scripts and extension files,
 supplies approval UI, and calls these APIs on the WebView2 UI thread. The
 extension directory must remain available because WebView2 does not copy its
 contents into the profile. Extension installation persists in that WebView2
 profile; it does not install into Microsoft Edge or another browser profile.
-Build the library on Windows with `dotnet build
-res/windows-helper/WebView2/Cymonkey.Windows.WebView2.csproj`.
+Build the library on Windows after running the restore script above.
 
 The existing Go executable remains a desktop-window helper. It does not
 attach to another app's WebView2 or expose these APIs through its WebSocket

@@ -33,6 +33,15 @@ external or managed connection based on the host's available runtime.
 `UserscriptCatalog` stores source-free `UserscriptSummary` records in standard
 or app-group `UserDefaults`; the host supplies its own UI and lifecycle.
 
+The separate `cymonkey-device-audio` executable consumes the pinned ext macOS
+Swift package for display observation, ScreenCaptureKit/microphone capture,
+and bounded PCM playback. Cymonkey retains the process protocol, source
+selection, and session grants. `describe` reports ext's opaque display IDs;
+configure a reported ID as the Board system-audio source rather than a raw
+Core Graphics display number. The ext revision is pinned in `Package.resolved`.
+The native runtime's clipboard binding also delegates to `ExtClipboard` while
+retaining Cymonkey's 2 MiB ceiling, per-request byte limit, and grant checks.
+
 ## App-owned WKWebView scripts
 
 Import the separate `MacOSWebViewScripts` product in an app that owns a

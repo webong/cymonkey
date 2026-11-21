@@ -6,6 +6,12 @@ with `hello`, `capabilities`, `describe`, `act`, and `events`. The host register
 its own web views, authenticates requests, and chooses how to transport them.
 The package does not install an app or a Safari extension.
 
+Playback and in-app ReplayKit capture use the pinned ext iOS SDK (`ExtAudio`
+and `ExtSystem`). Cymonkey retains the host-selected media grants, transport
+sink, and broadcast-extension permission filter. The app target's capture is
+bounded to one hour, matching the Board channel limit. The ext revision is
+pinned in `Package.resolved`.
+
 ```swift
 import CymonkeyIOSHelper
 

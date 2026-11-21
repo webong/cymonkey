@@ -6,6 +6,7 @@
     <ImplicitUsings>disable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Ext.Web.Windows" Version="0.1.0" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3537.50" />
     <Compile Remove="Tests/**/*.cs" />
   </ItemGroup>

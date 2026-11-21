@@ -99,6 +99,21 @@ final class RuntimeTests: XCTestCase {
         ))
     }
 
+    func testClipboardKeepsCymonkeyLimitAndDeniesUngrantableRead() throws {
+        XCTAssertThrowsError(try SystemClipboardProvider(policy: ClipboardPolicy(
+            maxBytes: 2 * 1024 * 1024 + 1,
+            allowedFormats: ["public.utf8-plain-text"],
+            allowRead: true
+        )))
+        let clipboard = try SystemClipboardProvider(policy: ClipboardPolicy(
+            maxBytes: 1024,
+            allowedFormats: ["public.utf8-plain-text"]
+        ))
+        XCTAssertThrowsError(try clipboard.read(maxBytes: 1024)) { error in
+            XCTAssertEqual(error as? RuntimeError, .denied("clipboard read exceeds policy"))
+        }
+    }
+
     func testViewerCapabilitiesRequireTheirOwnConsent() async throws {
         let runtime = try makeRuntime(
             accessibilityAuthorized: false,

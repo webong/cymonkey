@@ -95,3 +95,23 @@ can include it as a Gradle project dependency and owns its signing, lifecycle,
 network transport, and approval flow. The module itself requests no Android
 permissions. Device-wide capture or Accessibility integration is a separate
 optional adapter requiring the platform's consent flow.
+
+## Ext Android dependency
+
+Run `./fetch-ext-android.sh` in this directory before building. It downloads
+the published [Ext Android 0.2.0 AAR](https://github.com/webong/ext/releases/tag/ext-android-v0.2.0)
+and verifies its SHA-256 digest. The file lives in ignored `.dependencies/`.
+The helper compiles against it but does not embed it in its own AAR. The host
+app must also include the same AAR at runtime, for example:
+
+```kotlin
+dependencies {
+    implementation(project(":cymonkey-android-helper"))
+    implementation(files("path/to/ext-android-0.2.0.aar"))
+}
+```
+
+`DeviceProjection` and `DevicePlayback` delegate native MediaProjection and
+AudioTrack mechanics to ext. Cymonkey still owns the per-session permission
+decisions, capture encoding, transport and stop behavior. No additional
+Android permissions are declared by this helper.

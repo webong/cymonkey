@@ -3,10 +3,12 @@ import AVFoundation
 import CoreMedia
 import CoreGraphics
 import CymonkeyMacOSRuntime
+import ExtAudio
+import ExtSystem
 
 // stdout is a streaming float WAV for capture, never logs. ffmpeg in the Board
 // parent normalizes this source's actual rate/channel layout to the wire codec.
-final class AudioSink: DeviceMediaSink {
+final class AudioSink: SystemMediaSink {
     private var format: AVAudioFormat?
     private let lock = NSLock()
     func screenSample(_ sample: CMSampleBuffer) {}
@@ -68,7 +70,7 @@ final class AudioSink: DeviceMediaSink {
                 let screenAllowed = CGPreflightScreenCaptureAccess()
                 let microphone = AVCaptureDevice.authorizationStatus(for: .audio)
                 var displays: [String] = []
-                if screenAllowed { displays = try await DeviceMedia.displays().map { String($0.displayID) } }
+                if screenAllowed { displays = try SystemSurfaceObserver().observe().displays.map(\.id) }
                 let report: [String: Any] = ["platform": "macos", "systemCapture": screenAllowed ? "authorized" : "permission-required",
                     "microphone": microphone == .authorized ? "authorized" : "permission-required",
                     "playback": "available", "systemSources": displays, "microphoneSources": ["default"], "playbackSources": ["default"]]
@@ -76,7 +78,7 @@ final class AudioSink: DeviceMediaSink {
             }
             if mode == "playback" {
                 guard source.isEmpty || source == "default" else { throw Failure.unsupportedSource }
-                let player = try DevicePlayback(); defer { player.close() }
+                let player = try SystemAudioPlayback(); defer { player.close() }
                 var pending = Data()
                 while let chunk = try FileHandle.standardInput.read(upToCount: 3840), !chunk.isEmpty {
                     pending.append(chunk)
@@ -90,13 +92,15 @@ final class AudioSink: DeviceMediaSink {
                 return
             }
             let sink = AudioSink()
-            let media = DeviceMedia(sink: sink)
+            let media = SystemMediaCapture(sink: sink)
             if mode == "capture-system" {
-                guard CGPreflightScreenCaptureAccess(), let id = UInt32(source) else { throw Failure.permissionOrSource }
-                try await media.start(displayID: id, systemAudio: true, framesPerSecond: 1)
+                guard CGPreflightScreenCaptureAccess(),
+                      let display = try SystemSurfaceObserver().observe().displays.first(where: { $0.id == source })
+                else { throw Failure.permissionOrSource }
+                try await media.start(display: display, options: MediaCaptureOptions(systemAudio: true, framesPerSecond: 1, maxDuration: 3600))
             } else if mode == "capture-microphone" {
                 guard source.isEmpty || source == "default" else { throw Failure.unsupportedSource }
-                try media.startMicrophone()
+                try media.startMicrophone(maxDuration: 3600)
             } else { throw Failure.invalidArguments }
             // The parent cancels the process on channel/session close. No daemon
             // or detached child survives its owning session.

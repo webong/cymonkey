@@ -10,9 +10,18 @@ let package = Package(
         .library(name: "MacOSWebViewScripts", targets: ["MacOSWebViewScripts"]),
         .executable(name: "cymonkey-macos-helper", targets: ["CymonkeyMacOSHelper"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/webong/ext.git", revision: "a1e69d860f610a5a0c1567a18c61fbc03780c9d8"),
+    ],
     targets: [
-        .executableTarget(name: "CymonkeyDeviceAudio", dependencies: ["CymonkeyMacOSRuntime"]),
-        .target(name: "CymonkeyMacOSRuntime"),
+        .executableTarget(name: "CymonkeyDeviceAudio", dependencies: [
+            "CymonkeyMacOSRuntime",
+            .product(name: "ExtAudio", package: "ext"),
+            .product(name: "ExtSystem", package: "ext"),
+        ]),
+        .target(name: "CymonkeyMacOSRuntime", dependencies: [
+            .product(name: "ExtClipboard", package: "ext"),
+        ]),
         .target(name: "MacOSWebViewScripts"),
         .executableTarget(
             name: "CymonkeyMacOSHelper",

@@ -26,27 +26,32 @@ all owned resources on expiry, revocation, transport failure and user stop.
 Keep capture callbacks short; synchronously encode or copy into a bounded queue
 and drop old video frames under backpressure. Do not retain unbounded buffers.
 
-- macOS: `DeviceMedia.displays()` enumerates eligible displays; `start` takes an
-  approved display ID. `DeviceMediaSink` receives screen/system audio sample
-  buffers and microphone PCM. Grant Screen Recording and Microphone permissions
-  to the embedding application; supply its microphone usage description.
-  `DevicePlayback` accepts PCM16 little-endian stereo 48 kHz in packets up to
-  20 ms with at most 12 queued packets. Serialize playback calls. Explicitly stop
-  capture when its host session ends.
-- Windows: reference `res/windows-helper/Media/Cymonkey.Windows.Media.csproj`.
-  `DeviceAudio.Endpoints()` lists endpoints; select an ID locally before opening
-  `Capture` or `Playback`. Capture delivers its actual `WaveFormat`, requiring
+- macOS: the `cymonkey-device-audio` process selects an opaque display ID from
+  `ExtSystem.SystemSurfaceObserver`, then uses `ExtSystem.SystemMediaCapture`
+  and `ExtAudio.SystemAudioPlayback`. Grant Screen Recording and Microphone
+  permissions to the embedding application; supply its microphone usage
+  description. Playback accepts PCM16 little-endian stereo 48 kHz in packets
+  up to 20 ms with at most 12 queued packets. Capture is bounded to one hour,
+  matching Board's channel limit, and also stops when the host closes it.
+- Windows: `res/windows-helper/Media` uses `Ext.Audio.Windows` for WASAPI
+  endpoint discovery, bounded capture, and playback. Select an ID locally
+  before opening a channel. Capture delivers its actual `WaveFormat`, requiring
   normalization before encoding. Playback requires PCM16 stereo 48 kHz, with a
   250 ms bounded queue. Call lifecycle operations from the host session thread,
-  never dispose capture from its sample callback. NAudio is pinned to 2.2.1.
-- iOS: `DeviceCapture` supplies app capture. For cross-app sharing, the host must
+  never dispose capture from its sample callback. The ext NuGet package is pinned
+  to 0.1.0 and restored from its SHA-256-verified GitHub release asset.
+- iOS: `DeviceCapture` adapts ext's bounded ReplayKit app capture and
+  `DevicePlayback` delegates to ext's bounded PCM sink. For cross-app sharing, the host must
   add a Broadcast Upload Extension whose principal class subclasses
   `DeviceBroadcastHandler`, implement its authenticated `makeSink` and `permits` grant filter, and present
   `RPSystemBroadcastPickerView`. Include ReplayKit broadcast extension metadata,
   microphone usage text and configure the app's audio session for playback.
   Stopping/revoking the session must stop capture/broadcast and close the sink.
   No system-wide input injection is advertised.
-- Android: the Activity requests a **fresh** MediaProjection consent result each
+- Android: the helper compiles against the SHA-256-verified Ext Android 0.2.0
+  AAR; the embedding app must also include that AAR at runtime. Its
+  `DeviceProjection` and `DevicePlayback` delegate native capture/playback to
+  ext. The Activity requests a **fresh** MediaProjection consent result each
   session, then starts a host-owned visible foreground service before creating
   the projection. Construct `DeviceProjection` on the main thread, supply the
   encoder surface to `start`, and call `resize` for source-size changes. The
@@ -58,7 +63,8 @@ and drop old video frames under backpressure. Do not retain unbounded buffers.
   FOREGROUND_SERVICE_MICROPHONE. The library adds none globally. Read returned
   audio recorders from a worker; `close` releases them. Playback capture respects
   source-app capture restrictions. `DevicePlayback.write` returns partial writes
-  instead of building an unbounded queue. Arbitrary global input is not exposed.
+  or ext's `busy` error when its bounded buffer accepts nothing; the caller
+  retains and retries the unwritten samples. Arbitrary global input is not exposed.
 
 The consent/lifecycle design follows [Android MediaProjection documentation](https://developer.android.com/media/grow/media-projection)
 and [Apple ReplayKit capture documentation](https://developer.apple.com/documentation/replaykit/rpscreenrecorder/startcapture(handler:completionhandler:)).
@@ -79,10 +85,11 @@ The Windows wrapper uses [NAudio's WASAPI interfaces](https://github.com/naudio/
    app-owned mobile input. Desktop move, click, scroll and session-owned holds
    are implemented with separate grants; mobile global input is not exposed.
 
-The Board module, operator and macOS native helper build. The Windows helper
-build and self-contained publish succeeded. Mobile Swift type-checking and Kotlin
-compilation succeeded; these are not signed app builds or live acceptance.
-No tests were run in this implementation increment.
+The Board module and operator were built in the original device-media increment.
+For the ext helper extraction, the macOS Swift tests, iOS Swift tests and
+simulator reference-app build, Android Gradle unit tests and library build, and
+Windows .NET cross-builds passed. These are not signed app builds or live
+capture/playback acceptance on iOS, Android, or Windows.
 
 See [mobile sessions, Opus and pointer integration](device-mobile-sessions.md)
 for the registration protocol, lifecycle responsibilities and configuration.

@@ -1,6 +1,7 @@
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using Cymonkey.Windows.Media;
+using Webong.Ext.System.Windows;
 
 // Process protocol: capture emits a streaming WAV; playback consumes PCM16
 // stereo 48 kHz. The Board parent owns this process and the format converter.
@@ -17,12 +18,12 @@ internal static class Program
             var source = args[1];
             if (mode == "describe")
             {
-                var endpoints = DeviceAudio.Endpoints();
+                var endpoints = SystemAudio.Endpoints();
                 Console.Write(System.Text.Json.JsonSerializer.Serialize(new {
                     platform = "windows", systemCapture = "checked-on-open", microphone = "checked-on-open", playback = "checked-on-open",
-                    systemSources = endpoints.Where(e => e.Playback).Select(e => e.Id),
-                    microphoneSources = endpoints.Where(e => !e.Playback).Select(e => e.Id),
-                    playbackSources = endpoints.Where(e => e.Playback).Select(e => e.Id)
+                    systemSources = endpoints.Where(e => e.Direction == AudioEndpointDirection.Playback).Select(e => e.Id),
+                    microphoneSources = endpoints.Where(e => e.Direction == AudioEndpointDirection.Capture).Select(e => e.Id),
+                    playbackSources = endpoints.Where(e => e.Direction == AudioEndpointDirection.Playback).Select(e => e.Id)
                 }));
                 return 0;
             }
@@ -36,7 +37,7 @@ internal static class Program
             }
             if (mode == "playback")
             {
-                using var output = DeviceAudio.Playback(source, new WaveFormat(48000, 16, 2));
+                using var output = SystemAudio.Playback(source);
                 using var input = Console.OpenStandardInput();
                 var bytes = new byte[3840];
                 var pending = 0;
@@ -48,14 +49,15 @@ internal static class Program
                     var count = total / 4 * 4;
                     if (count > 0)
                     {
-                        output.Write(bytes, 0, count);
+                        output.Write(bytes.AsSpan(0, count));
                         Thread.Sleep(TimeSpan.FromSeconds((double)count / 192000));
                     }
                     pending = total - count;
                     Array.Copy(bytes, count, bytes, 0, pending);
                 }
             }
-            using var capture = DeviceAudio.Capture(source, mode == "capture-system");
+            using var capture = SystemAudio.Capture(source, mode == "capture-system",
+                new AudioCaptureLimits(TimeSpan.FromHours(1), 1L << 30));
             using var stream = Console.OpenStandardOutput();
             using var done = new ManualResetEventSlim();
             var format = capture.Format;
@@ -72,7 +74,10 @@ internal static class Program
             }
             Exception? failure = null;
             capture.Samples += bytes => stream.Write(bytes.Span);
-            capture.Stopped += error => { failure = error; done.Set(); };
+            capture.Stopped += stop => {
+                failure = stop.Error ?? (stop.Reason == "capture_failed" ? new IOException("Native capture failed") : null);
+                done.Set();
+            };
             capture.Start(); done.Wait();
             if (failure != null) throw failure;
             return 0;
