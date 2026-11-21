@@ -65,6 +65,7 @@ test('runtime failures permit cleanup retry and remount; invalid factories are c
 
 test('page bridge exposes only allowed page actions', async () => {
   const listeners = new Set();
+  const dispatched = [];
   const target = {
     addEventListener(_type, listener) { listeners.add(listener); },
     removeEventListener(_type, listener) { listeners.delete(listener); },
@@ -72,11 +73,12 @@ test('page bridge exposes only allowed page actions', async () => {
   };
   const stop = installPageBridgeReceiver(target, {
     allowedActions: new Set(['document.query']),
-    dispatch: async (method, params) => ({method, params}),
+    dispatch: async (method, params) => { dispatched.push({method, params}); return {method, params}; },
   });
   const client = installPageBridgeClient(target);
   assert.deepEqual(await client.api.act('document.query', {selector: 'body'}), {method: 'act', params: {name: 'document.query', input: {selector: 'body'}}});
-  await assert.rejects(client.api.act('storage.set', {values: {secret: true}}), /privileged action/);
+  await assert.rejects(client.api.act('storage.set', {values: {secret: true}}), /Page method failed/);
+  assert.equal(dispatched.length, 1, 'denied actions never reach the executor');
   client.dispose();
   stop();
   assert.equal(target.cymonkey.display, undefined);
@@ -161,7 +163,7 @@ test('sandbox channel binds guest source and nonce before transferring a port', 
     context: {augmentationId: 'overlay', configuration: {mode: 'preview'}},
     createChannel: () => new MessageChannel(),
   });
-  for (const listener of hostListeners) listener({source: {}, data: {channel: 'cymonkey.display.sandbox.ready', id: 'camera', nonce: 'nonce123', status: 'ready'}});
+  for (const listener of hostListeners) listener({source: {}, data: {channel: 'ext.web.sandbox/v1', type: 'ready', nonce: 'nonce123'}});
   const port = await promise;
   assert.deepEqual(received.context, {augmentationId: 'overlay', configuration: {mode: 'preview'}});
   assert.equal(port.constructor.name, 'MessagePort');
