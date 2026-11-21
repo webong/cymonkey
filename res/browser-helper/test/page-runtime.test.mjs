@@ -174,6 +174,33 @@ test('sandbox channel binds guest source and nonce before transferring a port', 
   assert.equal(guestListeners.size, 0);
 });
 
+test('sandbox rejects a mismatched package identity before package connect', async () => {
+  const hostListeners = new Set();
+  const guestListeners = new Set();
+  const host = {
+    addEventListener(_type, listener) { hostListeners.add(listener); },
+    removeEventListener(_type, listener) { hostListeners.delete(listener); },
+  };
+  const guest = {
+    addEventListener(_type, listener) { guestListeners.add(listener); },
+    removeEventListener(_type, listener) { guestListeners.delete(listener); },
+    postMessage(data, _origin, ports = []) { queueMicrotask(() => { for (const listener of guestListeners) listener({source: host, data, ports}); }); },
+  };
+  host.postMessage = (data) => { queueMicrotask(() => { for (const listener of hostListeners) listener({source: guest, data}); }); };
+  let connected = false;
+  const stop = startSandboxGuest({
+    guest, parent: host, id: 'other-package', nonce: 'nonce123', load: () => undefined,
+    connect: () => { connected = true; },
+  });
+  await assert.rejects(connectSandboxHost({
+    host, guest, id: 'camera', nonce: 'nonce123',
+    context: {augmentationId: 'overlay', configuration: {}},
+    createChannel: () => new MessageChannel(),
+  }), /Sandbox guest failed/);
+  assert.equal(connected, false);
+  stop();
+});
+
 test('engine router selects caller-owned runtime delivery', async () => {
   const sent = [];
   const completed = [];

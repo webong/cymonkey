@@ -53,10 +53,15 @@ export function startSandboxGuest(dependencies: {
     parent: dependencies.parent,
     nonce: dependencies.nonce,
     load: dependencies.load,
-    connect(context, port) {
-      if (!record(context) || context.id !== dependencies.id || !valid(context.augmentationId)
-        || !record(context.configuration)) throw new Error('sandbox package context is invalid');
-      return dependencies.connect({augmentationId: context.augmentationId, configuration: context.configuration}, port);
+    async connect(context, port) {
+      try {
+        if (!record(context) || context.id !== dependencies.id || !valid(context.augmentationId)
+          || !record(context.configuration)) throw new Error('sandbox package context is invalid');
+        await dependencies.connect({augmentationId: context.augmentationId, configuration: context.configuration}, port);
+      } catch (error) {
+        port.close();
+        throw error;
+      }
     },
   });
 }
